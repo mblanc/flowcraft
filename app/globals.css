@@ -1,26 +1,204 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: rgb(231, 231, 231);
+  --foreground: rgb(0, 0, 0);
+  --card: rgb(255, 255, 255); /* Changed card background from pure black to dark grey for better contrast with canvas */
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.14 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.65 0.25 252);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: rgb(0, 0, 0);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.62 0 0);
+  --accent: oklch(0.65 0.25 252);
+  --accent-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: rgb(255, 255, 255);
+  --input: oklch(0.24 0 0);
+  --ring: oklch(0.65 0.25 252);
+  --chart-1: oklch(0.65 0.25 252);
+  --chart-2: oklch(0.6 0.2 180);
+  --chart-3: oklch(0.7 0.18 140);
+  --chart-4: oklch(0.75 0.15 60);
+  --chart-5: oklch(0.68 0.22 320);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.14 0 0);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.65 0.25 252);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.22 0 0);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.24 0 0);
+  --sidebar-ring: oklch(0.65 0.25 252);
+  /* Update font variable to use Open Sans */
+  --font-sans: var(--font-open-sans);
 }
 
 @theme inline {
+  /* Update font-sans to use Open Sans variable from Next.js */
+  --font-sans: var(--font-open-sans);
+  --font-mono: ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* React Flow custom styles */
+/* Removed grid pattern to have plain background */
+.react-flow {
+  background-color: oklch(0.12 0 0);
+}
+
+.react-flow__node {
+  font-family: var(--font-sans);
+  background: transparent !important;
+}
+
+.react-flow__node-default,
+.react-flow__node-input,
+.react-flow__node-agent,
+.react-flow__node-image,
+.react-flow__node-video {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.react-flow__edge-path {
+  stroke: oklch(0.65 0.25 252);
+  /* Increased stroke-width from 2 to 4 for better visibility */
+  stroke-width: 4 !important;
+}
+
+/* Converting handle sizes from rem back to px */
+.react-flow__handle {
+  background: oklch(0.65 0.25 252);
+  /* Increased handle size from 10px to 14px */
+  width: 14px !important;
+  height: 14px !important;
+  border: 2px solid oklch(0.16 0 0);
+  border-radius: 50%;
+}
+
+/* Converting positioning offsets back to px */
+.react-flow__handle-left {
+  /* Adjusted offset from -10px to -7px to center 14px handles */
+  left: -7px !important;
+}
+
+.react-flow__handle-right {
+  /* Adjusted offset from -10px to -7px to center 14px handles */
+  right: -7px !important;
+}
+
+.react-flow__handle-top {
+  /* Adjusted offset from -10px to -7px to center 14px handles */
+  top: -7px !important;
+}
+
+.react-flow__handle-bottom {
+  /* Adjusted offset from -10px to -7px to center 14px handles */
+  bottom: -7px !important;
+}
+
+.react-flow__handle:hover {
+  background: oklch(0.75 0.25 252);
+}
+
+/* Enhanced controls styling with !important to override React Flow defaults */
+.react-flow__controls {
+  background: oklch(0.16 0 0) !important;
+  border: 1px solid oklch(0.24 0 0) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3) !important;
+}
+
+.react-flow__controls-button {
+  background: oklch(0.16 0 0) !important;
+  border: none !important;
+  border-bottom: 1px solid oklch(0.24 0 0) !important;
+  color: oklch(0.98 0 0) !important;
+  fill: oklch(0.98 0 0) !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button:hover {
+  background: oklch(0.22 0 0) !important;
+}
+
+.react-flow__controls-button svg {
+  fill: oklch(0.98 0 0) !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Added pulsing background animation for executing image nodes */
+@keyframes pulse-bg {
+  0%,
+  100% {
+    background-color: rgb(255, 255, 255);
+  }
+  50% {
+    background-color: rgb(200, 200, 200);
+  }
+}
+
+.animate-pulse-bg {
+  animation: pulse-bg 2s ease-in-out infinite;
 }

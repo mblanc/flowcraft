@@ -1,0 +1,137 @@
+"use client"
+
+import type React from "react"
+
+import { memo, useRef, useEffect, useState } from "react"
+import { Handle, Position, type NodeProps } from "@xyflow/react"
+import type { VideoData } from "./flow-provider"
+import { Video, Play } from "lucide-react"
+import { useFlow } from "./flow-provider"
+
+export const VideoNode = memo(({ data, selected, id }: NodeProps<VideoData>) => {
+  const { executeNode, updateNodeData } = useFlow()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [localPrompt, setLocalPrompt] = useState(data.prompt)
+
+  useEffect(() => {
+    setLocalPrompt(data.prompt)
+  }, [data.prompt])
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px"
+    }
+  }, [localPrompt])
+
+  const handleExecute = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    executeNode(id)
+  }
+
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setLocalPrompt(e.target.value)
+  }
+
+  const handleBlur = () => {
+    updateNodeData(id, { prompt: localPrompt })
+  }
+
+  return (
+    <div
+      className={`bg-card border-2 rounded-lg p-4 min-w-[220px] shadow-lg transition-all relative ${
+        selected ? "border-primary shadow-primary/20" : "border-border"
+      } ${data.executing ? "animate-pulse-bg" : ""}`}
+    >
+      {/* Prompt Input Handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="prompt-input"
+        className="!bg-pink-500"
+        style={{ top: 35, left: -6 }}
+      />
+      <div className="absolute right-full top-[18px] mr-5 whitespace-nowrap text-pink-500 text-xs font-semibold">
+        Prompt
+      </div>
+
+      {/* First Frame Input Handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="first-frame-input"
+        className="!bg-blue-500"
+        style={{ top: 65, left: -6 }}
+      />
+      <div className="absolute right-full top-[48px] mr-5 whitespace-nowrap text-blue-500 text-xs font-semibold">
+        First Frame
+      </div>
+
+      {/* Last Frame Input Handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="last-frame-input"
+        className="!bg-purple-500"
+        style={{ top: 95, left: -6 }}
+      />
+      <div className="absolute right-full top-[78px] mr-5 whitespace-nowrap text-purple-500 text-xs font-semibold">
+        Last Frame
+      </div>
+
+      {/* Image(s) Input Handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="image-input"
+        className="!bg-green-500"
+        style={{ top: 125, left: -6 }}
+      />
+      <div className="absolute right-full top-[108px] mr-5 whitespace-nowrap text-green-500 text-xs font-semibold">
+        Image(s)
+      </div>
+
+      <div className="flex items-start gap-3 mb-3">
+        <div className="flex-shrink-0 w-10 h-10 rounded-md bg-pink-500/10 flex items-center justify-center">
+          <Video className="h-5 w-5 text-pink-400" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-foreground text-sm mb-1 truncate">{data.name}</h3>
+          <textarea
+            ref={textareaRef}
+            value={localPrompt}
+            onChange={handlePromptChange}
+            onBlur={handleBlur}
+            placeholder="Enter prompt..."
+            className="w-full text-xs text-muted-foreground bg-transparent border-none outline-none resize-none overflow-hidden focus:text-foreground transition-colors nodrag mb-2 break-words"
+            rows={1}
+          />
+          <div className="text-xs text-muted-foreground">
+            Video {data.videoUrl && "(Generated)"}
+            {data.executing && <span className="ml-2 text-pink-400">Generating...</span>}
+          </div>
+        </div>
+      </div>
+
+      {data.videoUrl && (
+        <div className="mt-3 rounded-md overflow-hidden border border-border">
+          <video src={data.videoUrl} controls className="w-full h-auto max-h-[300px]" />
+        </div>
+      )}
+
+      <button
+        onClick={handleExecute}
+        disabled={data.executing}
+        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Play className="h-3 w-3" />
+        Execute Node
+      </button>
+
+      <Handle type="source" position={Position.Right} className="!bg-pink-500" id="result-output" />
+    </div>
+  )
+})
+
+VideoNode.displayName = "VideoNode"
