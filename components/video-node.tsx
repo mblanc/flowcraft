@@ -3,12 +3,12 @@
 import type React from "react"
 
 import { memo, useRef, useEffect, useState } from "react"
-import { Handle, Position, type NodeProps } from "@xyflow/react"
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
 import type { VideoData } from "./flow-provider"
 import { Video, Play } from "lucide-react"
 import { useFlow } from "./flow-provider"
 
-export const VideoNode = memo(({ data, selected, id }: NodeProps<VideoData>) => {
+export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>>) => {
   const { executeNode, updateNodeData } = useFlow()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [localPrompt, setLocalPrompt] = useState(data.prompt)

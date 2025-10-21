@@ -80,9 +80,6 @@ export async function POST(request: Request) {
 
     console.log("[SERVER] Video generated successfully, downloading...")
 
-    const videoFile = videos[0].video
-    console.log("[SERVER] Downloading video file...")
-
     const videoBytes = videos[0]?.video?.videoBytes
     if (!videoBytes) {
       throw new Error("Video bytes are not defined")

@@ -1,4 +1,4 @@
-import { GoogleGenAI, createPartFromBase64, createPartFromText } from "@google/genai"
+import { GoogleGenAI, createPartFromBase64, createPartFromText, ContentListUnion } from "@google/genai"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     console.log("[v0] Model:", model)
     console.log("[v0] Resolution:", resolution)
 
-    const contentParts: any[] = []
+    const contentParts: ContentListUnion = []
 
     for (const imageUrl of images) {
       if (imageUrl.startsWith("data:image/")) {
@@ -48,9 +48,9 @@ export async function POST(request: Request) {
           ...{ imageConfig: { aspectRatio: aspectRatio }},
         },
       })
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
       console.error("[v0] Gemini API error:", apiError)
-      if (apiError.message) {
+      if (apiError instanceof Error && apiError.message) {
         return NextResponse.json({ error: "Gemini API error", details: apiError.message }, { status: 500 })
       }
       throw apiError

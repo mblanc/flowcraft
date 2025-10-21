@@ -3,12 +3,13 @@
 import type React from "react"
 
 import { memo, useRef, useEffect, useState } from "react"
-import { Handle, Position, type NodeProps } from "@xyflow/react"
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
 import type { ImageData } from "./flow-provider"
 import { ImageIcon, Play } from "lucide-react"
 import { useFlow } from "./flow-provider"
+import Image from "next/image"
 
-export const ImageNode = memo(({ data, selected, id }: NodeProps<ImageData>) => {
+export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>>) => {
   const { executeNode, updateNodeData } = useFlow()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [localPrompt, setLocalPrompt] = useState(data.prompt)
@@ -92,9 +93,11 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<ImageData>) => 
 
       {data.images.length > 0 && (
         <div className="mt-3 rounded-md overflow-hidden border border-border">
-          <img
+          <Image
             src={data.images[0] || "/placeholder.svg"}
             alt={data.name}
+            width={300}
+            height={200}
             className="w-full h-auto object-contain max-h-[300px]"
           />
         </div>

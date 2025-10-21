@@ -14,35 +14,23 @@ import {
 
 export type NodeType = "agent" | "text" | "image" | "video" | "file"
 
-export type ToolType = "function" | "built-in" | "third-party" | "google-cloud" | "mcp" | "openapi"
-
-export interface Tool {
-  id: string
-  name: string
-  toolType: ToolType
-  category?: string
-  description?: string
-  config?: Record<string, any>
-}
-
-export interface AgentData {
+export interface AgentData extends Record<string, unknown> {
   type: "agent"
   name: string
   model: string
   instructions: string
-  tools: Tool[]
   output?: string
   executing?: boolean
 }
 
-export interface TextData {
+export interface TextData extends Record<string, unknown> {
   type: "text"
   name: string
   text: string
   executing?: boolean
 }
 
-export interface ImageData {
+export interface ImageData extends Record<string, unknown> {
   type: "image"
   name: string
   prompt: string
@@ -57,7 +45,7 @@ export interface ImageData {
   executing?: boolean
 }
 
-export interface VideoData {
+export interface VideoData extends Record<string, unknown> {
   type: "video"
   name: string
   prompt: string
@@ -73,7 +61,7 @@ export interface VideoData {
   executing?: boolean
 }
 
-export interface FileData {
+export interface FileData extends Record<string, unknown> {
   type: "file"
   name: string
   fileType: "image" | "video" | null
@@ -121,7 +109,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [selectedNode, setSelectedNode] = useState<Node<NodeData> | null>(null)
   const [isRunning, setIsRunning] = useState(false)
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), [])
+  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds) as Node<NodeData>[]), [])
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), [])
 
@@ -137,7 +125,6 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         name: "Agent",
         model: "gemini-2.5-flash",
         instructions: "",
-        tools: [],
       },
     }
     setNodes((nds) => [...nds, newNode])
@@ -188,7 +175,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         aspectRatio: "16:9",
         duration: 4,
         model: "veo-3.1-fast-generate-preview",
-        generateAudio: true,
+        generateAudio: false,
         resolution: "720p",
       },
     }
@@ -237,9 +224,9 @@ export function FlowProvider({ children }: { children: ReactNode }) {
 
   const updateNodeData = useCallback(
     (nodeId: string, data: Partial<NodeData>) => {
-      setNodes((nds) => nds.map((node) => (node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node)))
+      setNodes((nds) => nds.map((node) => (node.id === nodeId ? { ...node, data: { ...node.data, ...data } as NodeData } : node)) as Node<NodeData>[])
       if (selectedNode?.id === nodeId) {
-        setSelectedNode((prev) => (prev ? { ...prev, data: { ...prev.data, ...data } } : null))
+        setSelectedNode((prev) => (prev ? { ...prev, data: { ...prev.data, ...data } as NodeData } : null) as Node<NodeData> | null)
       }
     },
     [selectedNode],

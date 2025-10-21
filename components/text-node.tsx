@@ -3,13 +3,13 @@
 import type React from "react"
 
 import { memo, useState, useEffect, useRef } from "react"
-import { Handle, Position, type NodeProps } from "@xyflow/react"
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
 import type { TextData } from "./flow-provider"
 import { FileText } from "lucide-react"
 import { useFlow } from "./flow-provider"
 import { Textarea } from "./ui/textarea"
 
-export const TextNode = memo(({ data, selected, id }: NodeProps<TextData>) => {
+export const TextNode = memo(({ data, selected, id }: NodeProps<Node<TextData>>) => {
   const { updateNodeData } = useFlow()
   const [localText, setLocalText] = useState(data.text)
   const textareaRef = useRef<HTMLTextAreaElement>(null)

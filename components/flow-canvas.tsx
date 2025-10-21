@@ -3,9 +3,9 @@
 import type React from "react"
 
 import { useCallback } from "react"
-import { ReactFlow, Controls, Panel } from "@xyflow/react"
+import { ReactFlow, Controls, Panel, type Node } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
-import { useFlow } from "./flow-provider"
+import { NodeData, useFlow } from "./flow-provider"
 import { AgentNode } from "./agent-node"
 import { TextNode } from "./text-node"
 import { ImageNode } from "./image-node"
@@ -40,7 +40,7 @@ export function FlowCanvas() {
   } = useFlow()
 
   const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: any) => {
+    (_: React.MouseEvent, node: Node<NodeData>) => {
       selectNode(node.id)
     },
     [selectNode],

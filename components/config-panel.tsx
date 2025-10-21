@@ -2,13 +2,11 @@
 
 import {
   useFlow,
-  type Tool,
   type AgentData,
   type TextData,
   type ImageData,
   type VideoData,
   type FileData,
-  type InputData, // Declare InputData here
 } from "./flow-provider"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
@@ -16,31 +14,11 @@ import { Textarea } from "./ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Button } from "./ui/button"
 import { Plus, Trash2 } from "lucide-react"
+import Image from "next/image"
 
 function AgentConfig({ data, nodeId }: { data: AgentData; nodeId: string }) {
   const { updateNodeData } = useFlow()
 
-  const addTool = () => {
-    const newTool: Tool = {
-      id: `tool-${Date.now()}`,
-      name: "New Tool",
-      toolType: "built-in",
-      category: "Google Search",
-      description: "",
-      config: {},
-    }
-    updateNodeData(nodeId, { tools: [...(data.tools || []), newTool] })
-  }
-
-  const removeTool = (toolId: string) => {
-    updateNodeData(nodeId, { tools: data.tools.filter((t) => t.id !== toolId) })
-  }
-
-  const updateTool = (toolId: string, updates: Partial<Tool>) => {
-    updateNodeData(nodeId, {
-      tools: data.tools.map((t) => (t.id === toolId ? { ...t, ...updates } : t)),
-    })
-  }
 
   return (
     <div className="space-y-6">
@@ -80,135 +58,6 @@ function AgentConfig({ data, nodeId }: { data: AgentData; nodeId: string }) {
         />
       </div>
 
-      <div className="space-y-4 p-4 border border-border rounded-lg bg-muted/30">
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-semibold text-foreground">Tools</h4>
-          <Button onClick={addTool} size="sm" variant="outline" className="h-8 bg-transparent">
-            <Plus className="h-4 w-4 mr-1" />
-            Add Tool
-          </Button>
-        </div>
-
-        {data.tools && data.tools.length > 0 ? (
-          <div className="space-y-4">
-            {data.tools.map((tool) => (
-              <div key={tool.id} className="p-3 border border-border rounded-md bg-card space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <Input
-                    value={tool.name}
-                    onChange={(e) => updateTool(tool.id, { name: e.target.value })}
-                    placeholder="Tool name"
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={() => removeTool(tool.id)}
-                    size="sm"
-                    variant="ghost"
-                    className="h-9 w-9 p-0 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <Select
-                  value={tool.toolType}
-                  onValueChange={(value) => updateTool(tool.id, { toolType: value as any })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="function">Function</SelectItem>
-                    <SelectItem value="built-in">Built-In</SelectItem>
-                    <SelectItem value="third-party">3rd Party</SelectItem>
-                    <SelectItem value="google-cloud">Google Cloud</SelectItem>
-                    <SelectItem value="mcp">Model Context Protocol</SelectItem>
-                    <SelectItem value="openapi">OpenAPI</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {tool.toolType === "built-in" && (
-                  <Select value={tool.category} onValueChange={(value) => updateTool(tool.id, { category: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Google Search">Google Search</SelectItem>
-                      <SelectItem value="Code Execution">Code Execution</SelectItem>
-                      <SelectItem value="Vertex AI Search">Vertex AI Search</SelectItem>
-                      <SelectItem value="BigQuery">BigQuery</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-
-                {tool.toolType === "third-party" && (
-                  <Select value={tool.category} onValueChange={(value) => updateTool(tool.id, { category: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LangChain">LangChain</SelectItem>
-                      <SelectItem value="CrewAI">CrewAI</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-
-                {tool.toolType === "google-cloud" && (
-                  <Select value={tool.category} onValueChange={(value) => updateTool(tool.id, { category: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Apigee API Hub">Apigee API Hub</SelectItem>
-                      <SelectItem value="Application Integration">Application Integration</SelectItem>
-                      <SelectItem value="Toolbox for Databases">Toolbox for Databases</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-
-                <Textarea
-                  value={tool.description || ""}
-                  onChange={(e) => updateTool(tool.id, { description: e.target.value })}
-                  placeholder="Tool description..."
-                  rows={2}
-                  className="text-xs"
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No tools added yet</p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function InputConfig({ data, nodeId }: { data: InputData; nodeId: string }) {
-  const { updateNodeData } = useFlow()
-
-  return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          value={data.name}
-          onChange={(e) => updateNodeData(nodeId, { name: e.target.value })}
-          placeholder="Input name"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="text">Text</Label>
-        <Textarea
-          id="text"
-          value={data.text}
-          onChange={(e) => updateNodeData(nodeId, { text: e.target.value })}
-          placeholder="Enter input text..."
-          rows={8}
-        />
-      </div>
     </div>
   )
 }
@@ -312,10 +161,12 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
           <div className="space-y-2">
             {data.images.map((image, index) => (
               <div key={index} className="flex items-center gap-2 p-2 border border-border rounded-md bg-card">
-                <img
+                <Image
                   src={image || "/placeholder.svg"}
                   alt={`Image ${index + 1}`}
-                  className="w-12 h-12 object-cover rounded"
+                  width={48}
+                  height={48}
+                  className="object-cover rounded"
                 />
                 <span className="flex-1 text-xs text-muted-foreground truncate">{image}</span>
                 <Button
@@ -467,10 +318,12 @@ function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
           <div className="space-y-2">
             {data.images.map((image, index) => (
               <div key={index} className="flex items-center gap-2 p-2 border border-border rounded-md bg-card">
-                <img
+                <Image
                   src={image || "/placeholder.svg"}
                   alt={`Image ${index + 1}`}
-                  className="w-12 h-12 object-cover rounded"
+                  width={48}
+                  height={48}
+                  className="object-cover rounded"
                 />
                 <span className="flex-1 text-xs text-muted-foreground truncate">{image}</span>
                 <Button
@@ -526,7 +379,7 @@ function FileConfig({ data, nodeId }: { data: FileData; nodeId: string }) {
           <Label>Preview</Label>
           <div className="rounded-md overflow-hidden border border-border">
             {data.fileType === "image" ? (
-              <img src={data.fileUrl || "/placeholder.svg"} alt={data.fileName} className="w-full h-auto" />
+              <Image src={data.fileUrl || "/placeholder.svg"} alt={data.fileName} width={300} height={200} className="w-full h-auto" />
             ) : data.fileType === "video" ? (
               <video src={data.fileUrl} controls className="w-full h-auto" />
             ) : null}

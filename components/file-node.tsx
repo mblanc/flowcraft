@@ -3,12 +3,13 @@
 import type React from "react"
 
 import { memo, useRef } from "react"
-import { Handle, Position, type NodeProps } from "@xyflow/react"
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
 import type { FileData } from "./flow-provider"
 import { FileUp, ImageIcon, Video } from "lucide-react"
 import { useFlow } from "./flow-provider"
+import Image from "next/image"
 
-export const FileNode = memo(({ data, selected, id }: NodeProps<FileData>) => {
+export const FileNode = memo(({ data, selected, id }: NodeProps<Node<FileData>>) => {
   const { updateNodeData } = useFlow()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -73,9 +74,11 @@ export const FileNode = memo(({ data, selected, id }: NodeProps<FileData>) => {
       {data.fileUrl && (
         <div className="mt-3 rounded-md overflow-hidden border border-border">
           {data.fileType === "image" ? (
-            <img
+            <Image
               src={data.fileUrl || "/placeholder.svg"}
               alt={data.fileName}
+              width={200}
+              height={150}
               className="w-full h-auto object-contain max-h-[300px]"
             />
           ) : data.fileType === "video" ? (

@@ -1,4 +1,4 @@
-import { GoogleGenAI, createPartFromBase64, createPartFromText } from "@google/genai"
+import { GoogleGenAI, createPartFromBase64, createPartFromText, ContentListUnion } from "@google/genai"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const ai = new GoogleGenAI({ vertexai: true, project: process.env.GEMINI_PROJECT_ID, location: process.env.GEMINI_LOCATION })
 
     // Build contents array with text and files
-    const contents: any[] = [createPartFromText(prompt)]
+    const contents: ContentListUnion = [createPartFromText(prompt)]
 
     // Add files if provided
     if (files && files.length > 0) {

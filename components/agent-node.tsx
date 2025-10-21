@@ -3,12 +3,12 @@
 import type React from "react"
 
 import { memo, useRef, useEffect, useState } from "react"
-import { Handle, Position, type NodeProps } from "@xyflow/react"
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
 import type { AgentData } from "./flow-provider"
 import { Bot, Play } from "lucide-react"
 import { useFlow } from "./flow-provider"
 
-export const AgentNode = memo(({ data, selected, id }: NodeProps<AgentData>) => {
+export const AgentNode = memo(({ data, selected, id }: NodeProps<Node<AgentData>>) => {
   const { updateNodeData, executeNode } = useFlow()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [localInstructions, setLocalInstructions] = useState(data.instructions)
@@ -87,21 +87,6 @@ export const AgentNode = memo(({ data, selected, id }: NodeProps<AgentData>) => 
           {data.executing && <div className="text-xs text-primary mt-2">Generating...</div>}
         </div>
       </div>
-
-      {data.tools && data.tools.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-border/50">
-          <div className="flex flex-wrap gap-1.5">
-            {data.tools.map((tool) => (
-              <div
-                key={tool.id}
-                className="inline-flex items-center px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium"
-              >
-                {tool.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {data.output && (
         <div className="mt-3 pt-3 border-t border-border/50">
