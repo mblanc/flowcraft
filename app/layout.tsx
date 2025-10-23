@@ -4,6 +4,8 @@ import { Open_Sans } from "next/font/google"
 import { Suspense } from "react"
 import "./globals.css"
 
+import { SessionProvider as NextAuthSessionProvider } from 'next-auth/react'
+
 const openSans = Open_Sans({
   weight: ["300", "400", "500", "600", "700"],
   subsets: ["latin"],
@@ -12,9 +14,8 @@ const openSans = Open_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "FlowCraft 2",
-  description: "Created with v0",
-  generator: "v0.app",
+  title: "FlowCraft",
+  description: "A visual workflow builder for AI-powered content generation using Google's AI models",
 }
 
 export default function RootLayout({
@@ -25,7 +26,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${openSans.variable}`}>
-        <Suspense fallback={null}>{children}</Suspense>
+        <NextAuthSessionProvider>
+          <Suspense fallback={null}>{children}</Suspense>
+        </NextAuthSessionProvider>
       </body>
     </html>
   )

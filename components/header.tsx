@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Download, Upload } from "lucide-react"
 import { useFlow } from "@/components/flow-provider"
+import { UserProfile } from "./user-profile"
 
 export function Header() {
   const { exportFlow, importFlow } = useFlow()
@@ -27,6 +28,7 @@ export function Header() {
           <Download className="h-4 w-4 mr-2" />
           Export
         </Button>
+        <UserProfile isCollapsed={false} />
       </div>
     </header>
   )
