@@ -4,9 +4,7 @@
 - Processing Nodes : upscale, inpaint, outpaint, create mask, filters, ...
 - Logic Nodes : branch, merge
  - Output Nodes? : To save the generated images and videos to a user's gallery or download them directly., integration with 3p?
-- auth
-- saving flow
-- GCS storage
+- GCS storage => upload files
 - Lyria/Chirp/Gemini 2.5 TTS
 
 ## Should have:

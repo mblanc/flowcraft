@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { GoogleGenAI, GenerateVideosParameters } from "@google/genai"
 
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export async function POST(request: Request) {
   try {
     const { prompt, firstFrame, lastFrame, images, aspectRatio, duration, model, generateAudio, resolution } =
@@ -58,6 +62,7 @@ export async function POST(request: Request) {
     while (!operation.done && pollCount < maxPolls) {
       console.log(`[SERVER] Polling... (${pollCount + 1}/${maxPolls})`)
       operation = await ai.operations.get({ operation: operation })
+      delay(5000)
       pollCount++
     }
 
