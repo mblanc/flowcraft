@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     console.log("[SERVER] Prompt:", prompt)
     console.log("[SERVER] Number of files:", files?.length || 0)
 
-    const ai = new GoogleGenAI({ vertexai: true, project: process.env.GEMINI_PROJECT_ID, location: process.env.GEMINI_LOCATION })
+    const ai = new GoogleGenAI({ vertexai: true, project: process.env.PROJECT_ID, location: process.env.LOCATION })
 
     // Build contents array with text and files
     const contents: ContentListUnion = [createPartFromText(prompt)]

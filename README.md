@@ -94,8 +94,8 @@ npm install
 Create a `.env.local` file in the root directory:
 
 ```env
-GEMINI_PROJECT_ID=your-google-cloud-project-id
-GEMINI_LOCATION=your-preferred-location
+PROJECT_ID=your-google-cloud-project-id
+LOCATION=your-preferred-location
 ```
 
 ### 4. Google Cloud Setup
@@ -204,8 +204,8 @@ flowcraft/
 
 ### Environment Variables for Production
 ```env
-GEMINI_PROJECT_ID=your-project-id
-GEMINI_LOCATION=your-location
+PROJECT_ID=your-project-id
+LOCATION=your-location
 GOOGLE_APPLICATION_CREDENTIALS=path-to-service-account-key
 ```
 

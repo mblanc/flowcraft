@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     console.log("[SERVER] Last frame:", lastFrame ? "Yes" : "No")
     console.log("[SERVER] Reference images:", images?.length || 0)
 
-    const ai = new GoogleGenAI({ vertexai: true, project: process.env.GEMINI_PROJECT_ID, location: process.env.GEMINI_LOCATION })
+    const ai = new GoogleGenAI({ vertexai: true, project: process.env.PROJECT_ID, location: process.env.LOCATION })
 
     const videoRequest: GenerateVideosParameters = {
       model: model || "veo-3.1-fast-generate-preview",
