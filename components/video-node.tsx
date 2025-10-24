@@ -12,6 +12,7 @@ export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>
   const { executeNode, updateNodeData } = useFlow()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [localPrompt, setLocalPrompt] = useState(data.prompt)
+  const [videoPlaybackUrl, setVideoPlaybackUrl] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     setLocalPrompt(data.prompt)
@@ -23,6 +24,31 @@ export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>
       textareaRef.current.style.height = textareaRef.current.scrollHeight + "px"
     }
   }, [localPrompt])
+
+  useEffect(() => {
+    const fetchSignedUrl = async (gcsUri: string, setter: (url: string | undefined) => void) => {
+      try {
+        const response = await fetch(`/api/signed-url?gcsUri=${encodeURIComponent(gcsUri)}`)
+        const data = await response.json()
+        if (data.signedUrl) {
+          setter(data.signedUrl)
+        } else {
+          console.error("Failed to get signed URL:", data.error)
+          setter(undefined)
+        }
+      } catch (error) {
+        console.error("Error fetching signed URL:", error)
+        setter(undefined)
+      }
+    }
+
+    if (data.videoUrl && data.videoUrl.startsWith("gs://")) {
+      fetchSignedUrl(data.videoUrl, setVideoPlaybackUrl)
+    } else {
+      setVideoPlaybackUrl(data.videoUrl)
+    }
+
+  }, [data.videoUrl])
 
   const handleExecute = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -116,7 +142,7 @@ export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>
 
       {data.videoUrl && (
         <div className="mt-3 rounded-md overflow-hidden border border-border">
-          <video src={data.videoUrl} controls className="w-full h-auto max-h-[300px]" />
+          <video src={videoPlaybackUrl} controls className="w-full h-auto max-h-[300px]" />
         </div>
       )}
 

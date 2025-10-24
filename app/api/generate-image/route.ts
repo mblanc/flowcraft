@@ -1,5 +1,7 @@
-import { GoogleGenAI, createPartFromBase64, createPartFromText, ContentListUnion } from "@google/genai"
+import { GoogleGenAI, createPartFromBase64, createPartFromUri, createPartFromText, ContentListUnion } from "@google/genai"
 import { NextResponse } from "next/server"
+import { v4 as uuidv4 } from 'uuid'
+import { uploadImage } from "@/lib/storage"
 
 export async function POST(request: Request) {
   try {
@@ -31,6 +33,8 @@ export async function POST(request: Request) {
         const base64Data = imageUrl.split(",")[1]
         const mimeType = imageUrl.split(";")[0].split(":")[1]
         contentParts.push(createPartFromBase64(base64Data, mimeType))
+      } else if (imageUrl.startsWith("gs://")) {
+        contentParts.push(createPartFromUri(imageUrl, "image/png"))
       }
     }
 
@@ -46,6 +50,7 @@ export async function POST(request: Request) {
         config: {
           responseModalities: ["IMAGE"],
           ...{ imageConfig: { aspectRatio: aspectRatio }},
+
         },
       })
     } catch (apiError: unknown) {
@@ -69,21 +74,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No content parts in response" }, { status: 500 })
     }
 
+    
+    let imageGcsUri;
     for (const part of candidate.content.parts) {
-      if (part.inlineData) {
-        const base64ImageBytes: string = part.inlineData.data || ""
-        const imageUrl = `data:image/png;base64,${base64ImageBytes}`
-
-        console.log("[v0] Image generated successfully")
-
-        return NextResponse.json({
-          imageUrl,
-          prompt,
-        })
-      } else {
-        console.log(response.text)
-      }
-    }
+        if (part.inlineData) {
+            const imageBuffer = Buffer.from(part.inlineData!.data!, "base64");
+            const mimeType = part.inlineData!.mimeType!;
+            const extension = mimeType.split("/")[1] || "png";
+            const uuid = uuidv4()
+            imageGcsUri = await uploadImage(imageBuffer.toString('base64'), `gemini-${uuid}.${extension}`)
+            return NextResponse.json({
+              imageUrl: imageGcsUri,
+              prompt,
+            });
+        } else {
+          console.log(response.text)
+        }
+    };
 
     console.error("[v0] No inline data found in response parts")
     return NextResponse.json({ error: "No image data in response" }, { status: 500 })

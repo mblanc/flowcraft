@@ -1,20 +1,26 @@
 "use client"
 
-import { FlowCanvas } from "@/components/flow-canvas"
-import { FlowProvider } from "@/components/flow-provider"
-import { Header } from "@/components/header"
-import { Sidebar } from "@/components/sidebar"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { Loader2 } from "lucide-react"
 
 export default function Home() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/flows")
+    } else if (status === "unauthenticated") {
+      router.push("/sign-in")
+    }
+  }, [status, router])
+
   return (
-    <FlowProvider>
-      <div className="flex h-screen flex-col bg-background">
-        <Header />
-        <div className="flex flex-1 overflow-hidden">
-          <FlowCanvas />
-          <Sidebar />
-        </div>
-      </div>
-    </FlowProvider>
+    <div className="flex h-screen items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
   )
 }
+

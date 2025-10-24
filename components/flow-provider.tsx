@@ -77,6 +77,8 @@ interface FlowContextType {
   edges: Edge[]
   selectedNode: Node<NodeData> | null
   isRunning: boolean
+  flowId: string | null
+  flowName: string
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
   onConnect: (connection: Connection) => void
@@ -87,10 +89,13 @@ interface FlowContextType {
   addFileNode: () => void
   selectNode: (nodeId: string | null) => void
   updateNodeData: (nodeId: string, data: Partial<NodeData>) => void
+  updateFlowName: (name: string) => void
   runFlow: () => Promise<void>
   executeNode: (nodeId: string) => Promise<void>
   exportFlow: () => void
   importFlow: () => void
+  loadFlow: (id: string, nodes: Node<NodeData>[], edges: Edge[], name: string) => void
+  saveFlow: () => Promise<void>
 }
 
 const FlowContext = createContext<FlowContextType | null>(null)
@@ -108,10 +113,66 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [edges, setEdges] = useState<Edge[]>([])
   const [selectedNode, setSelectedNode] = useState<Node<NodeData> | null>(null)
   const [isRunning, setIsRunning] = useState(false)
+  const [flowId, setFlowId] = useState<string | null>(null)
+  const [flowName, setFlowName] = useState<string>("Untitled Flow")
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds) as Node<NodeData>[]), [])
+  const saveFlow = useCallback(async () => {
+    if (!flowId) return
 
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), [])
+    try {
+      await fetch(`/api/flows/${flowId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: flowName,
+          nodes,
+          edges,
+        }),
+      })
+      console.log("[v0] Flow auto-saved")
+    } catch (error) {
+      console.error("[v0] Error saving flow:", error)
+    }
+  }, [flowId, flowName, nodes, edges])
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      setNodes((nds) => applyNodeChanges(changes, nds) as Node<NodeData>[])
+      
+      // Auto-save after changes
+      if (flowId) {
+        if (autoSaveTimeout) {
+          clearTimeout(autoSaveTimeout)
+        }
+        const timeout = setTimeout(() => {
+          saveFlow()
+        }, 2000)
+        setAutoSaveTimeout(timeout)
+      }
+    },
+    [flowId, autoSaveTimeout, saveFlow]
+  )
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      setEdges((eds) => applyEdgeChanges(changes, eds))
+      
+      // Auto-save after changes
+      if (flowId) {
+        if (autoSaveTimeout) {
+          clearTimeout(autoSaveTimeout)
+        }
+        const timeout = setTimeout(() => {
+          saveFlow()
+        }, 2000)
+        setAutoSaveTimeout(timeout)
+      }
+    },
+    [flowId, autoSaveTimeout, saveFlow]
+  )
 
   const onConnect = useCallback((connection: Connection) => setEdges((eds) => addEdge(connection, eds)), [])
 
@@ -728,6 +789,29 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     input.click()
   }, [])
 
+  const loadFlow = useCallback((id: string, flowNodes: Node<NodeData>[], flowEdges: Edge[], name: string) => {
+    setFlowId(id)
+    setFlowName(name)
+    setNodes(flowNodes)
+    setEdges(flowEdges)
+    setSelectedNode(null)
+    console.log("[v0] Flow loaded:", id)
+  }, [])
+
+  const updateFlowName = useCallback((name: string) => {
+    setFlowName(name)
+    // Auto-save after name change
+    if (flowId) {
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout)
+      }
+      const timeout = setTimeout(() => {
+        saveFlow()
+      }, 2000)
+      setAutoSaveTimeout(timeout)
+    }
+  }, [flowId, autoSaveTimeout, saveFlow])
+
   return (
     <FlowContext.Provider
       value={{
@@ -735,6 +819,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         edges,
         selectedNode,
         isRunning,
+        flowId,
+        flowName,
         onNodesChange,
         onEdgesChange,
         onConnect,
@@ -745,10 +831,13 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         addFileNode,
         selectNode,
         updateNodeData,
+        updateFlowName,
         runFlow,
         executeNode,
         exportFlow,
         importFlow,
+        loadFlow,
+        saveFlow,
       }}
     >
       {children}

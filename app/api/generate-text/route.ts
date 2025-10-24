@@ -1,4 +1,4 @@
-import { GoogleGenAI, createPartFromBase64, createPartFromText, ContentListUnion } from "@google/genai"
+import { GoogleGenAI, createPartFromBase64, createPartFromText, ContentListUnion, createPartFromUri } from "@google/genai"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
@@ -18,11 +18,15 @@ export async function POST(request: Request) {
     if (files && files.length > 0) {
       for (const file of files) {
         // Extract base64 data from data URL
-        const base64Match = file.url.match(/^data:([^;]+);base64,(.+)$/)
-        if (base64Match) {
-          const mimeType = base64Match[1]
-          const base64Data = base64Match[2]
-          contents.push(createPartFromBase64(base64Data, mimeType))
+        if (file.url.startsWith("gs://")) {
+          contents.push(createPartFromUri(file.url, "application/pdf"))
+        } else if (file.url.startsWith("data:image/")) {
+          const base64Match = file.url.match(/^data:([^;]+);base64,(.+)$/)
+          if (base64Match) {
+            const mimeType = base64Match[1]
+            const base64Data = base64Match[2]
+            contents.push(createPartFromBase64(base64Data, mimeType))
+          }
         }
       }
     }

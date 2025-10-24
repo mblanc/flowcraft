@@ -34,24 +34,21 @@ export async function POST(request: Request) {
         aspectRatio: aspectRatio || "16:9",
         generateAudio: generateAudio !== false,
         resolution: resolution || "720p",
+        outputGcsUri: process.env.GCS_STORAGE_URI,
       },
     }
 
-    if (firstFrame && firstFrame.startsWith("data:image/")) {
-      const base64Data = firstFrame.split(",")[1]
-      const mimeType = firstFrame.split(";")[0].split(":")[1]
+    if (firstFrame && firstFrame.startsWith("gs://")) {
       videoRequest.source!.image = {
-        imageBytes: base64Data,
-        mimeType: mimeType,
+        gcsUri: firstFrame,
+        mimeType: "image/png",
       }
     }
 
-    if (lastFrame && lastFrame.startsWith("data:image/")) {
-      const base64Data = lastFrame.split(",")[1]
-      const mimeType = lastFrame.split(";")[0].split(":")[1]
+    if (lastFrame && lastFrame.startsWith("gs://")) {
       videoRequest.config!.lastFrame = {
-        imageBytes: base64Data,
-        mimeType: mimeType,
+        gcsUri: lastFrame,
+        mimeType: "image/png",
       }
     }
 
@@ -64,7 +61,6 @@ export async function POST(request: Request) {
 
     while (!operation.done && pollCount < maxPolls) {
       console.log(`[SERVER] Polling... (${pollCount + 1}/${maxPolls})`)
-      await delay(5000)
       operation = await ai.operations.get({ operation: operation })
       pollCount++
     }
@@ -75,20 +71,18 @@ export async function POST(request: Request) {
 
     const videos = operation.response?.generatedVideos
     if (!videos || videos.length === 0) {
+      console.log(JSON.stringify(operation.response, null, 2) )
       throw new Error("No videos generated")
     }
 
     console.log("[SERVER] Video generated successfully, downloading...")
 
-    const videoBytes = videos[0]?.video?.videoBytes
-    if (!videoBytes) {
-      throw new Error("Video bytes are not defined")
+    const videoUri = videos[0]?.video?.uri
+    if (!videoUri) {
+      throw new Error("Video URI is not defined")
     }
-    const videoUrl = `data:video/mp4;base64,${videoBytes}`
 
-    console.log("[SERVER] Video downloaded and encoded to base64")
-
-    return NextResponse.json({ videoUrl })
+    return NextResponse.json({ videoUrl: videoUri })
   } catch (error) {
     console.error("[v0] Error generating video:", error)
     return NextResponse.json(

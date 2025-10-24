@@ -1,18 +1,19 @@
 "use client"
 
 import type React from "react"
+import Image from "next/image"
 
 import { memo, useRef, useEffect, useState } from "react"
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
 import type { ImageData } from "./flow-provider"
 import { ImageIcon, Play } from "lucide-react"
 import { useFlow } from "./flow-provider"
-import Image from "next/image"
 
 export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>>) => {
   const { executeNode, updateNodeData } = useFlow()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [localPrompt, setLocalPrompt] = useState(data.prompt)
+  const [imageSignedUrl, setImageSignedUrl] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     setLocalPrompt(data.prompt)
@@ -24,6 +25,33 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
       textareaRef.current.style.height = textareaRef.current.scrollHeight + "px"
     }
   }, [localPrompt])
+
+  useEffect(() => {
+    if (data.images && data.images.length > 0) {
+      const imageSource = data.images[0]
+      if (imageSource.startsWith("gs://")) {
+        fetch(`/api/signed-url?gcsUri=${encodeURIComponent(imageSource)}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.signedUrl) {
+              setImageSignedUrl(data.signedUrl)
+            } else {
+              console.error("Failed to get signed URL:", data.error)
+              setImageSignedUrl("/placeholder.svg")
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching signed URL:", error)
+            setImageSignedUrl("/placeholder.svg")
+          })
+      } else {
+        console.log("Image source:", imageSource)
+        setImageSignedUrl(imageSource)
+      }
+    } else {
+      setImageSignedUrl("/placeholder.svg")
+    }
+  }, [data.images])
 
   const handleExecute = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -91,10 +119,10 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
         </div>
       </div>
 
-      {data.images.length > 0 && (
+      {data.images.length > 0 && imageSignedUrl && (
         <div className="mt-3 rounded-md overflow-hidden border border-border">
           <Image
-            src={data.images[0] || "/placeholder.svg"}
+            src={imageSignedUrl}
             alt={data.name}
             width={300}
             height={200}
