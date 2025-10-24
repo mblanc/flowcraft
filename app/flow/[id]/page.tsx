@@ -13,7 +13,7 @@ function FlowCanvasContent() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
-  const { loadFlow, flowId } = useFlow()
+  const { loadFlow } = useFlow()
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -57,7 +57,7 @@ function FlowCanvasContent() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-foreground mb-2">Flow not found</h2>
-          <p className="text-muted-foreground mb-4">This flow doesn't exist or you don't have permission to access it.</p>
+          <p className="text-muted-foreground mb-4">This flow doesn&apos;t exist or you don&apos;t have permission to access it.</p>
           <button
             onClick={() => router.push("/flows")}
             className="text-primary hover:underline"

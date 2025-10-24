@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Plus, Trash2, Calendar, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserProfile } from "@/components/user-profile"
+import Image from "next/image"
 
 interface Flow {
   id: string
@@ -22,25 +23,29 @@ export default function FlowsList() {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetchFlows()
-    }
-  }, [status])
+  
 
-  const fetchFlows = async () => {
+  const fetchFlows = useCallback(async () => {
     try {
-      const response = await fetch("/api/flows")
-      if (response.ok) {
-        const data = await response.json()
-        setFlows(data.flows || [])
+      if (session) {
+        const response = await fetch("/api/flows")
+        if (response.ok) {
+          const data = await response.json()
+          setFlows(data.flows || [])
+        }
       }
     } catch (error) {
       console.error("Error fetching flows:", error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [session])
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchFlows()
+    }
+  }, [status, fetchFlows])
 
   const handleCreateFlow = async () => {
     setCreating(true)
@@ -171,7 +176,7 @@ export default function FlowsList() {
                 >
                   <div className="aspect-video bg-muted flex items-center justify-center">
                     {flow.thumbnail ? (
-                      <img src={flow.thumbnail} alt={flow.name} className="w-full h-full object-cover" />
+                      <Image src={flow.thumbnail} alt={flow.name} width={300} height={200} className="w-full h-full object-cover" />
                     ) : (
                       <div className="text-center text-muted-foreground">
                         <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center mx-auto mb-2">

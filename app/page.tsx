@@ -10,12 +10,12 @@ export default function Home() {
   const { data: session, status } = useSession()
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status === "authenticated" && session) {
       router.push("/flows")
     } else if (status === "unauthenticated") {
       router.push("/sign-in")
     }
-  }, [status, router])
+  }, [status, router, session])
 
   return (
     <div className="flex h-screen items-center justify-center">

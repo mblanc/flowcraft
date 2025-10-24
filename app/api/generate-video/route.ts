@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server"
 import { GoogleGenAI, GenerateVideosParameters } from "@google/genai"
 
-async function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 export async function POST(request: Request) {
   try {
     const { prompt, firstFrame, lastFrame, images, aspectRatio, duration, model, generateAudio, resolution } =
