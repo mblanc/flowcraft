@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     while (!operation.done && pollCount < maxPolls) {
       console.log(`[SERVER] Polling... (${pollCount + 1}/${maxPolls})`)
       operation = await ai.operations.get({ operation: operation })
-      delay(5000)
+      await delay(5000)
       pollCount++
     }
 
