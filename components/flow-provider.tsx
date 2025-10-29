@@ -27,6 +27,8 @@ export interface TextData extends Record<string, unknown> {
   type: "text"
   name: string
   text: string
+  width?: number
+  height?: number
   executing?: boolean
 }
 
