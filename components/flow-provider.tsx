@@ -44,6 +44,8 @@ export interface ImageData extends Record<string, unknown> {
     | "imagen-4.0-fast-generate-001"
     | "imagen-4.0-ultra-generate-001"
   resolution: "1K" | "2K"
+  width?: number
+  height?: number
   executing?: boolean
 }
 
@@ -119,8 +121,11 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [flowName, setFlowName] = useState<string>("Untitled Flow")
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
 
-  const saveFlow = useCallback(async () => {
+  const saveFlow = useCallback(async (thumbnail?: string, nodesToSave?: Node<NodeData>[]) => {
     if (!flowId) return
+
+    // Use provided nodes or fall back to current state
+    const nodesToUse = nodesToSave || nodes
 
     try {
       await fetch(`/api/flows/${flowId}`, {
@@ -130,8 +135,9 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         },
         body: JSON.stringify({
           name: flowName,
-          nodes,
+          nodes: nodesToUse,
           edges,
+          ...(thumbnail !== undefined && { thumbnail }),
         }),
       })
       console.log("[v0] Flow auto-saved")
@@ -139,6 +145,10 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       console.error("[v0] Error saving flow:", error)
     }
   }, [flowId, flowName, nodes, edges])
+
+  const saveFlowWithThumbnail = useCallback(async (thumbnail: string) => {
+    await saveFlow(thumbnail)
+  }, [saveFlow])
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -578,8 +588,13 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         if (firstFrameEdge) {
           const sourceNode = nodes.find((n) => n.id === firstFrameEdge.source)
           if (sourceNode) {
-            if (sourceNode.data.type === "image" && sourceNode.data.images.length > 0) {
-              firstFrame = sourceNode.data.images[0]
+            if (sourceNode.data.type === "image") {
+              const generated = generatedImages.get(sourceNode.id)
+              if (generated && generated.length > 0) {
+                firstFrame = generated[0]
+              } else if (sourceNode.data.images.length > 0) {
+                firstFrame = sourceNode.data.images[0]
+              }
             } else if (sourceNode.data.type === "file" && sourceNode.data.fileType === "image") {
               firstFrame = sourceNode.data.fileUrl
             }
@@ -592,8 +607,13 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         if (lastFrameEdge) {
           const sourceNode = nodes.find((n) => n.id === lastFrameEdge.source)
           if (sourceNode) {
-            if (sourceNode.data.type === "image" && sourceNode.data.images.length > 0) {
-              lastFrame = sourceNode.data.images[0]
+            if (sourceNode.data.type === "image") {
+              const generated = generatedImages.get(sourceNode.id)
+              if (generated && generated.length > 0) {
+                lastFrame = generated[0]
+              } else if (sourceNode.data.images.length > 0) {
+                lastFrame = sourceNode.data.images[0]
+              }
             } else if (sourceNode.data.type === "file" && sourceNode.data.fileType === "image") {
               lastFrame = sourceNode.data.fileUrl
             }
@@ -690,15 +710,36 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       const generatedImages = new Map<string, string[]>()
       const updatedNodeData = new Map<string, Partial<NodeData>>()
 
-      if (node.data.type === "image") {
-        await executeImageNode(node as Node<ImageData>, generatedImages, updatedNodeData)
-      } else if (node.data.type === "agent") {
-        await executeAgentNode(node as Node<AgentData>, updatedNodeData)
-      } else if (node.data.type === "video") {
-        await executeVideoNode(node as Node<VideoData>, generatedImages, updatedNodeData)
+      try {
+        if (node.data.type === "image") {
+          await executeImageNode(node as Node<ImageData>, generatedImages, updatedNodeData)
+          // Track latest generated image for thumbnail if applicable
+          const generated = generatedImages.get(nodeId)
+          if (generated && generated.length > 0 && flowId) {
+            await saveFlowWithThumbnail(generated[generated.length - 1])
+          } else if (flowId) {
+            await saveFlow()
+          }
+        } else if (node.data.type === "agent") {
+          await executeAgentNode(node as Node<AgentData>, updatedNodeData)
+          if (flowId) {
+            await saveFlow()
+          }
+        } else if (node.data.type === "video") {
+          await executeVideoNode(node as Node<VideoData>, generatedImages, updatedNodeData)
+          if (flowId) {
+            await saveFlow()
+          }
+        }
+      } catch (error) {
+        console.error("[v0] Error executing node:", nodeId, error)
+        // Still save the flow even if there was an error, to preserve any partial updates
+        if (flowId) {
+          await saveFlow()
+        }
       }
     },
-    [nodes, executeImageNode, executeVideoNode, executeAgentNode],
+    [nodes, executeImageNode, executeVideoNode, executeAgentNode, flowId, saveFlow, saveFlowWithThumbnail],
   )
 
   const runFlow = useCallback(async () => {
@@ -713,20 +754,40 @@ export function FlowProvider({ children }: { children: ReactNode }) {
 
     try {
       for (const level of executionLevels) {
-        const levelPromises = level.map(async (nodeId) => {
-          const node = nodes.find((n) => n.id === nodeId)
-          if (!node) return
+        await Promise.all(
+          level.map(async (nodeId) => {
+            const node = nodes.find((n) => n.id === nodeId)
+            if (!node) return
 
-          if (node.data.type === "image") {
-            await executeImageNode(node as Node<ImageData>, generatedImages, updatedNodeData)
-          } else if (node.data.type === "agent") {
-            await executeAgentNode(node as Node<AgentData>, updatedNodeData)
-          } else if (node.data.type === "video") {
-            await executeVideoNode(node as Node<VideoData>, generatedImages, updatedNodeData)
+            if (node.data.type === "image") {
+              await executeImageNode(node as Node<ImageData>, generatedImages, updatedNodeData)
+            } else if (node.data.type === "agent") {
+              await executeAgentNode(node as Node<AgentData>, updatedNodeData)
+            } else if (node.data.type === "video") {
+              await executeVideoNode(node as Node<VideoData>, generatedImages, updatedNodeData)
+            }
+          })
+        )
+      }
+
+      // Find the latest generated image across all nodes for thumbnail
+      let latestImageUrl: string | null = null
+      for (const level of executionLevels) {
+        for (const nodeId of level) {
+          const generated = generatedImages.get(nodeId)
+          if (generated && generated.length > 0) {
+            latestImageUrl = generated[generated.length - 1]
           }
-        })
+        }
+      }
 
-        await Promise.all(levelPromises)
+      // Update thumbnail if an image was generated, and save the flow
+      if (flowId) {
+        if (latestImageUrl) {
+          await saveFlowWithThumbnail(latestImageUrl)
+        } else {
+          await saveFlow()
+        }
       }
     } catch (error) {
       console.error("[v0] Error running flow:", error)
@@ -734,7 +795,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       setIsRunning(false)
       console.log("[v0] Flow execution completed")
     }
-  }, [nodes, edges, getExecutionLevels, executeImageNode, executeVideoNode, executeAgentNode])
+  }, [nodes, edges, getExecutionLevels, executeImageNode, executeVideoNode, executeAgentNode, flowId, saveFlowWithThumbnail, saveFlow])
 
   const exportFlow = useCallback(() => {
     const flowData = {

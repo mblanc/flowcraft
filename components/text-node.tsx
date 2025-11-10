@@ -31,12 +31,84 @@ export const TextNode = memo(({ data, selected, id }: NodeProps<Node<TextData>>)
     }
   }, [data.width, data.height])
 
+  // Prevent canvas zoom when scrolling inside textarea (works for mouse wheel and touchpad)
+  useEffect(() => {
+    const textarea = textareaRef.current
+    const container = nodeRef.current
+    if (!textarea || !container) return
+
+    const handleWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement
+      const isTextareaFocused = document.activeElement === textarea
+      const isInsideTextarea = target === textarea || textarea.contains(target)
+      
+      // If wheel event is on textarea, inside it, or textarea is focused, prevent canvas zoom
+      if (isInsideTextarea || isTextareaFocused) {
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        // Allow native scrolling behavior by not preventing default
+        return false
+      }
+    }
+
+    // Use capture phase to intercept before React Flow processes it
+    // This catches events in the capture phase before they bubble up
+    // Also handle at the textarea level with both capture and bubble phases
+    const options = { capture: true, passive: false }
+    container.addEventListener("wheel", handleWheel, options)
+    textarea.addEventListener("wheel", handleWheel, options)
+    // Also add non-capture listener for extra safety
+    textarea.addEventListener("wheel", handleWheel, { passive: false })
+
+    // Also handle focus/blur to track when textarea is active
+    let focusedHandler: ((e: WheelEvent) => void) | null = null
+    
+    const handleFocus = () => {
+      // Add a more aggressive wheel handler when focused
+      focusedHandler = (e: WheelEvent) => {
+        const target = e.target as HTMLElement
+        // Only stop if event is on textarea or inside container
+        if (target === textarea || textarea.contains(target) || container.contains(target)) {
+          e.stopPropagation()
+          e.stopImmediatePropagation()
+        }
+      }
+      document.addEventListener("wheel", focusedHandler, { capture: true, passive: false })
+    }
+
+    const handleBlur = () => {
+      if (focusedHandler) {
+        document.removeEventListener("wheel", focusedHandler, { capture: true })
+        focusedHandler = null
+      }
+    }
+
+    textarea.addEventListener("focus", handleFocus)
+    textarea.addEventListener("blur", handleBlur)
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel, { capture: true })
+      textarea.removeEventListener("wheel", handleWheel, { capture: true })
+      textarea.removeEventListener("wheel", handleWheel)
+      textarea.removeEventListener("focus", handleFocus)
+      textarea.removeEventListener("blur", handleBlur)
+      if (focusedHandler) {
+        document.removeEventListener("wheel", focusedHandler, { capture: true })
+      }
+    }
+  }, [])
+
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalText(e.target.value)
   }
 
   const handleBlur = () => {
     updateNodeData(id, { text: localText })
+  }
+
+  const handleWheel = (e: React.WheelEvent<HTMLTextAreaElement>) => {
+    // Stop propagation to prevent canvas zoom when scrolling text
+    e.stopPropagation()
   }
 
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -91,15 +163,24 @@ export const TextNode = memo(({ data, selected, id }: NodeProps<Node<TextData>>)
 
         <div className="flex-1 min-w-0 text-left">
           <h3 className="font-semibold text-foreground text-sm mb-1 truncate">{data.name}</h3>
-          <Textarea
-            ref={textareaRef}
-            value={localText}
-            onChange={handleTextChange}
-            onBlur={handleBlur}
-            placeholder="Enter text..."
-            className="w-full text-xs px-2 py-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 nodrag resize-none overflow-y-auto"
-            style={{ height: dimensions.height - 80 }}
-          />
+          <div
+            onWheel={(e) => {
+              e.stopPropagation()
+              e.nativeEvent.stopImmediatePropagation()
+            }}
+            className="nodrag"
+          >
+            <Textarea
+              ref={textareaRef}
+              value={localText}
+              onChange={handleTextChange}
+              onBlur={handleBlur}
+              onWheel={handleWheel}
+              placeholder="Enter text..."
+              className="w-full text-xs px-2 py-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 nodrag resize-none overflow-y-auto"
+              style={{ height: dimensions.height - 80 }}
+            />
+          </div>
         </div>
       </div>
 

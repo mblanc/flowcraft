@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     const body = await request.json()
-    const { name, nodes, edges } = body
+    const { name, nodes, edges, thumbnail } = body
 
     const firestore = getFirestore()
     const flowRef = firestore.collection(COLLECTIONS.FLOWS).doc(flowId)
@@ -67,6 +67,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (name !== undefined) updateData.name = name
     if (nodes !== undefined) updateData.nodes = nodes
     if (edges !== undefined) updateData.edges = edges
+    if (thumbnail !== undefined) updateData.thumbnail = thumbnail
 
     await flowRef.update(updateData)
 

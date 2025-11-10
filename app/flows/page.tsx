@@ -22,6 +22,7 @@ export default function FlowsList() {
   const [flows, setFlows] = useState<Flow[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({})
 
   
 
@@ -31,7 +32,29 @@ export default function FlowsList() {
         const response = await fetch("/api/flows")
         if (response.ok) {
           const data = await response.json()
-          setFlows(data.flows || [])
+          const flowsData = data.flows || []
+          setFlows(flowsData)
+          
+          // Fetch signed URLs for thumbnails that are GCS URIs
+          const urls: Record<string, string> = {}
+          await Promise.all(
+            flowsData.map(async (flow: Flow) => {
+              if (flow.thumbnail && flow.thumbnail.startsWith("gs://")) {
+                try {
+                  const urlResponse = await fetch(`/api/signed-url?gcsUri=${encodeURIComponent(flow.thumbnail)}`)
+                  const urlData = await urlResponse.json()
+                  if (urlData.signedUrl) {
+                    urls[flow.id] = urlData.signedUrl
+                  }
+                } catch (error) {
+                  console.error("Error fetching signed URL for thumbnail:", error)
+                }
+              } else if (flow.thumbnail) {
+                urls[flow.id] = flow.thumbnail
+              }
+            })
+          )
+          setThumbnailUrls(urls)
         }
       }
     } catch (error) {
@@ -175,8 +198,8 @@ export default function FlowsList() {
                   onClick={() => router.push(`/flow/${flow.id}`)}
                 >
                   <div className="aspect-video bg-muted flex items-center justify-center">
-                    {flow.thumbnail ? (
-                      <Image src={flow.thumbnail} alt={flow.name} width={300} height={200} className="w-full h-full object-cover" />
+                    {thumbnailUrls[flow.id] ? (
+                      <Image src={thumbnailUrls[flow.id]} alt={flow.name} width={300} height={200} className="w-full h-full object-cover" />
                     ) : (
                       <div className="text-center text-muted-foreground">
                         <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center mx-auto mb-2">
