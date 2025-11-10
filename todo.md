@@ -1,10 +1,10 @@
 - prompt vs text edge => multi parts?
 
-- upscale node
+- Output Nodes? : To save the generated images and videos to a user's gallery or download them directly., integration with 3p?
+
 - Processing Nodes : upscale, inpaint, outpaint, create mask, filters, ...
-- Logic Nodes : branch, merge
- - Output Nodes? : To save the generated images and videos to a user's gallery or download them directly., integration with 3p?
 - GCS storage => upload files
+- Logic Nodes : branch, merge
 - Lyria/Chirp/Gemini 2.5 TTS
 
 ## Should have:

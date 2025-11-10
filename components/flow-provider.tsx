@@ -12,7 +12,7 @@ import {
   type EdgeChange,
 } from "@xyflow/react"
 
-export type NodeType = "agent" | "text" | "image" | "video" | "file"
+export type NodeType = "agent" | "text" | "image" | "video" | "file" | "upscale"
 
 export interface AgentData extends Record<string, unknown> {
   type: "agent"
@@ -74,7 +74,17 @@ export interface FileData extends Record<string, unknown> {
   executing?: boolean
 }
 
-export type NodeData = AgentData | TextData | ImageData | VideoData | FileData
+export interface UpscaleData extends Record<string, unknown> {
+  type: "upscale"
+  name: string
+  image: string
+  upscaleFactor: "x2" | "x3" | "x4"
+  width?: number
+  height?: number
+  executing?: boolean
+}
+
+export type NodeData = AgentData | TextData | ImageData | VideoData | FileData | UpscaleData
 
 interface FlowContextType {
   nodes: Node<NodeData>[]
@@ -91,6 +101,7 @@ interface FlowContextType {
   addImageNode: () => void
   addVideoNode: () => void
   addFileNode: () => void
+  addUpscaleNode: () => void
   selectNode: (nodeId: string | null) => void
   updateNodeData: (nodeId: string, data: Partial<NodeData>) => void
   updateFlowName: (name: string) => void
@@ -271,6 +282,21 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setNodes((nds) => [...nds, newNode])
   }, [])
 
+  const addUpscaleNode = useCallback(() => {
+    const newNode: Node<UpscaleData> = {
+      id: `upscale-${Date.now()}`,
+      type: "upscale",
+      position: { x: 250, y: 250 },
+      data: {
+        type: "upscale",
+        name: "Upscale",
+        image: "",
+        upscaleFactor: "x2",
+      },
+    }
+    setNodes((nds) => [...nds, newNode])
+  }, [])
+
   const selectNode = useCallback(
     (nodeId: string | null) => {
       if (nodeId) {
@@ -406,6 +432,15 @@ export function FlowProvider({ children }: { children: ReactNode }) {
             if (sourceNode.data.fileUrl && sourceNode.data.fileType === "image") {
               console.log("[v0] Using file from File node:", sourceNode.id)
               inputImages.push(sourceNode.data.fileUrl)
+            }
+          } else if (sourceNode.data.type === "upscale") {
+            const generated = generatedImages.get(sourceNode.id)
+            if (generated && generated.length > 0) {
+              console.log("[v0] Using upscaled image from node:", sourceNode.id)
+              inputImages.push(...generated)
+            } else if (sourceNode.data.image) {
+              console.log("[v0] Using stored upscaled image from node:", sourceNode.id)
+              inputImages.push(sourceNode.data.image)
             }
           }
         }
@@ -597,6 +632,13 @@ export function FlowProvider({ children }: { children: ReactNode }) {
               }
             } else if (sourceNode.data.type === "file" && sourceNode.data.fileType === "image") {
               firstFrame = sourceNode.data.fileUrl
+            } else if (sourceNode.data.type === "upscale") {
+              const generated = generatedImages.get(sourceNode.id)
+              if (generated && generated.length > 0) {
+                firstFrame = generated[0]
+              } else if (sourceNode.data.image) {
+                firstFrame = sourceNode.data.image
+              }
             }
           }
         }
@@ -616,6 +658,13 @@ export function FlowProvider({ children }: { children: ReactNode }) {
               }
             } else if (sourceNode.data.type === "file" && sourceNode.data.fileType === "image") {
               lastFrame = sourceNode.data.fileUrl
+            } else if (sourceNode.data.type === "upscale") {
+              const generated = generatedImages.get(sourceNode.id)
+              if (generated && generated.length > 0) {
+                lastFrame = generated[0]
+              } else if (sourceNode.data.image) {
+                lastFrame = sourceNode.data.image
+              }
             }
           }
         }
@@ -636,6 +685,13 @@ export function FlowProvider({ children }: { children: ReactNode }) {
             }
           } else if (sourceNode.data.type === "file" && sourceNode.data.fileType === "image") {
             inputImages.push(sourceNode.data.fileUrl)
+          } else if (sourceNode.data.type === "upscale") {
+            const generated = generatedImages.get(sourceNode.id)
+            if (generated && generated.length > 0) {
+              inputImages.push(...generated)
+            } else if (sourceNode.data.image) {
+              inputImages.push(sourceNode.data.image)
+            }
           }
         }
 
@@ -697,6 +753,109 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     [nodes, edges, updateNodeData],
   )
 
+  const executeUpscaleNode = useCallback(
+    async (
+      node: Node<UpscaleData>,
+      generatedImages: Map<string, string[]>,
+      updatedNodeData: Map<string, Partial<NodeData>>,
+    ) => {
+      console.log("[v0] Processing upscale node:", node.id)
+
+      updateNodeData(node.id, { executing: true })
+
+      try {
+        const incomingEdges = edges.filter((edge) => edge.target === node.id)
+
+        if (incomingEdges.length === 0) {
+          console.log("[v0] No incoming connections for upscale node:", node.id)
+          updateNodeData(node.id, { executing: false })
+          return
+        }
+
+        // Get input image from connected node
+        const imageEdge = incomingEdges.find((edge) => edge.targetHandle === "image-input")
+        let inputImage = ""
+        
+        if (imageEdge) {
+          const sourceNode = nodes.find((n) => n.id === imageEdge.source)
+          if (sourceNode) {
+            if (sourceNode.data.type === "image") {
+              const generated = generatedImages.get(sourceNode.id)
+              if (generated && generated.length > 0) {
+                console.log("[v0] Using generated image from node:", sourceNode.id)
+                inputImage = generated[0]
+              } else if (sourceNode.data.images.length > 0) {
+                console.log("[v0] Using stored image from node:", sourceNode.id)
+                inputImage = sourceNode.data.images[0]
+              }
+            } else if (sourceNode.data.type === "file" && sourceNode.data.fileType === "image") {
+              console.log("[v0] Using file from File node:", sourceNode.id)
+              inputImage = sourceNode.data.fileUrl
+            } else if (sourceNode.data.type === "upscale") {
+              const generated = generatedImages.get(sourceNode.id)
+              if (generated && generated.length > 0) {
+                console.log("[v0] Using upscaled image from node:", sourceNode.id)
+                inputImage = generated[0]
+              } else if (sourceNode.data.image) {
+                console.log("[v0] Using stored upscaled image from node:", sourceNode.id)
+                inputImage = sourceNode.data.image
+              }
+            }
+          }
+        } else {
+          // Fallback to node's stored image
+          inputImage = node.data.image
+        }
+
+        if (!inputImage) {
+          console.log("[v0] No image available for upscale node:", node.id)
+          updateNodeData(node.id, { executing: false })
+          return
+        }
+
+        console.log("[v0] Upscaling image with factor:", node.data.upscaleFactor)
+        console.log("[v0] Input image:", inputImage.substring(0, 50))
+
+        const response = await fetch("/api/upscale-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            image: inputImage,
+            upscaleFactor: node.data.upscaleFactor,
+          }),
+        })
+
+        console.log("[v0] Fetch completed, status:", response.status, response.statusText)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("[v0] Failed to upscale image. Status:", response.status, "Error:", errorText)
+          updateNodeData(node.id, { executing: false })
+          return
+        }
+
+        const data = await response.json()
+        console.log("[v0] Image upscaled successfully")
+
+        generatedImages.set(node.id, [data.imageUrl])
+
+        updateNodeData(node.id, {
+          image: data.imageUrl,
+          executing: false,
+        })
+      } catch (error) {
+        console.error("[v0] Error processing upscale node:", node.id)
+        console.error("[v0] Error details:", error)
+        console.error("[v0] Error message:", error instanceof Error ? error.message : String(error))
+        console.error("[v0] Error stack:", error instanceof Error ? error.stack : "No stack trace")
+        updateNodeData(node.id, { executing: false })
+      }
+    },
+    [nodes, edges, updateNodeData],
+  )
+
   const executeNode = useCallback(
     async (nodeId: string) => {
       const node = nodes.find((n) => n.id === nodeId)
@@ -730,6 +889,15 @@ export function FlowProvider({ children }: { children: ReactNode }) {
           if (flowId) {
             await saveFlow()
           }
+        } else if (node.data.type === "upscale") {
+          await executeUpscaleNode(node as Node<UpscaleData>, generatedImages, updatedNodeData)
+          // Track latest generated image for thumbnail if applicable
+          const generated = generatedImages.get(nodeId)
+          if (generated && generated.length > 0 && flowId) {
+            await saveFlowWithThumbnail(generated[generated.length - 1])
+          } else if (flowId) {
+            await saveFlow()
+          }
         }
       } catch (error) {
         console.error("[v0] Error executing node:", nodeId, error)
@@ -739,7 +907,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [nodes, executeImageNode, executeVideoNode, executeAgentNode, flowId, saveFlow, saveFlowWithThumbnail],
+    [nodes, executeImageNode, executeVideoNode, executeAgentNode, executeUpscaleNode, flowId, saveFlow, saveFlowWithThumbnail],
   )
 
   const runFlow = useCallback(async () => {
@@ -765,6 +933,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
               await executeAgentNode(node as Node<AgentData>, updatedNodeData)
             } else if (node.data.type === "video") {
               await executeVideoNode(node as Node<VideoData>, generatedImages, updatedNodeData)
+            } else if (node.data.type === "upscale") {
+              await executeUpscaleNode(node as Node<UpscaleData>, generatedImages, updatedNodeData)
             }
           })
         )
@@ -795,7 +965,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       setIsRunning(false)
       console.log("[v0] Flow execution completed")
     }
-  }, [nodes, edges, getExecutionLevels, executeImageNode, executeVideoNode, executeAgentNode, flowId, saveFlowWithThumbnail, saveFlow])
+  }, [nodes, edges, getExecutionLevels, executeImageNode, executeVideoNode, executeAgentNode, executeUpscaleNode, flowId, saveFlowWithThumbnail, saveFlow])
 
   const exportFlow = useCallback(() => {
     const flowData = {
@@ -892,6 +1062,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         addImageNode,
         addVideoNode,
         addFileNode,
+        addUpscaleNode,
         selectNode,
         updateNodeData,
         updateFlowName,
