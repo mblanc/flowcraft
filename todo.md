@@ -1,8 +1,19 @@
 - prompt vs text edge => multi parts?
 
+- new node position
+- video : References to Videos
+- Array/List
+- left sidebar for nodes selection+
+- Processing Nodes : 
+  - inpaint
+  - outpaint
+  - create mask
+  - color grading (levels)
+  - Painter (annotation)
+  - Crop
+  - Resize
+  - Extract Video Frame
 - Output Nodes? : To save the generated images and videos to a user's gallery or download them directly., integration with 3p?
-
-- Processing Nodes : upscale, inpaint, outpaint, create mask, filters, ...
 - GCS storage => upload files
 - Logic Nodes : branch, merge
 - Lyria/Chirp/Gemini 2.5 TTS

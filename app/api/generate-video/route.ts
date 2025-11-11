@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { GoogleGenAI, GenerateVideosParameters } from "@google/genai"
+import { GoogleGenAI, GenerateVideosParameters, VideoGenerationReferenceType } from "@google/genai"
 
 async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -50,6 +50,21 @@ export async function POST(request: Request) {
         gcsUri: lastFrame,
         mimeType: "image/png",
       }
+    }
+
+    if (images && images.length > 0) {
+      videoRequest.config!.referenceImages = images.map((image:string) => {
+        const base64Data = image.split(",")[1]
+        const mimeType = image.split(";")[0].split(":")[1]
+        return {
+          image: {
+            imageBytes: base64Data,
+            mimeType: mimeType,
+          },
+          referenceType: VideoGenerationReferenceType.ASSET,
+        }
+      })
+      console.log("[SERVER] Reference images:", JSON.stringify(videoRequest.config!.referenceImages, null, 2))
     }
 
     console.log("[SERVER] Calling Veo API")

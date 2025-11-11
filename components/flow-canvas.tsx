@@ -93,7 +93,7 @@ export function FlowCanvas() {
             <Video className="h-4 w-4 mr-2" />
             Video
           </Button>
-          <Button onClick={addUpscaleNode} size="sm" className="bg-blue-500 text-white hover:bg-blue-600">
+          <Button onClick={addUpscaleNode} size="sm" className="bg-red-500 text-white hover:bg-red-600">
             <ZoomIn className="h-4 w-4 mr-2" />
             Upscale
           </Button>

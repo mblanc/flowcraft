@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import Image from "next/image"
 
 import { memo, useRef, useEffect, useState } from "react"
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
@@ -118,8 +117,8 @@ export const UpscaleNode = memo(({ data, selected, id }: NodeProps<Node<UpscaleD
       </div>
 
       <div className="flex items-start gap-3 mb-3">
-        <div className="flex-shrink-0 w-10 h-10 rounded-md bg-blue-500/10 flex items-center justify-center">
-          <ZoomIn className="h-5 w-5 text-blue-400" />
+        <div className="flex-shrink-0 w-10 h-10 rounded-md bg-red-500/10 flex items-center justify-center">
+          <ZoomIn className="h-5 w-5 text-red-400" />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -138,14 +137,14 @@ export const UpscaleNode = memo(({ data, selected, id }: NodeProps<Node<UpscaleD
           </div>
           <div className="text-xs text-muted-foreground">
             {data.image ? "Upscaled Image" : "No image"}
-            {data.executing && <span className="ml-2 text-blue-400">Upscaling...</span>}
+            {data.executing && <span className="ml-2 text-red-400">Upscaling...</span>}
           </div>
         </div>
       </div>
 
       {data.image && imageSignedUrl && (
         <div className="mt-3 rounded-md overflow-hidden border border-border" style={{ maxHeight: dimensions.height - 200 }}>
-          <Image
+          <img
             src={imageSignedUrl}
             alt={data.name}
             width={dimensions.width - 32}
@@ -159,7 +158,7 @@ export const UpscaleNode = memo(({ data, selected, id }: NodeProps<Node<UpscaleD
       <button
         onClick={handleExecute}
         disabled={data.executing}
-        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Play className="h-3 w-3" />
         Execute Node

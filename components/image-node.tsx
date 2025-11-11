@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import Image from "next/image"
 
 import { memo, useRef, useEffect, useState } from "react"
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
@@ -126,6 +125,21 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
     }
   }, [data.images])
 
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const adjustHeight = () => {
+      textarea.style.height = 'auto'
+      const scrollHeight = textarea.scrollHeight
+      const maxHeight = 200
+      textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`
+    }
+
+    adjustHeight()
+  }, [localPrompt])
+
   const handleExecute = (e: React.MouseEvent) => {
     e.stopPropagation()
     executeNode(id)
@@ -133,6 +147,12 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalPrompt(e.target.value)
+    // Auto-resize textarea
+    const textarea = e.target
+    textarea.style.height = 'auto'
+    const scrollHeight = textarea.scrollHeight
+    const maxHeight = 200
+    textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`
   }
 
   const handleBlur = () => {
@@ -235,7 +255,8 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
               onWheel={handleWheel}
               placeholder="Enter prompt..."
               className="w-full text-xs text-muted-foreground bg-transparent border-none outline-none resize-none overflow-y-auto focus:text-foreground transition-colors nodrag mb-2"
-              style={{ height: 100, maxHeight: 200 }}
+              style={{ minHeight: '1.5em', maxHeight: 200 }}
+              rows={1}
             />
           </div>
           <div className="text-xs text-muted-foreground">
@@ -247,11 +268,9 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
 
       {data.images.length > 0 && imageSignedUrl && (
         <div className="mt-3 rounded-md overflow-hidden border border-border" style={{ maxHeight: dimensions.height - 200 }}>
-          <Image
+          <img
             src={imageSignedUrl}
             alt={data.name}
-            width={dimensions.width - 32}
-            height={dimensions.height - 200}
             className="w-full h-auto object-contain"
             style={{ maxHeight: dimensions.height - 200 }}
           />
