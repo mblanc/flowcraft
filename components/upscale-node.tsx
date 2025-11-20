@@ -4,7 +4,7 @@ import type React from "react"
 
 import { memo, useRef, useEffect, useState } from "react"
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
-import type { UpscaleData } from "./flow-provider"
+import type { UpscaleData } from "@/lib/types"
 import { ZoomIn, Play } from "lucide-react"
 import { useFlow } from "./flow-provider"
 
@@ -99,9 +99,8 @@ export const UpscaleNode = memo(({ data, selected, id }: NodeProps<Node<UpscaleD
   return (
     <div
       ref={nodeRef}
-      className={`bg-card border-2 rounded-lg p-4 shadow-lg transition-all relative ${
-        selected ? "border-primary shadow-primary/20" : "border-border"
-      } ${data.executing ? "animate-pulse-bg" : ""}`}
+      className={`bg-card border-2 rounded-lg p-4 shadow-lg transition-all relative ${selected ? "border-primary shadow-primary/20" : "border-border"
+        } ${data.executing ? "animate-pulse-bg" : ""}`}
       style={{ width: dimensions.width }}
     >
       {/* Image Input Handle */}

@@ -4,7 +4,7 @@ import type React from "react"
 
 import { memo, useState, useEffect, useRef } from "react"
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
-import type { TextData } from "./flow-provider"
+import type { TextData } from "@/lib/types"
 import { FileText } from "lucide-react"
 import { useFlow } from "./flow-provider"
 import { Textarea } from "./ui/textarea"
@@ -41,7 +41,7 @@ export const TextNode = memo(({ data, selected, id }: NodeProps<Node<TextData>>)
       const target = e.target as HTMLElement
       const isTextareaFocused = document.activeElement === textarea
       const isInsideTextarea = target === textarea || textarea.contains(target)
-      
+
       // If wheel event is on textarea, inside it, or textarea is focused, prevent canvas zoom
       if (isInsideTextarea || isTextareaFocused) {
         e.stopPropagation()
@@ -62,7 +62,7 @@ export const TextNode = memo(({ data, selected, id }: NodeProps<Node<TextData>>)
 
     // Also handle focus/blur to track when textarea is active
     let focusedHandler: ((e: WheelEvent) => void) | null = null
-    
+
     const handleFocus = () => {
       // Add a more aggressive wheel handler when focused
       focusedHandler = (e: WheelEvent) => {
@@ -151,9 +151,8 @@ export const TextNode = memo(({ data, selected, id }: NodeProps<Node<TextData>>)
   return (
     <div
       ref={nodeRef}
-      className={`relative bg-card border-2 rounded-lg p-4 shadow-lg transition-all ${
-        selected ? "border-primary shadow-primary/20" : "border-border"
-      }`}
+      className={`relative bg-card border-2 rounded-lg p-4 shadow-lg transition-all ${selected ? "border-primary shadow-primary/20" : "border-border"
+        }`}
       style={{ width: dimensions.width }}
     >
       <div className="flex items-start gap-3">

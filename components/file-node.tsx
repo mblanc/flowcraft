@@ -4,7 +4,7 @@ import type React from "react"
 
 import { memo, useRef } from "react"
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
-import type { FileData } from "./flow-provider"
+import type { FileData } from "@/lib/types"
 import { FileUp, ImageIcon, Video } from "lucide-react"
 import { useFlow } from "./flow-provider"
 import Image from "next/image"
@@ -43,9 +43,8 @@ export const FileNode = memo(({ data, selected, id }: NodeProps<Node<FileData>>)
 
   return (
     <div
-      className={`bg-card border-2 rounded-lg p-4 min-w-[220px] shadow-lg transition-all ${
-        selected ? "border-primary shadow-primary/20" : "border-border"
-      }`}
+      className={`bg-card border-2 rounded-lg p-4 min-w-[220px] shadow-lg transition-all ${selected ? "border-primary shadow-primary/20" : "border-border"
+        }`}
     >
       <div className="flex items-start gap-3 mb-3">
         <div className="flex-shrink-0 w-10 h-10 rounded-md bg-cyan-500/10 flex items-center justify-center">

@@ -1,7 +1,6 @@
 - prompt vs text edge => multi parts?
 
 - new node position
-- video : References to Videos
 - Array/List
 - left sidebar for nodes selection+
 - Processing Nodes : 

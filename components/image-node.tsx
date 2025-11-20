@@ -4,7 +4,7 @@ import type React from "react"
 
 import { memo, useRef, useEffect, useState } from "react"
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
-import type { ImageData } from "./flow-provider"
+import type { ImageData } from "@/lib/types"
 import { ImageIcon, Play } from "lucide-react"
 import { useFlow } from "./flow-provider"
 
@@ -41,7 +41,7 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
       const target = e.target as HTMLElement
       const isTextareaFocused = document.activeElement === textarea
       const isInsideTextarea = target === textarea || textarea.contains(target)
-      
+
       // If wheel event is on textarea, inside it, or textarea is focused, prevent canvas zoom
       if (isInsideTextarea || isTextareaFocused) {
         e.stopPropagation()
@@ -62,7 +62,7 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
 
     // Also handle focus/blur to track when textarea is active
     let focusedHandler: ((e: WheelEvent) => void) | null = null
-    
+
     const handleTextareaFocus = () => {
       // Add a more aggressive wheel handler when focused
       focusedHandler = (e: WheelEvent) => {
@@ -204,9 +204,8 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
   return (
     <div
       ref={nodeRef}
-      className={`bg-card border-2 rounded-lg p-4 shadow-lg transition-all relative ${
-        selected ? "border-primary shadow-primary/20" : "border-border"
-      } ${data.executing ? "animate-pulse-bg" : ""}`}
+      className={`bg-card border-2 rounded-lg p-4 shadow-lg transition-all relative ${selected ? "border-primary shadow-primary/20" : "border-border"
+        } ${data.executing ? "animate-pulse-bg" : ""}`}
       style={{ width: dimensions.width }}
     >
       {/* Prompt Input Handle */}

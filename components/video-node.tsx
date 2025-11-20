@@ -4,7 +4,7 @@ import type React from "react"
 
 import { memo, useRef, useEffect, useState } from "react"
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
-import type { VideoData } from "./flow-provider"
+import type { VideoData } from "@/lib/types"
 import { Video, Play } from "lucide-react"
 import { useFlow } from "./flow-provider"
 
@@ -65,9 +65,8 @@ export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>
 
   return (
     <div
-      className={`bg-card border-2 rounded-lg p-4 min-w-[220px] shadow-lg transition-all relative ${
-        selected ? "border-primary shadow-primary/20" : "border-border"
-      } ${data.executing ? "animate-pulse-bg" : ""}`}
+      className={`bg-card border-2 rounded-lg p-4 min-w-[220px] shadow-lg transition-all relative ${selected ? "border-primary shadow-primary/20" : "border-border"
+        } ${data.executing ? "animate-pulse-bg" : ""}`}
     >
       {/* Prompt Input Handle */}
       <Handle
