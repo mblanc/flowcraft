@@ -24,13 +24,14 @@ export interface ImageData extends BaseNodeData {
   type: "image"
   prompt: string
   images: string[]
-  aspectRatio: "16:9" | "9:16"
+  aspectRatio: "16:9" | "9:16" | "1:1" | "3:2" | "2:3" | "4:3" | "3:4" | "5:4" | "4:5" | "21:9"
   model:
   | "gemini-2.5-flash-image"
+  | "gemini-3-pro-image-preview"
   | "imagen-4.0-generate-001"
   | "imagen-4.0-fast-generate-001"
   | "imagen-4.0-ultra-generate-001"
-  resolution: "1K" | "2K"
+  resolution: "1K" | "2K" | "4K"
   width?: number
   height?: number
 }

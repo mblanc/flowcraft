@@ -141,6 +141,14 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
           <SelectContent>
             <SelectItem value="16:9">16:9</SelectItem>
             <SelectItem value="9:16">9:16</SelectItem>
+            <SelectItem value="1:1">1:1</SelectItem>
+            <SelectItem value="3:2">3:2</SelectItem>
+            <SelectItem value="2:3">2:3</SelectItem>
+            <SelectItem value="4:3">4:3</SelectItem>
+            <SelectItem value="3:4">3:4</SelectItem>
+            <SelectItem value="5:4">5:4</SelectItem>
+            <SelectItem value="4:5">4:5</SelectItem>
+            <SelectItem value="21:9">21:9</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -156,6 +164,7 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="gemini-2.5-flash-image">Gemini 2.5 Flash Image</SelectItem>
+            <SelectItem value="gemini-3-pro-image-preview">Gemini 3 Pro Image Preview</SelectItem>
             <SelectItem value="imagen-4.0-generate-001">Imagen 4.0</SelectItem>
             <SelectItem value="imagen-4.0-fast-generate-001">Imagen 4.0 Fast</SelectItem>
             <SelectItem value="imagen-4.0-ultra-generate-001">Imagen 4.0 Ultra</SelectItem>
@@ -175,6 +184,7 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
           <SelectContent>
             <SelectItem value="1K">1K</SelectItem>
             <SelectItem value="2K">2K</SelectItem>
+            <SelectItem value="4K">4K</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
     }
 
-    const ai = new GoogleGenAI({ vertexai: true, project: process.env.PROJECT_ID, location: process.env.LOCATION })
+    const ai = new GoogleGenAI({ vertexai: true, project: process.env.PROJECT_ID, location: "global" })
 
 
     console.log("[v0] Generating image with prompt:", prompt)
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
         contents: contentParts,
         config: {
           responseModalities: ["IMAGE"],
-          ...{ imageConfig: { aspectRatio: aspectRatio }},
+          ...{ imageConfig: { aspectRatio: aspectRatio } },
 
         },
       })
@@ -74,22 +74,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No content parts in response" }, { status: 500 })
     }
 
-    
+
     let imageGcsUri;
     for (const part of candidate.content.parts) {
-        if (part.inlineData) {
-            const imageBuffer = Buffer.from(part.inlineData!.data!, "base64");
-            const mimeType = part.inlineData!.mimeType!;
-            const extension = mimeType.split("/")[1] || "png";
-            const uuid = uuidv4()
-            imageGcsUri = await uploadImage(imageBuffer.toString('base64'), `gemini-${uuid}.${extension}`)
-            return NextResponse.json({
-              imageUrl: imageGcsUri,
-              prompt,
-            });
-        } else {
-          console.log(response.text)
-        }
+      if (part.inlineData) {
+        const imageBuffer = Buffer.from(part.inlineData!.data!, "base64");
+        const mimeType = part.inlineData!.mimeType!;
+        const extension = mimeType.split("/")[1] || "png";
+        const uuid = uuidv4()
+        imageGcsUri = await uploadImage(imageBuffer.toString('base64'), `gemini-${uuid}.${extension}`)
+        return NextResponse.json({
+          imageUrl: imageGcsUri,
+          prompt,
+        });
+      } else {
+        console.log(response.text)
+      }
     };
 
     console.error("[v0] No inline data found in response parts")
