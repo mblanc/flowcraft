@@ -58,7 +58,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [isRunning, setIsRunning] = useState(false)
   const [flowId, setFlowId] = useState<string | null>(null)
   const [flowName, setFlowName] = useState<string>("Untitled Flow")
-  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
+  // Removed autoSaveTimeout state
+  // const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
 
   const saveFlow = useCallback(async (thumbnail?: string, nodesToSave?: Node<NodeData>[]) => {
     if (!flowId) return
@@ -85,40 +86,55 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     }
   }, [flowId, flowName, nodes, edges])
 
+  // const onNodesChange = useCallback(
+  //   (changes: NodeChange[]) => {
+  //     setNodes((nds) => applyNodeChanges(changes, nds) as Node<NodeData>[])
+
+  //     // Auto-save after changes
+  //     if (flowId) {
+  //       if (autoSaveTimeout) {
+  //         clearTimeout(autoSaveTimeout)
+  //       }
+  //       const timeout = setTimeout(() => {
+  //         saveFlow()
+  //       }, 2000)
+  //       setAutoSaveTimeout(timeout)
+  //     }
+  //   },
+  //   [flowId, autoSaveTimeout, saveFlow]
+  // )
+
+  // const onEdgesChange = useCallback(
+  //   (changes: EdgeChange[]) => {
+  //     setEdges((eds) => applyEdgeChanges(changes, eds))
+
+  //     // Auto-save after changes
+  //     if (flowId) {
+  //       if (autoSaveTimeout) {
+  //         clearTimeout(autoSaveTimeout)
+  //       }
+  //       const timeout = setTimeout(() => {
+  //         saveFlow()
+  //       }, 2000)
+  //       setAutoSaveTimeout(timeout)
+  //     }
+  //   },
+  //   [flowId, autoSaveTimeout, saveFlow]
+  // )
+  // Updated: Only applies changes, no side effects
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       setNodes((nds) => applyNodeChanges(changes, nds) as Node<NodeData>[])
-
-      // Auto-save after changes
-      if (flowId) {
-        if (autoSaveTimeout) {
-          clearTimeout(autoSaveTimeout)
-        }
-        const timeout = setTimeout(() => {
-          saveFlow()
-        }, 2000)
-        setAutoSaveTimeout(timeout)
-      }
     },
-    [flowId, autoSaveTimeout, saveFlow]
+    []
   )
 
+  // Updated: Only applies changes, no side effects
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
       setEdges((eds) => applyEdgeChanges(changes, eds))
-
-      // Auto-save after changes
-      if (flowId) {
-        if (autoSaveTimeout) {
-          clearTimeout(autoSaveTimeout)
-        }
-        const timeout = setTimeout(() => {
-          saveFlow()
-        }, 2000)
-        setAutoSaveTimeout(timeout)
-      }
     },
-    [flowId, autoSaveTimeout, saveFlow]
+    []
   )
 
   const onConnect = useCallback((connection: Connection) => setEdges((eds) => addEdge(connection, eds)), [])

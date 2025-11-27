@@ -87,7 +87,7 @@ export async function POST(request: Request) {
 
     const videos = operation.response?.generatedVideos
     if (!videos || videos.length === 0) {
-      console.log(JSON.stringify(operation.response, null, 2) )
+      console.log(JSON.stringify(operation, null, 2) )
       throw new Error("No videos generated")
     }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { FlowCanvas } from "@/components/flow-canvas"
 import { FlowProvider, useFlow } from "@/components/flow-provider"
@@ -16,6 +16,9 @@ function FlowCanvasContent() {
   const { loadFlow } = useFlow()
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+
+  // Ref to track the currently loaded ID to prevent re-fetching on tab switch
+  const loadedFlowId = useRef<string | null>(null)
 
   const fetchFlow = useCallback(async (id: string) => {
     try {
@@ -38,8 +41,11 @@ function FlowCanvasContent() {
   }, [loadFlow])
 
   useEffect(() => {
-    if (session && params.id) {
-      const id = params.id as string
+    const id = params.id as string
+
+    // Only fetch if session exists, ID exists, AND we haven't loaded this ID yet
+    if (session && id && loadedFlowId.current !== id) {
+      loadedFlowId.current = id // Mark this ID as loaded
       fetchFlow(id)
     }
   }, [session, params.id, fetchFlow])

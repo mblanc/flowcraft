@@ -28,11 +28,17 @@ export function Header() {
     setIsEditing(false)
   }
 
+  // New handler function to Save then Navigate
+  const handleBack = async () => {
+    await saveFlow() // Wait for the save operation to finish
+    router.push("/flows")
+  }
+
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
       <div className="flex items-center gap-3">
         {flowId && (
-          <Button variant="ghost" size="sm" onClick={() => router.push("/flows")}>
+          <Button variant="ghost" size="sm" onClick={handleBack}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
@@ -74,7 +80,7 @@ export function Header() {
 
       <div className="flex items-center gap-2">
         {flowId && (
-          <Button variant="ghost" size="sm" onClick={saveFlow}>
+          <Button variant="ghost" size="sm" onClick={() => saveFlow()}>
             <Save className="h-4 w-4 mr-2" />
             Save
           </Button>
