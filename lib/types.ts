@@ -1,4 +1,4 @@
-export type NodeType = "agent" | "text" | "image" | "video" | "file" | "upscale"
+export type NodeType = "agent" | "text" | "image" | "video" | "file" | "upscale" | "resize"
 
 export interface BaseNodeData extends Record<string, unknown> {
   type: NodeType
@@ -48,6 +48,8 @@ export interface VideoData extends BaseNodeData {
   model: "veo-3.1-fast-generate-preview" | "veo-3.1-generate-preview"
   generateAudio: boolean
   resolution: "720p" | "1080p"
+  width?: number
+  height?: number
 }
 
 export interface FileData extends BaseNodeData {
@@ -55,12 +57,22 @@ export interface FileData extends BaseNodeData {
   fileType: "image" | "video" | null
   fileUrl: string
   fileName: string
+  gcsUri?: string
 }
 
 export interface UpscaleData extends BaseNodeData {
   type: "upscale"
   image: string
   upscaleFactor: "x2" | "x3" | "x4"
+  width?: number
+  height?: number
+}
+
+export interface ResizeData extends BaseNodeData {
+  type: "resize"
+  image?: string
+  aspectRatio: "16:9" | "9:16"
+  output?: string
   width?: number
   height?: number
 }
@@ -74,4 +86,4 @@ export interface NodeInputs {
   image?: string
 }
 
-export type NodeData = AgentData | TextData | ImageData | VideoData | FileData | UpscaleData
+export type NodeData = AgentData | TextData | ImageData | VideoData | FileData | UpscaleData | ResizeData

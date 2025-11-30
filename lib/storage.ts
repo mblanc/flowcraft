@@ -170,3 +170,39 @@ export async function getMimeTypeFromGCS(gcsUri: string): Promise<string | null>
   const [metadata] = await storage.bucket(bucketName).file(fileName).getMetadata();
   return metadata.contentType || null;
 }
+
+export async function uploadFile(buffer: Buffer, filename: string, contentType: string): Promise<string | null> {
+  if (!storageUri) {
+    logger.error('GCS_STORAGE_URI environment variable is not set.');
+    return null;
+  }
+
+  try {
+    const bucketName = storageUri.startsWith('gs://')
+      ? storageUri.substring(5).split('/')[0]
+      : storageUri.split('/')[0];
+
+    if (!bucketName) {
+      logger.error(`Could not extract bucket name from STORAGE_URI: ${storageUri}`);
+      return null;
+    }
+
+    const bucket = storage.bucket(bucketName);
+    const file = bucket.file(filename);
+
+    await file.save(buffer, {
+      metadata: {
+        contentType: contentType,
+      },
+      public: false,
+    });
+
+    const gcsUri = `gs://${bucketName}/${filename}`;
+    logger.debug(`Successfully uploaded ${filename} to ${gcsUri}`);
+    return gcsUri;
+
+  } catch (error) {
+    logger.error(`Failed to upload file ${filename} to GCS:`, error);
+    return null;
+  }
+}

@@ -1,6 +1,6 @@
 import { Edge, Node } from "@xyflow/react"
 import { NodeData, NodeType, NodeInputs } from "./types"
-import { executeAgentNode, executeImageNode, executeUpscaleNode, executeVideoNode } from "./executors"
+import { executeAgentNode, executeImageNode, executeUpscaleNode, executeVideoNode, executeResizeNode } from "./executors"
 
 type NodeExecutor = (node: Node, inputs: NodeInputs) => Promise<Partial<NodeData>>
 
@@ -9,6 +9,7 @@ const executors: Record<NodeType, NodeExecutor | null> = {
     image: executeImageNode as unknown as NodeExecutor,
     video: executeVideoNode as unknown as NodeExecutor,
     upscale: executeUpscaleNode as unknown as NodeExecutor,
+    resize: executeResizeNode as unknown as NodeExecutor,
     text: null,
     file: null,
 }
@@ -158,8 +159,10 @@ export class WorkflowEngine {
             inputs.files = []
             for (const edge of fileEdges) {
                 const sourceData = getSourceData(edge.source)
-                if (sourceData?.type === "file" && sourceData.fileUrl) {
-                    inputs.files.push({ url: sourceData.fileUrl, type: sourceData.fileType || "image" })
+                if (sourceData?.type === "file" && sourceData.gcsUri) {
+                    inputs.files.push({ url: sourceData.gcsUri, type: sourceData.fileType || "image" })
+                } else if (sourceData?.type === "resize" && sourceData.output) {
+                    inputs.files.push({ url: sourceData.output, type: "image" })
                 }
             }
         } else if (node.data.type === "image") {
@@ -176,8 +179,9 @@ export class WorkflowEngine {
             for (const edge of imageEdges) {
                 const sourceData = getSourceData(edge.source)
                 if (sourceData?.type === "image" && sourceData.images) inputs.images.push(...sourceData.images)
-                else if (sourceData?.type === "file" && sourceData.fileType === "image") inputs.images.push(sourceData.fileUrl)
+                else if (sourceData?.type === "file" && sourceData.fileType === "image" && sourceData.gcsUri) inputs.images.push(sourceData.gcsUri)
                 else if (sourceData?.type === "upscale" && sourceData.image) inputs.images.push(sourceData.image)
+                else if (sourceData?.type === "resize" && sourceData.output) inputs.images.push(sourceData.output)
             }
         } else if (node.data.type === "video") {
             // Video inputs
@@ -192,16 +196,18 @@ export class WorkflowEngine {
             if (firstFrameEdge) {
                 const sourceData = getSourceData(firstFrameEdge.source)
                 if (sourceData?.type === "image" && sourceData.images?.[0]) inputs.firstFrame = sourceData.images[0]
-                else if (sourceData?.type === "file" && sourceData.fileType === "image") inputs.firstFrame = sourceData.fileUrl
+                else if (sourceData?.type === "file" && sourceData.fileType === "image" && sourceData.gcsUri) inputs.firstFrame = sourceData.gcsUri
                 else if (sourceData?.type === "upscale" && sourceData.image) inputs.firstFrame = sourceData.image
+                else if (sourceData?.type === "resize" && sourceData.output) inputs.firstFrame = sourceData.output
             }
 
             const lastFrameEdge = incomingEdges.find((edge) => edge.targetHandle === "last-frame-input")
             if (lastFrameEdge) {
                 const sourceData = getSourceData(lastFrameEdge.source)
                 if (sourceData?.type === "image" && sourceData.images?.[0]) inputs.lastFrame = sourceData.images[0]
-                else if (sourceData?.type === "file" && sourceData.fileType === "image") inputs.lastFrame = sourceData.fileUrl
+                else if (sourceData?.type === "file" && sourceData.fileType === "image" && sourceData.gcsUri) inputs.lastFrame = sourceData.gcsUri
                 else if (sourceData?.type === "upscale" && sourceData.image) inputs.lastFrame = sourceData.image
+                else if (sourceData?.type === "resize" && sourceData.output) inputs.lastFrame = sourceData.output
             }
 
             const imageEdges = incomingEdges.filter((edge) => edge.targetHandle === "image-input")
@@ -209,8 +215,9 @@ export class WorkflowEngine {
             for (const edge of imageEdges) {
                 const sourceData = getSourceData(edge.source)
                 if (sourceData?.type === "image" && sourceData.images) inputs.images.push(...sourceData.images)
-                else if (sourceData?.type === "file" && sourceData.fileType === "image") inputs.images.push(sourceData.fileUrl)
+                else if (sourceData?.type === "file" && sourceData.fileType === "image" && sourceData.gcsUri) inputs.images.push(sourceData.gcsUri)
                 else if (sourceData?.type === "upscale" && sourceData.image) inputs.images.push(sourceData.image)
+                else if (sourceData?.type === "resize" && sourceData.output) inputs.images.push(sourceData.output)
             }
         } else if (node.data.type === "upscale") {
             // Upscale inputs
@@ -218,8 +225,42 @@ export class WorkflowEngine {
             if (imageEdge) {
                 const sourceData = getSourceData(imageEdge.source)
                 if (sourceData?.type === "image" && sourceData.images?.[0]) inputs.image = sourceData.images[0]
-                else if (sourceData?.type === "file" && sourceData.fileType === "image") inputs.image = sourceData.fileUrl
+                else if (sourceData?.type === "file" && sourceData.fileType === "image" && sourceData.gcsUri) inputs.image = sourceData.gcsUri
                 else if (sourceData?.type === "upscale" && sourceData.image) inputs.image = sourceData.image
+                else if (sourceData?.type === "resize" && sourceData.output) inputs.image = sourceData.output
+            }
+        } else if (node.data.type === "resize") {
+            // Resize inputs
+            const imageEdge = incomingEdges.find((edge) => edge.targetHandle === "image-input")
+            console.log("[WorkflowEngine] Resize Node Input Debug:", {
+                nodeId: node.id,
+                incomingEdges,
+                imageEdge,
+            })
+            if (imageEdge) {
+                const sourceData = getSourceData(imageEdge.source)
+                console.log("[WorkflowEngine] Resize Node Source Data:", JSON.stringify(sourceData, null, 2))
+
+                if (sourceData?.type === "image" && sourceData.images?.[0]) {
+                    inputs.image = sourceData.images[0]
+                } else if (sourceData?.type === "file") {
+                    if (sourceData.fileType === "image" && sourceData.gcsUri) {
+                        inputs.image = sourceData.gcsUri
+                    } else {
+                        console.warn("[WorkflowEngine] File Node source is not a valid image:", {
+                            fileType: sourceData.fileType,
+                            hasGcsUri: !!sourceData.gcsUri
+                        })
+                    }
+                } else if (sourceData?.type === "upscale" && sourceData.image) {
+                    inputs.image = sourceData.image
+                } else if (sourceData?.type === "resize" && sourceData.output) {
+                    inputs.image = sourceData.output
+                }
+
+                console.log("[WorkflowEngine] Resize Node Resolved Input:", inputs.image)
+            } else {
+                console.warn("[WorkflowEngine] No image edge found for resize node")
             }
         }
 

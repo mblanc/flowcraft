@@ -13,6 +13,12 @@ export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [localPrompt, setLocalPrompt] = useState(data.prompt)
   const [videoPlaybackUrl, setVideoPlaybackUrl] = useState<string | undefined>(undefined)
+  const [dimensions, setDimensions] = useState({
+    width: data.width || 400,
+    height: data.height || 600,
+  })
+  const [isResizing, setIsResizing] = useState(false)
+  const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 })
 
   useEffect(() => {
     setLocalPrompt(data.prompt)
@@ -50,6 +56,49 @@ export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>
 
   }, [data.videoUrl])
 
+  useEffect(() => {
+    if (data.width !== undefined && data.height !== undefined) {
+      setDimensions({ width: data.width, height: data.height })
+    }
+  }, [data.width, data.height])
+
+  const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: dimensions.width,
+      height: dimensions.height,
+    }
+  }
+
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - resizeStartRef.current.x
+      const deltaY = e.clientY - resizeStartRef.current.y
+      const newWidth = Math.max(220, resizeStartRef.current.width + deltaX)
+      const newHeight = Math.max(300, resizeStartRef.current.height + deltaY)
+      setDimensions({ width: newWidth, height: newHeight })
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      updateNodeData(id, { width: dimensions.width, height: dimensions.height })
+    }
+
+    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("mouseup", handleMouseUp)
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [isResizing, id, updateNodeData, dimensions.width, dimensions.height])
+
   const handleExecute = (e: React.MouseEvent) => {
     e.stopPropagation()
     executeNode(id)
@@ -65,8 +114,9 @@ export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>
 
   return (
     <div
-      className={`bg-card border-2 rounded-lg p-4 min-w-[220px] shadow-lg transition-all relative ${selected ? "border-primary shadow-primary/20" : "border-border"
+      className={`bg-card border-2 rounded-lg p-4 shadow-lg transition-all relative ${selected ? "border-primary shadow-primary/20" : "border-border"
         } ${data.executing ? "animate-pulse-bg" : ""}`}
+      style={{ width: dimensions.width }}
     >
       {/* Prompt Input Handle */}
       <Handle
@@ -140,8 +190,8 @@ export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>
       </div>
 
       {data.videoUrl && (
-        <div className="mt-3 rounded-md overflow-hidden border border-border">
-          <video src={videoPlaybackUrl} controls className="w-full h-auto max-h-[300px]" />
+        <div className="mt-3 rounded-md overflow-hidden border border-border" style={{ maxHeight: dimensions.height - 200 }}>
+          <video src={videoPlaybackUrl} controls className="w-full h-auto object-contain" style={{ maxHeight: dimensions.height - 200 }} />
         </div>
       )}
 
@@ -153,6 +203,15 @@ export const VideoNode = memo(({ data, selected, id }: NodeProps<Node<VideoData>
         <Play className="h-3 w-3" />
         Execute Node
       </button>
+
+      {/* Resize handle */}
+      <div
+        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize nodrag"
+        onMouseDown={handleResizeStart}
+        style={{ touchAction: "none" }}
+      >
+        <div className="absolute bottom-1 right-1 w-3 h-3 border-r-2 border-b-2 border-muted-foreground/30 rounded-br" />
+      </div>
 
       <Handle type="source" position={Position.Right} className="!bg-pink-500" id="result-output" />
     </div>

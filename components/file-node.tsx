@@ -24,17 +24,31 @@ export const FileNode = memo(({ data, selected, id }: NodeProps<Node<FileData>>)
       return
     }
 
-    // Convert file to base64 data URL
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const fileUrl = event.target?.result as string
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const response = await fetch("/api/upload-file", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Upload failed")
+      }
+
+      const data = await response.json()
+
       updateNodeData(id, {
-        fileUrl,
+        fileUrl: data.signedUrl,
+        gcsUri: data.gcsUri,
         fileName: file.name,
         fileType,
       })
+    } catch (error) {
+      console.error("Upload error:", error)
+      alert("Failed to upload file")
     }
-    reader.readAsDataURL(file)
   }
 
   const handleUploadClick = () => {

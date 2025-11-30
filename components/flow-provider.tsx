@@ -11,7 +11,7 @@ import {
   type NodeChange,
   type EdgeChange,
 } from "@xyflow/react"
-import { AgentData, FileData, ImageData, NodeData, TextData, UpscaleData, VideoData } from "@/lib/types"
+import { AgentData, FileData, ImageData, NodeData, TextData, UpscaleData, VideoData, ResizeData } from "@/lib/types"
 import { WorkflowEngine } from "@/lib/workflow-engine"
 
 interface FlowContextType {
@@ -30,6 +30,7 @@ interface FlowContextType {
   addVideoNode: () => void
   addFileNode: () => void
   addUpscaleNode: () => void
+  addResizeNode: () => void
   selectNode: (nodeId: string | null) => void
   updateNodeData: (nodeId: string, data: Partial<NodeData>) => void
   updateFlowName: (name: string) => void
@@ -237,6 +238,20 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setNodes((nds) => [...nds, newNode])
   }, [])
 
+  const addResizeNode = useCallback(() => {
+    const newNode: Node<ResizeData> = {
+      id: `resize-${Date.now()}`,
+      type: "resize",
+      position: { x: 250, y: 250 },
+      data: {
+        type: "resize",
+        name: "Resize",
+        aspectRatio: "16:9",
+      },
+    }
+    setNodes((nds) => [...nds, newNode])
+  }, [])
+
   const selectNode = useCallback(
     (nodeId: string | null) => {
       if (nodeId) {
@@ -364,6 +379,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         addVideoNode,
         addFileNode,
         addUpscaleNode,
+        addResizeNode,
         selectNode,
         updateNodeData,
         updateFlowName,

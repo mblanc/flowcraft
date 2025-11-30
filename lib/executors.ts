@@ -1,4 +1,4 @@
-import { AgentData, ImageData, NodeData, UpscaleData, VideoData } from "./types"
+import { AgentData, ImageData, NodeData, UpscaleData, VideoData, ResizeData } from "./types"
 import { Node } from "@xyflow/react"
 
 export interface ExecutionContext {
@@ -148,4 +148,37 @@ export async function executeUpscaleNode(
 
     const data = await response.json()
     return { image: data.imageUrl } // Assuming the API returns imageUrl
+}
+
+export async function executeResizeNode(
+    node: Node<ResizeData>,
+    inputs: { image?: string },
+): Promise<Partial<ResizeData>> {
+    const { image } = inputs
+    // If no input image, check if one is stored in node data (though usually it comes from input)
+    // For resize node, we expect an input image from a previous node
+    const finalImage = image || node.data.image
+
+    if (!finalImage) {
+        throw new Error("No image available for resize node")
+    }
+
+    console.log("[Executor] Resizing image")
+
+    const response = await fetch("/api/resize-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            image: finalImage,
+            aspectRatio: node.data.aspectRatio,
+        }),
+    })
+
+    if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to resize image: ${errorText}`)
+    }
+
+    const data = await response.json()
+    return { output: data.imageUrl }
 }

@@ -13,8 +13,9 @@ import { ImageNode } from "./image-node"
 import { VideoNode } from "./video-node"
 import { FileNode } from "./file-node"
 import { UpscaleNode } from "./upscale-node"
+import { ResizeNode } from "./resize-node"
 import { Button } from "./ui/button"
-import { Bot, FileText, ImageIcon, Video, Play, FileUp, ZoomIn } from "lucide-react"
+import { Bot, FileText, ImageIcon, Video, Play, FileUp, ZoomIn, Scaling } from "lucide-react"
 
 const nodeTypes = {
   agent: AgentNode,
@@ -23,6 +24,7 @@ const nodeTypes = {
   video: VideoNode,
   file: FileNode,
   upscale: UpscaleNode,
+  resize: ResizeNode,
 }
 
 export function FlowCanvas() {
@@ -38,6 +40,7 @@ export function FlowCanvas() {
     addVideoNode,
     addFileNode,
     addUpscaleNode,
+    addResizeNode,
     selectNode,
     runFlow,
     isRunning,
@@ -97,6 +100,10 @@ export function FlowCanvas() {
           <Button onClick={addUpscaleNode} size="sm" className="bg-red-500 text-white hover:bg-red-600">
             <ZoomIn className="h-4 w-4 mr-2" />
             Upscale
+          </Button>
+          <Button onClick={addResizeNode} size="sm" className="bg-blue-500 text-white hover:bg-blue-600">
+            <Scaling className="h-4 w-4 mr-2" />
+            Resize
           </Button>
         </Panel>
         <Panel position="top-right" className="bg-card border border-border rounded-lg p-2">

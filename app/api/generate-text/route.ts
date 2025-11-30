@@ -1,5 +1,6 @@
 import { GoogleGenAI, createPartFromBase64, createPartFromText, ContentListUnion, createPartFromUri } from "@google/genai"
 import { NextResponse } from "next/server"
+import { getMimeTypeFromGCS } from "@/lib/storage"
 
 export async function POST(request: Request) {
   try {
@@ -19,7 +20,9 @@ export async function POST(request: Request) {
       for (const file of files) {
         // Extract base64 data from data URL
         if (file.url.startsWith("gs://")) {
-          contents.push(createPartFromUri(file.url, "application/pdf"))
+          // get mimetype from gcs uri
+          const mimeType = await getMimeTypeFromGCS(file.url)
+          contents.push(createPartFromUri(file.url, mimeType || "image/jpeg"))
         } else if (file.url.startsWith("data:image/")) {
           const base64Match = file.url.match(/^data:([^;]+);base64,(.+)$/)
           if (base64Match) {
