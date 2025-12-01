@@ -1,4 +1,4 @@
-import { GoogleGenAI, createPartFromBase64, createPartFromUri, createPartFromText, ContentListUnion, Image } from "@google/genai"
+import { GoogleGenAI, Image } from "@google/genai"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         console.log("[SERVER] Upscaling image with factor:", upscaleFactor)
         console.log("[SERVER] Image source:", image.substring(0, 50))
 
-        let imageInput: Image = {}
+        const imageInput: Image = {}
 
         // Add the input image
         if (image.startsWith("data:image/")) {
@@ -65,8 +65,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "No content parts in response" }, { status: 500 })
         }
 
-        let imageGcsUri
-        imageGcsUri = candidate.image.gcsUri
+        const imageGcsUri = candidate.image.gcsUri
         return NextResponse.json({
             imageUrl: imageGcsUri,
             upscaleFactor,

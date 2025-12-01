@@ -1,0 +1,12 @@
+.git
+node_modules
+.next
+out
+build
+dist
+.DS_Store
+*.md
+deploy.sh
+cloudbuild.yaml
+README.md
+.env*

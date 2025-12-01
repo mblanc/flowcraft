@@ -1,13 +1,13 @@
 "use client"
 
+import { useFlow } from "./flow-provider"
 import {
-  useFlow,
   type AgentData,
   type TextData,
   type ImageData,
   type VideoData,
   type FileData,
-} from "./flow-provider"
+} from "@/lib/types"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"

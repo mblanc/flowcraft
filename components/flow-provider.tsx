@@ -24,13 +24,13 @@ interface FlowContextType {
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
   onConnect: (connection: Connection) => void
-  addAgentNode: () => void
-  addTextNode: () => void
-  addImageNode: () => void
-  addVideoNode: () => void
-  addFileNode: () => void
-  addUpscaleNode: () => void
-  addResizeNode: () => void
+  addAgentNode: (position?: { x: number; y: number }) => void
+  addTextNode: (position?: { x: number; y: number }) => void
+  addImageNode: (position?: { x: number; y: number }) => void
+  addVideoNode: (position?: { x: number; y: number }) => void
+  addFileNode: (position?: { x: number; y: number }) => void
+  addUpscaleNode: (position?: { x: number; y: number }) => void
+  addResizeNode: (position?: { x: number; y: number }) => void
   selectNode: (nodeId: string | null) => void
   updateNodeData: (nodeId: string, data: Partial<NodeData>) => void
   updateFlowName: (name: string) => void
@@ -140,11 +140,11 @@ export function FlowProvider({ children }: { children: ReactNode }) {
 
   const onConnect = useCallback((connection: Connection) => setEdges((eds) => addEdge(connection, eds)), [])
 
-  const addAgentNode = useCallback(() => {
+  const addAgentNode = useCallback((position?: { x: number; y: number }) => {
     const newNode: Node<AgentData> = {
       id: `agent-${Date.now()}`,
       type: "agent",
-      position: { x: 250, y: 250 },
+      position: position || { x: 250, y: 250 },
       data: {
         type: "agent",
         name: "Agent",
@@ -155,11 +155,11 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setNodes((nds) => [...nds, newNode])
   }, [])
 
-  const addTextNode = useCallback(() => {
+  const addTextNode = useCallback((position?: { x: number; y: number }) => {
     const newNode: Node<TextData> = {
       id: `text-${Date.now()}`,
       type: "text",
-      position: { x: 250, y: 250 },
+      position: position || { x: 250, y: 250 },
       data: {
         type: "text",
         name: "Text",
@@ -169,11 +169,11 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setNodes((nds) => [...nds, newNode])
   }, [])
 
-  const addImageNode = useCallback(() => {
+  const addImageNode = useCallback((position?: { x: number; y: number }) => {
     const newNode: Node<ImageData> = {
       id: `image-${Date.now()}`,
       type: "image",
-      position: { x: 250, y: 250 },
+      position: position || { x: 250, y: 250 },
       data: {
         type: "image",
         name: "Image",
@@ -187,11 +187,11 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setNodes((nds) => [...nds, newNode])
   }, [])
 
-  const addVideoNode = useCallback(() => {
+  const addVideoNode = useCallback((position?: { x: number; y: number }) => {
     const newNode: Node<VideoData> = {
       id: `video-${Date.now()}`,
       type: "video",
-      position: { x: 250, y: 250 },
+      position: position || { x: 250, y: 250 },
       data: {
         type: "video",
         name: "Video",
@@ -207,11 +207,11 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setNodes((nds) => [...nds, newNode])
   }, [])
 
-  const addFileNode = useCallback(() => {
+  const addFileNode = useCallback((position?: { x: number; y: number }) => {
     const newNode: Node<FileData> = {
       id: `file-${Date.now()}`,
       type: "file",
-      position: { x: 250, y: 250 },
+      position: position || { x: 250, y: 250 },
       data: {
         type: "file",
         name: "File",
@@ -223,11 +223,11 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setNodes((nds) => [...nds, newNode])
   }, [])
 
-  const addUpscaleNode = useCallback(() => {
+  const addUpscaleNode = useCallback((position?: { x: number; y: number }) => {
     const newNode: Node<UpscaleData> = {
       id: `upscale-${Date.now()}`,
       type: "upscale",
-      position: { x: 250, y: 250 },
+      position: position || { x: 250, y: 250 },
       data: {
         type: "upscale",
         name: "Upscale",
@@ -238,11 +238,11 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setNodes((nds) => [...nds, newNode])
   }, [])
 
-  const addResizeNode = useCallback(() => {
+  const addResizeNode = useCallback((position?: { x: number; y: number }) => {
     const newNode: Node<ResizeData> = {
       id: `resize-${Date.now()}`,
       type: "resize",
-      position: { x: 250, y: 250 },
+      position: position || { x: 250, y: 250 },
       data: {
         type: "resize",
         name: "Resize",

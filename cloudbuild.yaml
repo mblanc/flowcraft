@@ -1,0 +1,21 @@
+steps:
+  # 1. Pull the previous image to use as a cache source
+  # '|| exit 0' ensures the build doesn't fail if this is the first deployment (no image yet)
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull $_IMAGE_NAME || exit 0']
+
+  # 2. Build the new image using the pulled image as cache
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', '$_IMAGE_NAME',
+      '--cache-from', '$_IMAGE_NAME',
+      '--build-arg', 'BUILDKIT_INLINE_CACHE=1',
+      '.'
+    ]
+    env:
+      - 'DOCKER_BUILDKIT=1'
+
+# 3. Push the new image to the registry
+images: ['$_IMAGE_NAME']
