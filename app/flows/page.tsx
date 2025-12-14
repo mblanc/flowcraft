@@ -46,6 +46,7 @@ export default function FlowsList() {
                   if (urlData.signedUrl) {
                     urls[flow.id] = urlData.signedUrl
                   }
+                  console.log("Signed URL for thumbnail:", urls[flow.name])
                 } catch (error) {
                   console.error("Error fetching signed URL for thumbnail:", error)
                 }

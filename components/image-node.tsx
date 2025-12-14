@@ -7,6 +7,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
 import type { ImageData } from "@/lib/types"
 import { ImageIcon, Play } from "lucide-react"
 import { useFlow } from "./flow-provider"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 
 export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>>) => {
   const { executeNode, updateNodeData } = useFlow()
@@ -266,14 +267,28 @@ export const ImageNode = memo(({ data, selected, id }: NodeProps<Node<ImageData>
       </div>
 
       {data.images.length > 0 && imageSignedUrl && (
-        <div className="mt-3 rounded-md overflow-hidden border border-border" style={{ maxHeight: dimensions.height - 200 }}>
-          <img
-            src={imageSignedUrl}
-            alt={data.name}
-            className="w-full h-auto object-contain"
-            style={{ maxHeight: dimensions.height - 200 }}
-          />
-        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <div
+              className="mt-3 rounded-md overflow-hidden border border-border cursor-pointer hover:opacity-90 transition-opacity"
+              style={{ maxHeight: dimensions.height - 200 }}
+            >
+              <img
+                src={imageSignedUrl}
+                alt={data.name}
+                className="w-full h-auto object-contain"
+                style={{ maxHeight: dimensions.height - 200 }}
+              />
+            </div>
+          </DialogTrigger>
+          <DialogContent className="max-w-[90vw] max-h-[90vh] w-auto h-auto p-0 bg-transparent border-none shadow-none flex items-center justify-center">
+            <img
+              src={imageSignedUrl}
+              alt={data.name}
+              className="max-w-full max-h-[90vh] object-contain rounded-md"
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       <button

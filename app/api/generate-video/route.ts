@@ -43,13 +43,6 @@ export async function POST(request: Request) {
         gcsUri: firstFrame,
         mimeType: "image/png",
       }
-    } else if (firstFrame) {
-      const base64Data = firstFrame.split(",")[1]
-      const mimeType = firstFrame.split(";")[0].split(":")[1]
-      videoRequest.source!.image = {
-        imageBytes: base64Data,
-        mimeType: mimeType,
-      }
     }
 
     if (lastFrame && lastFrame.startsWith("gs://")) {
@@ -57,23 +50,15 @@ export async function POST(request: Request) {
         gcsUri: lastFrame,
         mimeType: "image/png",
       }
-    } else if (lastFrame) {
-      const base64Data = lastFrame.split(",")[1]
-      const mimeType = lastFrame.split(";")[0].split(":")[1]
-      videoRequest.source!.image = {
-        imageBytes: base64Data,
-        mimeType: mimeType,
-      }
     }
 
     if (images && images.length > 0) {
-      videoRequest.config!.referenceImages = images.map((image: string) => {
-        const base64Data = image.split(",")[1]
-        const mimeType = image.split(";")[0].split(":")[1]
+      videoRequest.model = "veo-3.1-generate-preview"
+      videoRequest.config!.referenceImages = images.map((image:string) => {
         return {
           image: {
-            imageBytes: base64Data,
-            mimeType: mimeType,
+            gcsUri: image,
+            mimeType: "image/png",
           },
           referenceType: VideoGenerationReferenceType.ASSET,
         }
@@ -101,7 +86,7 @@ export async function POST(request: Request) {
 
     const videos = operation.response?.generatedVideos
     if (!videos || videos.length === 0) {
-      console.log(JSON.stringify(operation, null, 2))
+      console.log(JSON.stringify(operation, null, 2) )
       throw new Error("No videos generated")
     }
 

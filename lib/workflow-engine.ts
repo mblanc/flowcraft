@@ -52,7 +52,7 @@ export class WorkflowEngine {
                         this.executionResults.set(nodeId, result)
 
                         // Update node with result
-                        this.onNodeUpdate(nodeId, { ...result, executing: false })
+                        this.onNodeUpdate(nodeId, { ...result, executing: false, generatedAt: Date.now() })
 
                         // Update internal map state for next levels
                         const updatedNode = { ...node, data: { ...node.data, ...result } } as Node<NodeData>
@@ -81,7 +81,7 @@ export class WorkflowEngine {
             const result = await executor(node, inputs)
 
             this.executionResults.set(nodeId, result)
-            this.onNodeUpdate(nodeId, { ...result, executing: false })
+            this.onNodeUpdate(nodeId, { ...result, executing: false, generatedAt: Date.now() })
 
             const updatedNode = { ...node, data: { ...node.data, ...result } } as Node<NodeData>
             this.nodesMap.set(nodeId, updatedNode)

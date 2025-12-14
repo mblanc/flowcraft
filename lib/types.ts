@@ -4,6 +4,7 @@ export interface BaseNodeData extends Record<string, unknown> {
   type: NodeType
   name: string
   executing?: boolean
+  generatedAt?: number
 }
 
 export interface AgentData extends BaseNodeData {

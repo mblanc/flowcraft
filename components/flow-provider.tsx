@@ -68,6 +68,34 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     // Use provided nodes or fall back to current state
     const nodesToUse = nodesToSave || nodes
 
+    let thumbnailToUse = thumbnail
+
+    if (!thumbnailToUse) {
+      const imageNodes = nodesToUse.filter((node) => {
+        const data = node.data
+        if (data.type === "image" && (data as ImageData).images?.length > 0) return true
+        if (data.type === "upscale" && (data as UpscaleData).image) return true
+        if (data.type === "resize" && (data as ResizeData).output) return true
+        if (data.type === "video" && (data as VideoData).images?.length > 0) return true
+        return false
+      })
+
+      if (imageNodes.length > 0) {
+        imageNodes.sort((a, b) => {
+          const timeA = a.data.generatedAt || 0
+          const timeB = b.data.generatedAt || 0
+          return timeB - timeA
+        })
+
+        const latestNode = imageNodes[0]
+        const data = latestNode.data
+        if (data.type === "image") thumbnailToUse = (data as ImageData).images[0]
+        else if (data.type === "upscale") thumbnailToUse = (data as UpscaleData).image
+        else if (data.type === "resize") thumbnailToUse = (data as ResizeData).output
+        else if (data.type === "video") thumbnailToUse = (data as VideoData).images[0]
+      }
+    }
+
     try {
       await fetch(`/api/flows/${flowId}`, {
         method: "PUT",
@@ -78,7 +106,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
           name: flowName,
           nodes: nodesToUse,
           edges,
-          ...(thumbnail !== undefined && { thumbnail }),
+          ...(thumbnailToUse !== undefined && { thumbnail: thumbnailToUse }),
         }),
       })
       console.log("[v0] Flow auto-saved")

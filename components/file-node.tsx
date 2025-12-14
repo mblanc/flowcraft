@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { memo, useRef } from "react"
+import { memo, useRef, useState, useEffect } from "react"
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
 import type { FileData } from "@/lib/types"
 import { FileUp, ImageIcon, Video } from "lucide-react"
@@ -12,6 +12,26 @@ import Image from "next/image"
 export const FileNode = memo(({ data, selected, id }: NodeProps<Node<FileData>>) => {
   const { updateNodeData } = useFlow()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [signedUrl, setSignedUrl] = useState<string | undefined>(data.fileUrl)
+
+  useEffect(() => {
+    if (data.gcsUri && data.gcsUri.startsWith("gs://")) {
+      fetch(`/api/signed-url?gcsUri=${encodeURIComponent(data.gcsUri)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.signedUrl) {
+            setSignedUrl(data.signedUrl)
+          } else {
+            console.error("Failed to get signed URL:", data.error)
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching signed URL:", error)
+        })
+    } else if (data.fileUrl) {
+      setSignedUrl(data.fileUrl)
+    }
+  }, [data.gcsUri, data.fileUrl])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -45,6 +65,7 @@ export const FileNode = memo(({ data, selected, id }: NodeProps<Node<FileData>>)
         fileName: file.name,
         fileType,
       })
+      setSignedUrl(data.signedUrl)
     } catch (error) {
       console.error("Upload error:", error)
       alert("Failed to upload file")
@@ -84,18 +105,18 @@ export const FileNode = memo(({ data, selected, id }: NodeProps<Node<FileData>>)
         </div>
       </div>
 
-      {data.fileUrl && (
+      {signedUrl && (
         <div className="mt-3 rounded-md overflow-hidden border border-border">
           {data.fileType === "image" ? (
             <Image
-              src={data.fileUrl || "/placeholder.svg"}
-              alt={data.fileName}
+              src={signedUrl}
+              alt={data.fileName || "File"}
               width={200}
               height={150}
               className="w-full h-auto object-contain max-h-[300px]"
             />
           ) : data.fileType === "video" ? (
-            <video src={data.fileUrl} controls className="w-full h-auto max-h-[300px]" />
+              <video src={signedUrl} controls className="w-full h-auto max-h-[300px]" />
           ) : null}
         </div>
       )}
@@ -107,7 +128,7 @@ export const FileNode = memo(({ data, selected, id }: NodeProps<Node<FileData>>)
         className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-md text-xs font-medium transition-colors"
       >
         <FileUp className="h-3 w-3" />
-        {data.fileUrl ? "Change File" : "Upload File"}
+        {signedUrl ? "Change File" : "Upload File"}
       </button>
 
       <Handle type="source" position={Position.Right} className="!bg-cyan-500" />
