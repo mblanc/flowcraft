@@ -240,7 +240,7 @@ export const ResizeNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-green-500"
+                    className="!bg-blue-500"
                     id="output"
                 />
             </div>

@@ -234,7 +234,7 @@ export const UpscaleNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-green-500"
+                    className="!bg-red-500"
                     id="result-output"
                 />
             </div>

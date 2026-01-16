@@ -50,6 +50,16 @@ const nodeTypes = {
     resize: ResizeNode,
 };
 
+const NODE_COLORS: Record<string, string> = {
+    agent: "oklch(0.65 0.25 252)",
+    text: "#a855f7", // purple-500
+    image: "#f97316", // orange-500
+    video: "#ec4899", // pink-500
+    file: "#06b6d4", // cyan-500
+    upscale: "#ef4444", // red-500
+    resize: "#3b82f6", // blue-500
+};
+
 export function FlowCanvas() {
     const nodes = useFlowStore((state: FlowState) => state.nodes);
     const edges = useFlowStore((state: FlowState) => state.edges);
@@ -61,6 +71,7 @@ export function FlowCanvas() {
     );
     const onConnect = useFlowStore((state: FlowState) => state.onConnect);
     const selectNode = useFlowStore((state: FlowState) => state.selectNode);
+    const selectedNode = useFlowStore((state: FlowState) => state.selectedNode);
     const flowId = useFlowStore((state: FlowState) => state.flowId);
     const addNodeWithType = useFlowStore(
         (state: FlowState) => state.addNodeWithType,
@@ -178,6 +189,30 @@ export function FlowCanvas() {
         },
     ] as const;
 
+    const highlightedEdges = edges.map((edge) => {
+        const isHighlighted =
+            selectedNode &&
+            (edge.source === selectedNode.id ||
+                edge.target === selectedNode.id);
+
+        if (!isHighlighted) return edge;
+
+        const sourceNode = nodes.find((n) => n.id === edge.source);
+        const color = sourceNode
+            ? NODE_COLORS[sourceNode.data.type]
+            : undefined;
+
+        return {
+            ...edge,
+            animated: true,
+            style: {
+                ...edge.style,
+                stroke: color,
+                strokeWidth: 6,
+            },
+        };
+    });
+
     return (
         <div className="relative flex h-full flex-1">
             <aside className="border-border bg-card z-10 flex w-14 flex-col items-center gap-4 border-r py-4">
@@ -220,7 +255,7 @@ export function FlowCanvas() {
             >
                 <ReactFlow
                     nodes={nodes}
-                    edges={edges}
+                    edges={highlightedEdges}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}

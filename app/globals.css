@@ -119,7 +119,7 @@
 .react-flow__edge-path {
     stroke: oklch(0.65 0.25 252);
     /* Increased stroke-width from 2 to 4 for better visibility */
-    stroke-width: 4 !important;
+    stroke-width: 4;
 }
 
 /* Converting handle sizes from rem back to px */

@@ -389,7 +389,7 @@ export const ImageNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-green-500"
+                    className="!bg-orange-500"
                     id="result-output"
                 />
             </div>
