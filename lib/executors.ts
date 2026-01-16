@@ -1,23 +1,21 @@
 import {
     AgentData,
     ImageData,
-    NodeData,
     UpscaleData,
     VideoData,
     ResizeData,
 } from "./types";
 import { Node } from "@xyflow/react";
-
-export interface ExecutionContext {
-    updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
-}
+import { ExecutionContext } from "./node-registry";
 
 export async function executeAgentNode(
     node: Node<AgentData>,
     inputs: { prompt?: string; files?: { url: string; type: string }[] },
+    context?: ExecutionContext,
 ): Promise<Partial<AgentData>> {
     const { prompt, files } = inputs;
     const finalPrompt = prompt || node.data.instructions;
+    const fetcher = context?.fetch || fetch;
 
     if (!finalPrompt) {
         throw new Error("No prompt available for agent node");
@@ -25,7 +23,7 @@ export async function executeAgentNode(
 
     console.log("[Executor] Generating text with prompt:", finalPrompt);
 
-    const response = await fetch("/api/generate-text", {
+    const response = await fetcher("/api/generate-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -47,9 +45,11 @@ export async function executeAgentNode(
 export async function executeImageNode(
     node: Node<ImageData>,
     inputs: { prompt?: string; images?: string[] },
+    context?: ExecutionContext,
 ): Promise<Partial<ImageData>> {
     const { prompt, images } = inputs;
     const finalPrompt = prompt || node.data.prompt;
+    const fetcher = context?.fetch || fetch;
 
     if (!finalPrompt) {
         throw new Error("No prompt available for image node");
@@ -57,7 +57,7 @@ export async function executeImageNode(
 
     console.log("[Executor] Generating image with prompt:", finalPrompt);
 
-    const response = await fetch("/api/generate-image", {
+    const response = await fetcher("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -86,9 +86,11 @@ export async function executeVideoNode(
         lastFrame?: string;
         images?: string[];
     },
+    context?: ExecutionContext,
 ): Promise<Partial<VideoData>> {
     const { prompt, firstFrame, lastFrame, images } = inputs;
     const finalPrompt = prompt || node.data.prompt;
+    const fetcher = context?.fetch || fetch;
 
     if (!finalPrompt) {
         throw new Error("No prompt available for video node");
@@ -96,7 +98,7 @@ export async function executeVideoNode(
 
     console.log("[Executor] Generating video with prompt:", finalPrompt);
 
-    const response = await fetch("/api/generate-video", {
+    const response = await fetcher("/api/generate-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -128,9 +130,11 @@ export async function executeVideoNode(
 export async function executeUpscaleNode(
     node: Node<UpscaleData>,
     inputs: { image?: string },
+    context?: ExecutionContext,
 ): Promise<Partial<UpscaleData>> {
     const { image } = inputs;
     const finalImage = image || node.data.image;
+    const fetcher = context?.fetch || fetch;
 
     if (!finalImage) {
         throw new Error("No image available for upscale node");
@@ -138,13 +142,7 @@ export async function executeUpscaleNode(
 
     console.log("[Executor] Upscaling image");
 
-    // Note: Assuming there is an upscale API endpoint, though it wasn't visible in the file list earlier.
-    // If not, we might need to mock it or check if it exists.
-    // Based on FlowProvider, it seems to use /api/upscale-image (inferred).
-    // Let's check the file list again or assume it exists.
-    // The file list showed `upscale-image` directory in `app/api`.
-
-    const response = await fetch("/api/upscale-image", {
+    const response = await fetcher("/api/upscale-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -159,17 +157,17 @@ export async function executeUpscaleNode(
     }
 
     const data = await response.json();
-    return { image: data.imageUrl }; // Assuming the API returns imageUrl
+    return { image: data.imageUrl };
 }
 
 export async function executeResizeNode(
     node: Node<ResizeData>,
     inputs: { image?: string },
+    context?: ExecutionContext,
 ): Promise<Partial<ResizeData>> {
     const { image } = inputs;
-    // If no input image, check if one is stored in node data (though usually it comes from input)
-    // For resize node, we expect an input image from a previous node
     const finalImage = image || node.data.image;
+    const fetcher = context?.fetch || fetch;
 
     if (!finalImage) {
         throw new Error("No image available for resize node");
@@ -177,7 +175,7 @@ export async function executeResizeNode(
 
     console.log("[Executor] Resizing image");
 
-    const response = await fetch("/api/resize-image", {
+    const response = await fetcher("/api/resize-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
