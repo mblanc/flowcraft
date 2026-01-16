@@ -1,47 +1,31 @@
 import { NextResponse } from "next/server";
-import { getFirestore, COLLECTIONS } from "@/lib/firestore";
 import { withAuth, formatZodError } from "@/lib/api-utils";
 import { FlowUpdateSchema } from "@/lib/schemas";
+import { flowService } from "@/lib/services/flow.service";
+import logger from "@/app/logger";
 
 export const GET = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
-        const { id: flowId } = (await params) as { id: string };
+        const { id: flowId } = await params;
         try {
-            const firestore = getFirestore();
-            const flowDoc = await firestore
-                .collection(COLLECTIONS.FLOWS)
-                .doc(flowId)
-                .get();
-
-            if (!flowDoc.exists) {
-                return NextResponse.json(
-                    { error: "Flow not found" },
-                    { status: 404 },
-                );
-            }
-
-            const flowData = flowDoc.data();
-
-            // Verify ownership
-            if (flowData?.userId !== session.user!.id) {
-                return NextResponse.json(
-                    { error: "Unauthorized" },
-                    { status: 403 },
-                );
-            }
-
-            return NextResponse.json({
-                id: flowDoc.id,
-                ...flowData,
-                createdAt:
-                    flowData?.createdAt?.toDate?.()?.toISOString() ||
-                    flowData?.createdAt,
-                updatedAt:
-                    flowData?.updatedAt?.toDate?.()?.toISOString() ||
-                    flowData?.updatedAt,
-            });
+            const flow = await flowService.getFlow(flowId, session.user!.id!);
+            return NextResponse.json(flow);
         } catch (error) {
-            console.error("Error fetching flow:", error);
+            if (error instanceof Error) {
+                if (error.message === "Flow not found") {
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 404 },
+                    );
+                }
+                if (error.message === "Unauthorized") {
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 403 },
+                    );
+                }
+            }
+            logger.error("Error fetching flow:", error);
             return NextResponse.json(
                 { error: "Internal server error" },
                 { status: 500 },
@@ -52,7 +36,7 @@ export const GET = withAuth<{ params: Promise<{ id: string }> }>(
 
 export const PUT = withAuth<{ params: Promise<{ id: string }> }>(
     async (req, { params }, session) => {
-        const { id: flowId } = (await params) as { id: string };
+        const { id: flowId } = await params;
         try {
             const body = await req.json();
             const result = FlowUpdateSchema.safeParse(body);
@@ -67,55 +51,28 @@ export const PUT = withAuth<{ params: Promise<{ id: string }> }>(
                 );
             }
 
-            const { name, nodes, edges, thumbnail } = result.data;
-
-            const firestore = getFirestore();
-            const flowRef = firestore.collection(COLLECTIONS.FLOWS).doc(flowId);
-            const flowDoc = await flowRef.get();
-
-            if (!flowDoc.exists) {
-                return NextResponse.json(
-                    { error: "Flow not found" },
-                    { status: 404 },
-                );
-            }
-
-            const flowData = flowDoc.data();
-
-            // Verify ownership
-            if (flowData?.userId !== session.user!.id) {
-                return NextResponse.json(
-                    { error: "Unauthorized" },
-                    { status: 403 },
-                );
-            }
-
-            const updateData: Record<string, unknown> = {
-                updatedAt: new Date(),
-            };
-
-            if (name !== undefined) updateData.name = name;
-            if (nodes !== undefined) updateData.nodes = nodes;
-            if (edges !== undefined) updateData.edges = edges;
-            if (thumbnail !== undefined) updateData.thumbnail = thumbnail;
-
-            await flowRef.update(updateData);
-
-            const updatedDoc = await flowRef.get();
-            const updatedData = updatedDoc.data();
-
-            return NextResponse.json({
-                id: flowDoc.id,
-                ...updatedData,
-                createdAt:
-                    updatedData?.createdAt?.toDate?.()?.toISOString() ||
-                    updatedData?.createdAt,
-                updatedAt:
-                    updatedData?.updatedAt?.toDate?.()?.toISOString() ||
-                    updatedData?.updatedAt,
-            });
+            const updatedFlow = await flowService.updateFlow(
+                flowId,
+                session.user!.id!,
+                result.data,
+            );
+            return NextResponse.json(updatedFlow);
         } catch (error) {
-            console.error("Error updating flow:", error);
+            if (error instanceof Error) {
+                if (error.message === "Flow not found") {
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 404 },
+                    );
+                }
+                if (error.message === "Unauthorized") {
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 403 },
+                    );
+                }
+            }
+            logger.error("Error updating flow:", error);
             return NextResponse.json(
                 { error: "Internal server error" },
                 { status: 500 },
@@ -126,34 +83,29 @@ export const PUT = withAuth<{ params: Promise<{ id: string }> }>(
 
 export const DELETE = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
-        const { id: flowId } = (await params) as { id: string };
+        const { id: flowId } = await params;
         try {
-            const firestore = getFirestore();
-            const flowRef = firestore.collection(COLLECTIONS.FLOWS).doc(flowId);
-            const flowDoc = await flowRef.get();
-
-            if (!flowDoc.exists) {
-                return NextResponse.json(
-                    { error: "Flow not found" },
-                    { status: 404 },
-                );
-            }
-
-            const flowData = flowDoc.data();
-
-            // Verify ownership
-            if (flowData?.userId !== session.user!.id) {
-                return NextResponse.json(
-                    { error: "Unauthorized" },
-                    { status: 403 },
-                );
-            }
-
-            await flowRef.delete();
-
-            return NextResponse.json({ success: true });
+            const result = await flowService.deleteFlow(
+                flowId,
+                session.user!.id!,
+            );
+            return NextResponse.json(result);
         } catch (error) {
-            console.error("Error deleting flow:", error);
+            if (error instanceof Error) {
+                if (error.message === "Flow not found") {
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 404 },
+                    );
+                }
+                if (error.message === "Unauthorized") {
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 403 },
+                    );
+                }
+            }
+            logger.error("Error deleting flow:", error);
             return NextResponse.json(
                 { error: "Internal server error" },
                 { status: 500 },

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { uploadFile, getSignedUrlFromGCS } from "@/lib/storage";
 import { v4 as uuidv4 } from "uuid";
 import logger from "@/app/logger";
 import { withAuth } from "@/lib/api-utils";
+import { storageService } from "@/lib/services/storage.service";
 
 export const POST = withAuth(async (_req) => {
     try {
@@ -21,7 +21,11 @@ export const POST = withAuth(async (_req) => {
         const filename = `${uuidv4()}.${extension}`;
         const contentType = file.type;
 
-        const gcsUri = await uploadFile(buffer, filename, contentType);
+        const gcsUri = await storageService.uploadFile(
+            buffer,
+            filename,
+            contentType,
+        );
 
         if (!gcsUri) {
             return NextResponse.json(
@@ -30,7 +34,7 @@ export const POST = withAuth(async (_req) => {
             );
         }
 
-        const signedUrl = await getSignedUrlFromGCS(gcsUri);
+        const signedUrl = await storageService.getSignedUrl(gcsUri);
 
         return NextResponse.json({ gcsUri, signedUrl, fileName: file.name });
     } catch (error) {

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { gcsUriToSharp, uploadFile } from "@/lib/storage";
-import { v4 as uuidv4 } from "uuid";
 import { withAuth, formatZodError } from "@/lib/api-utils";
 import { ResizeImageSchema } from "@/lib/schemas";
+import { storageService } from "@/lib/services/storage.service";
+import logger from "@/app/logger";
 
 export const POST = withAuth(async (_req) => {
     try {
@@ -35,18 +35,7 @@ export const POST = withAuth(async (_req) => {
             );
         }
 
-        // Download and create sharp instance
-        const sharpInstance = await gcsUriToSharp(image);
-
-        // Resize using fill method
-        const resizedBuffer = await sharpInstance
-            .resize(width, height, { fit: "cover", position: "center" })
-            .png()
-            .toBuffer();
-
-        // Upload to GCS
-        const filename = `resized-${uuidv4()}.png`;
-        const gcsUri = await uploadFile(resizedBuffer, filename, "image/png");
+        const gcsUri = await storageService.resizeImage(image, width, height);
 
         if (!gcsUri) {
             return NextResponse.json(
@@ -57,7 +46,7 @@ export const POST = withAuth(async (_req) => {
 
         return NextResponse.json({ imageUrl: gcsUri });
     } catch (error) {
-        console.error("Error resizing image:", error);
+        logger.error("Error resizing image:", error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 },

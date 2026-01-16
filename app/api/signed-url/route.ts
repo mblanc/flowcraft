@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { getSignedUrlFromGCS } from "@/lib/storage";
 import { withAuth, formatZodError } from "@/lib/api-utils";
 import { GetSignedUrlSchema } from "@/lib/schemas";
+import { storageService } from "@/lib/services/storage.service";
+import logger from "@/app/logger";
 
 export const GET = withAuth(async (_req) => {
     const { searchParams } = new URL(_req.url);
@@ -21,10 +22,10 @@ export const GET = withAuth(async (_req) => {
     const { gcsUri } = result.data;
 
     try {
-        const signedUrl = await getSignedUrlFromGCS(gcsUri);
+        const signedUrl = await storageService.getSignedUrl(gcsUri);
         return NextResponse.json({ signedUrl });
     } catch (error) {
-        console.error("Error generating signed URL:", error);
+        logger.error("Error generating signed URL:", error);
         return NextResponse.json(
             { error: "Failed to generate signed URL" },
             { status: 500 },
