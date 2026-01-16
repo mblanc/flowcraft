@@ -2,8 +2,6 @@
 - Extremely detailed 18th-century engraving style, dense cross-hatching, dark gothic atmosphere, high contrast, monochrome ink illustration, vintage etching texture, epic and horrifying composition.
 - linocut artwork, bold outlines, dynamic poses, and a pure white background
 
-
-
 Here is a list of prompts tailored for AI image generators (like Midjourney, DALL-E 3, or Stable Diffusion) for every style listed in the previous response.
 
 1. Printmaking & Relief Techniques

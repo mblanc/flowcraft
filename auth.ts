@@ -1,6 +1,6 @@
-import NextAuth from "next-auth"
-import type { NextAuthConfig } from "next-auth"
-import Google from "next-auth/providers/google"
+import NextAuth from "next-auth";
+import type { NextAuthConfig } from "next-auth";
+import Google from "next-auth/providers/google";
 
 export const authConfig = {
     pages: {
@@ -8,21 +8,21 @@ export const authConfig = {
     },
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
-            const isLoggedIn = !!auth?.user
-            const isOnSignIn = nextUrl.pathname.startsWith("/sign-in")
+            const isLoggedIn = !!auth?.user;
+            const isOnSignIn = nextUrl.pathname.startsWith("/sign-in");
 
             if (isLoggedIn) {
                 if (isOnSignIn) {
-                    return Response.redirect(new URL("/", nextUrl))
+                    return Response.redirect(new URL("/", nextUrl));
                 }
-                return true
+                return true;
             }
 
             if (isOnSignIn) {
-                return true
+                return true;
             }
 
-            return false
+            return false;
         },
         // Add user info to the session token
         async jwt({ token, profile, account }) {
@@ -31,16 +31,16 @@ export const authConfig = {
                 // The exact structure might depend on the provider (Google usually has picture)
                 const googleProfile = profile as { picture?: string };
                 if (googleProfile.picture) {
-                    token.picture = googleProfile.picture
+                    token.picture = googleProfile.picture;
                 }
             }
-            
+
             // Store Google's stable user ID in the token
-            if (account?.provider === 'google' && account.providerAccountId) {
-                token.googleUserId = account.providerAccountId
+            if (account?.provider === "google" && account.providerAccountId) {
+                token.googleUserId = account.providerAccountId;
             }
-            
-            return token
+
+            return token;
         },
         // Add user info to the session object
         async session({ session, token }) {
@@ -54,7 +54,7 @@ export const authConfig = {
                 // Fallback to NextAuth's ID if Google ID is not available
                 session.user.id = token.sub;
             }
-            return session
+            return session;
         },
     },
     providers: [
@@ -65,11 +65,11 @@ export const authConfig = {
                 params: {
                     prompt: "consent",
                     access_type: "offline",
-                    response_type: "code"
-                }
-            }
+                    response_type: "code",
+                },
+            },
         }),
     ],
-} satisfies NextAuthConfig
+} satisfies NextAuthConfig;
 
-export const { handlers, signIn, signOut, auth } = NextAuth(authConfig)
+export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);

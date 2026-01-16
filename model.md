@@ -1,4 +1,5 @@
 Trigger
+
 - manually
 - on event
 - on a schedule
@@ -8,9 +9,8 @@ Trigger
 - chat message
 - evaluation
 
-
-
 Model
+
 - llm
 - image
 - video
@@ -19,10 +19,10 @@ Model
 
 premade-model-node-with-prompt
 
-
 Agent
 
 Tools
+
 - Function
 - Google Search
 - Code Execution
@@ -34,14 +34,14 @@ Tools
 - Vector Store
 - Authent
 - LangChain
-- CrewAI 
+- CrewAI
 - Apigee API Hub
 - Application Integration
-- Toolbox for Databases 
+- Toolbox for Databases
 - OpenAPI
 
-
 Flow
+
 - filter
 - if
 - switch
@@ -50,19 +50,19 @@ Flow
 - stop/error
 - while
 
-
 Core
+
 - code
 - http request
 
-
 Human in the Loop
+
 - Chat
 - GMail
 - Google Chat
 
-
 Transform
+
 - Fan Out
 - Limit
 - Aggregate
@@ -70,4 +70,5 @@ Transform
 - Edit Field or Set
 
 Action In App
+
 - see application integration

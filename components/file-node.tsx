@@ -1,139 +1,188 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { memo, useRef, useState, useEffect } from "react"
-import { Handle, Position, type NodeProps, type Node } from "@xyflow/react"
-import type { FileData } from "@/lib/types"
-import { FileUp, ImageIcon, Video } from "lucide-react"
-import { useFlow } from "./flow-provider"
-import Image from "next/image"
+import { memo, useRef, useState, useEffect } from "react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
+import type { FileData } from "@/lib/types";
+import { FileUp, ImageIcon, Video } from "lucide-react";
+import { useFlow } from "./flow-provider";
+import Image from "next/image";
 
-export const FileNode = memo(({ data, selected, id }: NodeProps<Node<FileData>>) => {
-  const { updateNodeData } = useFlow()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [signedUrl, setSignedUrl] = useState<string | undefined>(data.fileUrl)
+export const FileNode = memo(
+    ({ data, selected, id }: NodeProps<Node<FileData>>) => {
+        const { updateNodeData } = useFlow();
+        const fileInputRef = useRef<HTMLInputElement>(null);
+        const [asyncSignedUrl, setAsyncSignedUrl] = useState<
+            string | undefined
+        >(undefined);
+        const [prevGcsUri, setPrevGcsUri] = useState(data.gcsUri);
+        const [prevFileUrl, setPrevFileUrl] = useState(data.fileUrl);
 
-  useEffect(() => {
-    if (data.gcsUri && data.gcsUri.startsWith("gs://")) {
-      fetch(`/api/signed-url?gcsUri=${encodeURIComponent(data.gcsUri)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.signedUrl) {
-            setSignedUrl(data.signedUrl)
-          } else {
-            console.error("Failed to get signed URL:", data.error)
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching signed URL:", error)
-        })
-    } else if (data.fileUrl) {
-      setSignedUrl(data.fileUrl)
-    }
-  }, [data.gcsUri, data.fileUrl])
+        if (data.gcsUri !== prevGcsUri || data.fileUrl !== prevFileUrl) {
+            setPrevGcsUri(data.gcsUri);
+            setPrevFileUrl(data.fileUrl);
+            if (!data.gcsUri?.startsWith("gs://")) {
+                setAsyncSignedUrl(undefined);
+            }
+        }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+        const signedUrl =
+            (data.gcsUri?.startsWith("gs://")
+                ? asyncSignedUrl
+                : data.fileUrl) || undefined;
 
-    const fileType = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : null
+        useEffect(() => {
+            if (data.gcsUri && data.gcsUri.startsWith("gs://")) {
+                fetch(
+                    `/api/signed-url?gcsUri=${encodeURIComponent(data.gcsUri)}`,
+                )
+                    .then((res) => res.json())
+                    .then((result) => {
+                        if (result.signedUrl) {
+                            setAsyncSignedUrl(result.signedUrl);
+                        } else {
+                            console.error(
+                                "Failed to get signed URL:",
+                                result.error,
+                            );
+                            setAsyncSignedUrl(undefined);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching signed URL:", error);
+                        setAsyncSignedUrl(undefined);
+                    });
+            }
+        }, [data.gcsUri]);
 
-    if (!fileType) {
-      alert("Please upload an image or video file")
-      return
-    }
+        const handleFileChange = async (
+            e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
 
-    const formData = new FormData()
-    formData.append("file", file)
+            const fileType = file.type.startsWith("image/")
+                ? "image"
+                : file.type.startsWith("video/")
+                  ? "video"
+                  : null;
 
-    try {
-      const response = await fetch("/api/upload-file", {
-        method: "POST",
-        body: formData,
-      })
+            if (!fileType) {
+                alert("Please upload an image or video file");
+                return;
+            }
 
-      if (!response.ok) {
-        throw new Error("Upload failed")
-      }
+            const formData = new FormData();
+            formData.append("file", file);
 
-      const data = await response.json()
+            try {
+                const response = await fetch("/api/upload-file", {
+                    method: "POST",
+                    body: formData,
+                });
 
-      updateNodeData(id, {
-        fileUrl: data.signedUrl,
-        gcsUri: data.gcsUri,
-        fileName: file.name,
-        fileType,
-      })
-      setSignedUrl(data.signedUrl)
-    } catch (error) {
-      console.error("Upload error:", error)
-      alert("Failed to upload file")
-    }
-  }
+                if (!response.ok) {
+                    throw new Error("Upload failed");
+                }
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click()
-  }
+                const data = await response.json();
 
-  return (
-    <div
-      className={`bg-card border-2 rounded-lg p-4 min-w-[220px] shadow-lg transition-all ${selected ? "border-primary shadow-primary/20" : "border-border"
-        }`}
-    >
-      <div className="flex items-start gap-3 mb-3">
-        <div className="flex-shrink-0 w-10 h-10 rounded-md bg-cyan-500/10 flex items-center justify-center">
-          <FileUp className="h-5 w-5 text-cyan-400" />
-        </div>
+                updateNodeData(id, {
+                    fileUrl: data.signedUrl,
+                    gcsUri: data.gcsUri,
+                    fileName: file.name,
+                    fileType,
+                });
+                setAsyncSignedUrl(data.signedUrl);
+            } catch (error) {
+                console.error("Upload error:", error);
+                alert("Failed to upload file");
+            }
+        };
 
-        <div className="flex-1 min-w-0 text-left">
-          <h3 className="font-semibold text-foreground text-sm mb-1 truncate">{data.name}</h3>
-          <div className="text-xs text-muted-foreground">
-            {data.fileName ? (
-              <span className="flex items-center gap-1">
-                {data.fileType === "image" ? (
-                  <ImageIcon className="h-3 w-3" />
-                ) : data.fileType === "video" ? (
-                  <Video className="h-3 w-3" />
-                ) : null}
-                {data.fileName}
-              </span>
-            ) : (
-              "No file uploaded"
-            )}
-          </div>
-        </div>
-      </div>
+        const handleUploadClick = () => {
+            fileInputRef.current?.click();
+        };
 
-      {signedUrl && (
-        <div className="mt-3 rounded-md overflow-hidden border border-border">
-          {data.fileType === "image" ? (
-            <Image
-              src={signedUrl}
-              alt={data.fileName || "File"}
-              width={200}
-              height={150}
-              className="w-full h-auto object-contain max-h-[300px]"
-            />
-          ) : data.fileType === "video" ? (
-              <video src={signedUrl} controls className="w-full h-auto max-h-[300px]" />
-          ) : null}
-        </div>
-      )}
+        return (
+            <div
+                className={`bg-card min-w-[220px] rounded-lg border-2 p-4 shadow-lg transition-all ${
+                    selected
+                        ? "border-primary shadow-primary/20"
+                        : "border-border"
+                }`}
+            >
+                <div className="mb-3 flex items-start gap-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-cyan-500/10">
+                        <FileUp className="h-5 w-5 text-cyan-400" />
+                    </div>
 
-      <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={handleFileChange} className="hidden" />
+                    <div className="min-w-0 flex-1 text-left">
+                        <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
+                            {data.name}
+                        </h3>
+                        <div className="text-muted-foreground text-xs">
+                            {data.fileName ? (
+                                <span className="flex items-center gap-1">
+                                    {data.fileType === "image" ? (
+                                        <ImageIcon className="h-3 w-3" />
+                                    ) : data.fileType === "video" ? (
+                                        <Video className="h-3 w-3" />
+                                    ) : null}
+                                    {data.fileName}
+                                </span>
+                            ) : (
+                                "No file uploaded"
+                            )}
+                        </div>
+                    </div>
+                </div>
 
-      <button
-        onClick={handleUploadClick}
-        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-md text-xs font-medium transition-colors"
-      >
-        <FileUp className="h-3 w-3" />
-        {signedUrl ? "Change File" : "Upload File"}
-      </button>
+                {signedUrl && (
+                    <div className="border-border mt-3 overflow-hidden rounded-md border">
+                        {data.fileType === "image" ? (
+                            <Image
+                                src={signedUrl}
+                                alt={data.fileName || "File"}
+                                width={200}
+                                height={150}
+                                className="h-auto max-h-[300px] w-full object-contain"
+                            />
+                        ) : data.fileType === "video" ? (
+                            <video
+                                src={signedUrl}
+                                controls
+                                className="h-auto max-h-[300px] w-full"
+                            />
+                        ) : null}
+                    </div>
+                )}
 
-      <Handle type="source" position={Position.Right} className="!bg-cyan-500" />
-    </div>
-  )
-})
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                />
 
-FileNode.displayName = "FileNode"
+                <button
+                    onClick={handleUploadClick}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-400 transition-colors hover:bg-cyan-500/20"
+                >
+                    <FileUp className="h-3 w-3" />
+                    {signedUrl ? "Change File" : "Upload File"}
+                </button>
+
+                <Handle
+                    type="source"
+                    position={Position.Right}
+                    className="!bg-cyan-500"
+                />
+            </div>
+        );
+    },
+);
+
+FileNode.displayName = "FileNode";

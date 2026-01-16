@@ -5,6 +5,7 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 ## 🚀 Features
 
 ### Core Functionality
+
 - **Visual Workflow Builder**: Drag-and-drop interface for creating AI workflows
 - **Multiple Node Types**: Support for Agent, Text, Image, Video, and File nodes
 - **Real-time Execution**: Run workflows with visual feedback and progress tracking
@@ -14,23 +15,27 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 ### Node Types
 
 #### 🤖 Agent Node
+
 - Powered by Google Gemini models (Gemini 2.0 Flash, Gemini 2.5 Flash)
 - Multi-modal input support (text + files)
 - Configurable tools and instructions
 - Real-time text generation
 
 #### 📝 Text Node
+
 - Simple text input/output
 - Can be used as prompts for other nodes
 - Supports multi-line text editing
 
 #### 🖼️ Image Node
+
 - Multiple AI models: Gemini 2.5 Flash Image, Imagen 4.0 variants
 - Configurable aspect ratios (16:9, 9:16)
 - Resolution options (1K, 2K)
 - Support for reference images and prompts
 
 #### 🎬 Video Node
+
 - Powered by Veo 3.1 models (Fast and Standard)
 - Configurable duration (4, 6, 8 seconds)
 - First/last frame control
@@ -38,11 +43,13 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 - Resolution options (720p, 1080p)
 
 #### 📁 File Node
+
 - Upload and manage files (images, videos)
 - Drag-and-drop file support
 - Base64 encoding for seamless integration
 
 ### Advanced Features
+
 - **Smart Execution**: Automatic dependency resolution and parallel processing
 - **Visual Feedback**: Real-time execution status with animations
 - **Node Configuration**: Comprehensive settings panel for each node type
@@ -51,6 +58,7 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 ## 🛠️ Technology Stack
 
 ### Frontend
+
 - **Next.js 15.5.4** - React framework with App Router
 - **React 19.1.0** - UI library
 - **TypeScript** - Type safety
@@ -60,11 +68,13 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 - **Lucide React** - Icon library
 
 ### Backend
+
 - **Google GenAI SDK 1.25.0** - AI model integration
 - **Vertex AI** - Google Cloud AI platform
 - **Next.js API Routes** - Server-side functionality
 
 ### AI Models
+
 - **Gemini 2.0 Flash** - Text generation
 - **Gemini 2.5 Flash** - Text and image generation
 - **Imagen 4.0** - Image generation (Generate, Fast, Ultra variants)
@@ -72,7 +82,7 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 
 ## 📋 Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 - Google Cloud Project with Vertex AI enabled
 - Google Cloud credentials configured
@@ -80,17 +90,20 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
+
 ```bash
 git clone <repository-url>
 cd flowcraft
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### 3. Environment Setup
+
 Create a `.env.local` file in the root directory:
 
 ```env
@@ -99,6 +112,7 @@ LOCATION=your-preferred-location
 ```
 
 ### 4. Google Cloud Setup
+
 1. Create a Google Cloud Project
 2. Enable the Vertex AI API
 3. Create a service account with Vertex AI permissions
@@ -106,6 +120,7 @@ LOCATION=your-preferred-location
 5. Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to point to your key file
 
 ### 5. Run the Development Server
+
 ```bash
 npm run dev
 ```
@@ -131,6 +146,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 ### Example Workflows
 
 #### Simple Text-to-Image
+
 1. Add a Text node and enter your prompt
 2. Add an Image node
 3. Connect Text output to Image input
@@ -138,6 +154,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 5. Run the workflow
 
 #### Advanced Video Generation
+
 1. Add a Text node for the video prompt
 2. Add an Image node for the first frame
 3. Add a Video node
@@ -148,17 +165,20 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 ## 🔧 Configuration
 
 ### Agent Node Configuration
+
 - **Model Selection**: Choose between Gemini 2.0 Flash and Gemini 2.5 Flash
 - **Instructions**: Set system instructions for the agent
 - **Tools**: Add and configure various tools (Google Search, Code Execution, etc.)
 
 ### Image Node Configuration
+
 - **Model**: Select from Gemini 2.5 Flash Image or Imagen 4.0 variants
 - **Aspect Ratio**: Choose between 16:9 and 9:16
 - **Resolution**: Select 1K or 2K resolution
 - **Prompt**: Enter image generation prompt
 
 ### Video Node Configuration
+
 - **Model**: Choose between Veo 3.1 Fast and Standard
 - **Duration**: Set video length (4, 6, or 8 seconds)
 - **Aspect Ratio**: Select 16:9 or 9:16
@@ -197,12 +217,14 @@ flowcraft/
 ## 🚀 Deployment
 
 ### Vercel Deployment
+
 1. Push your code to GitHub
 2. Connect your repository to Vercel
 3. Set environment variables in Vercel dashboard
 4. Deploy
 
 ### Environment Variables for Production
+
 ```env
 PROJECT_ID=your-project-id
 LOCATION=your-location
@@ -231,6 +253,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 If you encounter any issues or have questions, please:
+
 1. Check the [Issues](https://github.com/your-repo/issues) page
 2. Create a new issue with detailed information
 3. Join our community discussions
