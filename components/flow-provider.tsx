@@ -8,7 +8,7 @@ import {
     type NodeChange,
     type EdgeChange,
 } from "@xyflow/react";
-import { NodeData } from "@/lib/types";
+import { NodeData, NodeType } from "@/lib/types";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { useFlowPersistence } from "@/hooks/use-flow-persistence";
@@ -31,6 +31,7 @@ interface FlowContextType {
     addFileNode: (position?: { x: number; y: number }) => void;
     addUpscaleNode: (position?: { x: number; y: number }) => void;
     addResizeNode: (position?: { x: number; y: number }) => void;
+    addNode: (type: NodeType, position?: { x: number; y: number }) => void;
     selectNode: (nodeId: string | null) => void;
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
     updateFlowName: (name: string) => void;
@@ -61,54 +62,62 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     const store = useFlowStore();
     const { runFlow, executeNode } = useFlowExecution();
     const { saveFlow, exportFlow, importFlow } = useFlowPersistence();
+    const { addNode: storeAddNode } = useFlowStore();
+
+    const addNode = useCallback(
+        (type: NodeType, position?: { x: number; y: number }) => {
+            storeAddNode(createNode(type, position));
+        },
+        [storeAddNode],
+    );
 
     const addAgentNode = useCallback(
         (position?: { x: number; y: number }) => {
-            store.addNode(createNode("agent", position));
+            addNode("agent", position);
         },
-        [store],
+        [addNode],
     );
 
     const addTextNode = useCallback(
         (position?: { x: number; y: number }) => {
-            store.addNode(createNode("text", position));
+            addNode("text", position);
         },
-        [store],
+        [addNode],
     );
 
     const addImageNode = useCallback(
         (position?: { x: number; y: number }) => {
-            store.addNode(createNode("image", position));
+            addNode("image", position);
         },
-        [store],
+        [addNode],
     );
 
     const addVideoNode = useCallback(
         (position?: { x: number; y: number }) => {
-            store.addNode(createNode("video", position));
+            addNode("video", position);
         },
-        [store],
+        [addNode],
     );
 
     const addFileNode = useCallback(
         (position?: { x: number; y: number }) => {
-            store.addNode(createNode("file", position));
+            addNode("file", position);
         },
-        [store],
+        [addNode],
     );
 
     const addUpscaleNode = useCallback(
         (position?: { x: number; y: number }) => {
-            store.addNode(createNode("upscale", position));
+            addNode("upscale", position);
         },
-        [store],
+        [addNode],
     );
 
     const addResizeNode = useCallback(
         (position?: { x: number; y: number }) => {
-            store.addNode(createNode("resize", position));
+            addNode("resize", position);
         },
-        [store],
+        [addNode],
     );
 
     return (
@@ -130,6 +139,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
                 addFileNode,
                 addUpscaleNode,
                 addResizeNode,
+                addNode,
                 selectNode: store.selectNode,
                 updateNodeData: store.updateNodeData,
                 updateFlowName: store.setFlowName,

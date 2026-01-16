@@ -19,6 +19,7 @@ import { VideoNode } from "./video-node";
 import { FileNode } from "./file-node";
 import { UpscaleNode } from "./upscale-node";
 import { ResizeNode } from "./resize-node";
+import { NodeType } from "@/lib/types";
 import { Button } from "./ui/button";
 import {
     Tooltip,
@@ -54,13 +55,7 @@ export function FlowCanvas() {
         onNodesChange,
         onEdgesChange,
         onConnect,
-        addAgentNode,
-        addTextNode,
-        addImageNode,
-        addVideoNode,
-        addFileNode,
-        addUpscaleNode,
-        addResizeNode,
+        addNode,
         selectNode,
         runFlow,
         isRunning,
@@ -113,7 +108,9 @@ export function FlowCanvas() {
         (event: React.DragEvent) => {
             event.preventDefault();
 
-            const type = event.dataTransfer.getData("application/reactflow");
+            const type = event.dataTransfer.getData(
+                "application/reactflow",
+            ) as NodeType;
 
             // check if the dropped element is valid
             if (typeof type === "undefined" || !type || !rfInstance) {
@@ -125,206 +122,86 @@ export function FlowCanvas() {
                 y: event.clientY,
             });
 
-            switch (type) {
-                case "agent":
-                    addAgentNode(position);
-                    break;
-                case "text":
-                    addTextNode(position);
-                    break;
-                case "image":
-                    addImageNode(position);
-                    break;
-                case "video":
-                    addVideoNode(position);
-                    break;
-                case "file":
-                    addFileNode(position);
-                    break;
-                case "upscale":
-                    addUpscaleNode(position);
-                    break;
-                case "resize":
-                    addResizeNode(position);
-                    break;
-            }
+            addNode(type, position);
         },
-        [
-            rfInstance,
-            addAgentNode,
-            addTextNode,
-            addImageNode,
-            addVideoNode,
-            addFileNode,
-            addUpscaleNode,
-            addResizeNode,
-        ],
+        [rfInstance, addNode],
     );
+
+    const sidebarItems = [
+        {
+            type: "text",
+            icon: FileText,
+            color: "text-purple-500 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950/20",
+            label: "Text",
+        },
+        {
+            type: "file",
+            icon: FileUp,
+            color: "text-cyan-500 hover:bg-cyan-50 hover:text-cyan-600 dark:hover:bg-cyan-950/20",
+            label: "File",
+        },
+        {
+            type: "agent",
+            icon: Bot,
+            color: "text-primary hover:text-primary/80 hover:bg-primary/10",
+            label: "Agent",
+        },
+        {
+            type: "image",
+            icon: ImageIcon,
+            color: "text-orange-500 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-950/20",
+            label: "Image",
+        },
+        {
+            type: "video",
+            icon: Video,
+            color: "text-pink-500 hover:bg-pink-50 hover:text-pink-600 dark:hover:bg-pink-950/20",
+            label: "Video",
+        },
+        {
+            type: "upscale",
+            icon: ZoomIn,
+            color: "text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20",
+            label: "Upscale",
+        },
+        {
+            type: "resize",
+            icon: Scaling,
+            color: "text-blue-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/20",
+            label: "Resize",
+        },
+    ] as const;
 
     return (
         <div className="relative flex h-full flex-1">
             <aside className="border-border bg-card z-10 flex w-14 flex-col items-center gap-4 border-r py-4">
                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div
-                                onDragStart={(event) =>
-                                    onDragStart(event, "text")
-                                }
-                                draggable
-                            >
-                                <Button
-                                    onClick={() => addTextNode()}
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-10 w-10 cursor-grab text-purple-500 hover:bg-purple-50 hover:text-purple-600 active:cursor-grabbing dark:hover:bg-purple-950/20"
+                    {sidebarItems.map((item) => (
+                        <Tooltip key={item.type}>
+                            <TooltipTrigger asChild>
+                                <div
+                                    onDragStart={(event) =>
+                                        onDragStart(event, item.type)
+                                    }
+                                    draggable
                                 >
-                                    <FileText className="h-5 w-5" />
-                                </Button>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Add Text Node</p>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div
-                                onDragStart={(event) =>
-                                    onDragStart(event, "file")
-                                }
-                                draggable
-                            >
-                                <Button
-                                    onClick={() => addFileNode()}
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-10 w-10 cursor-grab text-cyan-500 hover:bg-cyan-50 hover:text-cyan-600 active:cursor-grabbing dark:hover:bg-cyan-950/20"
-                                >
-                                    <FileUp className="h-5 w-5" />
-                                </Button>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Add File Node</p>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div
-                                onDragStart={(event) =>
-                                    onDragStart(event, "agent")
-                                }
-                                draggable
-                            >
-                                <Button
-                                    onClick={() => addAgentNode()}
-                                    size="icon"
-                                    variant="ghost"
-                                    className="text-primary hover:text-primary/80 hover:bg-primary/10 h-10 w-10 cursor-grab active:cursor-grabbing"
-                                >
-                                    <Bot className="h-5 w-5" />
-                                </Button>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Add Agent Node</p>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div
-                                onDragStart={(event) =>
-                                    onDragStart(event, "image")
-                                }
-                                draggable
-                            >
-                                <Button
-                                    onClick={() => addImageNode()}
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-10 w-10 cursor-grab text-orange-500 hover:bg-orange-50 hover:text-orange-600 active:cursor-grabbing dark:hover:bg-orange-950/20"
-                                >
-                                    <ImageIcon className="h-5 w-5" />
-                                </Button>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Add Image Node</p>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div
-                                onDragStart={(event) =>
-                                    onDragStart(event, "video")
-                                }
-                                draggable
-                            >
-                                <Button
-                                    onClick={() => addVideoNode()}
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-10 w-10 cursor-grab text-pink-500 hover:bg-pink-50 hover:text-pink-600 active:cursor-grabbing dark:hover:bg-pink-950/20"
-                                >
-                                    <Video className="h-5 w-5" />
-                                </Button>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Add Video Node</p>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div
-                                onDragStart={(event) =>
-                                    onDragStart(event, "upscale")
-                                }
-                                draggable
-                            >
-                                <Button
-                                    onClick={() => addUpscaleNode()}
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-10 w-10 cursor-grab text-red-500 hover:bg-red-50 hover:text-red-600 active:cursor-grabbing dark:hover:bg-red-950/20"
-                                >
-                                    <ZoomIn className="h-5 w-5" />
-                                </Button>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Add Upscale Node</p>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div
-                                onDragStart={(event) =>
-                                    onDragStart(event, "resize")
-                                }
-                                draggable
-                            >
-                                <Button
-                                    onClick={() => addResizeNode()}
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-10 w-10 cursor-grab text-blue-500 hover:bg-blue-50 hover:text-blue-600 active:cursor-grabbing dark:hover:bg-blue-950/20"
-                                >
-                                    <Scaling className="h-5 w-5" />
-                                </Button>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Add Resize Node</p>
-                        </TooltipContent>
-                    </Tooltip>
+                                    <Button
+                                        onClick={() =>
+                                            addNode(item.type as NodeType)
+                                        }
+                                        size="icon"
+                                        variant="ghost"
+                                        className={`h-10 w-10 cursor-grab active:cursor-grabbing ${item.color}`}
+                                    >
+                                        <item.icon className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">
+                                <p>Add {item.label} Node</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    ))}
                 </TooltipProvider>
             </aside>
 
