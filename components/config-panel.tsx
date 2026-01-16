@@ -8,6 +8,7 @@ import {
     type VideoData,
     type FileData,
 } from "@/lib/types";
+import { MODELS } from "@/lib/constants";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
@@ -52,13 +53,19 @@ function AgentConfig({ data, nodeId }: { data: AgentData; nodeId: string }) {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="gemini-2.5-pro">
+                        <SelectItem value={MODELS.TEXT.GEMINI_3_PRO_PREVIEW}>
+                            Gemini 3 Pro Preview
+                        </SelectItem>
+                        <SelectItem value={MODELS.TEXT.GEMINI_3_FLASH_PREVIEW}>
+                            Gemini 3 Flash Preview
+                        </SelectItem>
+                        <SelectItem value={MODELS.TEXT.GEMINI_2_5_PRO}>
                             Gemini 2.5 Pro
                         </SelectItem>
-                        <SelectItem value="gemini-2.5-flash">
+                        <SelectItem value={MODELS.TEXT.GEMINI_2_5_FLASH}>
                             Gemini 2.5 Flash
                         </SelectItem>
-                        <SelectItem value="gemini-2.5-flash-lite">
+                        <SelectItem value={MODELS.TEXT.GEMINI_2_5_FLASH_LITE}>
                             Gemini 2.5 Flash Lite
                         </SelectItem>
                     </SelectContent>
@@ -199,20 +206,13 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="gemini-2.5-flash-image">
+                        <SelectItem value={MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE}>
                             Gemini 2.5 Flash Image
                         </SelectItem>
-                        <SelectItem value="gemini-3-pro-image-preview">
+                        <SelectItem
+                            value={MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW}
+                        >
                             Gemini 3 Pro Image Preview
-                        </SelectItem>
-                        <SelectItem value="imagen-4.0-generate-001">
-                            Imagen 4.0
-                        </SelectItem>
-                        <SelectItem value="imagen-4.0-fast-generate-001">
-                            Imagen 4.0 Fast
-                        </SelectItem>
-                        <SelectItem value="imagen-4.0-ultra-generate-001">
-                            Imagen 4.0 Ultra
                         </SelectItem>
                     </SelectContent>
                 </Select>
@@ -421,11 +421,11 @@ function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="veo-3.1-fast-generate-preview">
-                            Veo 3.1 Fast
+                        <SelectItem value={MODELS.VIDEO.VEO_3_1_FAST_PREVIEW}>
+                            Veo 3.1 Fast Preview
                         </SelectItem>
-                        <SelectItem value="veo-3.1-generate-preview">
-                            Veo 3.1
+                        <SelectItem value={MODELS.VIDEO.VEO_3_1_PRO_PREVIEW}>
+                            Veo 3.1 Pro Preview
                         </SelectItem>
                     </SelectContent>
                 </Select>

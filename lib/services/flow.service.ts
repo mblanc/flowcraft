@@ -1,5 +1,6 @@
-import { getFirestore, COLLECTIONS } from "@/lib/firestore";
+import { getFirestore } from "@/lib/firestore";
 import { FlowCreateRequest, FlowUpdateRequest } from "@/lib/schemas";
+import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 import {
     DocumentSnapshot,

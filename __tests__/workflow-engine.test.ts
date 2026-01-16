@@ -6,7 +6,8 @@ import { getNodeDefinition } from "../lib/node-registry";
 
 // Mock node-registry
 vi.mock("../lib/node-registry", async (importOriginal) => {
-    const original = await importOriginal<typeof import("../lib/node-registry")>();
+    const original =
+        await importOriginal<typeof import("../lib/node-registry")>();
     return {
         ...original,
         getNodeDefinition: vi.fn(),

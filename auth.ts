@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
+import { config } from "./lib/config";
 
 export const authConfig = {
     pages: {
@@ -59,8 +60,8 @@ export const authConfig = {
     },
     providers: [
         Google({
-            clientId: process.env.AUTH_GOOGLE_ID,
-            clientSecret: process.env.AUTH_GOOGLE_SECRET,
+            clientId: config.AUTH_GOOGLE_ID,
+            clientSecret: config.AUTH_GOOGLE_SECRET,
             authorization: {
                 params: {
                     prompt: "consent",

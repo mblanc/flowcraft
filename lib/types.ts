@@ -1,3 +1,5 @@
+import { MODELS } from "./constants";
+
 export type NodeType =
     | "agent"
     | "text"
@@ -44,11 +46,8 @@ export interface ImageData extends BaseNodeData {
         | "4:5"
         | "21:9";
     model:
-        | "gemini-2.5-flash-image"
-        | "gemini-3-pro-image-preview"
-        | "imagen-4.0-generate-001"
-        | "imagen-4.0-fast-generate-001"
-        | "imagen-4.0-ultra-generate-001";
+        | typeof MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE
+        | typeof MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW;
     resolution: "1K" | "2K" | "4K";
     width?: number;
     height?: number;
@@ -63,7 +62,9 @@ export interface VideoData extends BaseNodeData {
     videoUrl?: string;
     aspectRatio: "16:9" | "9:16";
     duration: 4 | 6 | 8;
-    model: "veo-3.1-fast-generate-preview" | "veo-3.1-generate-preview";
+    model:
+        | typeof MODELS.VIDEO.VEO_3_1_FAST_PREVIEW
+        | typeof MODELS.VIDEO.VEO_3_1_PRO_PREVIEW;
     generateAudio: boolean;
     resolution: "720p" | "1080p";
     width?: number;

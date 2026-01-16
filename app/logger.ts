@@ -1,9 +1,10 @@
 import winston from "winston";
+import { config } from "@/lib/config";
 
 const { combine, timestamp, printf, colorize, align, errors } = winston.format;
 
 const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || "info",
+    level: config.LOG_LEVEL,
     format: combine(
         errors({ stack: true }),
         colorize({ all: true }),

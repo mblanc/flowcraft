@@ -10,6 +10,7 @@ import {
     type UpscaleData,
     type ResizeData,
 } from "./types";
+import { MODELS, DEFAULTS } from "./constants";
 
 export function createNode(
     type: NodeType,
@@ -26,7 +27,7 @@ export function createNode(
                 data: {
                     type: "agent",
                     name: "Agent",
-                    model: "gemini-2.5-flash",
+                    model: MODELS.TEXT.GEMINI_2_5_FLASH,
                     instructions: "",
                 } as AgentData,
             };
@@ -51,9 +52,9 @@ export function createNode(
                     name: "Image",
                     prompt: "",
                     images: [],
-                    aspectRatio: "16:9",
-                    model: "gemini-2.5-flash-image",
-                    resolution: "1K",
+                    aspectRatio: DEFAULTS.ASPECT_RATIO,
+                    model: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
+                    resolution: DEFAULTS.IMAGE_RESOLUTION,
                 } as ImageData,
             };
         case "video":
@@ -66,9 +67,9 @@ export function createNode(
                     name: "Video",
                     prompt: "",
                     images: [],
-                    aspectRatio: "16:9",
-                    duration: 4,
-                    model: "veo-3.1-fast-generate-preview",
+                    aspectRatio: DEFAULTS.ASPECT_RATIO,
+                    duration: DEFAULTS.VIDEO_DURATION,
+                    model: MODELS.VIDEO.VEO_3_1_FAST_PREVIEW,
                     generateAudio: false,
                     resolution: "720p",
                 } as VideoData,
@@ -106,7 +107,7 @@ export function createNode(
                 data: {
                     type: "resize",
                     name: "Resize",
-                    aspectRatio: "16:9",
+                    aspectRatio: DEFAULTS.ASPECT_RATIO,
                 } as ResizeData,
             };
         default:

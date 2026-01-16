@@ -9,6 +9,8 @@ import {
     Image as GeminiImage,
 } from "@google/genai";
 import logger from "@/app/logger";
+import { config } from "../config";
+import { MODELS, DEFAULTS } from "../constants";
 
 async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -51,14 +53,14 @@ export class GeminiService {
     constructor() {
         this.ai = new GoogleGenAI({
             vertexai: true,
-            project: process.env.PROJECT_ID,
-            location: "global", //process.env.LOCATION || "us-central1",
+            project: config.PROJECT_ID,
+            location: config.LOCATION,
         });
     }
 
     async generateText(options: GenerateTextOptions): Promise<string> {
         const { prompt, files, model } = options;
-        const selectedModel = model || "gemini-2.0-flash-exp";
+        const selectedModel = model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
 
         logger.info(
             `[GeminiService] Generating text with model: ${selectedModel}`,
@@ -69,10 +71,7 @@ export class GeminiService {
         if (files && files.length > 0) {
             for (const file of files) {
                 if (file.url.startsWith("gs://")) {
-                    // For now using a default or we could inject StorageService to get mimeType
-                    // But API routes currently do this themselves or pass it.
-                    // Let's assume the caller handles complex part creation or we improve this.
-                    contents.push(createPartFromUri(file.url, "image/jpeg"));
+                    contents.push(createPartFromUri(file.url, "image/png"));
                 } else if (file.url.startsWith("data:image/")) {
                     const base64Match = file.url.match(
                         /^data:([^;]+);base64,(.+)$/,
@@ -113,7 +112,7 @@ export class GeminiService {
         options: GenerateImageOptions,
     ): Promise<{ data: string; mimeType: string }> {
         const { prompt, images = [], aspectRatio, model } = options;
-        const selectedModel = model || "imagen-3.0-generate-001"; // Fallback if not provided
+        const selectedModel = model || MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW;
 
         logger.info(
             `[GeminiService] Generating image with model: ${selectedModel}`,
@@ -160,6 +159,7 @@ export class GeminiService {
             mimeType: imagePart.inlineData.mimeType!,
         };
     }
+
     async generateVideo(options: GenerateVideoOptions): Promise<string> {
         const {
             prompt,
@@ -173,7 +173,7 @@ export class GeminiService {
             resolution,
         } = options;
 
-        const selectedModel = model || "veo-3.1-fast-generate-preview";
+        const selectedModel = model || MODELS.VIDEO.VEO_3_1_FAST_PREVIEW;
         logger.info(
             `[GeminiService] Generating video with model: ${selectedModel}`,
         );
@@ -183,11 +183,11 @@ export class GeminiService {
             source: { prompt },
             config: {
                 numberOfVideos: 1,
-                durationSeconds: duration || 4,
-                aspectRatio: aspectRatio || "16:9",
+                durationSeconds: duration || DEFAULTS.VIDEO_DURATION,
+                aspectRatio: aspectRatio || DEFAULTS.ASPECT_RATIO,
                 generateAudio: generateAudio !== false,
                 resolution: (resolution as string) || "720p",
-                outputGcsUri: process.env.GCS_STORAGE_URI,
+                outputGcsUri: config.GCS_STORAGE_URI,
             },
         };
 
@@ -206,7 +206,7 @@ export class GeminiService {
         }
 
         if (images && images.length > 0) {
-            videoRequest.model = "veo-3.1-generate-preview";
+            videoRequest.model = MODELS.VIDEO.VEO_3_1_PRO_PREVIEW;
             videoRequest.config!.referenceImages = images.map(
                 (image: string) => ({
                     image: { gcsUri: image, mimeType: "image/png" },
@@ -260,11 +260,11 @@ export class GeminiService {
         }
 
         const response = await this.ai.models.upscaleImage({
-            model: "imagen-4.0-upscale-preview",
+            model: MODELS.IMAGE.IMAGEN_4_0_UPSCALE,
             image: imageInput,
             upscaleFactor,
             config: {
-                outputGcsUri: process.env.GCS_STORAGE_URI,
+                outputGcsUri: config.GCS_STORAGE_URI,
                 outputMimeType: "image/png",
                 enhanceInputImage: true,
                 imagePreservationFactor: 1.0,

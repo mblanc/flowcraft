@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MODELS, DEFAULTS } from "./constants";
 
 // --- Shared Types ---
 
@@ -18,11 +19,8 @@ const ImageDataAspectRatioSchema = z.enum([
 ]);
 
 const ImageDataModelSchema = z.enum([
-    "gemini-2.5-flash-image",
-    "gemini-3-pro-image-preview",
-    "imagen-4.0-generate-001",
-    "imagen-4.0-fast-generate-001",
-    "imagen-4.0-ultra-generate-001",
+    MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
+    MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW,
 ]);
 
 const ImageDataResolutionSchema = z.enum(["1K", "2K", "4K"]);
@@ -32,9 +30,15 @@ const ImageDataResolutionSchema = z.enum(["1K", "2K", "4K"]);
 export const GenerateImageSchema = z.object({
     prompt: z.string().min(1, "Prompt is required"),
     images: z.array(z.string()).optional().default([]),
-    aspectRatio: ImageDataAspectRatioSchema.optional().default("16:9"),
-    model: ImageDataModelSchema.optional().default("gemini-2.5-flash-image"),
-    resolution: ImageDataResolutionSchema.optional().default("1K"),
+    aspectRatio: ImageDataAspectRatioSchema.optional().default(
+        DEFAULTS.ASPECT_RATIO,
+    ),
+    model: ImageDataModelSchema.optional().default(
+        MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW,
+    ),
+    resolution: ImageDataResolutionSchema.optional().default(
+        DEFAULTS.IMAGE_RESOLUTION,
+    ),
 });
 
 export const GenerateTextSchema = z.object({
@@ -48,7 +52,7 @@ export const GenerateTextSchema = z.object({
         )
         .optional()
         .default([]),
-    model: z.string().optional().default("gemini-2.0-flash-exp"),
+    model: z.string().optional().default(MODELS.TEXT.GEMINI_3_FLASH_PREVIEW),
 });
 
 export const GenerateVideoSchema = z.object({
@@ -56,15 +60,20 @@ export const GenerateVideoSchema = z.object({
     firstFrame: z.string().optional(),
     lastFrame: z.string().optional(),
     images: z.array(z.string()).optional().default([]),
-    aspectRatio: AspectRatio169_916Schema.optional().default("16:9"),
+    aspectRatio: AspectRatio169_916Schema.optional().default(
+        DEFAULTS.ASPECT_RATIO,
+    ),
     duration: z
         .union([z.literal(4), z.literal(6), z.literal(8)])
         .optional()
-        .default(4),
+        .default(DEFAULTS.VIDEO_DURATION),
     model: z
-        .enum(["veo-3.1-fast-generate-preview", "veo-3.1-generate-preview"])
+        .enum([
+            MODELS.VIDEO.VEO_3_1_FAST_PREVIEW,
+            MODELS.VIDEO.VEO_3_1_PRO_PREVIEW,
+        ])
         .optional()
-        .default("veo-3.1-fast-generate-preview"),
+        .default(MODELS.VIDEO.VEO_3_1_FAST_PREVIEW),
     generateAudio: z.boolean().optional().default(true),
     resolution: z.enum(["720p", "1080p"]).optional().default("720p"),
 });

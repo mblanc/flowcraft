@@ -1,14 +1,15 @@
 import { GetSignedUrlConfig, Storage } from "@google-cloud/storage";
 import sharp from "sharp";
 import logger from "@/app/logger";
+import { config } from "./config";
 
 // Initialize storage
 const storage = new Storage({
-    projectId: process.env.PROJECT_ID,
+    projectId: config.PROJECT_ID,
     // keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS, // Uncomment if needed
 });
 
-const storageUri = process.env.GCS_STORAGE_URI; // Make sure this env var is set
+const storageUri = config.GCS_STORAGE_URI; // Make sure this env var is set
 
 export async function uploadImage(
     base64: string,
