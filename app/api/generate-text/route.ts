@@ -7,11 +7,25 @@ import {
 } from "@google/genai";
 import { NextResponse } from "next/server";
 import { getMimeTypeFromGCS } from "@/lib/storage";
-import { withAuth } from "@/lib/api-utils";
+import { withAuth, formatZodError } from "@/lib/api-utils";
+import { GenerateTextSchema } from "@/lib/schemas";
 
 export const POST = withAuth(async (req) => {
     try {
-        const { prompt, files, model } = await req.json();
+        const body = await req.json();
+        const result = GenerateTextSchema.safeParse(body);
+
+        if (!result.success) {
+            return NextResponse.json(
+                {
+                    error: "Validation failed",
+                    details: formatZodError(result.error),
+                },
+                { status: 400 },
+            );
+        }
+
+        const { prompt, files, model } = result.data;
 
         console.log("[SERVER] Generating text with model:", model);
         console.log("[SERVER] Prompt:", prompt);

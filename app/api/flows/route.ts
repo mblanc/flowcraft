@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getFirestore, COLLECTIONS } from "@/lib/firestore";
-import { withAuth } from "@/lib/api-utils";
+import { withAuth, formatZodError } from "@/lib/api-utils";
+import { FlowCreateSchema } from "@/lib/schemas";
 
 export const GET = withAuth(async (_req, context, session) => {
     try {
@@ -35,14 +36,19 @@ export const GET = withAuth(async (_req, context, session) => {
 export const POST = withAuth(async (req, context, session) => {
     try {
         const body = await req.json();
-        const { name, nodes, edges } = body;
+        const result = FlowCreateSchema.safeParse(body);
 
-        if (!name || !nodes || !edges) {
+        if (!result.success) {
             return NextResponse.json(
-                { error: "Missing required fields" },
+                {
+                    error: "Validation failed",
+                    details: formatZodError(result.error),
+                },
                 { status: 400 },
             );
         }
+
+        const { name, nodes, edges } = result.data;
 
         const firestore = getFirestore();
         const flowsRef = firestore.collection(COLLECTIONS.FLOWS);

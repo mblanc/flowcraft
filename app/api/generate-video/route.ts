@@ -4,7 +4,8 @@ import {
     GenerateVideosParameters,
     VideoGenerationReferenceType,
 } from "@google/genai";
-import { withAuth } from "@/lib/api-utils";
+import { withAuth, formatZodError } from "@/lib/api-utils";
+import { GenerateVideoSchema } from "@/lib/schemas";
 
 async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -12,6 +13,19 @@ async function delay(ms: number) {
 
 export const POST = withAuth(async (req) => {
     try {
+        const body = await req.json();
+        const result = GenerateVideoSchema.safeParse(body);
+
+        if (!result.success) {
+            return NextResponse.json(
+                {
+                    error: "Validation failed",
+                    details: formatZodError(result.error),
+                },
+                { status: 400 },
+            );
+        }
+
         const {
             prompt,
             firstFrame,
@@ -22,7 +36,7 @@ export const POST = withAuth(async (req) => {
             model,
             generateAudio,
             resolution,
-        } = await req.json();
+        } = result.data;
 
         console.log("[SERVER] Generating video with Veo");
         console.log("[SERVER] Prompt:", prompt);

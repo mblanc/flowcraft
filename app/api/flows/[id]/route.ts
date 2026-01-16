@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getFirestore, COLLECTIONS } from "@/lib/firestore";
-import { withAuth } from "@/lib/api-utils";
+import { withAuth, formatZodError } from "@/lib/api-utils";
+import { FlowUpdateSchema } from "@/lib/schemas";
 
 export const GET = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
@@ -54,7 +55,19 @@ export const PUT = withAuth<{ params: Promise<{ id: string }> }>(
         const { id: flowId } = (await params) as { id: string };
         try {
             const body = await req.json();
-            const { name, nodes, edges, thumbnail } = body;
+            const result = FlowUpdateSchema.safeParse(body);
+
+            if (!result.success) {
+                return NextResponse.json(
+                    {
+                        error: "Validation failed",
+                        details: formatZodError(result.error),
+                    },
+                    { status: 400 },
+                );
+            }
+
+            const { name, nodes, edges, thumbnail } = result.data;
 
             const firestore = getFirestore();
             const flowRef = firestore.collection(COLLECTIONS.FLOWS).doc(flowId);

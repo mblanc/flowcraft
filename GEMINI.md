@@ -96,3 +96,7 @@ npm run lint
 - **Type Safety:** Strict TypeScript usage is encouraged.
 - **State Management:** Local state and Context API are used. The workflow state is managed within `FlowProvider`.
 - **AI Interaction:** All AI interactions should go through the backend API routes (`app/api/`) to keep secrets secure and manage rate limiting/processing.
+
+## Important
+
+- Always use `npm run preflight` before finishing a task and fix all errors.

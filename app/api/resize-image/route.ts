@@ -1,25 +1,25 @@
 import { NextResponse } from "next/server";
 import { gcsUriToSharp, uploadFile } from "@/lib/storage";
 import { v4 as uuidv4 } from "uuid";
-import { withAuth } from "@/lib/api-utils";
+import { withAuth, formatZodError } from "@/lib/api-utils";
+import { ResizeImageSchema } from "@/lib/schemas";
 
 export const POST = withAuth(async (_req) => {
     try {
-        const { image, aspectRatio } = await _req.json();
+        const body = await _req.json();
+        const result = ResizeImageSchema.safeParse(body);
 
-        if (!image) {
+        if (!result.success) {
             return NextResponse.json(
-                { error: "Image is required" },
+                {
+                    error: "Validation failed",
+                    details: formatZodError(result.error),
+                },
                 { status: 400 },
             );
         }
 
-        if (!aspectRatio) {
-            return NextResponse.json(
-                { error: "Aspect ratio is required" },
-                { status: 400 },
-            );
-        }
+        const { image, aspectRatio } = result.data;
 
         let width, height;
         if (aspectRatio === "16:9") {

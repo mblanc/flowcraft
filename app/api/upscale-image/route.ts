@@ -1,17 +1,24 @@
 import { GoogleGenAI, Image } from "@google/genai";
 import { NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-utils";
+import { withAuth, formatZodError } from "@/lib/api-utils";
+import { UpscaleImageSchema } from "@/lib/schemas";
 
 export const POST = withAuth(async (req) => {
     try {
-        const { image, upscaleFactor = "x2" } = await req.json();
+        const body = await req.json();
+        const result = UpscaleImageSchema.safeParse(body);
 
-        if (!image) {
+        if (!result.success) {
             return NextResponse.json(
-                { error: "Image is required" },
+                {
+                    error: "Validation failed",
+                    details: formatZodError(result.error),
+                },
                 { status: 400 },
             );
         }
+
+        const { image, upscaleFactor } = result.data;
 
         const ai = new GoogleGenAI({
             vertexai: true,

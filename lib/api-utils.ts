@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import { Session } from "next-auth";
+import { ZodError } from "zod";
 
 export type AuthenticatedHandler<T = unknown> = (
     req: NextRequest,
@@ -27,4 +28,11 @@ export function withAuth<T = unknown>(handler: AuthenticatedHandler<T>) {
             );
         }
     };
+}
+
+export function formatZodError(error: ZodError) {
+    return error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+    }));
 }

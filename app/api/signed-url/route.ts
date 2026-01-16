@@ -1,17 +1,24 @@
 import { NextResponse } from "next/server";
 import { getSignedUrlFromGCS } from "@/lib/storage";
-import { withAuth } from "@/lib/api-utils";
+import { withAuth, formatZodError } from "@/lib/api-utils";
+import { GetSignedUrlSchema } from "@/lib/schemas";
 
 export const GET = withAuth(async (_req) => {
     const { searchParams } = new URL(_req.url);
-    const gcsUri = searchParams.get("gcsUri");
+    const params = Object.fromEntries(searchParams.entries());
+    const result = GetSignedUrlSchema.safeParse(params);
 
-    if (!gcsUri) {
+    if (!result.success) {
         return NextResponse.json(
-            { error: "Missing gcsUri parameter" },
+            {
+                error: "Validation failed",
+                details: formatZodError(result.error),
+            },
             { status: 400 },
         );
     }
+
+    const { gcsUri } = result.data;
 
     try {
         const signedUrl = await getSignedUrlFromGCS(gcsUri);

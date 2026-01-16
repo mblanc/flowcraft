@@ -8,24 +8,25 @@ import {
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { uploadImage } from "@/lib/storage";
-import { withAuth } from "@/lib/api-utils";
+import { withAuth, formatZodError } from "@/lib/api-utils";
+import { GenerateImageSchema } from "@/lib/schemas";
 
 export const POST = withAuth(async (req) => {
     try {
-        const {
-            prompt,
-            images = [],
-            aspectRatio = "16:9",
-            model = "gemini-2.5-flash-image",
-            resolution = "1K",
-        } = await req.json();
+        const body = await req.json();
+        const result = GenerateImageSchema.safeParse(body);
 
-        if (!prompt) {
+        if (!result.success) {
             return NextResponse.json(
-                { error: "Prompt is required" },
+                {
+                    error: "Validation failed",
+                    details: formatZodError(result.error),
+                },
                 { status: 400 },
             );
         }
+
+        const { prompt, images, aspectRatio, model, resolution } = result.data;
 
         const ai = new GoogleGenAI({
             vertexai: true,
