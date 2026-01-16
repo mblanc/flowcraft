@@ -1,3 +1,4 @@
+import logger from "@/app/logger";
 import {
     AgentData,
     ImageData,
@@ -21,7 +22,7 @@ export async function executeAgentNode(
         throw new Error("No prompt available for agent node");
     }
 
-    console.log("[Executor] Generating text with prompt:", finalPrompt);
+    logger.info(`[Executor] Generating text with prompt: ${finalPrompt}`);
 
     const response = await fetcher("/api/generate-text", {
         method: "POST",
@@ -55,7 +56,7 @@ export async function executeImageNode(
         throw new Error("No prompt available for image node");
     }
 
-    console.log("[Executor] Generating image with prompt:", finalPrompt);
+    logger.info(`[Executor] Generating image with prompt: ${finalPrompt}`);
 
     const response = await fetcher("/api/generate-image", {
         method: "POST",
@@ -96,7 +97,7 @@ export async function executeVideoNode(
         throw new Error("No prompt available for video node");
     }
 
-    console.log("[Executor] Generating video with prompt:", finalPrompt);
+    logger.info(`[Executor] Generating video with prompt: ${finalPrompt}`);
 
     const response = await fetcher("/api/generate-video", {
         method: "POST",
@@ -140,7 +141,7 @@ export async function executeUpscaleNode(
         throw new Error("No image available for upscale node");
     }
 
-    console.log("[Executor] Upscaling image");
+    logger.info("[Executor] Upscaling image");
 
     const response = await fetcher("/api/upscale-image", {
         method: "POST",
@@ -173,7 +174,7 @@ export async function executeResizeNode(
         throw new Error("No image available for resize node");
     }
 
-    console.log("[Executor] Resizing image");
+    logger.info("[Executor] Resizing image");
 
     const response = await fetcher("/api/resize-image", {
         method: "POST",

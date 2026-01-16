@@ -8,6 +8,7 @@ import type { FileData } from "@/lib/types";
 import { FileUp, ImageIcon, Video } from "lucide-react";
 import { useFlow } from "./flow-provider";
 import Image from "next/image";
+import logger from "@/app/logger";
 
 export const FileNode = memo(
     ({ data, selected, id }: NodeProps<Node<FileData>>) => {
@@ -42,15 +43,14 @@ export const FileNode = memo(
                         if (result.signedUrl) {
                             setAsyncSignedUrl(result.signedUrl);
                         } else {
-                            console.error(
-                                "Failed to get signed URL:",
-                                result.error,
+                            logger.error(
+                                `Failed to get signed URL: ${result.error}`,
                             );
                             setAsyncSignedUrl(undefined);
                         }
                     })
                     .catch((error) => {
-                        console.error("Error fetching signed URL:", error);
+                        logger.error("Error fetching signed URL:", error);
                         setAsyncSignedUrl(undefined);
                     });
             }
@@ -96,7 +96,7 @@ export const FileNode = memo(
                 });
                 setAsyncSignedUrl(data.signedUrl);
             } catch (error) {
-                console.error("Upload error:", error);
+                logger.error("Upload error:", error);
                 alert("Failed to upload file");
             }
         };

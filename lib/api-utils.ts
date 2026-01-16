@@ -1,3 +1,4 @@
+import logger from "@/app/logger";
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import { Session } from "next-auth";
@@ -21,7 +22,7 @@ export function withAuth<T = unknown>(handler: AuthenticatedHandler<T>) {
             }
             return handler(req, context, session);
         } catch (error) {
-            console.error("Auth error:", error);
+            logger.error("Auth error:", error);
             return NextResponse.json(
                 { error: "Internal server error" },
                 { status: 500 },

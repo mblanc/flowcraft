@@ -14,6 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import logger from "@/app/logger";
 
 export const ResizeNode = memo(
     ({ data, selected, id }: NodeProps<Node<ResizeData>>) => {
@@ -63,15 +64,14 @@ export const ResizeNode = memo(
                         if (result.signedUrl) {
                             setPlaybackUrlAsync(result.signedUrl);
                         } else {
-                            console.error(
-                                "Failed to get signed URL:",
-                                result.error,
+                            logger.error(
+                                `Failed to get signed URL: ${result.error}`,
                             );
                             setPlaybackUrlAsync(undefined);
                         }
                     })
                     .catch((error) => {
-                        console.error("Error fetching signed URL:", error);
+                        logger.error("Error fetching signed URL:", error);
                         setPlaybackUrlAsync(undefined);
                     });
             }

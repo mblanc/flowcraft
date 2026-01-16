@@ -8,6 +8,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { UpscaleData } from "@/lib/types";
 import { ZoomIn, Play } from "lucide-react";
 import { useFlow } from "./flow-provider";
+import logger from "@/app/logger";
 
 export const UpscaleNode = memo(
     ({ data, selected, id }: NodeProps<Node<UpscaleData>>) => {
@@ -56,15 +57,14 @@ export const UpscaleNode = memo(
                         if (result.signedUrl) {
                             setAsyncSignedUrl(result.signedUrl);
                         } else {
-                            console.error(
-                                "Failed to get signed URL:",
-                                result.error,
+                            logger.error(
+                                `Failed to get signed URL: ${result.error}`,
                             );
                             setAsyncSignedUrl(undefined);
                         }
                     })
                     .catch((error) => {
-                        console.error("Error fetching signed URL:", error);
+                        logger.error("Error fetching signed URL:", error);
                         setAsyncSignedUrl(undefined);
                     });
             }

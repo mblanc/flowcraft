@@ -14,6 +14,16 @@ vi.mock("../lib/node-registry", async (importOriginal) => {
     };
 });
 
+// Mock logger
+vi.mock("../app/logger", () => ({
+    default: {
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+    },
+}));
+
 describe("WorkflowEngine", () => {
     let mockOnNodeUpdate: Mock<
         (nodeId: string, data: Partial<NodeData>) => void

@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { WorkflowEngine } from "@/lib/workflow-engine";
+import logger from "@/app/logger";
 
 export function useFlowExecution() {
     const nodes = useFlowStore((state) => state.nodes);
@@ -16,7 +17,7 @@ export function useFlowExecution() {
             const engine = new WorkflowEngine(nodes, edges, updateNodeData);
             await engine.run();
         } catch (error) {
-            console.error("Error running flow:", error);
+            logger.error("Error running flow:", error);
         } finally {
             setIsRunning(false);
         }
@@ -28,7 +29,7 @@ export function useFlowExecution() {
                 const engine = new WorkflowEngine(nodes, edges, updateNodeData);
                 await engine.executeNode(nodeId);
             } catch (error) {
-                console.error("Error executing node:", error);
+                logger.error("Error executing node:", error);
             }
         },
         [nodes, edges, updateNodeData],

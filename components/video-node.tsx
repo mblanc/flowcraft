@@ -7,6 +7,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { VideoData } from "@/lib/types";
 import { Video, Play } from "lucide-react";
 import { useFlow } from "./flow-provider";
+import logger from "@/app/logger";
 
 export const VideoNode = memo(
     ({ data, selected, id }: NodeProps<Node<VideoData>>) => {
@@ -71,14 +72,13 @@ export const VideoNode = memo(
                     if (result.signedUrl) {
                         setPlaybackUrlAsync(result.signedUrl);
                     } else {
-                        console.error(
-                            "Failed to get signed URL:",
-                            result.error,
+                        logger.error(
+                            `Failed to get signed URL: ${result.error}`,
                         );
                         setPlaybackUrlAsync(undefined);
                     }
                 } catch (error) {
-                    console.error("Error fetching signed URL:", error);
+                    logger.error("Error fetching signed URL:", error);
                     setPlaybackUrlAsync(undefined);
                 }
             };

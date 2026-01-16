@@ -9,6 +9,7 @@ import type { ImageData } from "@/lib/types";
 import { ImageIcon, Play } from "lucide-react";
 import { useFlow } from "./flow-provider";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import logger from "@/app/logger";
 
 export const ImageNode = memo(
     ({ data, selected, id }: NodeProps<Node<ImageData>>) => {
@@ -151,15 +152,14 @@ export const ImageNode = memo(
                         if (result.signedUrl) {
                             setAsyncSignedUrl(result.signedUrl);
                         } else {
-                            console.error(
-                                "Failed to get signed URL:",
-                                result.error,
+                            logger.error(
+                                `Failed to get signed URL: ${result.error}`,
                             );
                             setAsyncSignedUrl(undefined);
                         }
                     })
                     .catch((error) => {
-                        console.error("Error fetching signed URL:", error);
+                        logger.error("Error fetching signed URL:", error);
                         setAsyncSignedUrl(undefined);
                     });
             }

@@ -70,8 +70,6 @@ export function UserProfile({ isCollapsed }: { isCollapsed: boolean }) {
         await signOut({ callbackUrl: "/" });
     };
 
-    // console.log(user)
-
     return (
         <div className="user-profile-dropdown relative">
             <button

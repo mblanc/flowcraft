@@ -8,6 +8,7 @@ import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import logger from "@/app/logger";
 
 function FlowCanvasContent() {
     const params = useParams();
@@ -32,11 +33,11 @@ function FlowCanvasContent() {
                     setNotFound(true);
                     setLoading(false);
                 } else {
-                    console.error("Error fetching flow");
+                    logger.error("Error fetching flow");
                     setLoading(false);
                 }
             } catch (error) {
-                console.error("Error fetching flow:", error);
+                logger.error("Error fetching flow:", error);
                 setLoading(false);
             }
         },

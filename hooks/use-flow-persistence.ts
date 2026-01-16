@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { ImageData, UpscaleData, ResizeData, VideoData } from "@/lib/types";
+import logger from "@/app/logger";
 
 export function useFlowPersistence() {
     const nodes = useFlowStore((state) => state.nodes);
@@ -74,9 +75,9 @@ export function useFlowPersistence() {
                         }),
                     }),
                 });
-                console.log("Flow auto-saved");
+                logger.info("Flow auto-saved");
             } catch (error) {
-                console.error("Error saving flow:", error);
+                logger.error("Error saving flow:", error);
             }
         },
         [flowId, flowName, nodes, edges],
@@ -120,7 +121,7 @@ export function useFlowPersistence() {
                             if (flowData.name) setFlowName(flowData.name);
                         }
                     } catch (error) {
-                        console.error("Error importing flow:", error);
+                        logger.error("Error importing flow:", error);
                     }
                 };
                 reader.readAsText(file);

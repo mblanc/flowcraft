@@ -23,6 +23,7 @@ import { Button } from "./ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import logger from "@/app/logger";
 
 function AgentConfig({ data, nodeId }: { data: AgentData; nodeId: string }) {
     const { updateNodeData } = useFlow();
@@ -106,14 +107,13 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
                             if (result.signedUrl) {
                                 return result.signedUrl;
                             } else {
-                                console.error(
-                                    "Failed to get signed URL:",
-                                    result.error,
+                                logger.error(
+                                    `Failed to get signed URL: ${result.error}`,
                                 );
                                 return "/placeholder.svg";
                             }
                         } catch (error) {
-                            console.error("Error fetching signed URL:", error);
+                            logger.error("Error fetching signed URL:", error);
                             return "/placeholder.svg";
                         }
                     } else {
@@ -308,14 +308,13 @@ function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
                             if (result.signedUrl) {
                                 return result.signedUrl;
                             } else {
-                                console.error(
-                                    "Failed to get signed URL:",
-                                    result.error,
+                                logger.error(
+                                    `Failed to get signed URL: ${result.error}`,
                                 );
                                 return "/placeholder.svg";
                             }
                         } catch (error) {
-                            console.error("Error fetching signed URL:", error);
+                            logger.error("Error fetching signed URL:", error);
                             return "/placeholder.svg";
                         }
                     } else {
@@ -540,14 +539,13 @@ function FileConfig({ data, nodeId }: { data: FileData; nodeId: string }) {
                     if (result.signedUrl) {
                         setSignedFileUrl(result.signedUrl);
                     } else {
-                        console.error(
-                            "Failed to get signed URL:",
-                            result.error,
+                        logger.error(
+                            `Failed to get signed URL: ${result.error}`,
                         );
                         setSignedFileUrl("/placeholder.svg");
                     }
                 } catch (error) {
-                    console.error("Error fetching signed URL:", error);
+                    logger.error("Error fetching signed URL:", error);
                     setSignedFileUrl("/placeholder.svg");
                 }
             } else if (data.fileUrl) {

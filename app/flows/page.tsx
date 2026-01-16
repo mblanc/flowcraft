@@ -7,6 +7,7 @@ import { Plus, Trash2, Calendar, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserProfile } from "@/components/user-profile";
 import Image from "next/image";
+import logger from "@/app/logger";
 
 interface Flow {
     id: string;
@@ -51,12 +52,11 @@ export default function FlowsList() {
                                     if (urlData.signedUrl) {
                                         urls[flow.id] = urlData.signedUrl;
                                     }
-                                    console.log(
-                                        "Signed URL for thumbnail:",
-                                        urls[flow.name],
+                                    logger.info(
+                                        `Signed URL for thumbnail: ${urls[flow.name]}`,
                                     );
                                 } catch (error) {
-                                    console.error(
+                                    logger.error(
                                         "Error fetching signed URL for thumbnail:",
                                         error,
                                     );
@@ -70,7 +70,7 @@ export default function FlowsList() {
                 }
             }
         } catch (error) {
-            console.error("Error fetching flows:", error);
+            logger.error("Error fetching flows:", error);
         } finally {
             setLoading(false);
         }
@@ -102,7 +102,7 @@ export default function FlowsList() {
                 router.push(`/flow/${flow.id}`);
             }
         } catch (error) {
-            console.error("Error creating flow:", error);
+            logger.error("Error creating flow:", error);
         } finally {
             setCreating(false);
         }
@@ -120,7 +120,7 @@ export default function FlowsList() {
                 setFlows(flows.filter((f) => f.id !== flowId));
             }
         } catch (error) {
-            console.error("Error deleting flow:", error);
+            logger.error("Error deleting flow:", error);
         }
     };
 

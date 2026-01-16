@@ -1,3 +1,4 @@
+import logger from "@/app/logger";
 import { Edge, Node } from "@xyflow/react";
 import { NodeData, NodeInputs } from "./types";
 import { getNodeDefinition, ExecutionContext } from "./node-registry";
@@ -70,7 +71,7 @@ export class WorkflowEngine {
             } as Node<NodeData>;
             this.nodesMap.set(nodeId, updatedNode);
         } catch (error) {
-            console.error(`Error executing node ${nodeId}:`, error);
+            logger.error(`Error executing node ${nodeId}:`, error);
             this.onNodeUpdate(nodeId, { executing: false });
             throw error; // Re-throw to handle in the run loop if needed
         }
