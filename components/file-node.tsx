@@ -5,10 +5,11 @@ import type React from "react";
 import { memo, useRef, useState, useEffect } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { FileData } from "@/lib/types";
-import { FileUp, ImageIcon, Video } from "lucide-react";
+import { FileUp, ImageIcon, Video, FileText } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import Image from "next/image";
 import logger from "@/app/logger";
+import { PdfPreview } from "./pdf-preview";
 
 export const FileNode = memo(
     ({ data, selected, id }: NodeProps<Node<FileData>>) => {
@@ -65,11 +66,13 @@ export const FileNode = memo(
             const fileType = file.type.startsWith("image/")
                 ? "image"
                 : file.type.startsWith("video/")
-                  ? "video"
-                  : null;
+                    ? "video"
+                    : file.type === "application/pdf"
+                        ? "pdf"
+                        : null;
 
             if (!fileType) {
-                alert("Please upload an image or video file");
+                alert("Please upload an image, video, or PDF file");
                 return;
             }
 
@@ -107,11 +110,10 @@ export const FileNode = memo(
 
         return (
             <div
-                className={`bg-card min-w-[220px] rounded-lg border-2 p-4 shadow-lg transition-all ${
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border"
-                }`}
+                className={`bg-card min-w-[220px] rounded-lg border-2 p-4 shadow-lg transition-all ${selected
+                    ? "border-primary shadow-primary/20"
+                    : "border-border"
+                    }`}
             >
                 <div className="mb-3 flex items-start gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-cyan-500/10">
@@ -129,6 +131,8 @@ export const FileNode = memo(
                                         <ImageIcon className="h-3 w-3" />
                                     ) : data.fileType === "video" ? (
                                         <Video className="h-3 w-3" />
+                                    ) : data.fileType === "pdf" ? (
+                                        <FileText className="h-3 w-3" />
                                     ) : null}
                                     {data.fileName}
                                 </span>
@@ -155,6 +159,11 @@ export const FileNode = memo(
                                 controls
                                 className="h-auto max-h-[300px] w-full"
                             />
+                        ) : data.fileType === "pdf" ? (
+                            <PdfPreview
+                                url={signedUrl}
+                                className="h-auto min-h-[150px] max-h-[300px] w-full"
+                            />
                         ) : null}
                     </div>
                 )}
@@ -162,7 +171,7 @@ export const FileNode = memo(
                 <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*,video/*"
+                    accept="image/*,video/*,application/pdf"
                     onChange={handleFileChange}
                     className="hidden"
                 />

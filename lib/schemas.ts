@@ -79,7 +79,7 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
 
 export const FileDataSchema = BaseNodeDataSchema.extend({
     type: z.literal("file"),
-    fileType: z.enum(["image", "video"]).nullable(),
+    fileType: z.enum(["image", "video", "pdf"]).nullable(),
     fileUrl: z.string(),
     fileName: z.string(),
     gcsUri: z.string().optional(),
@@ -134,7 +134,15 @@ export const EdgeSchema = z.object({
 
 export const GenerateImageSchema = z.object({
     prompt: z.string().min(1, "Prompt is required"),
-    images: z.array(z.string()).optional().default([]),
+    images: z
+        .array(
+            z.object({
+                url: z.string(),
+                type: z.string(),
+            }),
+        )
+        .optional()
+        .default([]),
     aspectRatio: ImageDataAspectRatioSchema.optional().default(
         DEFAULTS.ASPECT_RATIO,
     ),
@@ -164,7 +172,15 @@ export const GenerateVideoSchema = z.object({
     prompt: z.string().min(1, "Prompt is required"),
     firstFrame: z.string().optional(),
     lastFrame: z.string().optional(),
-    images: z.array(z.string()).optional().default([]),
+    images: z
+        .array(
+            z.object({
+                url: z.string(),
+                type: z.string(),
+            }),
+        )
+        .optional()
+        .default([]),
     aspectRatio: AspectRatio169_916Schema.optional().default(
         DEFAULTS.ASPECT_RATIO,
     ),

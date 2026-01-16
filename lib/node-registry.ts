@@ -88,12 +88,15 @@ registerNode<AgentData, NodeInputs>({
             if (sourceData?.type === "file" && sourceData.gcsUri) {
                 inputs.files?.push({
                     url: sourceData.gcsUri,
-                    type: sourceData.fileType || "image",
+                    type:
+                        sourceData.fileType === "pdf"
+                            ? "application/pdf"
+                            : "image/png",
                 });
             } else if (sourceData?.type === "resize" && sourceData.output) {
                 inputs.files?.push({
                     url: sourceData.output,
-                    type: "image",
+                    type: "image/png",
                 });
             }
         }
@@ -129,17 +132,30 @@ registerNode<ImageData, NodeInputs>({
         for (const edge of imageEdges) {
             const sourceData = getSourceData(edge.source);
             if (sourceData?.type === "image" && sourceData.images) {
-                inputs.images?.push(...sourceData.images);
-            } else if (
-                sourceData?.type === "file" &&
-                sourceData.fileType === "image" &&
-                sourceData.gcsUri
-            ) {
-                inputs.images?.push(sourceData.gcsUri);
+                inputs.images?.push(
+                    ...sourceData.images.map((url) => ({
+                        url,
+                        type: "image/png",
+                    })),
+                );
+            } else if (sourceData?.type === "file" && sourceData.gcsUri) {
+                inputs.images?.push({
+                    url: sourceData.gcsUri,
+                    type:
+                        sourceData.fileType === "pdf"
+                            ? "application/pdf"
+                            : "image/png",
+                });
             } else if (sourceData?.type === "upscale" && sourceData.image) {
-                inputs.images?.push(sourceData.image);
+                inputs.images?.push({
+                    url: sourceData.image,
+                    type: "image/png",
+                });
             } else if (sourceData?.type === "resize" && sourceData.output) {
-                inputs.images?.push(sourceData.output);
+                inputs.images?.push({
+                    url: sourceData.output,
+                    type: "image/png",
+                });
             }
         }
         return inputs;
@@ -210,17 +226,31 @@ registerNode<VideoData, NodeInputs>({
         for (const edge of imageEdges) {
             const sourceData = getSourceData(edge.source);
             if (sourceData?.type === "image" && sourceData.images)
-                inputs.images?.push(...sourceData.images);
+                inputs.images?.push(
+                    ...sourceData.images.map((url) => ({
+                        url,
+                        type: "image/png",
+                    })),
+                );
             else if (
                 sourceData?.type === "file" &&
                 sourceData.fileType === "image" &&
                 sourceData.gcsUri
             )
-                inputs.images?.push(sourceData.gcsUri);
+                inputs.images?.push({
+                    url: sourceData.gcsUri,
+                    type: "image/png",
+                });
             else if (sourceData?.type === "upscale" && sourceData.image)
-                inputs.images?.push(sourceData.image);
+                inputs.images?.push({
+                    url: sourceData.image,
+                    type: "image/png",
+                });
             else if (sourceData?.type === "resize" && sourceData.output)
-                inputs.images?.push(sourceData.output);
+                inputs.images?.push({
+                    url: sourceData.output,
+                    type: "image/png",
+                });
         }
         return inputs;
     },

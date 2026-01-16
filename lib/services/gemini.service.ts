@@ -18,13 +18,13 @@ async function delay(ms: number) {
 
 export interface GenerateTextOptions {
     prompt: string;
-    files?: Array<{ url: string }>;
+    files?: Array<{ url: string; type: string }>;
     model?: string;
 }
 
 export interface GenerateImageOptions {
     prompt: string;
-    images?: string[];
+    images?: Array<{ url: string; type: string }>;
     aspectRatio?: string;
     model?: string;
     resolution?: string;
@@ -34,7 +34,7 @@ export interface GenerateVideoOptions {
     prompt: string;
     firstFrame?: string;
     lastFrame?: string;
-    images?: string[];
+    images?: Array<{ url: string; type: string }>;
     aspectRatio?: string;
     duration?: number;
     model?: string;
@@ -71,8 +71,8 @@ export class GeminiService {
         if (files && files.length > 0) {
             for (const file of files) {
                 if (file.url.startsWith("gs://")) {
-                    contents.push(createPartFromUri(file.url, "image/png"));
-                } else if (file.url.startsWith("data:image/")) {
+                    contents.push(createPartFromUri(file.url, file.type));
+                } else if (file.url.startsWith("data:")) {
                     const base64Match = file.url.match(
                         /^data:([^;]+);base64,(.+)$/,
                     );
@@ -120,13 +120,13 @@ export class GeminiService {
 
         const contents: ContentListUnion = [];
 
-        for (const imageUrl of images) {
-            if (imageUrl.startsWith("data:image/")) {
-                const base64Data = imageUrl.split(",")[1];
-                const mimeType = imageUrl.split(";")[0].split(":")[1];
+        for (const image of images) {
+            if (image.url.startsWith("data:")) {
+                const base64Data = image.url.split(",")[1];
+                const mimeType = image.url.split(";")[0].split(":")[1];
                 contents.push(createPartFromBase64(base64Data, mimeType));
-            } else if (imageUrl.startsWith("gs://")) {
-                contents.push(createPartFromUri(imageUrl, "image/png"));
+            } else if (image.url.startsWith("gs://")) {
+                contents.push(createPartFromUri(image.url, image.type));
             }
         }
 
@@ -207,12 +207,10 @@ export class GeminiService {
 
         if (images && images.length > 0) {
             videoRequest.model = MODELS.VIDEO.VEO_3_1_PRO_PREVIEW;
-            videoRequest.config!.referenceImages = images.map(
-                (image: string) => ({
-                    image: { gcsUri: image, mimeType: "image/png" },
-                    referenceType: VideoGenerationReferenceType.ASSET,
-                }),
-            );
+            videoRequest.config!.referenceImages = images.map((image) => ({
+                image: { gcsUri: image.url, mimeType: "image/png" },
+                referenceType: VideoGenerationReferenceType.ASSET,
+            }));
         }
 
         let operation = await this.ai.models.generateVideos(videoRequest);

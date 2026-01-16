@@ -45,7 +45,7 @@ export async function executeAgentNode(
 
 export async function executeImageNode(
     node: Node<ImageData>,
-    inputs: { prompt?: string; images?: string[] },
+    inputs: { prompt?: string; images?: { url: string; type: string }[] },
     context?: ExecutionContext,
 ): Promise<Partial<ImageData>> {
     const { prompt, images } = inputs;
@@ -85,7 +85,7 @@ export async function executeVideoNode(
         prompt?: string;
         firstFrame?: string;
         lastFrame?: string;
-        images?: string[];
+        images?: { url: string; type: string }[];
     },
     context?: ExecutionContext,
 ): Promise<Partial<VideoData>> {
