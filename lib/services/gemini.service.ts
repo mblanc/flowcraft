@@ -52,7 +52,7 @@ export class GeminiService {
         this.ai = new GoogleGenAI({
             vertexai: true,
             project: process.env.PROJECT_ID,
-            location: process.env.LOCATION || "us-central1",
+            location: "global", //process.env.LOCATION || "us-central1",
         });
     }
 
