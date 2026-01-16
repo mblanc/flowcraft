@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { FlowCanvas } from "@/components/flow-canvas";
-import { FlowProvider, useFlow } from "@/components/flow-provider";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
+import { useFlowStore } from "@/lib/store/use-flow-store";
+import type { FlowState } from "@/lib/store/use-flow-store";
 import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import logger from "@/app/logger";
@@ -14,7 +15,7 @@ function FlowCanvasContent() {
     const params = useParams();
     const router = useRouter();
     const { data: session } = useSession();
-    const { loadFlow } = useFlow();
+    const loadFlow = useFlowStore((state: FlowState) => state.loadFlow);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
@@ -98,9 +99,5 @@ function FlowCanvasContent() {
 }
 
 export default function FlowPage() {
-    return (
-        <FlowProvider>
-            <FlowCanvasContent />
-        </FlowProvider>
-    );
+    return <FlowCanvasContent />;
 }

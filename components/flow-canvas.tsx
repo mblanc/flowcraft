@@ -11,7 +11,6 @@ import {
     type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useFlow } from "./flow-provider";
 import { AgentNode } from "./agent-node";
 import { TextNode } from "./text-node";
 import { ImageNode } from "./image-node";
@@ -37,6 +36,9 @@ import {
     ZoomIn,
     Scaling,
 } from "lucide-react";
+import { useFlowStore } from "@/lib/store/use-flow-store";
+import type { FlowState } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 
 const nodeTypes = {
     agent: AgentNode,
@@ -49,18 +51,22 @@ const nodeTypes = {
 };
 
 export function FlowCanvas() {
-    const {
-        nodes,
-        edges,
-        onNodesChange,
-        onEdgesChange,
-        onConnect,
-        addNode,
-        selectNode,
-        runFlow,
-        isRunning,
-        flowId,
-    } = useFlow();
+    const nodes = useFlowStore((state: FlowState) => state.nodes);
+    const edges = useFlowStore((state: FlowState) => state.edges);
+    const onNodesChange = useFlowStore(
+        (state: FlowState) => state.onNodesChange,
+    );
+    const onEdgesChange = useFlowStore(
+        (state: FlowState) => state.onEdgesChange,
+    );
+    const onConnect = useFlowStore((state: FlowState) => state.onConnect);
+    const selectNode = useFlowStore((state: FlowState) => state.selectNode);
+    const flowId = useFlowStore((state: FlowState) => state.flowId);
+    const addNodeWithType = useFlowStore(
+        (state: FlowState) => state.addNodeWithType,
+    );
+    const { runFlow } = useFlowExecution();
+    const isRunning = useFlowStore((state: FlowState) => state.isRunning);
 
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(
         null,
@@ -122,9 +128,9 @@ export function FlowCanvas() {
                 y: event.clientY,
             });
 
-            addNode(type, position);
+            addNodeWithType(type, position);
         },
-        [rfInstance, addNode],
+        [rfInstance, addNodeWithType],
     );
 
     const sidebarItems = [
@@ -187,7 +193,9 @@ export function FlowCanvas() {
                                 >
                                     <Button
                                         onClick={() =>
-                                            addNode(item.type as NodeType)
+                                            addNodeWithType(
+                                                item.type as NodeType,
+                                            )
                                         }
                                         size="icon"
                                         variant="ghost"

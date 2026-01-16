@@ -1,8 +1,6 @@
 - prompt vs text edge => multi parts?
 
-- new node position
 - Array/List
-- left sidebar for nodes selection+
 - Processing Nodes :
     - inpaint
     - outpaint
@@ -13,7 +11,6 @@
     - Resize
     - Extract Video Frame
 - Output Nodes? : To save the generated images and videos to a user's gallery or download them directly., integration with 3p?
-- GCS storage => upload files
 - Logic Nodes : branch, merge
 - Lyria/Chirp/Gemini 2.5 TTS
 

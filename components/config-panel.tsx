@@ -1,6 +1,7 @@
 "use client";
 
-import { useFlow } from "./flow-provider";
+import { useFlowStore } from "@/lib/store/use-flow-store";
+import type { FlowState } from "@/lib/store/use-flow-store";
 import {
     type AgentData,
     type TextData,
@@ -26,7 +27,9 @@ import { useState, useEffect } from "react";
 import logger from "@/app/logger";
 
 function AgentConfig({ data, nodeId }: { data: AgentData; nodeId: string }) {
-    const { updateNodeData } = useFlow();
+    const updateNodeData = useFlowStore(
+        (state: FlowState) => state.updateNodeData,
+    );
 
     return (
         <div className="space-y-6">
@@ -91,7 +94,9 @@ function AgentConfig({ data, nodeId }: { data: AgentData; nodeId: string }) {
 }
 
 function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
-    const { updateNodeData } = useFlow();
+    const updateNodeData = useFlowStore(
+        (state: FlowState) => state.updateNodeData,
+    );
     const [signedImageUrls, setSignedImageUrls] = useState<string[]>([]);
 
     useEffect(() => {
@@ -292,7 +297,9 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
 }
 
 function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
-    const { updateNodeData } = useFlow();
+    const updateNodeData = useFlowStore(
+        (state: FlowState) => state.updateNodeData,
+    );
     const [signedRefImageUrls, setSignedRefImageUrls] = useState<string[]>([]);
 
     useEffect(() => {
@@ -523,7 +530,9 @@ function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
 }
 
 function FileConfig({ data, nodeId }: { data: FileData; nodeId: string }) {
-    const { updateNodeData } = useFlow();
+    const updateNodeData = useFlowStore(
+        (state: FlowState) => state.updateNodeData,
+    );
     const [signedFileUrl, setSignedFileUrl] = useState<string | undefined>(
         undefined,
     );
@@ -619,7 +628,9 @@ function FileConfig({ data, nodeId }: { data: FileData; nodeId: string }) {
 }
 
 function TextConfig({ data, nodeId }: { data: TextData; nodeId: string }) {
-    const { updateNodeData } = useFlow();
+    const updateNodeData = useFlowStore(
+        (state: FlowState) => state.updateNodeData,
+    );
 
     return (
         <div className="space-y-6">
@@ -652,7 +663,7 @@ function TextConfig({ data, nodeId }: { data: TextData; nodeId: string }) {
 }
 
 export function ConfigPanel() {
-    const { selectedNode } = useFlow();
+    const selectedNode = useFlowStore((state: FlowState) => state.selectedNode);
 
     if (!selectedNode) return null;
 

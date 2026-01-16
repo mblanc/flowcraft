@@ -231,12 +231,17 @@ export class GeminiService {
         if (!operation.done) throw new Error("Video generation timed out");
 
         const videos = operation.response?.generatedVideos;
-        if (!videos || videos.length === 0)
+        if (!videos || videos.length === 0) {
+            logger.error(
+                `No videos generated: ${JSON.stringify(operation, null, 2)}`,
+            );
             throw new Error("No videos generated");
+        }
 
         const videoUri = videos[0]?.video?.uri;
-        if (!videoUri)
+        if (!videoUri) {
             throw new Error("Video URI is defined but missing from response");
+        }
 
         return videoUri;
     }

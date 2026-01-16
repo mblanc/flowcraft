@@ -6,7 +6,8 @@ import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ResizeData } from "@/lib/types";
 import { Play, Scaling } from "lucide-react";
-import { useFlow } from "./flow-provider";
+import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 import {
     Select,
     SelectContent,
@@ -18,7 +19,8 @@ import logger from "@/app/logger";
 
 export const ResizeNode = memo(
     ({ data, selected, id }: NodeProps<Node<ResizeData>>) => {
-        const { executeNode, updateNodeData } = useFlow();
+        const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const { executeNode } = useFlowExecution();
         const nodeRef = useRef<HTMLDivElement>(null);
         const [dimensions, setDimensions] = useState({
             width: data.width || 400,

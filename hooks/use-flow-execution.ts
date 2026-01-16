@@ -6,12 +6,10 @@ import { WorkflowEngine } from "@/lib/workflow-engine";
 import logger from "@/app/logger";
 
 export function useFlowExecution() {
-    const nodes = useFlowStore((state) => state.nodes);
-    const edges = useFlowStore((state) => state.edges);
-    const updateNodeData = useFlowStore((state) => state.updateNodeData);
     const setIsRunning = useFlowStore((state) => state.setIsRunning);
 
     const runFlow = useCallback(async () => {
+        const { nodes, edges, updateNodeData } = useFlowStore.getState();
         setIsRunning(true);
         try {
             const engine = new WorkflowEngine(nodes, edges, updateNodeData);
@@ -21,19 +19,17 @@ export function useFlowExecution() {
         } finally {
             setIsRunning(false);
         }
-    }, [nodes, edges, updateNodeData, setIsRunning]);
+    }, [setIsRunning]);
 
-    const executeNode = useCallback(
-        async (nodeId: string) => {
-            try {
-                const engine = new WorkflowEngine(nodes, edges, updateNodeData);
-                await engine.executeNode(nodeId);
-            } catch (error) {
-                logger.error("Error executing node:", error);
-            }
-        },
-        [nodes, edges, updateNodeData],
-    );
+    const executeNode = useCallback(async (nodeId: string) => {
+        const { nodes, edges, updateNodeData } = useFlowStore.getState();
+        try {
+            const engine = new WorkflowEngine(nodes, edges, updateNodeData);
+            await engine.executeNode(nodeId);
+        } catch (error) {
+            logger.error("Error executing node:", error);
+        }
+    }, []);
 
     return {
         runFlow,

@@ -6,12 +6,14 @@ import { memo, useRef, useEffect, useState } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { VideoData } from "@/lib/types";
 import { Video, Play } from "lucide-react";
-import { useFlow } from "./flow-provider";
+import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 import logger from "@/app/logger";
 
 export const VideoNode = memo(
     ({ data, selected, id }: NodeProps<Node<VideoData>>) => {
-        const { executeNode, updateNodeData } = useFlow();
+        const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const { executeNode } = useFlowExecution();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const [localPrompt, setLocalPrompt] = useState(data.prompt);
         const [prevDataPrompt, setPrevDataPrompt] = useState(data.prompt);

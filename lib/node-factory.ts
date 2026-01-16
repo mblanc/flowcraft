@@ -27,7 +27,7 @@ export function createNode(
                 data: {
                     type: "agent",
                     name: "Agent",
-                    model: MODELS.TEXT.GEMINI_2_5_FLASH,
+                    model: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW,
                     instructions: "",
                 } as AgentData,
             };
@@ -53,7 +53,7 @@ export function createNode(
                     prompt: "",
                     images: [],
                     aspectRatio: DEFAULTS.ASPECT_RATIO,
-                    model: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
+                    model: MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW,
                     resolution: DEFAULTS.IMAGE_RESOLUTION,
                 } as ImageData,
             };

@@ -11,7 +11,8 @@ import {
     type NodeChange,
     type EdgeChange,
 } from "@xyflow/react";
-import { NodeData } from "@/lib/types";
+import { createNode } from "@/lib/node-factory";
+import { NodeData, NodeType } from "@/lib/types";
 
 export interface FlowState {
     nodes: Node<NodeData>[];
@@ -35,6 +36,10 @@ export interface FlowState {
     // Node Mutations
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
     addNode: (node: Node<NodeData>) => void;
+    addNodeWithType: (
+        type: NodeType,
+        position?: { x: number; y: number },
+    ) => void;
     selectNode: (nodeId: string | null) => void;
 
     // Load/Reset
@@ -101,6 +106,10 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
     addNode: (node) => {
         set({ nodes: [...get().nodes, node] });
+    },
+
+    addNodeWithType: (type, position) => {
+        set({ nodes: [...get().nodes, createNode(type, position)] });
     },
 
     selectNode: (nodeId) => {

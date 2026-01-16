@@ -6,12 +6,12 @@ import { memo, useState, useEffect, useRef } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { TextData } from "@/lib/types";
 import { FileText } from "lucide-react";
-import { useFlow } from "./flow-provider";
+import { useFlowStore } from "@/lib/store/use-flow-store";
 import { Textarea } from "./ui/textarea";
 
 export const TextNode = memo(
     ({ data, selected, id }: NodeProps<Node<TextData>>) => {
-        const { updateNodeData } = useFlow();
+        const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const [localText, setLocalText] = useState(data.text);
         const [prevDataText, setPrevDataText] = useState(data.text);
         const [dimensions, setDimensions] = useState({

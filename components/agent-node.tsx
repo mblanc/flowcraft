@@ -6,11 +6,13 @@ import { memo, useRef, useEffect, useState } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { AgentData } from "@/lib/types";
 import { Bot, Play } from "lucide-react";
-import { useFlow } from "./flow-provider";
+import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 
 export const AgentNode = memo(
     ({ data, selected, id }: NodeProps<Node<AgentData>>) => {
-        const { updateNodeData, executeNode } = useFlow();
+        const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const { executeNode } = useFlowExecution();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const [localInstructions, setLocalInstructions] = useState(
             data.instructions,

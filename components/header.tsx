@@ -5,18 +5,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Download, Upload, ArrowLeft, Save } from "lucide-react";
-import { useFlow } from "@/components/flow-provider";
+import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowPersistence } from "@/hooks/use-flow-persistence";
 import { UserProfile } from "./user-profile";
 
 export function Header() {
-    const {
-        exportFlow,
-        importFlow,
-        flowId,
-        flowName,
-        updateFlowName,
-        saveFlow,
-    } = useFlow();
+    const { exportFlow, importFlow, saveFlow } = useFlowPersistence();
+    const flowId = useFlowStore((state) => state.flowId);
+    const flowName = useFlowStore((state) => state.flowName);
+    const setFlowName = useFlowStore((state) => state.setFlowName);
     const router = useRouter();
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState(flowName);
@@ -26,7 +23,7 @@ export function Header() {
     }, [flowName]);
 
     const handleSaveName = async () => {
-        updateFlowName(editedName);
+        setFlowName(editedName);
         setIsEditing(false);
     };
 

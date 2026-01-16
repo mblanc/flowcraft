@@ -1,12 +1,13 @@
 "use client";
 
-import { useFlow } from "./flow-provider";
+import { useFlowStore } from "@/lib/store/use-flow-store";
 import { ConfigPanel } from "./config-panel";
 import { X, Bot, FileText, ImageIcon, Video, FileUp } from "lucide-react";
 import { Button } from "./ui/button";
 
 export function Sidebar() {
-    const { selectedNode, selectNode } = useFlow();
+    const selectedNode = useFlowStore((state) => state.selectedNode);
+    const selectNode = useFlowStore((state) => state.selectNode);
 
     if (!selectedNode) {
         return null;

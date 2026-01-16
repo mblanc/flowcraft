@@ -7,12 +7,14 @@ import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { UpscaleData } from "@/lib/types";
 import { ZoomIn, Play } from "lucide-react";
-import { useFlow } from "./flow-provider";
+import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 import logger from "@/app/logger";
 
 export const UpscaleNode = memo(
     ({ data, selected, id }: NodeProps<Node<UpscaleData>>) => {
-        const { executeNode, updateNodeData } = useFlow();
+        const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const { executeNode } = useFlowExecution();
         const nodeRef = useRef<HTMLDivElement>(null);
         const [dimensions, setDimensions] = useState({
             width: data.width || 400,

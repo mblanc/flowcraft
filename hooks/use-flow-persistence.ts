@@ -6,84 +6,79 @@ import { ImageData, UpscaleData, ResizeData, VideoData } from "@/lib/types";
 import logger from "@/app/logger";
 
 export function useFlowPersistence() {
-    const nodes = useFlowStore((state) => state.nodes);
-    const edges = useFlowStore((state) => state.edges);
-    const flowId = useFlowStore((state) => state.flowId);
-    const flowName = useFlowStore((state) => state.flowName);
     const setNodes = useFlowStore((state) => state.setNodes);
     const setEdges = useFlowStore((state) => state.setEdges);
     const setFlowName = useFlowStore((state) => state.setFlowName);
 
-    const saveFlow = useCallback(
-        async (thumbnail?: string) => {
-            if (!flowId) return;
+    const saveFlow = useCallback(async (thumbnail?: string) => {
+        const { flowId, flowName, nodes, edges } = useFlowStore.getState();
+        if (!flowId) return;
 
-            let thumbnailToUse = thumbnail;
+        let thumbnailToUse = thumbnail;
 
-            if (!thumbnailToUse) {
-                const imageNodes = nodes.filter((node) => {
-                    const data = node.data;
-                    if (
-                        data.type === "image" &&
-                        (data as ImageData).images?.length > 0
-                    )
-                        return true;
-                    if (data.type === "upscale" && (data as UpscaleData).image)
-                        return true;
-                    if (data.type === "resize" && (data as ResizeData).output)
-                        return true;
-                    if (
-                        data.type === "video" &&
-                        (data as VideoData).images?.length > 0
-                    )
-                        return true;
-                    return false;
+        if (!thumbnailToUse) {
+            const imageNodes = nodes.filter((node) => {
+                const data = node.data;
+                if (
+                    data.type === "image" &&
+                    (data as ImageData).images?.length > 0
+                )
+                    return true;
+                if (data.type === "upscale" && (data as UpscaleData).image)
+                    return true;
+                if (data.type === "resize" && (data as ResizeData).output)
+                    return true;
+                if (
+                    data.type === "video" &&
+                    (data as VideoData).images?.length > 0
+                )
+                    return true;
+                return false;
+            });
+
+            if (imageNodes.length > 0) {
+                imageNodes.sort((a, b) => {
+                    const timeA = a.data.generatedAt || 0;
+                    const timeB = b.data.generatedAt || 0;
+                    return timeB - timeA;
                 });
 
-                if (imageNodes.length > 0) {
-                    imageNodes.sort((a, b) => {
-                        const timeA = a.data.generatedAt || 0;
-                        const timeB = b.data.generatedAt || 0;
-                        return timeB - timeA;
-                    });
-
-                    const latestNode = imageNodes[0];
-                    const data = latestNode.data;
-                    if (data.type === "image")
-                        thumbnailToUse = (data as ImageData).images[0];
-                    else if (data.type === "upscale")
-                        thumbnailToUse = (data as UpscaleData).image;
-                    else if (data.type === "resize")
-                        thumbnailToUse = (data as ResizeData).output;
-                    else if (data.type === "video")
-                        thumbnailToUse = (data as VideoData).images[0];
-                }
+                const latestNode = imageNodes[0];
+                const data = latestNode.data;
+                if (data.type === "image")
+                    thumbnailToUse = (data as ImageData).images[0];
+                else if (data.type === "upscale")
+                    thumbnailToUse = (data as UpscaleData).image;
+                else if (data.type === "resize")
+                    thumbnailToUse = (data as ResizeData).output;
+                else if (data.type === "video")
+                    thumbnailToUse = (data as VideoData).images[0];
             }
+        }
 
-            try {
-                await fetch(`/api/flows/${flowId}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        name: flowName,
-                        nodes,
-                        edges,
-                        ...(thumbnailToUse !== undefined && {
-                            thumbnail: thumbnailToUse,
-                        }),
+        try {
+            await fetch(`/api/flows/${flowId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: flowName,
+                    nodes,
+                    edges,
+                    ...(thumbnailToUse !== undefined && {
+                        thumbnail: thumbnailToUse,
                     }),
-                });
-                logger.info("Flow auto-saved");
-            } catch (error) {
-                logger.error("Error saving flow:", error);
-            }
-        },
-        [flowId, flowName, nodes, edges],
-    );
+                }),
+            });
+            logger.info("Flow auto-saved");
+        } catch (error) {
+            logger.error("Error saving flow:", error);
+        }
+    }, []);
 
     const exportFlow = useCallback(() => {
+        const { flowName, nodes, edges } = useFlowStore.getState();
         const flowData = {
             name: flowName,
             nodes,
@@ -100,7 +95,7 @@ export function useFlowPersistence() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-    }, [flowName, nodes, edges]);
+    }, []);
 
     const importFlow = useCallback(() => {
         const input = document.createElement("input");

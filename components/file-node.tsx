@@ -6,13 +6,13 @@ import { memo, useRef, useState, useEffect } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { FileData } from "@/lib/types";
 import { FileUp, ImageIcon, Video } from "lucide-react";
-import { useFlow } from "./flow-provider";
+import { useFlowStore } from "@/lib/store/use-flow-store";
 import Image from "next/image";
 import logger from "@/app/logger";
 
 export const FileNode = memo(
     ({ data, selected, id }: NodeProps<Node<FileData>>) => {
-        const { updateNodeData } = useFlow();
+        const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const fileInputRef = useRef<HTMLInputElement>(null);
         const [asyncSignedUrl, setAsyncSignedUrl] = useState<
             string | undefined
