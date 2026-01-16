@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { WorkflowEngine } from "../lib/workflow-engine";
 import { Node, Edge } from "@xyflow/react";
-import { NodeData } from "../lib/types";
+import {
+    NodeData,
+    TextData,
+    AgentData,
+    ImageData as FlowImageData,
+} from "../lib/types";
 import { getNodeDefinition } from "../lib/node-registry";
 
 // Mock node-registry
@@ -43,9 +48,9 @@ describe("WorkflowEngine", () => {
                         type: "text",
                         text: "hi",
                         name: "Text",
-                    } as unknown as NodeData,
+                    } as TextData,
                     position: { x: 0, y: 0 },
-                },
+                } as Node<TextData>,
                 {
                     id: "2",
                     data: {
@@ -53,9 +58,9 @@ describe("WorkflowEngine", () => {
                         model: "m",
                         instructions: "i",
                         name: "Agent",
-                    } as unknown as NodeData,
+                    } as AgentData,
                     position: { x: 0, y: 0 },
-                },
+                } as Node<AgentData>,
                 {
                     id: "3",
                     data: {
@@ -63,19 +68,23 @@ describe("WorkflowEngine", () => {
                         prompt: "p",
                         images: [],
                         aspectRatio: "16:9",
-                        model: "m",
+                        model: "gemini-2.5-flash-image",
                         resolution: "1K",
                         name: "Image",
-                    } as unknown as NodeData,
+                    } as FlowImageData,
                     position: { x: 0, y: 0 },
-                },
+                } as Node<FlowImageData>,
             ];
             const edges: Edge[] = [
                 { id: "e1-2", source: "1", target: "2" },
                 { id: "e2-3", source: "2", target: "3" },
             ];
 
-            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
+            const engine = new WorkflowEngine(
+                nodes as Node<NodeData>[],
+                edges,
+                mockOnNodeUpdate,
+            );
             const levels = (
                 engine as unknown as { getExecutionLevels: () => string[][] }
             ).getExecutionLevels();
@@ -94,9 +103,9 @@ describe("WorkflowEngine", () => {
                         model: "m",
                         instructions: "i",
                         name: "Agent",
-                    } as unknown as NodeData,
+                    } as AgentData,
                     position: { x: 0, y: 0 },
-                },
+                } as Node<AgentData> as unknown as Node<NodeData>,
             ];
             const edges: Edge[] = [];
 
@@ -133,9 +142,9 @@ describe("WorkflowEngine", () => {
                         model: "m",
                         instructions: "i",
                         name: "Agent",
-                    } as unknown as NodeData,
+                    } as AgentData,
                     position: { x: 0, y: 0 },
-                },
+                } as Node<AgentData> as unknown as Node<NodeData>,
             ];
             const edges: Edge[] = [];
 

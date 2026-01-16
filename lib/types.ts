@@ -1,4 +1,13 @@
-import { MODELS } from "./constants";
+import {
+    AgentData as InferredAgentData,
+    TextData as InferredTextData,
+    ImageData as InferredImageData,
+    VideoData as InferredVideoData,
+    FileData as InferredFileData,
+    UpscaleData as InferredUpscaleData,
+    ResizeData as InferredResizeData,
+    NodeData as InferredNodeData,
+} from "./schemas";
 
 export type NodeType =
     | "agent"
@@ -9,93 +18,6 @@ export type NodeType =
     | "upscale"
     | "resize";
 
-export interface BaseNodeData extends Record<string, unknown> {
-    type: NodeType;
-    name: string;
-    executing?: boolean;
-    generatedAt?: number;
-}
-
-export interface AgentData extends BaseNodeData {
-    type: "agent";
-    model: string;
-    instructions: string;
-    output?: string;
-}
-
-export interface TextData extends BaseNodeData {
-    type: "text";
-    text: string;
-    width?: number;
-    height?: number;
-}
-
-export interface ImageData extends BaseNodeData {
-    type: "image";
-    prompt: string;
-    images: string[];
-    aspectRatio:
-        | "16:9"
-        | "9:16"
-        | "1:1"
-        | "3:2"
-        | "2:3"
-        | "4:3"
-        | "3:4"
-        | "5:4"
-        | "4:5"
-        | "21:9";
-    model:
-        | typeof MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE
-        | typeof MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW;
-    resolution: "1K" | "2K" | "4K";
-    width?: number;
-    height?: number;
-}
-
-export interface VideoData extends BaseNodeData {
-    type: "video";
-    prompt: string;
-    images: string[];
-    firstFrame?: string;
-    lastFrame?: string;
-    videoUrl?: string;
-    aspectRatio: "16:9" | "9:16";
-    duration: 4 | 6 | 8;
-    model:
-        | typeof MODELS.VIDEO.VEO_3_1_FAST_PREVIEW
-        | typeof MODELS.VIDEO.VEO_3_1_PRO_PREVIEW;
-    generateAudio: boolean;
-    resolution: "720p" | "1080p";
-    width?: number;
-    height?: number;
-}
-
-export interface FileData extends BaseNodeData {
-    type: "file";
-    fileType: "image" | "video" | null;
-    fileUrl: string;
-    fileName: string;
-    gcsUri?: string;
-}
-
-export interface UpscaleData extends BaseNodeData {
-    type: "upscale";
-    image: string;
-    upscaleFactor: "x2" | "x3" | "x4";
-    width?: number;
-    height?: number;
-}
-
-export interface ResizeData extends BaseNodeData {
-    type: "resize";
-    image?: string;
-    aspectRatio: "16:9" | "9:16";
-    output?: string;
-    width?: number;
-    height?: number;
-}
-
 export interface NodeInputs {
     prompt?: string;
     files?: { url: string; type: string }[];
@@ -105,11 +27,18 @@ export interface NodeInputs {
     image?: string;
 }
 
-export type NodeData =
-    | AgentData
-    | TextData
-    | ImageData
-    | VideoData
-    | FileData
-    | UpscaleData
-    | ResizeData;
+export type AgentData = InferredAgentData;
+export type TextData = InferredTextData;
+export type ImageData = InferredImageData;
+export type VideoData = InferredVideoData;
+export type FileData = InferredFileData;
+export type UpscaleData = InferredUpscaleData;
+export type ResizeData = InferredResizeData;
+export type NodeData = InferredNodeData;
+
+export interface BaseNodeData {
+    type: NodeType;
+    name: string;
+    executing?: boolean;
+    generatedAt?: number;
+}

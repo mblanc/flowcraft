@@ -25,6 +25,111 @@ const ImageDataModelSchema = z.enum([
 
 const ImageDataResolutionSchema = z.enum(["1K", "2K", "4K"]);
 
+// --- Node Data Schemas ---
+
+export const BaseNodeDataSchema = z.object({
+    name: z.string(),
+    executing: z.boolean().optional(),
+    generatedAt: z.number().optional(),
+});
+
+export const AgentDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("agent"),
+    model: z.string(),
+    instructions: z.string(),
+    output: z.string().optional(),
+});
+
+export const TextDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("text"),
+    text: z.string(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+});
+
+export const ImageDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("image"),
+    prompt: z.string(),
+    images: z.array(z.string()),
+    aspectRatio: ImageDataAspectRatioSchema,
+    model: ImageDataModelSchema,
+    resolution: ImageDataResolutionSchema,
+    width: z.number().optional(),
+    height: z.number().optional(),
+});
+
+export const VideoDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("video"),
+    prompt: z.string(),
+    images: z.array(z.string()),
+    firstFrame: z.string().optional(),
+    lastFrame: z.string().optional(),
+    videoUrl: z.string().optional(),
+    aspectRatio: AspectRatio169_916Schema,
+    duration: z.union([z.literal(4), z.literal(6), z.literal(8)]),
+    model: z.enum([
+        MODELS.VIDEO.VEO_3_1_FAST_PREVIEW,
+        MODELS.VIDEO.VEO_3_1_PRO_PREVIEW,
+    ]),
+    generateAudio: z.boolean(),
+    resolution: z.enum(["720p", "1080p"]),
+    width: z.number().optional(),
+    height: z.number().optional(),
+});
+
+export const FileDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("file"),
+    fileType: z.enum(["image", "video"]).nullable(),
+    fileUrl: z.string(),
+    fileName: z.string(),
+    gcsUri: z.string().optional(),
+});
+
+export const UpscaleDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("upscale"),
+    image: z.string(),
+    upscaleFactor: z.enum(["x2", "x3", "x4"]),
+    width: z.number().optional(),
+    height: z.number().optional(),
+});
+
+export const ResizeDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("resize"),
+    image: z.string().optional(),
+    aspectRatio: AspectRatio169_916Schema,
+    output: z.string().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+});
+
+export const NodeDataSchema = z.discriminatedUnion("type", [
+    AgentDataSchema,
+    TextDataSchema,
+    ImageDataSchema,
+    VideoDataSchema,
+    FileDataSchema,
+    UpscaleDataSchema,
+    ResizeDataSchema,
+]);
+
+export const NodeSchema = z.object({
+    id: z.string(),
+    type: z.string(),
+    position: z.object({
+        x: z.number(),
+        y: z.number(),
+    }),
+    data: NodeDataSchema,
+});
+
+export const EdgeSchema = z.object({
+    id: z.string(),
+    source: z.string(),
+    target: z.string(),
+    sourceHandle: z.string().optional().nullable(),
+    targetHandle: z.string().optional().nullable(),
+});
+
 // --- API Schemas ---
 
 export const GenerateImageSchema = z.object({
@@ -94,14 +199,14 @@ export const GetSignedUrlSchema = z.object({
 
 export const FlowCreateSchema = z.object({
     name: z.string().min(1, "Name is required"),
-    nodes: z.array(z.any()),
-    edges: z.array(z.any()),
+    nodes: z.array(NodeSchema),
+    edges: z.array(EdgeSchema),
 });
 
 export const FlowUpdateSchema = z.object({
     name: z.string().optional(),
-    nodes: z.array(z.any()).optional(),
-    edges: z.array(z.any()).optional(),
+    nodes: z.array(NodeSchema).optional(),
+    edges: z.array(EdgeSchema).optional(),
     thumbnail: z.string().optional(),
 });
 
@@ -115,3 +220,12 @@ export type UpscaleImageRequest = z.infer<typeof UpscaleImageSchema>;
 export type GetSignedUrlRequest = z.infer<typeof GetSignedUrlSchema>;
 export type FlowCreateRequest = z.infer<typeof FlowCreateSchema>;
 export type FlowUpdateRequest = z.infer<typeof FlowUpdateSchema>;
+
+export type AgentData = z.infer<typeof AgentDataSchema>;
+export type TextData = z.infer<typeof TextDataSchema>;
+export type ImageData = z.infer<typeof ImageDataSchema>;
+export type VideoData = z.infer<typeof VideoDataSchema>;
+export type FileData = z.infer<typeof FileDataSchema>;
+export type UpscaleData = z.infer<typeof UpscaleDataSchema>;
+export type ResizeData = z.infer<typeof ResizeDataSchema>;
+export type NodeData = z.infer<typeof NodeDataSchema>;

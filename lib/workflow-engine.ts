@@ -46,7 +46,7 @@ export class WorkflowEngine {
         if (!definition) return;
 
         try {
-            this.onNodeUpdate(nodeId, { executing: true });
+            this.onNodeUpdate(nodeId, { executing: true } as Partial<NodeData>);
 
             const inputs = this.gatherInputs(node);
             const result = await definition.execute(node, inputs, {
@@ -62,17 +62,19 @@ export class WorkflowEngine {
                 ...result,
                 executing: false,
                 generatedAt: Date.now(),
-            });
+            } as Partial<NodeData>);
 
             // Update internal map state for next levels
-            const updatedNode = {
+            const updatedNode: Node<NodeData> = {
                 ...node,
-                data: { ...node.data, ...result },
-            } as Node<NodeData>;
+                data: { ...node.data, ...result } as NodeData,
+            };
             this.nodesMap.set(nodeId, updatedNode);
         } catch (error) {
             logger.error(`Error executing node ${nodeId}:`, error);
-            this.onNodeUpdate(nodeId, { executing: false });
+            this.onNodeUpdate(nodeId, {
+                executing: false,
+            } as Partial<NodeData>);
             throw error; // Re-throw to handle in the run loop if needed
         }
     }

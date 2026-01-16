@@ -22,7 +22,7 @@ export type NodeExecutor<T extends NodeData = NodeData, I = NodeInputs> = (
 ) => Promise<Partial<T>>;
 
 export interface NodeDefinition<T extends NodeData = NodeData, I = NodeInputs> {
-    type: NodeType;
+    type: T["type"];
     gatherInputs: (
         node: Node<T>,
         edges: Edge[],
@@ -42,10 +42,10 @@ export function registerNode<T extends NodeData, I extends NodeInputs>(
     );
 }
 
-export function getNodeDefinition(
-    type: NodeType,
-): NodeDefinition<NodeData, NodeInputs> | undefined {
-    return registry.get(type);
+export function getNodeDefinition<T extends NodeData>(
+    type: T["type"],
+): NodeDefinition<T, NodeInputs> | undefined {
+    return registry.get(type) as NodeDefinition<T, NodeInputs> | undefined;
 }
 
 // --- Node Definitions ---
@@ -65,7 +65,7 @@ const findInputByHandle = (
 };
 
 // Agent Node
-registerNode({
+registerNode<AgentData, NodeInputs>({
     type: "agent",
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { files: [] };
@@ -101,16 +101,12 @@ registerNode({
     },
     execute: async (node, inputs, context) => {
         const { executeAgentNode } = await import("./executors");
-        return executeAgentNode(
-            node as unknown as Node<AgentData>,
-            inputs,
-            context,
-        );
+        return executeAgentNode(node, inputs, context);
     },
 });
 
 // Image Node
-registerNode({
+registerNode<ImageData, NodeInputs>({
     type: "image",
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [] };
@@ -150,16 +146,12 @@ registerNode({
     },
     execute: async (node, inputs, context) => {
         const { executeImageNode } = await import("./executors");
-        return executeImageNode(
-            node as unknown as Node<ImageData>,
-            inputs,
-            context,
-        );
+        return executeImageNode(node, inputs, context);
     },
 });
 
 // Video Node
-registerNode({
+registerNode<VideoData, NodeInputs>({
     type: "video",
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [] };
@@ -234,16 +226,12 @@ registerNode({
     },
     execute: async (node, inputs, context) => {
         const { executeVideoNode } = await import("./executors");
-        return executeVideoNode(
-            node as unknown as Node<VideoData>,
-            inputs,
-            context,
-        );
+        return executeVideoNode(node, inputs, context);
     },
 });
 
 // Upscale Node
-registerNode({
+registerNode<UpscaleData, NodeInputs>({
     type: "upscale",
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = {};
@@ -269,16 +257,12 @@ registerNode({
     },
     execute: async (node, inputs, context) => {
         const { executeUpscaleNode } = await import("./executors");
-        return executeUpscaleNode(
-            node as unknown as Node<UpscaleData>,
-            inputs,
-            context,
-        );
+        return executeUpscaleNode(node, inputs, context);
     },
 });
 
 // Resize Node
-registerNode({
+registerNode<ResizeData, NodeInputs>({
     type: "resize",
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = {};
@@ -304,10 +288,6 @@ registerNode({
     },
     execute: async (node, inputs, context) => {
         const { executeResizeNode } = await import("./executors");
-        return executeResizeNode(
-            node as unknown as Node<ResizeData>,
-            inputs,
-            context,
-        );
+        return executeResizeNode(node, inputs, context);
     },
 });
