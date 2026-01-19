@@ -190,6 +190,11 @@ export const UpscaleNode = memo(
                                 </span>
                             )}
                         </div>
+                        {data.error && (
+                            <div className="text-destructive mt-2 text-xs font-medium">
+                                Error: {data.error}
+                            </div>
+                        )}
                     </div>
                 </div>
 

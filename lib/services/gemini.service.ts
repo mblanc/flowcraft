@@ -11,7 +11,16 @@ import {
 } from "@google/genai";
 import logger from "@/app/logger";
 import { config } from "../config";
-import { MODELS, DEFAULTS } from "../constants";
+import {
+    MODELS,
+    DEFAULTS,
+    ALL_SUPPORTED_MIME_TYPES,
+    SupportedMimeType,
+} from "../constants";
+
+function isSupportedMimeType(mimeType: string): mimeType is SupportedMimeType {
+    return (ALL_SUPPORTED_MIME_TYPES as readonly string[]).includes(mimeType);
+}
 
 async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -75,6 +84,10 @@ export class GeminiService {
 
         if (files && files.length > 0) {
             for (const file of files) {
+                if (!isSupportedMimeType(file.type)) {
+                    throw new Error(`Unsupported file type: ${file.type}`);
+                }
+
                 if (file.url.startsWith("gs://")) {
                     contents.push(createPartFromUri(file.url, file.type));
                 } else if (file.url.startsWith("data:")) {
@@ -202,7 +215,7 @@ export class GeminiService {
 
         const selectedModel = model || MODELS.VIDEO.VEO_3_1_FAST_PREVIEW;
         logger.info(
-            `[GeminiService] Generating video with model: ${selectedModel}`,
+            `[GeminiService] Generating video with model: ${selectedModel}, ${resolution}`,
         );
 
         const videoRequest: GenerateVideosParameters = {

@@ -187,5 +187,44 @@ describe("WorkflowEngine", () => {
                 output: "result",
             });
         });
+
+        it("should capture and store error on execution failure", async () => {
+            const nodes: Node<NodeData>[] = [
+                {
+                    id: "error-node",
+                    data: {
+                        type: "llm",
+                        model: "m",
+                        instructions: "i",
+                        name: "LLM",
+                    } as LLMData,
+                    position: { x: 0, y: 0 },
+                } as Node<LLMData> as unknown as Node<NodeData>,
+            ];
+            const edges: Edge[] = [];
+
+            const mockError = new Error("Execution failed");
+            const mockExecute = vi.fn().mockRejectedValue(mockError);
+            const mockGatherInputs = vi.fn().mockReturnValue({});
+
+            (getNodeDefinition as Mock).mockReturnValue({
+                gatherInputs: mockGatherInputs,
+                execute: mockExecute,
+            });
+
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
+            await expect(
+                (
+                    engine as unknown as {
+                        executeNodeSync: (id: string) => Promise<void>;
+                    }
+                ).executeNodeSync("error-node"),
+            ).rejects.toThrow("Execution failed");
+
+            expect(mockOnNodeUpdate).toHaveBeenCalledWith("error-node", {
+                executing: false,
+                error: "Execution failed",
+            });
+        });
     });
 });

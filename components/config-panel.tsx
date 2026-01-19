@@ -809,7 +809,7 @@ function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
                     value={data.resolution}
                     onValueChange={(value) =>
                         updateNodeData(nodeId, {
-                            resolution: value as "720p" | "1080p",
+                            resolution: value as "720p" | "1080p" | "4k",
                         })
                     }
                 >
@@ -819,6 +819,7 @@ function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
                     <SelectContent>
                         <SelectItem value="720p">720p</SelectItem>
                         <SelectItem value="1080p">1080p</SelectItem>
+                        <SelectItem value="4k">4k</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

@@ -30,3 +30,55 @@ export const DEFAULTS = {
 export const COLLECTIONS = {
     FLOWS: "flows",
 } as const;
+
+export const SUPPORTED_MIME_TYPES = {
+    TEXT: [
+        "text/plain",
+        "text/html",
+        "text/css",
+        "text/javascript",
+        "application/x-javascript",
+        "text/vtt",
+        "text/markdown",
+        "text/x-python",
+        "text/x-typescript",
+        "application/json",
+    ],
+    IMAGE: [
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "image/heic",
+        "image/heif",
+    ],
+    AUDIO: [
+        "audio/wav",
+        "audio/mp3",
+        "audio/aiff",
+        "audio/aac",
+        "audio/ogg",
+        "audio/flac",
+    ],
+    VIDEO: [
+        "video/mp4",
+        "video/mpeg",
+        "video/mov",
+        "video/avi",
+        "video/x-flv",
+        "video/mpg",
+        "video/webm",
+        "video/wmv",
+        "video/3gpp",
+    ],
+    PDF: ["application/pdf"],
+} as const;
+
+export const ALL_SUPPORTED_MIME_TYPES = [
+    ...SUPPORTED_MIME_TYPES.TEXT,
+    ...SUPPORTED_MIME_TYPES.IMAGE,
+    ...SUPPORTED_MIME_TYPES.AUDIO,
+    ...SUPPORTED_MIME_TYPES.VIDEO,
+    ...SUPPORTED_MIME_TYPES.PDF,
+] as const;
+
+export type SupportedMimeType = (typeof ALL_SUPPORTED_MIME_TYPES)[number];

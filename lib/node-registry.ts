@@ -85,15 +85,38 @@ registerNode<LLMData, NodeInputs>({
         );
         for (const edge of fileEdges) {
             const sourceData = getSourceData(edge.source);
-            if (sourceData?.type === "file" && sourceData.gcsUri) {
+            if (!sourceData) continue;
+
+            if (sourceData.type === "file" && sourceData.gcsUri) {
+                let mimeType = "application/octet-stream";
+                if (sourceData.fileType === "pdf") mimeType = "application/pdf";
+                else if (sourceData.fileType === "image")
+                    mimeType = "image/png";
+                else if (sourceData.fileType === "video")
+                    mimeType = "video/mp4";
+
                 inputs.files?.push({
                     url: sourceData.gcsUri,
-                    type:
-                        sourceData.fileType === "pdf"
-                            ? "application/pdf"
-                            : "image/png",
+                    type: mimeType,
                 });
-            } else if (sourceData?.type === "resize" && sourceData.output) {
+            } else if (sourceData.type === "video" && sourceData.videoUrl) {
+                inputs.files?.push({
+                    url: sourceData.videoUrl,
+                    type: "video/mp4",
+                });
+            } else if (sourceData.type === "image" && sourceData.images) {
+                for (const url of sourceData.images) {
+                    inputs.files?.push({
+                        url,
+                        type: "image/png",
+                    });
+                }
+            } else if (sourceData.type === "upscale" && sourceData.image) {
+                inputs.files?.push({
+                    url: sourceData.image,
+                    type: "image/png",
+                });
+            } else if (sourceData.type === "resize" && sourceData.output) {
                 inputs.files?.push({
                     url: sourceData.output,
                     type: "image/png",

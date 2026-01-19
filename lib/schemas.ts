@@ -31,6 +31,7 @@ export const BaseNodeDataSchema = z.object({
     name: z.string(),
     executing: z.boolean().optional(),
     generatedAt: z.number().optional(),
+    error: z.string().optional(),
 });
 
 export const LLMDataSchema = BaseNodeDataSchema.extend({
@@ -85,7 +86,7 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
         MODELS.VIDEO.VEO_3_1_PRO_PREVIEW,
     ]),
     generateAudio: z.boolean(),
-    resolution: z.enum(["720p", "1080p"]),
+    resolution: z.enum(["720p", "1080p", "4k"]),
     width: z.number().optional(),
     height: z.number().optional(),
 });
@@ -212,7 +213,7 @@ export const GenerateVideoSchema = z.object({
         .optional()
         .default(MODELS.VIDEO.VEO_3_1_FAST_PREVIEW),
     generateAudio: z.boolean().optional().default(true),
-    resolution: z.enum(["720p", "1080p"]).optional().default("720p"),
+    resolution: z.enum(["720p", "1080p", "4k"]).optional().default("720p"),
 });
 
 export const ResizeImageSchema = z.object({

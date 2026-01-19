@@ -28,3 +28,4 @@
 - **Text:** Gemini 2.0 Flash, Gemini 2.5 Flash
 - **Image:** Imagen 4.0, Gemini 2.5 Flash (Image generation)
 - **Video:** Veo 3.1 (Fast & Standard)
+- **Multi-modal:** Gemini 1.5+ native support for Video and PDF inputs.

@@ -41,4 +41,5 @@ export interface BaseNodeData {
     name: string;
     executing?: boolean;
     generatedAt?: number;
+    error?: string;
 }
