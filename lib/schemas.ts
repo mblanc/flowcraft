@@ -33,11 +33,24 @@ export const BaseNodeDataSchema = z.object({
     generatedAt: z.number().optional(),
 });
 
-export const AgentDataSchema = BaseNodeDataSchema.extend({
-    type: z.literal("agent"),
+export const LLMDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("llm"),
     model: z.string(),
     instructions: z.string(),
     output: z.string().optional(),
+    outputType: z.enum(["text", "json"]).default("text"),
+    responseSchema: z.string().optional(), // JSON string for now
+    strictMode: z.boolean().default(false),
+    visualSchema: z
+        .array(
+            z.object({
+                name: z.string(),
+                type: z.enum(["string", "number", "boolean", "array"]),
+                description: z.string().optional(),
+                required: z.boolean().default(true),
+            }),
+        )
+        .optional(),
 });
 
 export const TextDataSchema = BaseNodeDataSchema.extend({
@@ -103,7 +116,7 @@ export const ResizeDataSchema = BaseNodeDataSchema.extend({
 });
 
 export const NodeDataSchema = z.discriminatedUnion("type", [
-    AgentDataSchema,
+    LLMDataSchema,
     TextDataSchema,
     ImageDataSchema,
     VideoDataSchema,
@@ -166,6 +179,9 @@ export const GenerateTextSchema = z.object({
         .optional()
         .default([]),
     model: z.string().optional().default(MODELS.TEXT.GEMINI_3_FLASH_PREVIEW),
+    outputType: z.enum(["text", "json"]).optional().default("text"),
+    responseSchema: z.string().optional(),
+    strictMode: z.boolean().optional().default(false),
 });
 
 export const GenerateVideoSchema = z.object({
@@ -237,7 +253,7 @@ export type GetSignedUrlRequest = z.infer<typeof GetSignedUrlSchema>;
 export type FlowCreateRequest = z.infer<typeof FlowCreateSchema>;
 export type FlowUpdateRequest = z.infer<typeof FlowUpdateSchema>;
 
-export type AgentData = z.infer<typeof AgentDataSchema>;
+export type LLMData = z.infer<typeof LLMDataSchema>;
 export type TextData = z.infer<typeof TextDataSchema>;
 export type ImageData = z.infer<typeof ImageDataSchema>;
 export type VideoData = z.infer<typeof VideoDataSchema>;

@@ -1,6 +1,6 @@
 import logger from "@/app/logger";
 import {
-    AgentData,
+    LLMData,
     ImageData,
     UpscaleData,
     VideoData,
@@ -9,17 +9,17 @@ import {
 import { Node } from "@xyflow/react";
 import { ExecutionContext } from "./node-registry";
 
-export async function executeAgentNode(
-    node: Node<AgentData>,
+export async function executeLLMNode(
+    node: Node<LLMData>,
     inputs: { prompt?: string; files?: { url: string; type: string }[] },
     context?: ExecutionContext,
-): Promise<Partial<AgentData>> {
+): Promise<Partial<LLMData>> {
     const { prompt, files } = inputs;
     const finalPrompt = prompt || node.data.instructions;
     const fetcher = context?.fetch || fetch;
 
     if (!finalPrompt) {
-        throw new Error("No prompt available for agent node");
+        throw new Error("No prompt available for LLM node");
     }
 
     logger.info(`[Executor] Generating text with prompt: ${finalPrompt}`);
@@ -31,6 +31,9 @@ export async function executeAgentNode(
             prompt: finalPrompt,
             files: files || [],
             model: node.data.model,
+            outputType: node.data.outputType,
+            responseSchema: node.data.responseSchema,
+            strictMode: node.data.strictMode,
         }),
     });
 
@@ -40,7 +43,11 @@ export async function executeAgentNode(
     }
 
     const data = await response.json();
-    return { output: data.text };
+    const output =
+        typeof data.text === "object"
+            ? JSON.stringify(data.text, null, 2)
+            : data.text;
+    return { output };
 }
 
 export async function executeImageNode(

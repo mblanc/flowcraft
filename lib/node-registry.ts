@@ -3,7 +3,7 @@ import {
     NodeData,
     NodeType,
     NodeInputs,
-    AgentData,
+    LLMData,
     ImageData,
     VideoData,
     UpscaleData,
@@ -64,9 +64,9 @@ const findInputByHandle = (
     return getSourceData(edge.source);
 };
 
-// Agent Node
-registerNode<AgentData, NodeInputs>({
-    type: "agent",
+// LLM Node
+registerNode<LLMData, NodeInputs>({
+    type: "llm",
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { files: [] };
 
@@ -103,8 +103,8 @@ registerNode<AgentData, NodeInputs>({
         return inputs;
     },
     execute: async (node, inputs, context) => {
-        const { executeAgentNode } = await import("./executors");
-        return executeAgentNode(node, inputs, context);
+        const { executeLLMNode } = await import("./executors");
+        return executeLLMNode(node, inputs, context);
     },
 });
 
@@ -122,7 +122,7 @@ registerNode<ImageData, NodeInputs>({
         if (promptEdge) {
             const sourceData = getSourceData(promptEdge.source);
             if (sourceData?.type === "text") inputs.prompt = sourceData.text;
-            else if (sourceData?.type === "agent")
+            else if (sourceData?.type === "llm")
                 inputs.prompt = sourceData.output;
         }
 
@@ -179,7 +179,7 @@ registerNode<VideoData, NodeInputs>({
             getSourceData,
         );
         if (promptData?.type === "text") inputs.prompt = promptData.text;
-        else if (promptData?.type === "agent")
+        else if (promptData?.type === "llm")
             inputs.prompt = promptData.output;
 
         const firstFrameData = findInputByHandle(

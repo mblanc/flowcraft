@@ -3,7 +3,7 @@
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
 import {
-    type AgentData,
+    type LLMData,
     type TextData,
     type ImageData,
     type VideoData,
@@ -13,6 +13,7 @@ import { MODELS } from "@/lib/constants";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { Switch } from "./ui/switch";
 import {
     Select,
     SelectContent,
@@ -21,14 +22,216 @@ import {
     SelectValue,
 } from "./ui/select";
 import { Button } from "./ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "./ui/collapsible";
+import { Plus, Trash2, Settings2, Code, ChevronDown, List } from "lucide-react";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import logger from "@/app/logger";
 
-function AgentConfig({ data, nodeId }: { data: AgentData; nodeId: string }) {
+function SchemaEditor({
+    visualSchema,
+    onChange,
+}: {
+    visualSchema: LLMData["visualSchema"];
+    onChange: (schema: LLMData["visualSchema"]) => void;
+}) {
+    const fields = visualSchema || [];
+
+    const addField = () => {
+        onChange([
+            ...fields,
+            { name: "new_field", type: "string", required: true },
+        ]);
+    };
+
+    const addListShortcut = () => {
+        onChange([...fields, { name: "items", type: "array", required: true }]);
+    };
+
+    const updateField = (index: number, updates: any) => {
+        const newFields = [...fields];
+        newFields[index] = { ...newFields[index], ...updates };
+        onChange(newFields);
+    };
+
+    const removeField = (index: number) => {
+        onChange(fields.filter((_, i) => i !== index));
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Response Fields</Label>
+                <div className="flex items-center gap-1">
+                    <Button
+                        onClick={addListShortcut}
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[10px]"
+                        title="Add List of Strings shortcut"
+                    >
+                        <List className="mr-1 h-3 w-3" />
+                        Add List
+                    </Button>
+                    <Button
+                        onClick={addField}
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[10px]"
+                    >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Add Field
+                    </Button>
+                </div>
+            </div>
+
+            {fields.length > 0 ? (
+                <div className="space-y-3">
+                    {fields.map((field, index) => (
+                        <div
+                            key={index}
+                            className="bg-muted/30 border-border relative space-y-2 rounded-md border p-3 pt-4"
+                        >
+                            <Button
+                                onClick={() => removeField(index)}
+                                size="sm"
+                                variant="ghost"
+                                className="text-muted-foreground hover:text-destructive absolute top-1 right-1 h-6 w-6 p-0"
+                            >
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                    <Label className="text-[10px]">Name</Label>
+                                    <Input
+                                        value={field.name}
+                                        onChange={(e) =>
+                                            updateField(index, {
+                                                name: e.target.value.replace(
+                                                    /\s+/g,
+                                                    "_",
+                                                ),
+                                            })
+                                        }
+                                        className="h-7 text-xs"
+                                        placeholder="field_name"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px]">Type</Label>
+                                    <Select
+                                        value={field.type}
+                                        onValueChange={(value) =>
+                                            updateField(index, { type: value })
+                                        }
+                                    >
+                                        <SelectTrigger className="h-7 text-xs">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="string">
+                                                String
+                                            </SelectItem>
+                                            <SelectItem value="number">
+                                                Number
+                                            </SelectItem>
+                                            <SelectItem value="boolean">
+                                                Boolean
+                                            </SelectItem>
+                                            <SelectItem value="array">
+                                                Array
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <Label className="text-[10px]">
+                                    Description (Optional)
+                                </Label>
+                                <Input
+                                    value={field.description || ""}
+                                    onChange={(e) =>
+                                        updateField(index, {
+                                            description: e.target.value,
+                                        })
+                                    }
+                                    className="h-7 text-xs"
+                                    placeholder="What should this field contain?"
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="border-border bg-muted/20 border-dashed rounded-md border py-4 text-center">
+                    <p className="text-muted-foreground text-[10px]">
+                        No fields defined yet.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function LLMConfig({ data, nodeId }: { data: LLMData; nodeId: string }) {
     const updateNodeData = useFlowStore(
         (state: FlowState) => state.updateNodeData,
+    );
+
+    const syncResponseSchema = useCallback(
+        (visualSchema: LLMData["visualSchema"]) => {
+            if (!visualSchema || visualSchema.length === 0) {
+                updateNodeData(nodeId, {
+                    visualSchema,
+                    responseSchema: undefined,
+                });
+                return;
+            }
+
+            const properties: Record<string, any> = {};
+            const required: string[] = [];
+
+            visualSchema.forEach((field) => {
+                let type: string = field.type;
+                let items: any = undefined;
+
+                if (field.type === "array") {
+                    type = "array";
+                    items = { type: "string" }; // Default to string array for now
+                }
+
+                properties[field.name] = {
+                    type,
+                    ...(field.description && {
+                        description: field.description,
+                    }),
+                    ...(items && { items }),
+                };
+
+                if (field.required !== false) {
+                    required.push(field.name);
+                }
+            });
+
+            const schema = {
+                type: "object",
+                properties,
+                required,
+            };
+
+            updateNodeData(nodeId, {
+                visualSchema,
+                responseSchema: JSON.stringify(schema, null, 2),
+            });
+        },
+        [nodeId, updateNodeData],
     );
 
     return (
@@ -41,7 +244,7 @@ function AgentConfig({ data, nodeId }: { data: AgentData; nodeId: string }) {
                     onChange={(e) =>
                         updateNodeData(nodeId, { name: e.target.value })
                     }
-                    placeholder="Agent name"
+                    placeholder="LLM name"
                 />
             </div>
 
@@ -84,11 +287,133 @@ function AgentConfig({ data, nodeId }: { data: AgentData; nodeId: string }) {
                     onChange={(e) =>
                         updateNodeData(nodeId, { instructions: e.target.value })
                     }
-                    placeholder="System instructions for the agent..."
+                    placeholder="System instructions for the LLM..."
                     rows={6}
                     className="font-mono text-xs"
                 />
             </div>
+
+            <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                    <Label htmlFor="output-type">Output Format</Label>
+                    <div className="text-muted-foreground text-[10px]">
+                        Choose between raw text or structured JSON
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span
+                        className={`text-xs ${data.outputType === "text" || !data.outputType ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                    >
+                        Text
+                    </span>
+                    <Switch
+                        id="output-type"
+                        checked={data.outputType === "json"}
+                        onCheckedChange={(checked) =>
+                            updateNodeData(nodeId, {
+                                outputType: checked ? "json" : "text",
+                            })
+                        }
+                    />
+                    <span
+                        className={`text-xs ${data.outputType === "json" ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                    >
+                        JSON
+                    </span>
+                </div>
+            </div>
+
+            {data.outputType === "json" && (
+                <div className="border-border space-y-4 border-t pt-4">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="strict-mode">Strict Mode</Label>
+                            <div className="text-muted-foreground text-[10px]">
+                                Enforce exact schema adherence
+                            </div>
+                        </div>
+                        <Switch
+                            id="strict-mode"
+                            checked={data.strictMode}
+                            onCheckedChange={(checked) =>
+                                updateNodeData(nodeId, {
+                                    strictMode: checked,
+                                })
+                            }
+                        />
+                    </div>
+
+                    <SchemaEditor
+                        visualSchema={data.visualSchema}
+                        onChange={syncResponseSchema}
+                    />
+
+                    <Collapsible className="space-y-2">
+                        <CollapsibleTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-foreground flex w-full items-center justify-between px-2 text-[10px]"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Code className="h-3 w-3" />
+                                    Advanced: Raw JSON Schema
+                                </div>
+                                <ChevronDown className="h-3 w-3" />
+                            </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="space-y-2">
+                            <Textarea
+                                value={data.responseSchema || ""}
+                                onChange={(e) => {
+                                    const newValue = e.target.value;
+                                    updateNodeData(nodeId, {
+                                        responseSchema: newValue,
+                                    });
+                                    // Try to sync back to visual if it's valid JSON
+                                    try {
+                                        const parsed = JSON.parse(newValue);
+                                        if (
+                                            parsed.type === "object" &&
+                                            parsed.properties
+                                        ) {
+                                            const newVisualSchema: LLMData["visualSchema"] =
+                                                Object.entries(
+                                                    parsed.properties,
+                                                ).map(
+                                                    ([name, config]: [
+                                                        string,
+                                                        any,
+                                                    ]) => ({
+                                                        name,
+                                                        type:
+                                                            config.type ===
+                                                            "array"
+                                                                ? "array"
+                                                                : config.type,
+                                                        description:
+                                                            config.description,
+                                                        required:
+                                                            parsed.required?.includes(
+                                                                name,
+                                                            ) ?? true,
+                                                    }),
+                                                );
+                                            updateNodeData(nodeId, {
+                                                visualSchema: newVisualSchema,
+                                            });
+                                        }
+                                    } catch (e) {
+                                        // Ignore invalid JSON while typing
+                                    }
+                                }}
+                                className="min-h-[150px] font-mono text-[10px]"
+                                placeholder='{ "type": "object", ... }'
+                            />
+                        </CollapsibleContent>
+                    </Collapsible>
+                </div>
+            )}
         </div>
     );
 }
@@ -669,8 +994,8 @@ export function ConfigPanel() {
 
     const { data, id } = selectedNode;
 
-    if (data.type === "agent") {
-        return <AgentConfig data={data as AgentData} nodeId={id} />;
+    if (data.type === "llm") {
+        return <LLMConfig data={data as LLMData} nodeId={id} />;
     }
 
     if (data.type === "text") {

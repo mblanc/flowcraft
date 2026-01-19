@@ -4,13 +4,13 @@ import type React from "react";
 
 import { memo, useRef, useEffect, useState } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-import type { AgentData } from "@/lib/types";
+import type { LLMData } from "@/lib/types";
 import { Bot, Play } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 
-export const AgentNode = memo(
-    ({ data, selected, id }: NodeProps<Node<AgentData>>) => {
+export const LLMNode = memo(
+    ({ data, selected, id }: NodeProps<Node<LLMData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const { executeNode } = useFlowExecution();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -140,4 +140,4 @@ export const AgentNode = memo(
     },
 );
 
-AgentNode.displayName = "AgentNode";
+LLMNode.displayName = "LLMNode";

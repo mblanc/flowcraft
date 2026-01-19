@@ -20,6 +20,8 @@ export interface GenerateTextOptions {
     prompt: string;
     files?: Array<{ url: string; type: string }>;
     model?: string;
+    outputType?: "text" | "json";
+    responseSchema?: string;
 }
 
 export interface GenerateImageOptions {
@@ -59,7 +61,14 @@ export class GeminiService {
     }
 
     async generateText(options: GenerateTextOptions): Promise<string> {
-        const { prompt, files, model } = options;
+        const {
+            prompt,
+            files,
+            model,
+            outputType,
+            responseSchema,
+            strictMode,
+        } = options;
         const selectedModel = model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
 
         logger.info(
@@ -88,9 +97,29 @@ export class GeminiService {
             }
         }
 
+        const generationConfig: any = {};
+        if (outputType === "json") {
+            generationConfig.responseMimeType = "application/json";
+            if (responseSchema) {
+                try {
+                    generationConfig.responseSchema = JSON.parse(responseSchema);
+                    if (strictMode) {
+                        logger.info(
+                            "[GeminiService] Strict mode enabled for JSON output",
+                        );
+                    }
+                } catch (e) {
+                    logger.warn(
+                        `[GeminiService] Failed to parse responseSchema: ${e}`,
+                    );
+                }
+            }
+        }
+
         const response = await this.ai.models.generateContent({
             model: selectedModel,
             contents,
+            config: generationConfig,
         });
 
         if (!response.candidates || response.candidates.length === 0) {

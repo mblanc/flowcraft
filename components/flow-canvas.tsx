@@ -11,7 +11,7 @@ import {
     type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { AgentNode } from "./agent-node";
+import { LLMNode } from "./llm-node";
 import { TextNode } from "./text-node";
 import { ImageNode } from "./image-node";
 import { VideoNode } from "./video-node";
@@ -41,7 +41,7 @@ import type { FlowState } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 
 const nodeTypes = {
-    agent: AgentNode,
+    llm: LLMNode,
     text: TextNode,
     image: ImageNode,
     video: VideoNode,
@@ -51,7 +51,7 @@ const nodeTypes = {
 };
 
 const NODE_COLORS: Record<string, string> = {
-    agent: "oklch(0.65 0.25 252)",
+    llm: "oklch(0.65 0.25 252)",
     text: "#a855f7", // purple-500
     image: "#f97316", // orange-500
     video: "#ec4899", // pink-500
@@ -158,10 +158,10 @@ export function FlowCanvas() {
             label: "File",
         },
         {
-            type: "agent",
+            type: "llm",
             icon: Bot,
             color: "text-primary hover:text-primary/80 hover:bg-primary/10",
-            label: "Agent",
+            label: "LLM",
         },
         {
             type: "image",

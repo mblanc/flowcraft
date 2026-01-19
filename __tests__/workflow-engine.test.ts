@@ -4,7 +4,7 @@ import { Node, Edge } from "@xyflow/react";
 import {
     NodeData,
     TextData,
-    AgentData,
+    LLMData,
     ImageData as FlowImageData,
 } from "../lib/types";
 import { getNodeDefinition } from "../lib/node-registry";
@@ -54,13 +54,13 @@ describe("WorkflowEngine", () => {
                 {
                     id: "2",
                     data: {
-                        type: "agent",
+                        type: "llm",
                         model: "m",
                         instructions: "i",
-                        name: "Agent",
-                    } as AgentData,
+                        name: "LLM",
+                    } as LLMData,
                     position: { x: 0, y: 0 },
-                } as Node<AgentData>,
+                } as Node<LLMData>,
                 {
                     id: "3",
                     data: {
@@ -99,13 +99,13 @@ describe("WorkflowEngine", () => {
                 {
                     id: "1",
                     data: {
-                        type: "agent",
+                        type: "llm",
                         model: "m",
                         instructions: "i",
-                        name: "Agent",
-                    } as AgentData,
+                        name: "LLM",
+                    } as LLMData,
                     position: { x: 0, y: 0 },
-                } as Node<AgentData> as unknown as Node<NodeData>,
+                } as Node<LLMData> as unknown as Node<NodeData>,
             ];
             const edges: Edge[] = [];
 
@@ -138,13 +138,13 @@ describe("WorkflowEngine", () => {
                 {
                     id: "1",
                     data: {
-                        type: "agent",
+                        type: "llm",
                         model: "m",
                         instructions: "i",
-                        name: "Agent",
-                    } as AgentData,
+                        name: "LLM",
+                    } as LLMData,
                     position: { x: 0, y: 0 },
-                } as Node<AgentData> as unknown as Node<NodeData>,
+                } as Node<LLMData> as unknown as Node<NodeData>,
             ];
             const edges: Edge[] = [];
 

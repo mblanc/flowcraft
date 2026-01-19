@@ -13,6 +13,7 @@ import {
 } from "@xyflow/react";
 import { createNode } from "@/lib/node-factory";
 import { NodeData, NodeType } from "@/lib/types";
+import { migrateNodes } from "@/lib/migration";
 
 export interface FlowState {
     nodes: Node<NodeData>[];
@@ -59,7 +60,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     flowId: null,
     flowName: "Untitled Flow",
 
-    setNodes: (nodes) => set({ nodes }),
+    setNodes: (nodes) => set({ nodes: migrateNodes(nodes) }),
     setEdges: (edges) => set({ edges }),
 
     onNodesChange: (changes) => {
@@ -133,7 +134,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     loadFlow: (id, nodes, edges, name) => {
         set({
             flowId: id,
-            nodes,
+            nodes: migrateNodes(nodes),
             edges,
             flowName: name,
         });

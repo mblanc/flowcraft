@@ -2,7 +2,7 @@ import { type Node } from "@xyflow/react";
 import {
     type NodeType,
     type NodeData,
-    type AgentData,
+    type LLMData,
     type TextData,
     type ImageData,
     type VideoData,
@@ -19,17 +19,20 @@ export function createNode(
     const id = `${type}-${Date.now()}`;
 
     switch (type) {
-        case "agent":
+        case "llm":
             return {
                 id,
-                type: "agent",
+                type: "llm",
                 position,
                 data: {
-                    type: "agent",
-                    name: "Agent",
+                    type: "llm",
+                    name: "LLM",
                     model: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW,
                     instructions: "",
-                } as AgentData,
+                    outputType: "text",
+                    strictMode: false,
+                    visualSchema: [],
+                } as LLMData,
             };
         case "text":
             return {

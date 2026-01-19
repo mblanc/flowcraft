@@ -1,5 +1,5 @@
 import {
-    AgentData as InferredAgentData,
+    LLMData as InferredLLMData,
     TextData as InferredTextData,
     ImageData as InferredImageData,
     VideoData as InferredVideoData,
@@ -10,7 +10,7 @@ import {
 } from "./schemas";
 
 export type NodeType =
-    | "agent"
+    | "llm"
     | "text"
     | "image"
     | "video"
@@ -27,7 +27,7 @@ export interface NodeInputs {
     image?: string;
 }
 
-export type AgentData = InferredAgentData;
+export type LLMData = InferredLLMData;
 export type TextData = InferredTextData;
 export type ImageData = InferredImageData;
 export type VideoData = InferredVideoData;
