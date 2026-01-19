@@ -30,6 +30,7 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED 1
 # ENV NEXT_PUBLIC_CHAT_API="https://bob2back-idvt3gzwzq-uc.a.run.app/api/chat"
+ENV SKIP_ENV_VALIDATION 1
 
 RUN yarn build
 

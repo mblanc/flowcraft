@@ -72,9 +72,11 @@ export function PdfPreview({ url, className }: PdfPreviewProps) {
 
     if (error) {
         return (
-            <div className={`flex flex-col items-center justify-center bg-muted/30 p-4 ${className}`}>
-                <FileText className="h-8 w-8 text-muted-foreground opacity-50" />
-                <span className="mt-2 text-[10px] text-muted-foreground text-center line-clamp-2">
+            <div
+                className={`bg-muted/30 flex flex-col items-center justify-center p-4 ${className}`}
+            >
+                <FileText className="text-muted-foreground h-8 w-8 opacity-50" />
+                <span className="text-muted-foreground mt-2 line-clamp-2 text-center text-[10px]">
                     {error}
                 </span>
             </div>
@@ -82,10 +84,12 @@ export function PdfPreview({ url, className }: PdfPreviewProps) {
     }
 
     return (
-        <div className={`relative flex items-center justify-center overflow-hidden bg-white ${className}`}>
+        <div
+            className={`relative flex items-center justify-center overflow-hidden bg-white ${className}`}
+        >
             {loading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted/20 z-10">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <div className="bg-muted/20 absolute inset-0 z-10 flex items-center justify-center">
+                    <Loader2 className="text-primary h-5 w-5 animate-spin" />
                 </div>
             )}
             <canvas

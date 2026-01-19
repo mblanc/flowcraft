@@ -22,9 +22,20 @@ const _env = envSchema.safeParse({
     LOG_LEVEL: process.env.LOG_LEVEL,
 });
 
+const isBuildTime =
+    process.env.SKIP_ENV_VALIDATION === "1" || process.env.NODE_ENV === "test";
+
 if (!_env.success) {
-    console.error("❌ Invalid environment variables:", _env.error.format());
-    throw new Error("Invalid environment variables");
+    if (isBuildTime) {
+        console.warn(
+            "⚠️  Skipping environment variable validation during build/test.",
+        );
+    } else {
+        console.error("❌ Invalid environment variables:", _env.error.format());
+        throw new Error("Invalid environment variables");
+    }
 }
 
-export const config = _env.data;
+export const config = _env.success
+    ? _env.data
+    : ({} as z.infer<typeof envSchema>);

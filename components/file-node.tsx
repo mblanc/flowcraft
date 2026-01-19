@@ -66,10 +66,10 @@ export const FileNode = memo(
             const fileType = file.type.startsWith("image/")
                 ? "image"
                 : file.type.startsWith("video/")
-                    ? "video"
-                    : file.type === "application/pdf"
-                        ? "pdf"
-                        : null;
+                  ? "video"
+                  : file.type === "application/pdf"
+                    ? "pdf"
+                    : null;
 
             if (!fileType) {
                 alert("Please upload an image, video, or PDF file");
@@ -110,10 +110,11 @@ export const FileNode = memo(
 
         return (
             <div
-                className={`bg-card min-w-[220px] rounded-lg border-2 p-4 shadow-lg transition-all ${selected
-                    ? "border-primary shadow-primary/20"
-                    : "border-border"
-                    }`}
+                className={`bg-card min-w-[220px] rounded-lg border-2 p-4 shadow-lg transition-all ${
+                    selected
+                        ? "border-primary shadow-primary/20"
+                        : "border-border"
+                }`}
             >
                 <div className="mb-3 flex items-start gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-cyan-500/10">
@@ -162,7 +163,7 @@ export const FileNode = memo(
                         ) : data.fileType === "pdf" ? (
                             <PdfPreview
                                 url={signedUrl}
-                                className="h-auto min-h-[150px] max-h-[300px] w-full"
+                                className="h-auto max-h-[300px] min-h-[150px] w-full"
                             />
                         ) : null}
                     </div>
