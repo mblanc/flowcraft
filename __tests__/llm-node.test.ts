@@ -70,26 +70,33 @@ describe("LLMNode Refactoring", () => {
                 outputType: "json",
                 responseSchema: JSON.stringify({
                     type: "object",
-                    properties: { items: { type: "array", items: { type: "string" } } }
-                })
-            } as LLMData
+                    properties: {
+                        items: { type: "array", items: { type: "string" } },
+                    },
+                }),
+            } as LLMData,
         } as Node<LLMData>;
 
         const mockInputs = { prompt: "test prompt" };
-        
+
         // Mock fetch
         const mockFetch = vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ text: { items: ["a", "b"] } })
+            json: async () => ({ text: { items: ["a", "b"] } }),
         });
 
-        const result = await executeLLMNode(mockNode, mockInputs, { fetch: mockFetch as any });
-        
-        expect(mockFetch).toHaveBeenCalledWith("/api/generate-text", expect.objectContaining({
-            method: "POST",
-            body: expect.stringContaining('"outputType":"json"')
-        }));
-        
+        const result = await executeLLMNode(mockNode, mockInputs, {
+            fetch: mockFetch as unknown as typeof fetch,
+        });
+
+        expect(mockFetch).toHaveBeenCalledWith(
+            "/api/generate-text",
+            expect.objectContaining({
+                method: "POST",
+                body: expect.stringContaining('"outputType":"json"'),
+            }),
+        );
+
         // Should be stringified JSON
         expect(typeof result.output).toBe("string");
         expect(JSON.parse(result.output!)).toEqual({ items: ["a", "b"] });

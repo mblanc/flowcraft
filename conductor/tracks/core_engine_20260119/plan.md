@@ -1,6 +1,7 @@
 # Implementation Plan - Core Workflow Execution Engine
 
 ## Phase 1: Engine Skeleton & Dependency Graph
+
 - [ ] Task: Define the core data structures for the graph (Nodes, Edges, WorkflowExecutionState).
     - [ ] Write Tests
     - [ ] Implement Feature
@@ -12,6 +13,7 @@
     - [ ] Implement Feature
 
 ## Phase 2: Node Execution Logic
+
 - [ ] Task: Define a generic `NodeExecutor` interface/abstract class.
     - [ ] Write Tests
     - [ ] Implement Feature
@@ -23,6 +25,7 @@
     - [ ] Implement Feature
 
 ## Phase 3: Parallel Execution Support
+
 - [ ] Task: Refactor the execution loop to process independent nodes concurrently (using `Promise.all` or similar).
     - [ ] Write Tests
     - [ ] Implement Feature
@@ -31,6 +34,7 @@
     - [ ] Implement Feature
 
 ## Phase 4: Error Handling & State Management
+
 - [ ] Task: Implement robust state tracking (updating node status to 'running', 'completed', 'error').
     - [ ] Write Tests
     - [ ] Implement Feature
@@ -42,6 +46,7 @@
     - [ ] Implement Feature
 
 ## Phase 5: Integration Verification
+
 - [ ] Task: Verify the engine with a complex, multi-branch workflow using mock executors.
     - [ ] Write Tests
     - [ ] Implement Feature

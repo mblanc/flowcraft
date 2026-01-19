@@ -179,8 +179,7 @@ registerNode<VideoData, NodeInputs>({
             getSourceData,
         );
         if (promptData?.type === "text") inputs.prompt = promptData.text;
-        else if (promptData?.type === "llm")
-            inputs.prompt = promptData.output;
+        else if (promptData?.type === "llm") inputs.prompt = promptData.output;
 
         const firstFrameData = findInputByHandle(
             node.id,

@@ -1,8 +1,8 @@
 {
-  "track_id": "llm_node_20260119",
-  "type": "feature",
-  "status": "new",
-  "created_at": "2026-01-19T10:00:00Z",
-  "updated_at": "2026-01-19T10:00:00Z",
-  "description": "refactor agent-node into llm-node, support structured output with JSON schema"
+    "track_id": "llm_node_20260119",
+    "type": "feature",
+    "status": "new",
+    "created_at": "2026-01-19T10:00:00Z",
+    "updated_at": "2026-01-19T10:00:00Z",
+    "description": "refactor agent-node into llm-node, support structured output with JSON schema"
 }

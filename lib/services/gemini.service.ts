@@ -7,6 +7,7 @@ import {
     GenerateVideosParameters,
     VideoGenerationReferenceType,
     Image as GeminiImage,
+    GenerateContentConfig,
 } from "@google/genai";
 import logger from "@/app/logger";
 import { config } from "../config";
@@ -22,6 +23,7 @@ export interface GenerateTextOptions {
     model?: string;
     outputType?: "text" | "json";
     responseSchema?: string;
+    strictMode?: boolean;
 }
 
 export interface GenerateImageOptions {
@@ -61,14 +63,8 @@ export class GeminiService {
     }
 
     async generateText(options: GenerateTextOptions): Promise<string> {
-        const {
-            prompt,
-            files,
-            model,
-            outputType,
-            responseSchema,
-            strictMode,
-        } = options;
+        const { prompt, files, model, outputType, responseSchema, strictMode } =
+            options;
         const selectedModel = model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
 
         logger.info(
@@ -97,12 +93,14 @@ export class GeminiService {
             }
         }
 
-        const generationConfig: any = {};
+        const generationConfig: GenerateContentConfig = {};
         if (outputType === "json") {
             generationConfig.responseMimeType = "application/json";
             if (responseSchema) {
                 try {
-                    generationConfig.responseSchema = JSON.parse(responseSchema);
+                    generationConfig.responseSchema = JSON.parse(
+                        responseSchema,
+                    ) as Record<string, unknown>;
                     if (strictMode) {
                         logger.info(
                             "[GeminiService] Strict mode enabled for JSON output",

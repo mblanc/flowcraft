@@ -27,7 +27,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "./ui/collapsible";
-import { Plus, Trash2, Settings2, Code, ChevronDown, List } from "lucide-react";
+import { Plus, Trash2, Code, ChevronDown, List } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import logger from "@/app/logger";
@@ -52,10 +52,17 @@ function SchemaEditor({
         onChange([...fields, { name: "items", type: "array", required: true }]);
     };
 
-    const updateField = (index: number, updates: any) => {
+    const updateField = (
+        index: number,
+        updates: Partial<NonNullable<LLMData["visualSchema"]>[number]>,
+    ) => {
+        if (!fields) return;
         const newFields = [...fields];
-        newFields[index] = { ...newFields[index], ...updates };
-        onChange(newFields);
+        const currentField = newFields[index];
+        if (currentField) {
+            newFields[index] = { ...currentField, ...updates };
+            onChange(newFields);
+        }
     };
 
     const removeField = (index: number) => {
@@ -127,7 +134,11 @@ function SchemaEditor({
                                     <Select
                                         value={field.type}
                                         onValueChange={(value) =>
-                                            updateField(index, { type: value })
+                                            updateField(index, {
+                                                type: value as NonNullable<
+                                                    LLMData["visualSchema"]
+                                                >[number]["type"],
+                                            })
                                         }
                                     >
                                         <SelectTrigger className="h-7 text-xs">
@@ -170,7 +181,7 @@ function SchemaEditor({
                     ))}
                 </div>
             ) : (
-                <div className="border-border bg-muted/20 border-dashed rounded-md border py-4 text-center">
+                <div className="border-border bg-muted/20 rounded-md border border-dashed py-4 text-center">
                     <p className="text-muted-foreground text-[10px]">
                         No fields defined yet.
                     </p>
@@ -195,12 +206,12 @@ function LLMConfig({ data, nodeId }: { data: LLMData; nodeId: string }) {
                 return;
             }
 
-            const properties: Record<string, any> = {};
+            const properties: Record<string, unknown> = {};
             const required: string[] = [];
 
             visualSchema.forEach((field) => {
                 let type: string = field.type;
-                let items: any = undefined;
+                let items: Record<string, unknown> | undefined = undefined;
 
                 if (field.type === "array") {
                     type = "array";
@@ -377,33 +388,43 @@ function LLMConfig({ data, nodeId }: { data: LLMData; nodeId: string }) {
                                             parsed.type === "object" &&
                                             parsed.properties
                                         ) {
+                                            const properties =
+                                                parsed.properties as Record<
+                                                    string,
+                                                    {
+                                                        type?: string;
+                                                        description?: string;
+                                                    }
+                                                >;
                                             const newVisualSchema: LLMData["visualSchema"] =
-                                                Object.entries(
-                                                    parsed.properties,
-                                                ).map(
-                                                    ([name, config]: [
-                                                        string,
-                                                        any,
-                                                    ]) => ({
+                                                Object.entries(properties).map(
+                                                    ([name, config]) => ({
                                                         name,
                                                         type:
                                                             config.type ===
-                                                            "array"
-                                                                ? "array"
-                                                                : config.type,
+                                                                "number" ||
+                                                            config.type ===
+                                                                "boolean" ||
+                                                            config.type ===
+                                                                "array"
+                                                                ? config.type
+                                                                : "string", // Default to string for unknown types
                                                         description:
                                                             config.description,
                                                         required:
-                                                            parsed.required?.includes(
-                                                                name,
-                                                            ) ?? true,
+                                                            (
+                                                                parsed.required as
+                                                                    | string[]
+                                                                    | undefined
+                                                            )?.includes(name) ??
+                                                            true,
                                                     }),
                                                 );
                                             updateNodeData(nodeId, {
                                                 visualSchema: newVisualSchema,
                                             });
                                         }
-                                    } catch (e) {
+                                    } catch {
                                         // Ignore invalid JSON while typing
                                     }
                                 }}

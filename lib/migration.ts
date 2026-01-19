@@ -6,19 +6,29 @@ import { NodeData } from "./types";
  * Current migrations:
  * - agent -> llm
  */
-export function migrateNodes(nodes: Node<any>[]): Node<NodeData>[] {
+export function migrateNodes(
+    nodes: Node<Record<string, unknown>>[],
+): Node<NodeData>[] {
     return nodes.map((node) => {
         // Migration: agent -> llm
-        if (node.type === "agent" || (node.data && node.data.type === "agent")) {
+        const nodeData = node.data;
+        const isAgent =
+            node.type === "agent" ||
+            (typeof nodeData === "object" &&
+                nodeData !== null &&
+                "type" in nodeData &&
+                nodeData.type === "agent");
+
+        if (isAgent) {
             return {
                 ...node,
                 type: "llm",
                 data: {
-                    ...node.data,
+                    ...nodeData,
                     type: "llm",
                 },
-            };
+            } as Node<NodeData>;
         }
-        return node;
+        return node as Node<NodeData>;
     });
 }

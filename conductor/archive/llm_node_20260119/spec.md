@@ -1,9 +1,11 @@
 # Specification: Refactor AgentNode to LLMNode with Structured Output
 
 ## Overview
+
 Refactor the existing `AgentNode` into a more versatile `LLMNode`. The primary goal is to support both unstructured text generation and structured JSON output. This includes a new configuration interface for defining JSON schemas, with a focus on ease of use for common types like arrays of text.
 
 ## Functional Requirements
+
 1.  **Node Rename & Migration**:
     - Rename `agent-node` to `llm-node` across the codebase (components, types, executors).
     - Implement a migration layer to automatically convert `agent-node` data in existing workflows to the `llm-node` structure.
@@ -20,10 +22,12 @@ Refactor the existing `AgentNode` into a more versatile `LLMNode`. The primary g
     - Ensure downstream nodes can consume the structured data correctly.
 
 ## Non-Functional Requirements
+
 - **Backwards Compatibility**: Existing flows must continue to work without manual intervention.
 - **UI Consistency**: The new schema editor must follow the "Modern & Vibrant" and "Layered Complexity" guidelines.
 
 ## Acceptance Criteria
+
 - [ ] Existing `agent-node` instances in saved workflows are correctly loaded as `llm-node`s.
 - [ ] Users can successfully toggle between Text and JSON output modes.
 - [ ] The Visual Schema Editor allows defining an "Array of Strings" easily.

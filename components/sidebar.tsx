@@ -15,7 +15,7 @@ export function Sidebar() {
 
     const getNodeTypeInfo = () => {
         switch (selectedNode.data.type) {
-            case "agent":
+            case "llm":
                 return {
                     title: "Agent Configuration",
                     icon: Bot,
