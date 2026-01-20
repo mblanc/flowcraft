@@ -116,6 +116,26 @@ export const ResizeDataSchema = BaseNodeDataSchema.extend({
     height: z.number().optional(),
 });
 
+export const WorkflowInputDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("workflow-input"),
+    portName: z.string(),
+    portType: z.enum(["string", "image", "video", "json"]),
+    portRequired: z.boolean().default(true),
+    portDefaultValue: z.any().optional(),
+});
+
+export const WorkflowOutputDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("workflow-output"),
+    portName: z.string(),
+    portType: z.enum(["string", "image", "video", "json"]),
+});
+
+export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("custom-workflow"),
+    subWorkflowId: z.string(),
+    subWorkflowVersion: z.string(),
+});
+
 export const NodeDataSchema = z.discriminatedUnion("type", [
     LLMDataSchema,
     TextDataSchema,
@@ -124,6 +144,9 @@ export const NodeDataSchema = z.discriminatedUnion("type", [
     FileDataSchema,
     UpscaleDataSchema,
     ResizeDataSchema,
+    WorkflowInputDataSchema,
+    WorkflowOutputDataSchema,
+    CustomWorkflowDataSchema,
 ]);
 
 export const NodeSchema = z.object({
@@ -234,6 +257,10 @@ export const FlowCreateSchema = z.object({
     name: z.string().min(1, "Name is required"),
     nodes: z.array(NodeSchema),
     edges: z.array(EdgeSchema),
+    version: z.string().optional(),
+    isPublished: z.boolean().optional().default(false),
+    visibility: z.enum(["private", "public"]).optional().default("private"),
+    tags: z.array(z.string()).optional().default([]),
 });
 
 export const FlowUpdateSchema = z.object({
@@ -241,6 +268,10 @@ export const FlowUpdateSchema = z.object({
     nodes: z.array(NodeSchema).optional(),
     edges: z.array(EdgeSchema).optional(),
     thumbnail: z.string().optional(),
+    version: z.string().optional(),
+    isPublished: z.boolean().optional(),
+    visibility: z.enum(["private", "public"]).optional(),
+    tags: z.array(z.string()).optional(),
 });
 
 // --- Infer Types ---
@@ -261,4 +292,7 @@ export type VideoData = z.infer<typeof VideoDataSchema>;
 export type FileData = z.infer<typeof FileDataSchema>;
 export type UpscaleData = z.infer<typeof UpscaleDataSchema>;
 export type ResizeData = z.infer<typeof ResizeDataSchema>;
+export type WorkflowInputData = z.infer<typeof WorkflowInputDataSchema>;
+export type WorkflowOutputData = z.infer<typeof WorkflowOutputDataSchema>;
+export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;
