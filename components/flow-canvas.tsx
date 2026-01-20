@@ -20,7 +20,13 @@ import { UpscaleNode } from "./upscale-node";
 import { ResizeNode } from "./resize-node";
 import { WorkflowInputNode } from "./workflow-input-node";
 import { WorkflowOutputNode } from "./workflow-output-node";
-import { NodeType } from "@/lib/types";
+import { NodeType, NodeData } from "@/lib/types";
+import {
+    getNodeDefinition,
+    getSourcePortType,
+    getTargetPortType,
+} from "@/lib/node-registry";
+import { isTypeCompatible } from "@/lib/utils";
 import { Button } from "./ui/button";
 import {
     Tooltip,
@@ -86,6 +92,27 @@ export function FlowCanvas() {
     );
     const { runFlow } = useFlowExecution();
     const isRunning = useFlowStore((state: FlowState) => state.isRunning);
+
+    const isValidConnection = useCallback(
+        (connection: any) => {
+            const sourceNode = nodes.find((n) => n.id === connection.source);
+            const targetNode = nodes.find((n) => n.id === connection.target);
+
+            if (!sourceNode || !targetNode) return false;
+
+            const sourceType = getSourcePortType(
+                sourceNode as Node<NodeData>,
+                connection.sourceHandle,
+            );
+            const targetType = getTargetPortType(
+                targetNode as Node<NodeData>,
+                connection.targetHandle,
+            );
+
+            return isTypeCompatible(sourceType, targetType);
+        },
+        [nodes],
+    );
 
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(
         null,
@@ -283,6 +310,7 @@ export function FlowCanvas() {
                     onPaneClick={onPaneClick}
                     onInit={setRfInstance}
                     nodeTypes={nodeTypes}
+                    isValidConnection={isValidConnection}
                     proOptions={{ hideAttribution: true }}
                     defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
                     minZoom={0.1}

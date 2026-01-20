@@ -4,8 +4,10 @@ import {
     NodeType,
     NodeInputs,
     LLMData,
+    TextData,
     ImageData,
     VideoData,
+    FileData,
     UpscaleData,
     ResizeData,
     WorkflowInputData,
@@ -25,6 +27,8 @@ export type NodeExecutor<T extends NodeData = NodeData, I = NodeInputs> = (
 
 export interface NodeDefinition<T extends NodeData = NodeData, I = NodeInputs> {
     type: T["type"];
+    inputs?: Record<string, string>; // handleId -> type
+    outputs?: Record<string, string>; // sourceHandleId -> type (use "" for default)
     gatherInputs: (
         node: Node<T>,
         edges: Edge[],
@@ -50,6 +54,28 @@ export function getNodeDefinition<T extends NodeData>(
     return registry.get(type) as NodeDefinition<T, NodeInputs> | undefined;
 }
 
+export function getSourcePortType(node: Node<NodeData>, handleId?: string | null): string {
+    if (node.data.type === "workflow-input") {
+        return (node.data as WorkflowInputData).portType;
+    }
+    if (node.data.type === "llm") {
+        return (node.data as LLMData).outputType === "json" ? "json" : "string";
+    }
+    if (node.data.type === "file") {
+        return (node.data as FileData).fileType || "any";
+    }
+    const def = getNodeDefinition(node.data.type);
+    return def?.outputs?.[handleId || ""] || "any";
+}
+
+export function getTargetPortType(node: Node<NodeData>, handleId?: string | null): string {
+    if (node.data.type === "workflow-output") {
+        return (node.data as WorkflowOutputData).portType;
+    }
+    const def = getNodeDefinition(node.data.type);
+    return def?.inputs?.[handleId || ""] || "any";
+}
+
 // --- Node Definitions ---
 
 // Helper to get source data for a specific handle
@@ -69,6 +95,13 @@ const findInputByHandle = (
 // LLM Node
 registerNode<LLMData, NodeInputs>({
     type: "llm",
+    inputs: {
+        "prompt-input": "string",
+        "file-input": "any",
+    },
+    outputs: {
+        "": "string", // fallback, actual type handled by getSourcePortType
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { files: [] };
 
@@ -136,6 +169,13 @@ registerNode<LLMData, NodeInputs>({
 // Image Node
 registerNode<ImageData, NodeInputs>({
     type: "image",
+    inputs: {
+        "prompt-input": "string",
+        "image-input": "image",
+    },
+    outputs: {
+        "": "image",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [] };
 
@@ -194,6 +234,15 @@ registerNode<ImageData, NodeInputs>({
 // Video Node
 registerNode<VideoData, NodeInputs>({
     type: "video",
+    inputs: {
+        "prompt-input": "string",
+        "image-input": "image",
+        "first-frame-input": "image",
+        "last-frame-input": "image",
+    },
+    outputs: {
+        "": "video",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [] };
 
@@ -287,6 +336,12 @@ registerNode<VideoData, NodeInputs>({
 // Upscale Node
 registerNode<UpscaleData, NodeInputs>({
     type: "upscale",
+    inputs: {
+        "image-input": "image",
+    },
+    outputs: {
+        "": "image",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = {};
         const imageData = findInputByHandle(
@@ -318,6 +373,12 @@ registerNode<UpscaleData, NodeInputs>({
 // Resize Node
 registerNode<ResizeData, NodeInputs>({
     type: "resize",
+    inputs: {
+        "image-input": "image",
+    },
+    outputs: {
+        "": "image",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = {};
         const imageData = findInputByHandle(
@@ -364,4 +425,20 @@ registerNode<WorkflowOutputData, any>({
     execute: async (node, inputs) => {
         return { ...inputs };
     },
+});
+
+// Text Node
+registerNode<TextData, any>({
+    type: "text",
+    outputs: { "": "string" },
+    gatherInputs: () => ({}),
+    execute: async (node) => ({}),
+});
+
+// File Node
+registerNode<FileData, any>({
+    type: "file",
+    outputs: { "": "any" },
+    gatherInputs: () => ({}),
+    execute: async (node) => ({}),
 });
