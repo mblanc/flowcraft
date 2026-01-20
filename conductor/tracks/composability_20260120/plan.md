@@ -1,0 +1,32 @@
+# Implementation Plan - Workflow Composability (Sub-Graphs)
+
+This plan outlines the steps to implement modular, nestable workflows in FlowCraft, allowing workflows to be published as reusable nodes.
+
+## Phase 1: Foundation (IO Nodes & Data Models)
+- [x] Task: Define Firestore Schema updates for versioning and interface contracts. 203ef60
+- [ ] Task: Implement `Workflow Input` node component and registry entry.
+- [ ] Task: Implement `Workflow Output` node component and registry entry.
+- [ ] Task: Implement Type Compatibility utility for strict port validation.
+- [ ] Task: Integrate strict connection validation into `FlowCanvas` UI.
+- [ ] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)
+
+## Phase 2: Publishing Logic
+- [ ] Task: Implement DAG Cycle Detection utility for graph validation.
+- [ ] Task: Implement Recursive Circular Dependency Detection (detecting cycles across nested sub-graphs).
+- [ ] Task: Create Publish API route (`/api/flows/[id]/publish`) to handle snapshotting and validation.
+- [ ] Task: Build Publish Modal UI to capture metadata and trigger publishing.
+- [ ] Task: Conductor - User Manual Verification 'Phase 2: Publishing Logic' (Protocol in workflow.md)
+
+## Phase 3: Consumption & Gallery
+- [ ] Task: Implement `Custom Workflow` node with dynamic port generation based on sub-graph interface.
+- [ ] Task: Build Workflow Gallery UI (browsing published workflows).
+- [ ] Task: Implement Gallery Listing API with filters (Mine vs. Public).
+- [ ] Task: Integrate "Add to Editor" functionality from the Gallery.
+- [ ] Task: Conductor - User Manual Verification 'Phase 3: Consumption & Gallery' (Protocol in workflow.md)
+
+## Phase 4: Versioning & Execution
+- [ ] Task: Update `WorkflowEngine` to support Recursive Execution of sub-graph nodes.
+- [ ] Task: Implement Version History API and basic UI for viewing versions.
+- [ ] Task: Implement Version Upgrade logic (remapping connections when a newer version is selected).
+- [ ] Task: Implement breaking change detection and UI warnings during upgrades.
+- [ ] Task: Conductor - User Manual Verification 'Phase 4: Versioning & Execution' (Protocol in workflow.md)
