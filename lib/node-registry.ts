@@ -65,7 +65,9 @@ export function getSourcePortType(node: Node<NodeData>, handleId?: string | null
         return (node.data as FileData).fileType || "any";
     }
     const def = getNodeDefinition(node.data.type);
-    return def?.outputs?.[handleId || ""] || "any";
+    // Source handles are often null for the default output
+    const normalizedHandleId = handleId === null ? "" : (handleId || "");
+    return def?.outputs?.[normalizedHandleId] || "any";
 }
 
 export function getTargetPortType(node: Node<NodeData>, handleId?: string | null): string {
@@ -73,7 +75,8 @@ export function getTargetPortType(node: Node<NodeData>, handleId?: string | null
         return (node.data as WorkflowOutputData).portType;
     }
     const def = getNodeDefinition(node.data.type);
-    return def?.inputs?.[handleId || ""] || "any";
+    const normalizedHandleId = handleId === null ? "" : (handleId || "");
+    return def?.inputs?.[normalizedHandleId] || "any";
 }
 
 // --- Node Definitions ---
