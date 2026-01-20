@@ -6,7 +6,7 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Define Firestore Schema updates for versioning and interface contracts. 203ef60
 - [x] Task: Implement `Workflow Input` node component and registry entry. c1ed01e
 - [x] Task: Implement `Workflow Output` node component and registry entry. c1ed01e
-- [ ] Task: Implement Type Compatibility utility for strict port validation.
+- [x] Task: Implement Type Compatibility utility for strict port validation. 7563c74
 - [ ] Task: Integrate strict connection validation into `FlowCanvas` UI.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)
 
