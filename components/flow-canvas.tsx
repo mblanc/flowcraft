@@ -18,6 +18,8 @@ import { VideoNode } from "./video-node";
 import { FileNode } from "./file-node";
 import { UpscaleNode } from "./upscale-node";
 import { ResizeNode } from "./resize-node";
+import { WorkflowInputNode } from "./workflow-input-node";
+import { WorkflowOutputNode } from "./workflow-output-node";
 import { NodeType } from "@/lib/types";
 import { Button } from "./ui/button";
 import {
@@ -35,6 +37,8 @@ import {
     FileUp,
     ZoomIn,
     Scaling,
+    LogIn,
+    LogOut,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
@@ -48,6 +52,8 @@ const nodeTypes = {
     file: FileNode,
     upscale: UpscaleNode,
     resize: ResizeNode,
+    "workflow-input": WorkflowInputNode,
+    "workflow-output": WorkflowOutputNode,
 };
 
 const NODE_COLORS: Record<string, string> = {
@@ -58,6 +64,8 @@ const NODE_COLORS: Record<string, string> = {
     file: "#06b6d4", // cyan-500
     upscale: "#ef4444", // red-500
     resize: "#3b82f6", // blue-500
+    "workflow-input": "#60a5fa", // blue-400
+    "workflow-output": "#fb923c", // orange-400
 };
 
 export function FlowCanvas() {
@@ -186,6 +194,18 @@ export function FlowCanvas() {
             icon: Scaling,
             color: "text-blue-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/20",
             label: "Resize",
+        },
+        {
+            type: "workflow-input",
+            icon: LogIn,
+            color: "text-blue-400 hover:bg-blue-50 hover:text-blue-500 dark:hover:bg-blue-950/20",
+            label: "Workflow Input",
+        },
+        {
+            type: "workflow-output",
+            icon: LogOut,
+            color: "text-orange-400 hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-950/20",
+            label: "Workflow Output",
         },
     ] as const;
 

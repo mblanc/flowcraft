@@ -9,6 +9,8 @@ import {
     type FileData,
     type UpscaleData,
     type ResizeData,
+    type WorkflowInputData,
+    type WorkflowOutputData,
 } from "./types";
 import { MODELS, DEFAULTS } from "./constants";
 
@@ -112,6 +114,31 @@ export function createNode(
                     name: "Resize",
                     aspectRatio: DEFAULTS.ASPECT_RATIO,
                 } as ResizeData,
+            };
+        case "workflow-input":
+            return {
+                id,
+                type: "workflow-input",
+                position,
+                data: {
+                    type: "workflow-input",
+                    name: "Workflow Input",
+                    portName: "input",
+                    portType: "string",
+                    portRequired: true,
+                } as WorkflowInputData,
+            };
+        case "workflow-output":
+            return {
+                id,
+                type: "workflow-output",
+                position,
+                data: {
+                    type: "workflow-output",
+                    name: "Workflow Output",
+                    portName: "output",
+                    portType: "string",
+                } as WorkflowOutputData,
             };
         default:
             throw new Error(`Unknown node type: ${type}`);

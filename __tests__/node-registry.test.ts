@@ -11,6 +11,20 @@ import {
     UpscaleData,
 } from "../lib/types";
 
+describe("NodeRegistry - Node Definitions", () => {
+    it("should retrieve workflow-input definition", () => {
+        const definition = getNodeDefinition("workflow-input");
+        expect(definition).toBeDefined();
+        expect(definition?.type).toBe("workflow-input");
+    });
+
+    it("should retrieve workflow-output definition", () => {
+        const definition = getNodeDefinition("workflow-output");
+        expect(definition).toBeDefined();
+        expect(definition?.type).toBe("workflow-output");
+    });
+});
+
 describe("NodeRegistry - LLMNode gatherInputs", () => {
     const llmDefinition = getNodeDefinition("llm")!;
 

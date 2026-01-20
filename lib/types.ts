@@ -6,6 +6,9 @@ import {
     FileData as InferredFileData,
     UpscaleData as InferredUpscaleData,
     ResizeData as InferredResizeData,
+    WorkflowInputData as InferredWorkflowInputData,
+    WorkflowOutputData as InferredWorkflowOutputData,
+    CustomWorkflowData as InferredCustomWorkflowData,
     NodeData as InferredNodeData,
 } from "./schemas";
 
@@ -16,7 +19,10 @@ export type NodeType =
     | "video"
     | "file"
     | "upscale"
-    | "resize";
+    | "resize"
+    | "workflow-input"
+    | "workflow-output"
+    | "custom-workflow";
 
 export interface NodeInputs {
     prompt?: string;
@@ -25,6 +31,7 @@ export interface NodeInputs {
     firstFrame?: string;
     lastFrame?: string;
     image?: string;
+    [key: string]: any;
 }
 
 export type LLMData = InferredLLMData;
@@ -34,6 +41,9 @@ export type VideoData = InferredVideoData;
 export type FileData = InferredFileData;
 export type UpscaleData = InferredUpscaleData;
 export type ResizeData = InferredResizeData;
+export type WorkflowInputData = InferredWorkflowInputData;
+export type WorkflowOutputData = InferredWorkflowOutputData;
+export type CustomWorkflowData = InferredCustomWorkflowData;
 export type NodeData = InferredNodeData;
 
 export interface BaseNodeData {

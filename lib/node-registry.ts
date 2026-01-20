@@ -8,6 +8,8 @@ import {
     VideoData,
     UpscaleData,
     ResizeData,
+    WorkflowInputData,
+    WorkflowOutputData,
 } from "./types";
 
 export interface ExecutionContext {
@@ -341,5 +343,25 @@ registerNode<ResizeData, NodeInputs>({
     execute: async (node, inputs, context) => {
         const { executeResizeNode } = await import("./executors");
         return executeResizeNode(node, inputs, context);
+    },
+});
+
+// Workflow Input Node
+registerNode<WorkflowInputData, any>({
+    type: "workflow-input",
+    gatherInputs: () => ({}),
+    execute: async (node) => ({}),
+});
+
+// Workflow Output Node
+registerNode<WorkflowOutputData, any>({
+    type: "workflow-output",
+    gatherInputs: (node, edges, getSourceData) => {
+        const edge = edges.find((e) => e.target === node.id);
+        if (!edge) return {};
+        return { value: getSourceData(edge.source) };
+    },
+    execute: async (node, inputs) => {
+        return { ...inputs };
     },
 });
