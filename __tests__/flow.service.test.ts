@@ -153,4 +153,52 @@ describe("FlowService - Publish Flow", () => {
             publishedVersion: expect.any(String),
         }));
     });
+
+    describe("listPublishedFlows", () => {
+        const mockFlows = [
+            { id: "1", userId: "user-1", isPublished: true, visibility: "private", updatedAt: new Date() },
+            { id: "2", userId: "user-2", isPublished: true, visibility: "public", updatedAt: new Date() },
+            { id: "3", userId: "user-1", isPublished: false, visibility: "private", updatedAt: new Date() },
+        ];
+
+        beforeEach(() => {
+            const mockWhere = vi.fn().mockReturnThis();
+            const mockOrderBy = vi.fn().mockReturnThis();
+            const mockGet = vi.fn().mockResolvedValue({
+                docs: mockFlows.filter(f => f.isPublished).map(f => ({
+                    id: f.id,
+                    data: () => f,
+                }))
+            });
+
+            mockCollection.mockReturnValue({
+                where: mockWhere,
+                orderBy: mockOrderBy,
+                get: mockGet,
+            });
+        });
+
+        it("should list all published flows that are mine or public", async () => {
+             // In our implementation 'all' fetches all published, then filters in memory
+             const results = await flowService.listPublishedFlows("user-1", "all");
+             expect(results).toHaveLength(2);
+             expect(results.some(f => f.id === "1")).toBe(true);
+             expect(results.some(f => f.id === "2")).toBe(true);
+        });
+
+        it("should filter only mine", async () => {
+            // Re-mock to simulate firestore where filtering if possible, 
+            // but for simplicity we can just check the service logic if it uses where correctly.
+            // Our service uses .where("userId", "==", userId) if filter === 'mine'
+            const mockWhere = vi.fn().mockReturnThis();
+            const mockOrderBy = vi.fn().mockReturnThis();
+            mockCollection.mockReturnValue({ where: mockWhere });
+            mockWhere.mockReturnValue({ where: mockWhere, orderBy: mockOrderBy });
+            mockOrderBy.mockReturnValue({ get: vi.fn().mockResolvedValue({ docs: [] }) });
+
+            await flowService.listPublishedFlows("user-1", "mine");
+            
+            expect(mockWhere).toHaveBeenCalledWith("userId", "==", "user-1");
+        });
+    });
 });

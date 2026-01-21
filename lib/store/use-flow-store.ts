@@ -40,6 +40,7 @@ export interface FlowState {
     addNodeWithType: (
         type: NodeType,
         position?: { x: number; y: number },
+        data?: Partial<NodeData>,
     ) => void;
     selectNode: (nodeId: string | null) => void;
 
@@ -109,8 +110,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         set({ nodes: [...get().nodes, node] });
     },
 
-    addNodeWithType: (type, position) => {
-        set({ nodes: [...get().nodes, createNode(type, position)] });
+    addNodeWithType: (type, position, data) => {
+        const node = createNode(type, position);
+        if (data) {
+            node.data = { ...node.data, ...data } as NodeData;
+        }
+        set({ nodes: [...get().nodes, node] });
     },
 
     selectNode: (nodeId) => {

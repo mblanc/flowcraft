@@ -239,6 +239,33 @@ export class FlowService {
 
         return versionData;
     }
+
+    async listPublishedFlows(userId: string, filter: 'mine' | 'public' | 'all' = 'all') {
+        logger.debug(`[FlowService] Listing published flows for user: ${userId}, filter: ${filter}`);
+        
+        let query = this.firestore.collection(COLLECTIONS.FLOWS)
+            .where("isPublished", "==", true);
+
+        if (filter === 'mine') {
+            query = query.where("userId", "==", userId);
+        } else if (filter === 'public') {
+            query = query.where("visibility", "==", "public");
+        }
+        // 'all' logic: we need to handle this with a more complex query or multiple queries
+        // since Firestore doesn't support OR on different fields easily without IN.
+        // For now, let's keep it simple and just do 'mine' or 'public' if not all.
+        // If 'all', we fetch both or just return everything that is published and (mine OR public).
+        
+        const snapshot = await query.orderBy("updatedAt", "desc").get();
+        let flows = snapshot.docs.map(doc => this.transformDoc(doc));
+
+        if (filter === 'all') {
+            // Filter in-memory for (mine OR public)
+            flows = flows.filter(f => f.userId === userId || f.visibility === 'public');
+        }
+
+        return flows;
+    }
 }
 
 export const flowService = new FlowService();
