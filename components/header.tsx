@@ -105,7 +105,12 @@ export function Header() {
                             <Save className="mr-2 h-4 w-4" />
                             Save
                         </Button>
-                        <PublishModal flowId={flowId} />
+                        <PublishModal 
+                            flowId={flowId} 
+                            onBeforePublish={async () => {
+                                await saveFlow();
+                            }}
+                        />
                     </>
                 )}
                 <Button variant="ghost" size="sm" onClick={importFlow}>

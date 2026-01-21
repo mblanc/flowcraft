@@ -16,15 +16,19 @@ import { toast } from "sonner";
 
 interface PublishModalProps {
     flowId: string;
+    onBeforePublish?: () => Promise<void>;
 }
 
-export function PublishModal({ flowId }: PublishModalProps) {
+export function PublishModal({ flowId, onBeforePublish }: PublishModalProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handlePublish = async () => {
         setLoading(true);
         try {
+            if (onBeforePublish) {
+                await onBeforePublish();
+            }
             const res = await fetch(`/api/flows/${flowId}/publish`, {
                 method: "POST",
             });
