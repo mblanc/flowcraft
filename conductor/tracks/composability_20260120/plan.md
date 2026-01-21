@@ -25,7 +25,7 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Consumption & Gallery' (Protocol in workflow.md)
 
 ## Phase 4: Versioning & Execution
-- [ ] Task: Update `WorkflowEngine` to support Recursive Execution of sub-graph nodes.
+- [x] Task: Update `WorkflowEngine` to support Recursive Execution of sub-graph nodes. 4dda77d
 - [ ] Task: Implement Version History API and basic UI for viewing versions.
 - [ ] Task: Implement Version Upgrade logic (remapping connections when a newer version is selected).
 - [ ] Task: Implement breaking change detection and UI warnings during upgrades.
