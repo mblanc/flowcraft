@@ -27,6 +27,6 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 ## Phase 4: Versioning & Execution
 - [x] Task: Update `WorkflowEngine` to support Recursive Execution of sub-graph nodes. 4dda77d
 - [x] Task: Implement Version History API and basic UI for viewing versions. bbe5bf0
-- [ ] Task: Implement Version Upgrade logic (remapping connections when a newer version is selected).
+- [x] Task: Implement Version Upgrade logic (remapping connections when a newer version is selected). 230214b
 - [ ] Task: Implement breaking change detection and UI warnings during upgrades.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Versioning & Execution' (Protocol in workflow.md)
