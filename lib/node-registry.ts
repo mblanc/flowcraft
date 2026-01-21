@@ -33,7 +33,7 @@ export interface NodeDefinition<T extends NodeData = NodeData, I = NodeInputs> {
     gatherInputs: (
         node: Node<T>,
         edges: Edge[],
-        getSourceData: (id: string) => NodeData | null,
+        getSourceData: (id: string, handle?: string | null) => NodeData | null,
     ) => I;
     execute: NodeExecutor<T, I>;
 }
@@ -98,13 +98,13 @@ const findInputByHandle = (
     nodeId: string,
     edges: Edge[],
     handle: string,
-    getSourceData: (id: string) => NodeData | null,
+    getSourceData: (id: string, handle?: string | null) => NodeData | null,
 ) => {
     const edge = edges.find(
         (e) => e.target === nodeId && e.targetHandle === handle,
     );
     if (!edge) return null;
-    return getSourceData(edge.source);
+    return getSourceData(edge.source, edge.sourceHandle);
 };
 
 // LLM Node
@@ -134,7 +134,7 @@ registerNode<LLMData, NodeInputs>({
             (e) => e.target === node.id && e.targetHandle === "file-input",
         );
         for (const edge of fileEdges) {
-            const sourceData = getSourceData(edge.source);
+            const sourceData = getSourceData(edge.source, edge.sourceHandle);
             if (!sourceData) continue;
 
             if (sourceData.type === "file" && sourceData.gcsUri) {
@@ -200,7 +200,7 @@ registerNode<ImageData, NodeInputs>({
                 (!e.targetHandle || e.targetHandle !== "image-input"),
         );
         if (promptEdge) {
-            const sourceData = getSourceData(promptEdge.source);
+            const sourceData = getSourceData(promptEdge.source, promptEdge.sourceHandle);
             if (sourceData?.type === "text") inputs.prompt = sourceData.text;
             else if (sourceData?.type === "llm")
                 inputs.prompt = sourceData.output;
@@ -210,7 +210,7 @@ registerNode<ImageData, NodeInputs>({
             (e) => e.target === node.id && e.targetHandle === "image-input",
         );
         for (const edge of imageEdges) {
-            const sourceData = getSourceData(edge.source);
+            const sourceData = getSourceData(edge.source, edge.sourceHandle);
             if (sourceData?.type === "image" && sourceData.images) {
                 inputs.images?.push(
                     ...sourceData.images.map((url) => ({
@@ -312,7 +312,7 @@ registerNode<VideoData, NodeInputs>({
             (e) => e.target === node.id && e.targetHandle === "image-input",
         );
         for (const edge of imageEdges) {
-            const sourceData = getSourceData(edge.source);
+            const sourceData = getSourceData(edge.source, edge.sourceHandle);
             if (sourceData?.type === "image" && sourceData.images)
                 inputs.images?.push(
                     ...sourceData.images.map((url) => ({
@@ -435,7 +435,7 @@ registerNode<WorkflowOutputData, any>({
     gatherInputs: (node, edges, getSourceData) => {
         const edge = edges.find((e) => e.target === node.id);
         if (!edge) return {};
-        return { value: getSourceData(edge.source) };
+        return { value: getSourceData(edge.source, edge.sourceHandle) };
     },
     execute: async (node, inputs) => {
         return { ...inputs };
@@ -451,7 +451,7 @@ registerNode<CustomWorkflowData, any>({
         const inputEdges = edges.filter((e) => e.target === node.id);
         for (const edge of inputEdges) {
             if (edge.targetHandle) {
-                inputs[edge.targetHandle] = getSourceData(edge.source);
+                inputs[edge.targetHandle] = getSourceData(edge.source, edge.sourceHandle);
             }
         }
         return inputs;

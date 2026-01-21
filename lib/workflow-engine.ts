@@ -140,10 +140,17 @@ export class WorkflowEngine {
         const definition = getNodeDefinition(node.data.type);
         if (!definition) return {};
 
-        const getSourceData = (sourceId: string): NodeData | null => {
+        const getSourceData = (sourceId: string, sourceHandle?: string | null): NodeData | null => {
             const sourceNode = this.nodesMap.get(sourceId);
             const result = this.executionResults.get(sourceId);
             if (!sourceNode) return null;
+
+            if (sourceNode.data.type === 'custom-workflow' && sourceHandle && result && (result as any).results) {
+                // Return the specific output node's data from the sub-workflow
+                const subOutput = (result as any).results[sourceHandle];
+                // Unwraps { value: ... } if it came from a Workflow Output node
+                return (subOutput?.value || subOutput) as NodeData;
+            }
 
             return { ...sourceNode.data, ...result } as NodeData;
         };
