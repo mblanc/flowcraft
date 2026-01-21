@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import "./globals.css";
 
 import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
+import { Toaster } from "sonner";
 
 const openSans = Open_Sans({
     weight: ["300", "400", "500", "600", "700"],
@@ -29,6 +30,7 @@ export default function RootLayout({
             <body className={`font-sans ${openSans.variable}`}>
                 <NextAuthSessionProvider>
                     <Suspense fallback={null}>{children}</Suspense>
+                    <Toaster richColors closeButton />
                 </NextAuthSessionProvider>
             </body>
         </html>
