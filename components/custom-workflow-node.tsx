@@ -5,10 +5,13 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Box } from "lucide-react";
 import { CustomWorkflowData, WorkflowInputData, WorkflowOutputData } from "@/lib/types";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { toast } from "sonner";
 
 export const CustomWorkflowNode = memo(
     ({ data, selected, id }: NodeProps<Node<CustomWorkflowData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const removeEdges = useFlowStore((state) => state.removeEdges);
+        const edges = useFlowStore((state) => state.edges);
         const [interfaceData, setInterfaceData] = useState<{
             inputs: { id: string; name: string; type: string }[];
             outputs: { id: string; name: string; type: string }[];
@@ -42,6 +45,24 @@ export const CustomWorkflowNode = memo(
                         }));
 
                     setInterfaceData({ inputs, outputs });
+
+                    // Clean up stale edges
+                    const staleEdges = edges.filter(edge => {
+                        if (edge.target === id && edge.targetHandle) {
+                            // It's an input connection to this node
+                            return !inputs.some(i => i.id === edge.targetHandle);
+                        }
+                        if (edge.source === id && edge.sourceHandle) {
+                            // It's an output connection from this node
+                            return !outputs.some(o => o.id === edge.sourceHandle);
+                        }
+                        return false;
+                    });
+
+                    if (staleEdges.length > 0) {
+                        removeEdges(staleEdges.map(e => e.id));
+                        toast.warning(`Removed ${staleEdges.length} stale connections due to version change`);
+                    }
 
                     // Store types in node data for connection validation (getSourcePortType/getTargetPortType)
                     const inputTypes: Record<string, string> = {};

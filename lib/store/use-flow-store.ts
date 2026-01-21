@@ -43,6 +43,7 @@ export interface FlowState {
         data?: Partial<NodeData>,
     ) => void;
     selectNode: (nodeId: string | null) => void;
+    removeEdges: (edgeIds: string[]) => void;
 
     // Load/Reset
     loadFlow: (
@@ -134,6 +135,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
             }));
             set({ nodes: updatedNodes, selectedNode: null });
         }
+    },
+
+    removeEdges: (edgeIds) => {
+        set({
+            edges: get().edges.filter((edge) => !edgeIds.includes(edge.id)),
+        });
     },
 
     loadFlow: (id, nodes, edges, name) => {
