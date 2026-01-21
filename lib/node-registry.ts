@@ -12,6 +12,7 @@ import {
     ResizeData,
     WorkflowInputData,
     WorkflowOutputData,
+    CustomWorkflowData,
 } from "./types";
 
 export interface ExecutionContext {
@@ -58,6 +59,14 @@ export function getSourcePortType(node: Node<NodeData>, handleId?: string | null
     if (node.data.type === "workflow-input") {
         return (node.data as WorkflowInputData).portType;
     }
+    if (node.data.type === "custom-workflow") {
+        // Find the sub-workflow output node that matches this handleId
+        // In the UI we set the handleId to the original node ID of the Workflow Output node
+        // But since we don't have the sub-workflow data here synchronously,
+        // we might need to rely on the node.data.interface cache if we implement one.
+        // For now, let's assume handles are typed and we might need to store types in data.
+        return (node.data as any).outputs?.[handleId || ""] || "any";
+    }
     if (node.data.type === "llm") {
         return (node.data as LLMData).outputType === "json" ? "json" : "string";
     }
@@ -73,6 +82,9 @@ export function getSourcePortType(node: Node<NodeData>, handleId?: string | null
 export function getTargetPortType(node: Node<NodeData>, handleId?: string | null): string {
     if (node.data.type === "workflow-output") {
         return (node.data as WorkflowOutputData).portType;
+    }
+    if (node.data.type === "custom-workflow") {
+        return (node.data as any).inputs?.[handleId || ""] || "any";
     }
     const def = getNodeDefinition(node.data.type);
     const normalizedHandleId = handleId === null ? "" : (handleId || "");
@@ -427,6 +439,26 @@ registerNode<WorkflowOutputData, any>({
     },
     execute: async (node, inputs) => {
         return { ...inputs };
+    },
+});
+
+// Custom Workflow Node
+registerNode<CustomWorkflowData, any>({
+    type: "custom-workflow",
+    gatherInputs: (node, edges, getSourceData) => {
+        const inputs: Record<string, any> = {};
+        // Find all edges targeting this node
+        const inputEdges = edges.filter((e) => e.target === node.id);
+        for (const edge of inputEdges) {
+            if (edge.targetHandle) {
+                inputs[edge.targetHandle] = getSourceData(edge.source);
+            }
+        }
+        return inputs;
+    },
+    execute: async (node, inputs, context) => {
+        // Recursive execution handled in WorkflowEngine
+        return {};
     },
 });
 

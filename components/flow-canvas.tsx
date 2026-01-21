@@ -20,6 +20,7 @@ import { UpscaleNode } from "./upscale-node";
 import { ResizeNode } from "./resize-node";
 import { WorkflowInputNode } from "./workflow-input-node";
 import { WorkflowOutputNode } from "./workflow-output-node";
+import { CustomWorkflowNode } from "./custom-workflow-node";
 import { NodeType, NodeData } from "@/lib/types";
 import {
     getNodeDefinition,
@@ -60,6 +61,7 @@ const nodeTypes = {
     resize: ResizeNode,
     "workflow-input": WorkflowInputNode,
     "workflow-output": WorkflowOutputNode,
+    "custom-workflow": CustomWorkflowNode,
 };
 
 const NODE_COLORS: Record<string, string> = {
@@ -72,6 +74,7 @@ const NODE_COLORS: Record<string, string> = {
     resize: "#3b82f6", // blue-500
     "workflow-input": "#60a5fa", // blue-400
     "workflow-output": "#fb923c", // orange-400
+    "custom-workflow": "#3b82f6", // blue-500
 };
 
 export function FlowCanvas() {

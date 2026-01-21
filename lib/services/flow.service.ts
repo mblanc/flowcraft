@@ -216,6 +216,29 @@ export class FlowService {
             version, 
         };
     }
+
+    async getFlowVersion(flowId: string, version: string, userId: string) {
+        logger.debug(`[FlowService] Getting version ${version} of flow: ${flowId}`);
+        
+        const flowRef = this.firestore.collection(COLLECTIONS.FLOWS).doc(flowId);
+        const versionsRef = flowRef.collection('versions');
+        
+        const versionQuery = await versionsRef.where('version', '==', version).limit(1).get();
+        
+        if (versionQuery.empty) {
+            throw new Error("Version not found");
+        }
+
+        const versionDoc = versionQuery.docs[0];
+        const versionData = this.transformDoc(versionDoc);
+
+        // We could check visibility here if we support public flows
+        if (versionData.userId !== userId && versionData.visibility !== 'public') {
+            throw new Error("Unauthorized");
+        }
+
+        return versionData;
+    }
 }
 
 export const flowService = new FlowService();

@@ -140,6 +140,18 @@ export function createNode(
                     portType: "string",
                 } as WorkflowOutputData,
             };
+        case "custom-workflow":
+            return {
+                id,
+                type: "custom-workflow",
+                position,
+                data: {
+                    type: "custom-workflow",
+                    name: "Custom Workflow",
+                    subWorkflowId: "",
+                    subWorkflowVersion: "",
+                } as any,
+            };
         default:
             throw new Error(`Unknown node type: ${type}`);
     }

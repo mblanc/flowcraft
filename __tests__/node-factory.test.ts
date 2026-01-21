@@ -18,6 +18,14 @@ describe("Node Factory", () => {
         expect((node.data as any).portName).toBe("output");
     });
 
+    it("should create a custom-workflow node", () => {
+        const node = createNode("custom-workflow");
+        expect(node.type).toBe("custom-workflow");
+        expect(node.data.type).toBe("custom-workflow");
+        expect(node.data.name).toBe("Custom Workflow");
+        expect((node.data as any).subWorkflowId).toBe("");
+    });
+
     it("should throw error for unknown type", () => {
         expect(() => createNode("unknown" as any)).toThrow("Unknown node type: unknown");
     });
