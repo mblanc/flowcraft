@@ -10,12 +10,12 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Integrate strict connection validation into `FlowCanvas` UI. 12bc2ad
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)
 
-## Phase 2: Publishing Logic
+## Phase 2: Publishing Logic [checkpoint: d825204]
 - [x] Task: Implement DAG Cycle Detection utility for graph validation. 43fcdf1
 - [x] Task: Implement Recursive Circular Dependency Detection (detecting cycles across nested sub-graphs). 3583b55
 - [x] Task: Create Publish API route (`/api/flows/[id]/publish`) to handle snapshotting and validation. 6ec02a1
 - [x] Task: Build Publish Modal UI to capture metadata and trigger publishing. bfbc848
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Publishing Logic' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Publishing Logic' (Protocol in workflow.md)
 
 ## Phase 3: Consumption & Gallery
 - [ ] Task: Implement `Custom Workflow` node with dynamic port generation based on sub-graph interface.
