@@ -59,3 +59,45 @@ export function detectCycle(nodes: GraphNode[], edges: GraphEdge[]): boolean {
 
   return false;
 }
+
+/**
+ * Detects if adding a sub-workflow (candidateSubFlowId) to a target workflow (targetFlowId)
+ * would create a recursive cycle (e.g., A contains B, B contains A).
+ * 
+ * @param targetFlowId The ID of the workflow being edited
+ * @param candidateSubFlowId The ID of the sub-workflow being added
+ * @param fetchFlow A function to fetch flow data (nodes) by ID
+ * @param visited Set of visited flow IDs to prevent infinite loops during traversal
+ * @returns true if a recursive cycle is detected
+ */
+export async function detectRecursiveCycle(
+  targetFlowId: string,
+  candidateSubFlowId: string,
+  fetchFlow: (id: string) => Promise<{ nodes: GraphNode[] } | null>,
+  visited: Set<string> = new Set()
+): Promise<boolean> {
+  // Direct match: The candidate IS the target (A -> A)
+  if (targetFlowId === candidateSubFlowId) return true;
+  
+  // Avoid re-visiting flows in the current search path to handle internal cycles in sub-graphs
+  if (visited.has(candidateSubFlowId)) return false;
+  visited.add(candidateSubFlowId);
+
+  const flowData = await fetchFlow(candidateSubFlowId);
+  if (!flowData) return false;
+
+  // Find all custom-workflow nodes in the candidate flow
+  const subWorkflowNodes = flowData.nodes.filter(n => n.type === 'custom-workflow');
+  
+  for (const node of subWorkflowNodes) {
+    const nextSubFlowId = node.data?.subWorkflowId;
+    if (nextSubFlowId) {
+       // Recursively check if any child references the target
+       if (await detectRecursiveCycle(targetFlowId, nextSubFlowId, fetchFlow, visited)) {
+         return true;
+       }
+    }
+  }
+
+  return false;
+}

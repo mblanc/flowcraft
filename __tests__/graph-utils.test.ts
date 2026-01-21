@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from "vitest";
-import { detectCycle } from "../lib/graph-utils";
+import { detectCycle, detectRecursiveCycle, GraphNode } from "../lib/graph-utils";
 
 describe("Graph Utils - Cycle Detection", () => {
     it("should return false for an empty graph", () => {
@@ -81,5 +81,74 @@ describe("Graph Utils - Cycle Detection", () => {
              { source: "5", target: "2" },
         ];
          expect(detectCycle(nodes, edges)).toBe(true);
+    });
+});
+
+describe("Graph Utils - Recursive Cycle Detection", () => {
+    // Mock flow structure
+    interface MockFlow {
+        id: string;
+        nodes: GraphNode[];
+    }
+
+    const mockDB: Record<string, MockFlow> = {
+        "flow-a": {
+            id: "flow-a",
+            nodes: [], // Base flow
+        },
+        "flow-b": {
+            id: "flow-b",
+            nodes: [], // Will be configured in tests
+        },
+        "flow-c": {
+            id: "flow-c",
+            nodes: [
+                { id: "node-1", type: "custom-workflow", data: { subWorkflowId: "flow-a" } }
+            ]
+        },
+        "flow-d": {
+             id: "flow-d",
+             nodes: [
+                 { id: "node-1", type: "custom-workflow", data: { subWorkflowId: "flow-c" } }
+             ]
+        }
+    };
+
+    const fetchFlow = async (id: string) => {
+        return mockDB[id] ? { nodes: mockDB[id].nodes } : null;
+    };
+
+    it("should return false when adding a flow with no sub-workflows", async () => {
+        // Adding flow-a (empty) to flow-b
+        const result = await detectRecursiveCycle("flow-b", "flow-a", fetchFlow);
+        expect(result).toBe(false);
+    });
+
+    it("should return true when adding a flow that contains the target flow (Direct Cycle)", async () => {
+        // flow-c contains flow-a.
+        // If we add flow-c to flow-a, it's a cycle: flow-a -> flow-c -> flow-a
+        const result = await detectRecursiveCycle("flow-a", "flow-c", fetchFlow);
+        expect(result).toBe(true);
+    });
+
+    it("should return true when adding a flow that indirectly contains the target flow (Indirect Cycle)", async () => {
+        // flow-d contains flow-c, which contains flow-a.
+        // If we add flow-d to flow-a: flow-a -> flow-d -> flow-c -> flow-a
+        const result = await detectRecursiveCycle("flow-a", "flow-d", fetchFlow);
+        expect(result).toBe(true);
+    });
+
+    it("should return false when dependencies do not form a cycle", async () => {
+        // flow-c contains flow-a.
+        // Adding flow-c to flow-d (which is new/empty logic wise for this test, let's assume flow-e)
+        // Let's check if adding flow-c to flow-b creates a cycle. flow-b is empty.
+        // flow-b -> flow-c -> flow-a. No cycle.
+        const result = await detectRecursiveCycle("flow-b", "flow-c", fetchFlow);
+        expect(result).toBe(false);
+    });
+    
+    it("should handle cases where fetch returns null (graceful failure)", async () => {
+         const result = await detectRecursiveCycle("flow-a", "non-existent-flow", fetchFlow);
+         expect(result).toBe(false);
     });
 });
