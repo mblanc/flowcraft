@@ -14,7 +14,7 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Implement DAG Cycle Detection utility for graph validation. 43fcdf1
 - [x] Task: Implement Recursive Circular Dependency Detection (detecting cycles across nested sub-graphs). 3583b55
 - [x] Task: Create Publish API route (`/api/flows/[id]/publish`) to handle snapshotting and validation. 6ec02a1
-- [ ] Task: Build Publish Modal UI to capture metadata and trigger publishing.
+- [x] Task: Build Publish Modal UI to capture metadata and trigger publishing. bfbc848
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Publishing Logic' (Protocol in workflow.md)
 
 ## Phase 3: Consumption & Gallery
