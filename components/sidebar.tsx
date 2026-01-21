@@ -2,11 +2,6 @@
 
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { ConfigPanel } from "./config-panel";
-import { X, Bot, FileText, ImageIcon, Video, FileUp } from "lucide-react";
-import { Button } from "./ui/button";
-
-import { useFlowStore } from "@/lib/store/use-flow-store";
-import { ConfigPanel } from "./config-panel";
 import { WorkflowGallery } from "./workflow-gallery";
 import { X, Bot, FileText, ImageIcon, Video, FileUp, Settings2, Library } from "lucide-react";
 import { Button } from "./ui/button";
