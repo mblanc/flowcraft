@@ -227,4 +227,89 @@ describe("WorkflowEngine", () => {
             });
         });
     });
+
+    describe("Recursive Execution (Sub-graphs)", () => {
+        it("should execute a custom-workflow node by running its sub-graph", async () => {
+            const nodes = [
+                { id: "input-node", type: "text", data: { type: "text", text: "hello", name: "Text" } },
+                { 
+                    id: "sub-workflow-node", 
+                    type: "custom-workflow", 
+                    data: { 
+                        type: "custom-workflow", 
+                        subWorkflowId: "flow-b", 
+                        subWorkflowVersion: "1.0.1",
+                        name: "Sub"
+                    } 
+                },
+                { id: "output-node", type: "text", data: { type: "text", text: "", name: "Text" } }
+            ] as unknown as Node<NodeData>[];
+
+            const edges = [
+                { id: "e1", source: "input-node", target: "sub-workflow-node", targetHandle: "sub-in-1" },
+                { id: "e2", source: "sub-workflow-node", sourceHandle: "sub-out-1", target: "output-node" }
+            ];
+
+            // Sub-workflow definition
+            const subFlow = {
+                nodes: [
+                    { id: "sub-in-1", type: "workflow-input", data: { type: "workflow-input", portName: "in", name: "In" } },
+                    { id: "sub-out-1", type: "workflow-output", data: { type: "workflow-output", portName: "out", name: "Out" } }
+                ],
+                edges: [
+                    { id: "se1", source: "sub-in-1", target: "sub-out-1" }
+                ]
+            };
+
+            // Mock fetch for sub-workflow
+            const mockFetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => subFlow
+            });
+
+            // Mock node definitions
+            vi.mocked(getNodeDefinition).mockImplementation((type) => {
+                if (type === 'text') return {
+                    type: 'text',
+                    gatherInputs: () => ({}),
+                    execute: async (node: any, inputs: any) => ({ ...node.data, ...inputs })
+                } as any;
+                if (type === 'workflow-input') return {
+                    type: 'workflow-input',
+                    gatherInputs: () => ({}),
+                    execute: async (node: any) => ({ ...node.data })
+                } as any;
+                if (type === 'workflow-output') return {
+                    type: 'workflow-output',
+                    gatherInputs: (node: any, edges: any, getSourceData: any) => ({ value: getSourceData(edges.find((e: any) => e.target === node.id)?.source || "") }),
+                    execute: async (node: any, inputs: any) => ({ ...node.data, ...inputs })
+                } as any;
+                if (type === 'custom-workflow') return {
+                    type: 'custom-workflow',
+                    gatherInputs: (node: any, edges: any, getSourceData: any) => {
+                        const inputs: any = {};
+                        edges.filter((e: any) => e.target === node.id).forEach((e: any) => {
+                            inputs[e.targetHandle!] = getSourceData(e.source);
+                        });
+                        return inputs;
+                    },
+                    execute: async () => ({})
+                } as any;
+                return undefined;
+            });
+
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate, { fetch: mockFetch });
+            await engine.run();
+
+            // Verify fetch was called
+            expect(mockFetch).toHaveBeenCalled();
+
+            // Verify results
+            const subWorkflowResult = engine.executionResults.get("sub-workflow-node");
+            expect(subWorkflowResult).toBeDefined();
+            // In our implementation, the result of custom-workflow is a map of outputNodeId -> data
+            expect((subWorkflowResult as any)["sub-out-1"]).toBeDefined();
+            expect((subWorkflowResult as any)["sub-out-1"].value.text).toBe("hello");
+        });
+    });
 });
