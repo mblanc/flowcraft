@@ -201,17 +201,17 @@ export class WorkflowEngine {
         await subEngine.run();
 
         // 4. Gather results from sub-workflow Output Nodes
-        const result: Record<string, any> = {};
-        const outputNodes = subNodes.filter(n => n.type === 'workflow-output');
+        const results: Record<string, any> = {};
+        const outputNodes = subNodes.filter(n => n.type === 'workflow-output' || n.data?.type === 'workflow-output');
         
         for (const outNode of outputNodes) {
             const outResult = subEngine.executionResults.get(outNode.id);
             if (outResult) {
                 // Map the output node's resulting data to its ID
-                result[outNode.id] = outResult;
+                results[outNode.id] = outResult;
             }
         }
 
-        return result as any;
+        return { results } as any;
     }
 }
