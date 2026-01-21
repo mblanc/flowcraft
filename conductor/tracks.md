@@ -4,6 +4,11 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Build the core workflow execution engine with support for parallel processing and dependency resolution.**
+- [~] **Track: Build the core workflow execution engine with support for parallel processing and dependency resolution.**
       _Link: [./tracks/core_engine_20260119/](./tracks/core_engine_20260119/)_
       
+---
+
+- [~] **Track: Workflow Composability (Sub-Graphs) - Enable users to publish workflows as reusable nodes that can be embedded in other workflows.**
+Link: [./tracks/composability_20260120/](./tracks/composability_20260120/)
+
