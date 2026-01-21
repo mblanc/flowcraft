@@ -1009,6 +1009,74 @@ function TextConfig({ data, nodeId }: { data: TextData; nodeId: string }) {
     );
 }
 
+function CustomWorkflowConfig({ data, nodeId }: { data: any; nodeId: string }) {
+    const updateNodeData = useFlowStore((state: FlowState) => state.updateNodeData);
+    const [versions, setVersions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchVersions = async () => {
+            if (!data.subWorkflowId) return;
+            setLoading(true);
+            try {
+                const res = await fetch(`/api/flows/${data.subWorkflowId}/versions`);
+                if (!res.ok) throw new Error("Failed to fetch versions");
+                const result = await res.json();
+                setVersions(result.versions);
+            } catch (error) {
+                logger.error("Error fetching versions:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchVersions();
+    }, [data.subWorkflowId]);
+
+    return (
+        <div className="space-y-6">
+            <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                    id="name"
+                    value={data.name}
+                    onChange={(e) =>
+                        updateNodeData(nodeId, { name: e.target.value })
+                    }
+                    placeholder="Workflow name"
+                />
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="version">Version</Label>
+                <Select
+                    value={data.subWorkflowVersion}
+                    onValueChange={(value) =>
+                        updateNodeData(nodeId, { subWorkflowVersion: value })
+                    }
+                    disabled={loading || versions.length === 0}
+                >
+                    <SelectTrigger id="version">
+                        <SelectValue placeholder="Select version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {versions.map((v) => (
+                            <SelectItem key={v.version} value={v.version}>
+                                {v.version} ({new Date(v.publishedAt).toLocaleDateString()})
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                {versions.length === 0 && !loading && (
+                    <p className="text-[10px] text-muted-foreground italic">
+                        No versions found for this workflow.
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export function ConfigPanel() {
     const selectedNode = useFlowStore((state: FlowState) => state.selectedNode);
 
@@ -1034,6 +1102,10 @@ export function ConfigPanel() {
 
     if (data.type === "file") {
         return <FileConfig data={data as FileData} nodeId={id} />;
+    }
+
+    if (data.type === "custom-workflow") {
+        return <CustomWorkflowConfig data={data} nodeId={id} />;
     }
 
     return null;

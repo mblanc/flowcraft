@@ -266,6 +266,30 @@ export class FlowService {
 
         return flows;
     }
+
+    async listFlowVersions(flowId: string, userId: string) {
+        logger.debug(`[FlowService] Listing versions for flow: ${flowId}`);
+        
+        const flowRef = this.firestore.collection(COLLECTIONS.FLOWS).doc(flowId);
+        const flowDoc = await flowRef.get();
+
+        if (!flowDoc.exists) {
+            throw new Error("Flow not found");
+        }
+
+        if (flowDoc.data()?.userId !== userId && flowDoc.data()?.visibility !== 'public') {
+            throw new Error("Unauthorized");
+        }
+
+        const versionsRef = flowRef.collection('versions');
+        const snapshot = await versionsRef.orderBy("publishedAt", "desc").get();
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            publishedAt: (doc.data()?.publishedAt as { toDate?: () => Date })?.toDate?.()?.toISOString() || doc.data()?.publishedAt,
+        }));
+    }
 }
 
 export const flowService = new FlowService();
