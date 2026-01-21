@@ -127,6 +127,10 @@ export class GeminiService {
             }
         }
 
+        logger.info(
+            `[GeminiService] Generating text with content: ${JSON.stringify(contents, null, 2)}`,
+        );
+
         const response = await this.ai.models.generateContent({
             model: selectedModel,
             contents,

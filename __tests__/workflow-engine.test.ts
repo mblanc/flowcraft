@@ -307,9 +307,9 @@ describe("WorkflowEngine", () => {
             // Verify results
             const subWorkflowResult = engine.executionResults.get("sub-workflow-node");
             expect(subWorkflowResult).toBeDefined();
-            // In our implementation, the result of custom-workflow is a map of outputNodeId -> data
-            expect((subWorkflowResult as any)["sub-out-1"]).toBeDefined();
-            expect((subWorkflowResult as any)["sub-out-1"].value.text).toBe("hello");
+            // In our implementation, the result of custom-workflow is { results: { outputNodeId: data } }
+            expect((subWorkflowResult as any).results["sub-out-1"]).toBeDefined();
+            expect((subWorkflowResult as any).results["sub-out-1"].value.text).toBe("hello");
         });
     });
 });
