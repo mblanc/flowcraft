@@ -2,6 +2,7 @@ import { getFirestore } from "@/lib/firestore";
 import { FlowCreateRequest, FlowUpdateRequest } from "@/lib/schemas";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
+import { detectCycle, detectRecursiveCycle } from "@/lib/graph-utils";
 import {
     DocumentSnapshot,
     QueryDocumentSnapshot,
@@ -131,6 +132,89 @@ export class FlowService {
 
         await flowRef.delete();
         return { success: true };
+    }
+
+    async publishFlow(flowId: string, userId: string) {
+        logger.info(`[FlowService] Publishing flow: ${flowId} for user: ${userId}`);
+        
+        const flowRef = this.firestore.collection(COLLECTIONS.FLOWS).doc(flowId);
+        const flowDoc = await flowRef.get();
+
+        if (!flowDoc.exists) {
+            throw new Error("Flow not found");
+        }
+
+        const flowData = this.transformDoc(flowDoc);
+
+        if (flowData.userId !== userId) {
+            throw new Error("Unauthorized");
+        }
+
+        const nodes = (flowData.nodes as any[]) || [];
+        const edges = (flowData.edges as any[]) || [];
+
+        // 1. Validate Interface
+        const hasInput = nodes.some(n => n.type === 'workflow-input');
+        const hasOutput = nodes.some(n => n.type === 'workflow-output');
+
+        if (!hasInput || !hasOutput) {
+             throw new Error("Flow must have at least one Workflow Input and one Workflow Output node");
+        }
+
+        // 2. Validate Cycle (DAG)
+        if (detectCycle(nodes, edges)) {
+            throw new Error("Flow contains a cycle");
+        }
+
+        // 3. Validate Recursive Cycle
+        const fetchFlow = async (id: string) => {
+            try {
+                const doc = await this.firestore.collection(COLLECTIONS.FLOWS).doc(id).get();
+                if (!doc.exists) return null;
+                return { nodes: (doc.data()?.nodes as any[]) || [] };
+            } catch (e) {
+                return null;
+            }
+        };
+
+        const subWorkflowNodes = nodes.filter(n => n.type === 'custom-workflow');
+        for (const node of subWorkflowNodes) {
+             const subId = node.data?.subWorkflowId;
+             if (subId) {
+                 if (await detectRecursiveCycle(flowId, subId, fetchFlow)) {
+                      throw new Error("Recursive cycle detected");
+                 }
+             }
+        }
+
+        // 4. Create Version
+        const versionsRef = flowRef.collection('versions');
+        const versionsSnapshot = await versionsRef.count().get();
+        const versionNumber = versionsSnapshot.data().count + 1;
+        const version = `1.0.${versionNumber}`;
+
+        const versionData = {
+            ...flowData,
+            version,
+            publishedAt: new Date(),
+        };
+        delete (versionData as any).id;
+
+        await versionsRef.add(versionData);
+
+        // 5. Update Main Flow
+        await flowRef.update({
+            isPublished: true,
+            publishedVersion: version,
+            updatedAt: new Date(),
+        });
+
+        return {
+            ...flowData,
+            isPublished: true,
+            publishedVersion: version,
+            version, 
+        };
     }
 }
 
