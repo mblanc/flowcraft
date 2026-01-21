@@ -17,12 +17,12 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Build Publish Modal UI to capture metadata and trigger publishing. bfbc848
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Publishing Logic' (Protocol in workflow.md)
 
-## Phase 3: Consumption & Gallery
+## Phase 3: Consumption & Gallery [checkpoint: a92f3af]
 - [x] Task: Implement `Custom Workflow` node with dynamic port generation based on sub-graph interface. 853f142
 - [x] Task: Build Workflow Gallery UI (browsing published workflows). 0eb545a
 - [x] Task: Implement Gallery Listing API with filters (Mine vs. Public). 0eb545a
 - [x] Task: Integrate "Add to Editor" functionality from the Gallery. 0eb545a
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Consumption & Gallery' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Consumption & Gallery' (Protocol in workflow.md)
 
 ## Phase 4: Versioning & Execution
 - [ ] Task: Update `WorkflowEngine` to support Recursive Execution of sub-graph nodes.
