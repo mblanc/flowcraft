@@ -153,9 +153,9 @@ export class FlowService {
         const nodes = (flowData.nodes as any[]) || [];
         const edges = (flowData.edges as any[]) || [];
 
-        // 1. Validate Interface
-        const hasInput = nodes.some(n => n.type === 'workflow-input');
-        const hasOutput = nodes.some(n => n.type === 'workflow-output');
+        // 1. Validate Interface - check both top-level type and data.type
+        const hasInput = nodes.some(n => n.type === 'workflow-input' || n.data?.type === 'workflow-input');
+        const hasOutput = nodes.some(n => n.type === 'workflow-output' || n.data?.type === 'workflow-output');
 
         if (!hasInput || !hasOutput) {
              throw new Error("Flow must have at least one Workflow Input and one Workflow Output node");
