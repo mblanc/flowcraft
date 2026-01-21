@@ -24,10 +24,10 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Integrate "Add to Editor" functionality from the Gallery. 0eb545a
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Consumption & Gallery' (Protocol in workflow.md)
 
-## Phase 4: Versioning & Execution [checkpoint: 12fa23a]
+## Phase 4: Versioning & Execution [checkpoint: 5f64aea]
 - [x] Task: Update `WorkflowEngine` to support Recursive Execution of sub-graph nodes. 4dda77d
 - [x] Task: Implement Version History API and basic UI for viewing versions. bbe5bf0
 - [x] Task: Implement Version Upgrade logic (remapping connections when a newer version is selected). 230214b
 - [x] Task: Implement breaking change detection and UI warnings during upgrades. 9686c08
 - [x] Task: Enhance Custom Workflow node with resizing and output previews. 20fc240
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Versioning & Execution' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Versioning & Execution' (Protocol in workflow.md)
