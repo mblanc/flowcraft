@@ -24,7 +24,9 @@ function SubWorkflowOutputPreview({ type, value, maxHeight }: { type: string, va
             }
         };
 
-        const uri = type === 'image' ? (value?.images?.[0] || value?.image) : (type === 'video' ? value?.videoUrl : null);
+        // For WorkflowOutput nodes, the value is wrapped in a 'value' object: { value: { images: [...], output: "..." } }
+        const actualValue = value?.value || value;
+        const uri = type === 'image' ? (actualValue?.images?.[0] || actualValue?.image) : (type === 'video' ? actualValue?.videoUrl : null);
         
         if (uri && uri.startsWith("gs://")) {
             fetchSignedUrl(uri);
@@ -64,7 +66,8 @@ function SubWorkflowOutputPreview({ type, value, maxHeight }: { type: string, va
     }
 
     // Default to text/json
-    const textValue = typeof value === 'object' ? (value.output || value.text || JSON.stringify(value, null, 2)) : String(value);
+    const actualValue = value?.value || value;
+    const textValue = typeof actualValue === 'object' ? (actualValue.output || actualValue.text || JSON.stringify(actualValue, null, 2)) : String(actualValue);
     return (
         <div className="text-foreground bg-muted/30 overflow-y-auto rounded-md p-2 text-[10px] break-words whitespace-pre-wrap" style={{ maxHeight }}>
             {textValue}
@@ -213,7 +216,7 @@ export const CustomWorkflowNode = memo(
 
         return (
             <div
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${
+                className={`bg-card custom-workflow-node relative rounded-lg border-2 p-4 shadow-lg transition-all ${
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"

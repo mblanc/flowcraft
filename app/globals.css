@@ -208,18 +208,18 @@
 }
 
 /* Port type handle colors */
-.react-flow__handle.port-string {
+.custom-workflow-node .react-flow__handle.port-string {
     background: #a855f7 !important; /* purple-500 */
 }
 
-.react-flow__handle.port-image {
+.custom-workflow-node .react-flow__handle.port-image {
     background: #f97316 !important; /* orange-500 */
 }
 
-.react-flow__handle.port-video {
+.custom-workflow-node .react-flow__handle.port-video {
     background: #ec4899 !important; /* pink-500 */
 }
 
-.react-flow__handle.port-json {
+.custom-workflow-node .react-flow__handle.port-json {
     background: #06b6d4 !important; /* cyan-500 */
 }
