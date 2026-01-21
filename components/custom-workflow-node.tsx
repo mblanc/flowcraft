@@ -46,22 +46,32 @@ export const CustomWorkflowNode = memo(
 
                     setInterfaceData({ inputs, outputs });
 
-                    // Clean up stale edges
+                    // Clean up stale edges (breaking changes)
                     const staleEdges = edges.filter(edge => {
                         if (edge.target === id && edge.targetHandle) {
                             // It's an input connection to this node
-                            return !inputs.some(i => i.id === edge.targetHandle);
+                            const input = inputs.find(i => i.id === edge.targetHandle);
+                            if (!input) return true; // Port removed
+                            
+                            // Check for type change (potential breaking change)
+                            const prevType = (data as any).inputs?.[edge.targetHandle];
+                            return prevType && prevType !== input.type;
                         }
                         if (edge.source === id && edge.sourceHandle) {
                             // It's an output connection from this node
-                            return !outputs.some(o => o.id === edge.sourceHandle);
+                            const output = outputs.find(o => o.id === edge.sourceHandle);
+                            if (!output) return true; // Port removed
+                            
+                            // Check for type change
+                            const prevType = (data as any).outputs?.[edge.sourceHandle];
+                            return prevType && prevType !== output.type;
                         }
                         return false;
                     });
 
                     if (staleEdges.length > 0) {
                         removeEdges(staleEdges.map(e => e.id));
-                        toast.warning(`Removed ${staleEdges.length} stale connections due to version change`);
+                        toast.error(`Removed ${staleEdges.length} connections due to breaking interface changes (removed ports or changed types)`);
                     }
 
                     // Store types in node data for connection validation (getSourcePortType/getTargetPortType)
