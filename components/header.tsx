@@ -8,6 +8,7 @@ import { Download, Upload, ArrowLeft, Save } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowPersistence } from "@/hooks/use-flow-persistence";
 import { UserProfile } from "./user-profile";
+import { PublishModal } from "./publish-modal";
 
 export function Header() {
     const { exportFlow, importFlow, saveFlow } = useFlowPersistence();
@@ -95,14 +96,17 @@ export function Header() {
 
             <div className="flex items-center gap-2">
                 {flowId && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => saveFlow()}
-                    >
-                        <Save className="mr-2 h-4 w-4" />
-                        Save
-                    </Button>
+                    <>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => saveFlow()}
+                        >
+                            <Save className="mr-2 h-4 w-4" />
+                            Save
+                        </Button>
+                        <PublishModal flowId={flowId} />
+                    </>
                 )}
                 <Button variant="ghost" size="sm" onClick={importFlow}>
                     <Upload className="mr-2 h-4 w-4" />
