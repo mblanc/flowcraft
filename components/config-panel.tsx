@@ -8,6 +8,7 @@ import {
     type ImageData,
     type VideoData,
     type FileData,
+    type CustomWorkflowData,
 } from "@/lib/types";
 import { MODELS } from "@/lib/constants";
 import { Input } from "./ui/input";
@@ -1009,9 +1010,19 @@ function TextConfig({ data, nodeId }: { data: TextData; nodeId: string }) {
     );
 }
 
-function CustomWorkflowConfig({ data, nodeId }: { data: any; nodeId: string }) {
-    const updateNodeData = useFlowStore((state: FlowState) => state.updateNodeData);
-    const [versions, setVersions] = useState<any[]>([]);
+function CustomWorkflowConfig({
+    data,
+    nodeId,
+}: {
+    data: CustomWorkflowData;
+    nodeId: string;
+}) {
+    const updateNodeData = useFlowStore(
+        (state: FlowState) => state.updateNodeData,
+    );
+    const [versions, setVersions] = useState<
+        { version: string; publishedAt: string }[]
+    >([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -1019,7 +1030,9 @@ function CustomWorkflowConfig({ data, nodeId }: { data: any; nodeId: string }) {
             if (!data.subWorkflowId) return;
             setLoading(true);
             try {
-                const res = await fetch(`/api/flows/${data.subWorkflowId}/versions`);
+                const res = await fetch(
+                    `/api/flows/${data.subWorkflowId}/versions`,
+                );
                 if (!res.ok) throw new Error("Failed to fetch versions");
                 const result = await res.json();
                 setVersions(result.versions);
@@ -1062,13 +1075,14 @@ function CustomWorkflowConfig({ data, nodeId }: { data: any; nodeId: string }) {
                     <SelectContent>
                         {versions.map((v) => (
                             <SelectItem key={v.version} value={v.version}>
-                                {v.version} ({new Date(v.publishedAt).toLocaleDateString()})
+                                {v.version} (
+                                {new Date(v.publishedAt).toLocaleDateString()})
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
                 {versions.length === 0 && !loading && (
-                    <p className="text-[10px] text-muted-foreground italic">
+                    <p className="text-muted-foreground text-[10px] italic">
                         No versions found for this workflow.
                     </p>
                 )}

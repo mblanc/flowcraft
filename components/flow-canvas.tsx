@@ -8,7 +8,9 @@ import {
     Controls,
     Panel,
     type Node,
+    type Edge,
     type ReactFlowInstance,
+    type Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { LLMNode } from "./llm-node";
@@ -22,11 +24,7 @@ import { WorkflowInputNode } from "./workflow-input-node";
 import { WorkflowOutputNode } from "./workflow-output-node";
 import { CustomWorkflowNode } from "./custom-workflow-node";
 import { NodeType, NodeData } from "@/lib/types";
-import {
-    getNodeDefinition,
-    getSourcePortType,
-    getTargetPortType,
-} from "@/lib/node-registry";
+import { getSourcePortType, getTargetPortType } from "@/lib/node-registry";
 import { isTypeCompatible } from "@/lib/utils";
 import { Button } from "./ui/button";
 import {
@@ -97,7 +95,7 @@ export function FlowCanvas() {
     const isRunning = useFlowStore((state: FlowState) => state.isRunning);
 
     const isValidConnection = useCallback(
-        (connection: any) => {
+        (connection: Connection | Edge) => {
             const sourceNode = nodes.find((n) => n.id === connection.source);
             const targetNode = nodes.find((n) => n.id === connection.target);
 

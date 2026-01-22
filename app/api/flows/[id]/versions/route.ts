@@ -7,7 +7,10 @@ export const GET = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
         const { id: flowId } = await params;
         try {
-            const versions = await flowService.listFlowVersions(flowId, session.user!.id!);
+            const versions = await flowService.listFlowVersions(
+                flowId,
+                session.user!.id!,
+            );
             return NextResponse.json({ versions });
         } catch (error) {
             if (error instanceof Error) {

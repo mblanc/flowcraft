@@ -2,7 +2,12 @@ import { getFirestore } from "@/lib/firestore";
 import { FlowCreateRequest, FlowUpdateRequest } from "@/lib/schemas";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
-import { detectCycle, detectRecursiveCycle } from "@/lib/graph-utils";
+import {
+    detectCycle,
+    detectRecursiveCycle,
+    GraphNode,
+    GraphEdge,
+} from "@/lib/graph-utils";
 import {
     DocumentSnapshot,
     QueryDocumentSnapshot,
@@ -135,9 +140,13 @@ export class FlowService {
     }
 
     async publishFlow(flowId: string, userId: string) {
-        logger.info(`[FlowService] Publishing flow: ${flowId} for user: ${userId}`);
-        
-        const flowRef = this.firestore.collection(COLLECTIONS.FLOWS).doc(flowId);
+        logger.info(
+            `[FlowService] Publishing flow: ${flowId} for user: ${userId}`,
+        );
+
+        const flowRef = this.firestore
+            .collection(COLLECTIONS.FLOWS)
+            .doc(flowId);
         const flowDoc = await flowRef.get();
 
         if (!flowDoc.exists) {
@@ -150,15 +159,29 @@ export class FlowService {
             throw new Error("Unauthorized");
         }
 
-        const nodes = (flowData.nodes as any[]) || [];
-        const edges = (flowData.edges as any[]) || [];
+        const nodes =
+            (flowData.nodes as (GraphNode & {
+                type: string;
+                data?: { type?: string; subWorkflowId?: string };
+            })[]) || [];
+        const edges = (flowData.edges as GraphEdge[]) || [];
 
         // 1. Validate Interface - check both top-level type and data.type
-        const hasInput = nodes.some(n => n.type === 'workflow-input' || n.data?.type === 'workflow-input');
-        const hasOutput = nodes.some(n => n.type === 'workflow-output' || n.data?.type === 'workflow-output');
+        const hasInput = nodes.some(
+            (n) =>
+                n.type === "workflow-input" ||
+                n.data?.type === "workflow-input",
+        );
+        const hasOutput = nodes.some(
+            (n) =>
+                n.type === "workflow-output" ||
+                n.data?.type === "workflow-output",
+        );
 
         if (!hasInput || !hasOutput) {
-             throw new Error("Flow must have at least one Workflow Input and one Workflow Output node");
+            throw new Error(
+                "Flow must have at least one Workflow Input and one Workflow Output node",
+            );
         }
 
         // 2. Validate Cycle (DAG)
@@ -169,36 +192,43 @@ export class FlowService {
         // 3. Validate Recursive Cycle
         const fetchFlow = async (id: string) => {
             try {
-                const doc = await this.firestore.collection(COLLECTIONS.FLOWS).doc(id).get();
+                const doc = await this.firestore
+                    .collection(COLLECTIONS.FLOWS)
+                    .doc(id)
+                    .get();
                 if (!doc.exists) return null;
-                return { nodes: (doc.data()?.nodes as any[]) || [] };
-            } catch (e) {
+                return { nodes: (doc.data()?.nodes as GraphNode[]) || [] };
+            } catch {
                 return null;
             }
         };
 
-        const subWorkflowNodes = nodes.filter(n => n.type === 'custom-workflow');
+        const subWorkflowNodes = nodes.filter(
+            (n) =>
+                n.type === "custom-workflow" ||
+                n.data?.type === "custom-workflow",
+        );
         for (const node of subWorkflowNodes) {
-             const subId = node.data?.subWorkflowId;
-             if (subId) {
-                 if (await detectRecursiveCycle(flowId, subId, fetchFlow)) {
-                      throw new Error("Recursive cycle detected");
-                 }
-             }
+            const subId = node.data?.subWorkflowId;
+            if (subId) {
+                if (await detectRecursiveCycle(flowId, subId, fetchFlow)) {
+                    throw new Error("Recursive cycle detected");
+                }
+            }
         }
 
         // 4. Create Version
-        const versionsRef = flowRef.collection('versions');
+        const versionsRef = flowRef.collection("versions");
         const versionsSnapshot = await versionsRef.count().get();
         const versionNumber = versionsSnapshot.data().count + 1;
         const version = `1.0.${versionNumber}`;
 
-        const versionData = {
+        const versionData: Record<string, unknown> = {
             ...flowData,
             version,
             publishedAt: new Date(),
         };
-        delete (versionData as any).id;
+        delete versionData.id;
 
         await versionsRef.add(versionData);
 
@@ -213,18 +243,25 @@ export class FlowService {
             ...flowData,
             isPublished: true,
             publishedVersion: version,
-            version, 
+            version,
         };
     }
 
     async getFlowVersion(flowId: string, version: string, userId: string) {
-        logger.debug(`[FlowService] Getting version ${version} of flow: ${flowId}`);
-        
-        const flowRef = this.firestore.collection(COLLECTIONS.FLOWS).doc(flowId);
-        const versionsRef = flowRef.collection('versions');
-        
-        const versionQuery = await versionsRef.where('version', '==', version).limit(1).get();
-        
+        logger.debug(
+            `[FlowService] Getting version ${version} of flow: ${flowId}`,
+        );
+
+        const flowRef = this.firestore
+            .collection(COLLECTIONS.FLOWS)
+            .doc(flowId);
+        const versionsRef = flowRef.collection("versions");
+
+        const versionQuery = await versionsRef
+            .where("version", "==", version)
+            .limit(1)
+            .get();
+
         if (versionQuery.empty) {
             throw new Error("Version not found");
         }
@@ -233,35 +270,46 @@ export class FlowService {
         const versionData = this.transformDoc(versionDoc);
 
         // We could check visibility here if we support public flows
-        if (versionData.userId !== userId && versionData.visibility !== 'public') {
+        if (
+            versionData.userId !== userId &&
+            versionData.visibility !== "public"
+        ) {
             throw new Error("Unauthorized");
         }
 
         return versionData;
     }
 
-    async listPublishedFlows(userId: string, filter: 'mine' | 'public' | 'all' = 'all') {
-        logger.debug(`[FlowService] Listing published flows for user: ${userId}, filter: ${filter}`);
-        
-        let query = this.firestore.collection(COLLECTIONS.FLOWS)
+    async listPublishedFlows(
+        userId: string,
+        filter: "mine" | "public" | "all" = "all",
+    ) {
+        logger.debug(
+            `[FlowService] Listing published flows for user: ${userId}, filter: ${filter}`,
+        );
+
+        let query = this.firestore
+            .collection(COLLECTIONS.FLOWS)
             .where("isPublished", "==", true);
 
-        if (filter === 'mine') {
+        if (filter === "mine") {
             query = query.where("userId", "==", userId);
-        } else if (filter === 'public') {
+        } else if (filter === "public") {
             query = query.where("visibility", "==", "public");
         }
         // 'all' logic: we need to handle this with a more complex query or multiple queries
         // since Firestore doesn't support OR on different fields easily without IN.
         // For now, let's keep it simple and just do 'mine' or 'public' if not all.
         // If 'all', we fetch both or just return everything that is published and (mine OR public).
-        
-        const snapshot = await query.orderBy("updatedAt", "desc").get();
-        let flows = snapshot.docs.map(doc => this.transformDoc(doc));
 
-        if (filter === 'all') {
+        const snapshot = await query.orderBy("updatedAt", "desc").get();
+        let flows = snapshot.docs.map((doc) => this.transformDoc(doc));
+
+        if (filter === "all") {
             // Filter in-memory for (mine OR public)
-            flows = flows.filter(f => f.userId === userId || f.visibility === 'public');
+            flows = flows.filter(
+                (f) => f.userId === userId || f.visibility === "public",
+            );
         }
 
         return flows;
@@ -269,25 +317,33 @@ export class FlowService {
 
     async listFlowVersions(flowId: string, userId: string) {
         logger.debug(`[FlowService] Listing versions for flow: ${flowId}`);
-        
-        const flowRef = this.firestore.collection(COLLECTIONS.FLOWS).doc(flowId);
+
+        const flowRef = this.firestore
+            .collection(COLLECTIONS.FLOWS)
+            .doc(flowId);
         const flowDoc = await flowRef.get();
 
         if (!flowDoc.exists) {
             throw new Error("Flow not found");
         }
 
-        if (flowDoc.data()?.userId !== userId && flowDoc.data()?.visibility !== 'public') {
+        if (
+            flowDoc.data()?.userId !== userId &&
+            flowDoc.data()?.visibility !== "public"
+        ) {
             throw new Error("Unauthorized");
         }
 
-        const versionsRef = flowRef.collection('versions');
+        const versionsRef = flowRef.collection("versions");
         const snapshot = await versionsRef.orderBy("publishedAt", "desc").get();
 
-        return snapshot.docs.map(doc => ({
+        return snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
-            publishedAt: (doc.data()?.publishedAt as { toDate?: () => Date })?.toDate?.()?.toISOString() || doc.data()?.publishedAt,
+            publishedAt:
+                (doc.data()?.publishedAt as { toDate?: () => Date })
+                    ?.toDate?.()
+                    ?.toISOString() || doc.data()?.publishedAt,
         }));
     }
 }

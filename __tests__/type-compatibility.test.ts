@@ -18,7 +18,7 @@ describe("Type Compatibility Utility", () => {
 
     it("should handle any/unknown types gracefully", () => {
         // If we decide to support 'any' in the future
-        expect(isTypeCompatible("any" as any, "string")).toBe(true);
-        expect(isTypeCompatible("string", "any" as any)).toBe(true);
+        expect(isTypeCompatible("any", "string")).toBe(true);
+        expect(isTypeCompatible("string", "any")).toBe(true);
     });
 });

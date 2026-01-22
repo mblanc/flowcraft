@@ -31,7 +31,7 @@ export interface NodeInputs {
     firstFrame?: string;
     lastFrame?: string;
     image?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export type LLMData = InferredLLMData;

@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { 
-    NodeDataSchema, 
-    FlowCreateSchema, 
-    FlowUpdateSchema 
-} from "../lib/schemas";
+import { NodeDataSchema, FlowCreateSchema } from "../lib/schemas";
 
 describe("Schema Validation", () => {
     describe("Workflow Input Node", () => {
@@ -14,7 +10,7 @@ describe("Schema Validation", () => {
                 portName: "prompt",
                 portType: "string",
                 portRequired: true,
-                portDefaultValue: "Hello"
+                portDefaultValue: "Hello",
             };
             const result = NodeDataSchema.safeParse(data);
             expect(result.success).toBe(true);
@@ -25,7 +21,7 @@ describe("Schema Validation", () => {
                 type: "workflow-input",
                 name: "Input Node",
                 portName: "prompt",
-                portType: "invalid-type"
+                portType: "invalid-type",
             };
             const result = NodeDataSchema.safeParse(data);
             expect(result.success).toBe(false);
@@ -38,7 +34,7 @@ describe("Schema Validation", () => {
                 type: "workflow-output",
                 name: "Output Node",
                 portName: "result",
-                portType: "image"
+                portType: "image",
             };
             const result = NodeDataSchema.safeParse(data);
             expect(result.success).toBe(true);
@@ -51,7 +47,7 @@ describe("Schema Validation", () => {
                 type: "custom-workflow",
                 name: "Sub Workflow",
                 subWorkflowId: "flow-123",
-                subWorkflowVersion: "1.0.0"
+                subWorkflowVersion: "1.0.0",
             };
             const result = NodeDataSchema.safeParse(data);
             expect(result.success).toBe(true);
@@ -67,7 +63,7 @@ describe("Schema Validation", () => {
                 version: "1.0.0",
                 isPublished: true,
                 visibility: "public",
-                tags: ["test"]
+                tags: ["test"],
             };
             // Note: FlowCreateSchema/FlowUpdateSchema might need updates to include these
             const result = FlowCreateSchema.safeParse(flow);

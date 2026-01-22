@@ -23,11 +23,11 @@ describe("PublishModal", () => {
         render(<PublishModal flowId="1" />);
         const button = screen.getByText("Publish");
         fireEvent.click(button);
-        
+
         await waitFor(() => {
             expect(screen.getByRole("dialog")).toBeInTheDocument();
         });
-        
+
         expect(screen.getByText("Publish Workflow")).toBeInTheDocument();
     });
 
@@ -35,11 +35,11 @@ describe("PublishModal", () => {
         vi.mocked(global.fetch).mockResolvedValue({
             ok: true,
             json: async () => ({ version: "1.0.1" }),
-        } as any);
+        } as unknown as Response);
 
         render(<PublishModal flowId="1" />);
         fireEvent.click(screen.getByText("Publish"));
-        
+
         await waitFor(() => {
             expect(screen.getByRole("dialog")).toBeInTheDocument();
         });
@@ -48,9 +48,12 @@ describe("PublishModal", () => {
         fireEvent.click(confirmButton);
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith("/api/flows/1/publish", expect.objectContaining({
-                method: "POST"
-            }));
+            expect(global.fetch).toHaveBeenCalledWith(
+                "/api/flows/1/publish",
+                expect.objectContaining({
+                    method: "POST",
+                }),
+            );
         });
     });
 });

@@ -1,4 +1,5 @@
 # Product Requirements Document
+
 ## Workflow Composability (Sub-Graphs)
 
 ---
@@ -6,9 +7,11 @@
 ## 1. Overview
 
 ### 1.1 Summary
+
 Enable users to publish workflows as reusable nodes (Sub-Graphs) that can be embedded in other workflows, creating an infinitely nestable, function-like abstraction system.
 
 ### 1.2 Core Concept: "Workflow as a Function"
+
 A workflow behaves like a code function: `Output = Workflow(Input)`
 
 - **Encapsulation**: Users see custom nodes as single "black boxes"
@@ -17,15 +20,17 @@ A workflow behaves like a code function: `Output = Workflow(Input)`
 - **Version Pinning**: References point to specific `workflowId + version`
 
 ### 1.3 Tech Stack
-| Layer | Technology |
-|-------|------------|
-| Frontend | Next.js, React 19, TypeScript, Tailwind CSS 4 |
-| State Management | Zustand |
-| Database | Google Firestore |
-| File Storage | Google Cloud Storage |
-| AI Provider | Google Vertex AI |
+
+| Layer            | Technology                                    |
+| ---------------- | --------------------------------------------- |
+| Frontend         | Next.js, React 19, TypeScript, Tailwind CSS 4 |
+| State Management | Zustand                                       |
+| Database         | Google Firestore                              |
+| File Storage     | Google Cloud Storage                          |
+| AI Provider      | Google Vertex AI                              |
 
 ### 1.4 Success Metrics
+
 - Users can publish and reuse workflows as nodes
 - Zero circular dependency errors reach runtime
 - Component discovery increases workflow creation velocity
@@ -34,18 +39,18 @@ A workflow behaves like a code function: `Output = Workflow(Input)`
 
 ## 2. User Stories
 
-| ID | Story | Acceptance Criteria |
-|----|-------|---------------------|
-| C1 | As a user, I want to add `WorkflowInput` nodes to define external inputs to my workflow | Input nodes appear in editor toolbox; each defines one typed port |
-| C2 | As a user, I want to add `WorkflowOutput` nodes to define what data leaves my workflow | Output nodes appear in editor toolbox; each defines one typed port |
-| C3 | As a user, I want to publish my workflow as a reusable node | "Publish" action validates graph and creates versioned, immutable snapshot |
-| C4 | As a user, I want to set my published workflow as private or public | Visibility toggle on publish; private = only me, public = all users |
-| C5 | As a user, I want to browse a gallery of available workflows (mine + public) | Gallery with search, filter by author/tags, sorted by usage |
-| C6 | As a user, I want to drag a published workflow into my editor and use it as a single node | Node renders with input ports matching `WorkflowInput` nodes, output ports matching `WorkflowOutput` nodes |
-| C7 | As a user, I want connections to be validated by type | Invalid connections refused or shown in error state |
-| C8 | As a user, I want my usage of a sub-workflow pinned to a specific version | Version stored in node data; parent unaffected by sub-workflow updates |
-| C9 | As a user, I want to see when a newer version is available and choose to upgrade | Visual indicator on node; upgrade action remaps connections if compatible |
-| C10 | As a user, I want to be prevented from creating circular dependencies | System rejects save/publish if cycle detected |
+| ID  | Story                                                                                     | Acceptance Criteria                                                                                        |
+| --- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| C1  | As a user, I want to add `WorkflowInput` nodes to define external inputs to my workflow   | Input nodes appear in editor toolbox; each defines one typed port                                          |
+| C2  | As a user, I want to add `WorkflowOutput` nodes to define what data leaves my workflow    | Output nodes appear in editor toolbox; each defines one typed port                                         |
+| C3  | As a user, I want to publish my workflow as a reusable node                               | "Publish" action validates graph and creates versioned, immutable snapshot                                 |
+| C4  | As a user, I want to set my published workflow as private or public                       | Visibility toggle on publish; private = only me, public = all users                                        |
+| C5  | As a user, I want to browse a gallery of available workflows (mine + public)              | Gallery with search, filter by author/tags, sorted by usage                                                |
+| C6  | As a user, I want to drag a published workflow into my editor and use it as a single node | Node renders with input ports matching `WorkflowInput` nodes, output ports matching `WorkflowOutput` nodes |
+| C7  | As a user, I want connections to be validated by type                                     | Invalid connections refused or shown in error state                                                        |
+| C8  | As a user, I want my usage of a sub-workflow pinned to a specific version                 | Version stored in node data; parent unaffected by sub-workflow updates                                     |
+| C9  | As a user, I want to see when a newer version is available and choose to upgrade          | Visual indicator on node; upgrade action remaps connections if compatible                                  |
+| C10 | As a user, I want to be prevented from creating circular dependencies                     | System rejects save/publish if cycle detected                                                              |
 
 ---
 
@@ -63,77 +68,77 @@ Single collection handles both "workflows" and "published components" — a publ
 
 ```typescript
 interface Workflow {
-  id: string;
-  userId: string;
-  name: string;
-  description?: string;
-  
-  // Versioning
-  version: string;              // Semantic: "1.0.0"
-  parentWorkflowId?: string;    // Points to previous version (for version chain)
-  isLatestVersion: boolean;
-  
-  // Graph Structure
-  nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-  
-  // Interface Contract (derived from WORKFLOW_INPUT/OUTPUT nodes)
-  inputs: WorkflowPort[];
-  outputs: WorkflowPort[];
-  
-  // Publishing State
-  isPublished: boolean;         // false = draft, true = immutable & usable
-  visibility: 'private' | 'public';
-  tags: string[];
-  
-  // Stats
-  usageCount: number;
-  
-  // Timestamps
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  publishedAt?: Timestamp;
+    id: string;
+    userId: string;
+    name: string;
+    description?: string;
+
+    // Versioning
+    version: string; // Semantic: "1.0.0"
+    parentWorkflowId?: string; // Points to previous version (for version chain)
+    isLatestVersion: boolean;
+
+    // Graph Structure
+    nodes: WorkflowNode[];
+    edges: WorkflowEdge[];
+
+    // Interface Contract (derived from WORKFLOW_INPUT/OUTPUT nodes)
+    inputs: WorkflowPort[];
+    outputs: WorkflowPort[];
+
+    // Publishing State
+    isPublished: boolean; // false = draft, true = immutable & usable
+    visibility: "private" | "public";
+    tags: string[];
+
+    // Stats
+    usageCount: number;
+
+    // Timestamps
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+    publishedAt?: Timestamp;
 }
 ```
 
 ### 3.3 Node Structure
 
 ```typescript
-type NodeCategory = 
-  | 'NATIVE_FUNCTION'    // Built-in AI operations
-  | 'CUSTOM_WORKFLOW'    // Embedded sub-graph
-  | 'WORKFLOW_INPUT'     // Defines external input port
-  | 'WORKFLOW_OUTPUT';   // Defines external output port
+type NodeCategory =
+    | "NATIVE_FUNCTION" // Built-in AI operations
+    | "CUSTOM_WORKFLOW" // Embedded sub-graph
+    | "WORKFLOW_INPUT" // Defines external input port
+    | "WORKFLOW_OUTPUT"; // Defines external output port
 
-type NativeFunctionId = 
-  | 'text-prompt'
-  | 'image-gen'
-  | 'video-gen'
-  | 'text-transform'
-  | 'image-transform'
-  | 'image-to-text'
-  | 'video-to-frames';
+type NativeFunctionId =
+    | "text-prompt"
+    | "image-gen"
+    | "video-gen"
+    | "text-transform"
+    | "image-transform"
+    | "image-to-text"
+    | "video-to-frames";
 
 interface WorkflowNode {
-  id: string;                    // Unique within workflow (e.g., "node_abc123")
-  category: NodeCategory;
-  position: { x: number; y: number };
-  
-  // For NATIVE_FUNCTION
-  functionId?: NativeFunctionId;
-  
-  // For CUSTOM_WORKFLOW
-  subWorkflowId?: string;
-  subWorkflowVersion?: string;
-  
-  // For WORKFLOW_INPUT / WORKFLOW_OUTPUT
-  portName?: string;             // User-defined label (e.g., "product_name")
-  portType?: PortDataType;       // Data type for this port
-  portRequired?: boolean;        // For inputs: is this required?
-  portDefaultValue?: any;        // For inputs: default if not provided
-  
-  // Static configuration set in UI
-  data: Record<string, any>;
+    id: string; // Unique within workflow (e.g., "node_abc123")
+    category: NodeCategory;
+    position: { x: number; y: number };
+
+    // For NATIVE_FUNCTION
+    functionId?: NativeFunctionId;
+
+    // For CUSTOM_WORKFLOW
+    subWorkflowId?: string;
+    subWorkflowVersion?: string;
+
+    // For WORKFLOW_INPUT / WORKFLOW_OUTPUT
+    portName?: string; // User-defined label (e.g., "product_name")
+    portType?: PortDataType; // Data type for this port
+    portRequired?: boolean; // For inputs: is this required?
+    portDefaultValue?: any; // For inputs: default if not provided
+
+    // Static configuration set in UI
+    data: Record<string, any>;
 }
 ```
 
@@ -141,45 +146,45 @@ interface WorkflowNode {
 
 ```typescript
 interface WorkflowEdge {
-  id: string;
-  source: string;        // Node ID
-  sourceHandle: string;  // Output port name (e.g., "image", "text")
-  target: string;        // Node ID
-  targetHandle: string;  // Input port name (e.g., "prompt", "source_image")
+    id: string;
+    source: string; // Node ID
+    sourceHandle: string; // Output port name (e.g., "image", "text")
+    target: string; // Node ID
+    targetHandle: string; // Input port name (e.g., "prompt", "source_image")
 }
 ```
 
 ### 3.5 Port Definition
 
 ```typescript
-type PortDataType = 
-  | 'string' 
-  | 'number' 
-  | 'boolean' 
-  | 'image' 
-  | 'video' 
-  | 'json';
+type PortDataType =
+    | "string"
+    | "number"
+    | "boolean"
+    | "image"
+    | "video"
+    | "json";
 
 interface WorkflowPort {
-  id: string;              // Matches the WORKFLOW_INPUT/OUTPUT node ID
-  name: string;            // User-defined label
-  dataType: PortDataType;
-  required: boolean;
-  defaultValue?: any;
-  description?: string;
+    id: string; // Matches the WORKFLOW_INPUT/OUTPUT node ID
+    name: string; // User-defined label
+    dataType: PortDataType;
+    required: boolean;
+    defaultValue?: any;
+    description?: string;
 }
 ```
 
 ### 3.6 Type Compatibility Matrix
 
-| Source Type | Valid Targets |
-|-------------|---------------|
-| `string` | `string` |
-| `number` | `number`, `string` |
-| `boolean` | `boolean`, `string`, `number` |
-| `image` | `image` |
-| `video` | `video` |
-| `json` | `json`, `string` |
+| Source Type | Valid Targets                 |
+| ----------- | ----------------------------- |
+| `string`    | `string`                      |
+| `number`    | `number`, `string`            |
+| `boolean`   | `boolean`, `string`, `number` |
+| `image`     | `image`                       |
+| `video`     | `video`                       |
+| `json`      | `json`, `string`              |
 
 ### 3.7 Firestore Indexes
 
@@ -263,35 +268,39 @@ User's Workflow                     Flattened Graph
 // Creates new or updates existing draft workflow
 
 interface SaveWorkflowRequest {
-  id?: string;                    // If provided, updates existing
-  name: string;
-  description?: string;
-  nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-  tags?: string[];
+    id?: string; // If provided, updates existing
+    name: string;
+    description?: string;
+    nodes: WorkflowNode[];
+    edges: WorkflowEdge[];
+    tags?: string[];
 }
 
 interface SaveWorkflowResponse {
-  success: boolean;
-  workflow: Workflow;
-  validation: {
-    isValid: boolean;
-    errors: ValidationError[];
-    warnings: ValidationWarning[];
-  };
+    success: boolean;
+    workflow: Workflow;
+    validation: {
+        isValid: boolean;
+        errors: ValidationError[];
+        warnings: ValidationWarning[];
+    };
 }
 
 interface ValidationError {
-  code: 'CYCLE_DETECTED' | 'INVALID_CONNECTION' | 'MISSING_REQUIRED_PORT' | 'SELF_REFERENCE';
-  message: string;
-  nodeIds?: string[];
-  edgeIds?: string[];
+    code:
+        | "CYCLE_DETECTED"
+        | "INVALID_CONNECTION"
+        | "MISSING_REQUIRED_PORT"
+        | "SELF_REFERENCE";
+    message: string;
+    nodeIds?: string[];
+    edgeIds?: string[];
 }
 
 interface ValidationWarning {
-  code: 'DISCONNECTED_NODE' | 'DEPRECATED_SUBWORKFLOW';
-  message: string;
-  nodeIds?: string[];
+    code: "DISCONNECTED_NODE" | "DEPRECATED_SUBWORKFLOW";
+    message: string;
+    nodeIds?: string[];
 }
 ```
 
@@ -302,20 +311,20 @@ interface ValidationWarning {
 // Creates immutable, versioned snapshot
 
 interface PublishWorkflowRequest {
-  visibility: 'private' | 'public';
-  changelog?: string;            // Description of changes from previous version
+    visibility: "private" | "public";
+    changelog?: string; // Description of changes from previous version
 }
 
 interface PublishWorkflowResponse {
-  success: boolean;
-  workflow: Workflow;            // The published version
-  version: string;               // e.g., "1.0.0"
-  
-  // Derived interface (for display)
-  interface: {
-    inputs: WorkflowPort[];
-    outputs: WorkflowPort[];
-  };
+    success: boolean;
+    workflow: Workflow; // The published version
+    version: string; // e.g., "1.0.0"
+
+    // Derived interface (for display)
+    interface: {
+        inputs: WorkflowPort[];
+        outputs: WorkflowPort[];
+    };
 }
 
 // Errors:
@@ -330,41 +339,41 @@ interface PublishWorkflowResponse {
 // GET /api/workflows
 
 interface ListWorkflowsRequest {
-  filter: 'mine' | 'public' | 'all';
-  isPublished?: boolean;
-  tags?: string[];
-  search?: string;
-  page: number;
-  pageSize: number;
-  sortBy?: 'createdAt' | 'usageCount' | 'name';
-  sortOrder?: 'asc' | 'desc';
+    filter: "mine" | "public" | "all";
+    isPublished?: boolean;
+    tags?: string[];
+    search?: string;
+    page: number;
+    pageSize: number;
+    sortBy?: "createdAt" | "usageCount" | "name";
+    sortOrder?: "asc" | "desc";
 }
 
 interface ListWorkflowsResponse {
-  workflows: WorkflowSummary[];
-  totalCount: number;
-  hasMore: boolean;
+    workflows: WorkflowSummary[];
+    totalCount: number;
+    hasMore: boolean;
 }
 
 interface WorkflowSummary {
-  id: string;
-  name: string;
-  description?: string;
-  version: string;
-  visibility: 'private' | 'public';
-  tags: string[];
-  usageCount: number;
-  
-  // Quick reference for UI
-  inputCount: number;
-  outputCount: number;
-  
-  // Author info
-  userId: string;
-  authorName?: string;
-  
-  createdAt: Timestamp;
-  publishedAt?: Timestamp;
+    id: string;
+    name: string;
+    description?: string;
+    version: string;
+    visibility: "private" | "public";
+    tags: string[];
+    usageCount: number;
+
+    // Quick reference for UI
+    inputCount: number;
+    outputCount: number;
+
+    // Author info
+    userId: string;
+    authorName?: string;
+
+    createdAt: Timestamp;
+    publishedAt?: Timestamp;
 }
 ```
 
@@ -374,22 +383,22 @@ interface WorkflowSummary {
 // GET /api/workflows/:id/versions
 
 interface GetVersionsResponse {
-  versions: WorkflowVersionSummary[];
+    versions: WorkflowVersionSummary[];
 }
 
 interface WorkflowVersionSummary {
-  id: string;                    // This version's workflow ID
-  version: string;               // e.g., "1.0.0", "1.1.0"
-  changelog?: string;
-  publishedAt: Timestamp;
-  
-  // Interface at this version
-  inputs: WorkflowPort[];
-  outputs: WorkflowPort[];
-  
-  // Compatibility info
-  isLatest: boolean;
-  breakingChanges: boolean;      // vs previous version
+    id: string; // This version's workflow ID
+    version: string; // e.g., "1.0.0", "1.1.0"
+    changelog?: string;
+    publishedAt: Timestamp;
+
+    // Interface at this version
+    inputs: WorkflowPort[];
+    outputs: WorkflowPort[];
+
+    // Compatibility info
+    isLatest: boolean;
+    breakingChanges: boolean; // vs previous version
 }
 ```
 
@@ -400,28 +409,28 @@ interface WorkflowVersionSummary {
 // Called for CUSTOM_WORKFLOW nodes to see if newer version exists
 
 interface CheckUpdatesRequest {
-  currentVersion: string;
+    currentVersion: string;
 }
 
 interface CheckUpdatesResponse {
-  hasUpdate: boolean;
-  latestVersion?: string;
-  latestWorkflowId?: string;
-  changelog?: string;
-  
-  compatibility: {
-    isCompatible: boolean;       // Can upgrade without breaking connections
-    addedInputs: WorkflowPort[];
-    removedInputs: WorkflowPort[];
-    addedOutputs: WorkflowPort[];
-    removedOutputs: WorkflowPort[];
-    typeChanges: {
-      portId: string;
-      portName: string;
-      oldType: PortDataType;
-      newType: PortDataType;
-    }[];
-  };
+    hasUpdate: boolean;
+    latestVersion?: string;
+    latestWorkflowId?: string;
+    changelog?: string;
+
+    compatibility: {
+        isCompatible: boolean; // Can upgrade without breaking connections
+        addedInputs: WorkflowPort[];
+        removedInputs: WorkflowPort[];
+        addedOutputs: WorkflowPort[];
+        removedOutputs: WorkflowPort[];
+        typeChanges: {
+            portId: string;
+            portName: string;
+            oldType: PortDataType;
+            newType: PortDataType;
+        }[];
+    };
 }
 ```
 
@@ -534,7 +543,7 @@ interface CheckUpdatesResponse {
       (string)      │                                 │
                     │  [👁️ View] [⬆️ Upgrade]         │
                     └─────────────────────────────────┘
-                    
+
 Left side: Input ports (from WorkflowInput nodes)
 Right side: Output ports (from WorkflowOutput nodes)
 ```
@@ -559,7 +568,7 @@ Invalid Connection (incompatible types):
             ↑            ↑
          image        string
          (red dashed, connection refused)
-         
+
 Tooltip: "Cannot connect image to string"
 ```
 
@@ -818,33 +827,35 @@ Tooltip: "Cannot connect image to string"
 
 ### 8.1 Save Validation (Draft)
 
-| Rule | Error Code | Severity |
-|------|------------|----------|
-| Graph must be a DAG (no cycles) | `CYCLE_DETECTED` | Error |
-| All connections must have valid types | `INVALID_CONNECTION` | Error |
-| Sub-workflow references must exist | `SUBWORKFLOW_NOT_FOUND` | Error |
-| Self-reference not allowed (directly or indirectly) | `SELF_REFERENCE` | Error |
-| Disconnected nodes allowed | `DISCONNECTED_NODE` | Warning |
-| Deprecated sub-workflows | `DEPRECATED_SUBWORKFLOW` | Warning |
+| Rule                                                | Error Code               | Severity |
+| --------------------------------------------------- | ------------------------ | -------- |
+| Graph must be a DAG (no cycles)                     | `CYCLE_DETECTED`         | Error    |
+| All connections must have valid types               | `INVALID_CONNECTION`     | Error    |
+| Sub-workflow references must exist                  | `SUBWORKFLOW_NOT_FOUND`  | Error    |
+| Self-reference not allowed (directly or indirectly) | `SELF_REFERENCE`         | Error    |
+| Disconnected nodes allowed                          | `DISCONNECTED_NODE`      | Warning  |
+| Deprecated sub-workflows                            | `DEPRECATED_SUBWORKFLOW` | Warning  |
 
 ### 8.2 Publish Validation (Additional)
 
-| Rule | Error Code | Severity |
-|------|------------|----------|
-| At least one `WORKFLOW_INPUT` node required | `NO_INPUTS_DEFINED` | Error |
-| At least one `WORKFLOW_OUTPUT` node required | `NO_OUTPUTS_DEFINED` | Error |
-| All `WORKFLOW_INPUT` nodes must have unique names | `DUPLICATE_INPUT_NAME` | Error |
-| All `WORKFLOW_OUTPUT` nodes must have unique names | `DUPLICATE_OUTPUT_NAME` | Error |
-| All `WORKFLOW_OUTPUT` nodes must be connected | `UNCONNECTED_OUTPUT` | Error |
-| Name and description required | `MISSING_METADATA` | Error |
+| Rule                                               | Error Code              | Severity |
+| -------------------------------------------------- | ----------------------- | -------- |
+| At least one `WORKFLOW_INPUT` node required        | `NO_INPUTS_DEFINED`     | Error    |
+| At least one `WORKFLOW_OUTPUT` node required       | `NO_OUTPUTS_DEFINED`    | Error    |
+| All `WORKFLOW_INPUT` nodes must have unique names  | `DUPLICATE_INPUT_NAME`  | Error    |
+| All `WORKFLOW_OUTPUT` nodes must have unique names | `DUPLICATE_OUTPUT_NAME` | Error    |
+| All `WORKFLOW_OUTPUT` nodes must be connected      | `UNCONNECTED_OUTPUT`    | Error    |
+| Name and description required                      | `MISSING_METADATA`      | Error    |
 
 ### 8.3 Circular Dependency Detection
 
 The system must prevent:
+
 1. **Direct self-reference**: Workflow A contains Workflow A
 2. **Indirect circular reference**: Workflow A contains B, B contains C, C contains A
 
 Detection must occur:
+
 - When saving a workflow that contains sub-workflows
 - When publishing a workflow
 - Recursively traverse all `CUSTOM_WORKFLOW` nodes and build dependency graph
@@ -857,82 +868,89 @@ Detection must occur:
 // stores/workflowEditorStore.ts
 
 interface WorkflowEditorState {
-  // Current workflow
-  workflow: Workflow | null;
-  isDirty: boolean;
-  
-  // Selection
-  selectedNodeIds: string[];
-  selectedEdgeIds: string[];
-  
-  // Validation state
-  validationResult: ValidationResult | null;
-  
-  // UI state
-  isPublishModalOpen: boolean;
-  isGalleryOpen: boolean;
-  
-  // Sub-workflow updates
-  availableUpdates: Map<string, UpdateInfo>; // nodeId -> update info
-  
-  // Actions - Workflow
-  loadWorkflow: (id: string) => Promise<void>;
-  saveWorkflow: () => Promise<SaveResult>;
-  createNewWorkflow: () => void;
-  
-  // Actions - Nodes
-  addNode: (category: NodeCategory, position: { x: number; y: number }, data?: any) => void;
-  updateNode: (nodeId: string, updates: Partial<WorkflowNode>) => void;
-  removeNode: (nodeId: string) => void;
-  
-  // Actions - Edges
-  addEdge: (edge: Omit<WorkflowEdge, 'id'>) => ValidationResult;
-  removeEdge: (edgeId: string) => void;
-  
-  // Actions - Validation
-  validateConnection: (source: PortRef, target: PortRef) => ConnectionValidation;
-  validateWorkflow: () => Promise<ValidationResult>;
-  
-  // Actions - Publishing
-  openPublishModal: () => void;
-  closePublishModal: () => void;
-  publishWorkflow: (options: PublishOptions) => Promise<PublishResult>;
-  
-  // Actions - Gallery
-  openGallery: () => void;
-  closeGallery: () => void;
-  addWorkflowFromGallery: (workflowId: string, version: string) => void;
-  
-  // Actions - Updates
-  checkForUpdates: () => Promise<void>;
-  upgradeSubWorkflow: (nodeId: string, newVersion: string) => Promise<void>;
-  dismissUpdate: (nodeId: string) => void;
+    // Current workflow
+    workflow: Workflow | null;
+    isDirty: boolean;
+
+    // Selection
+    selectedNodeIds: string[];
+    selectedEdgeIds: string[];
+
+    // Validation state
+    validationResult: ValidationResult | null;
+
+    // UI state
+    isPublishModalOpen: boolean;
+    isGalleryOpen: boolean;
+
+    // Sub-workflow updates
+    availableUpdates: Map<string, UpdateInfo>; // nodeId -> update info
+
+    // Actions - Workflow
+    loadWorkflow: (id: string) => Promise<void>;
+    saveWorkflow: () => Promise<SaveResult>;
+    createNewWorkflow: () => void;
+
+    // Actions - Nodes
+    addNode: (
+        category: NodeCategory,
+        position: { x: number; y: number },
+        data?: any,
+    ) => void;
+    updateNode: (nodeId: string, updates: Partial<WorkflowNode>) => void;
+    removeNode: (nodeId: string) => void;
+
+    // Actions - Edges
+    addEdge: (edge: Omit<WorkflowEdge, "id">) => ValidationResult;
+    removeEdge: (edgeId: string) => void;
+
+    // Actions - Validation
+    validateConnection: (
+        source: PortRef,
+        target: PortRef,
+    ) => ConnectionValidation;
+    validateWorkflow: () => Promise<ValidationResult>;
+
+    // Actions - Publishing
+    openPublishModal: () => void;
+    closePublishModal: () => void;
+    publishWorkflow: (options: PublishOptions) => Promise<PublishResult>;
+
+    // Actions - Gallery
+    openGallery: () => void;
+    closeGallery: () => void;
+    addWorkflowFromGallery: (workflowId: string, version: string) => void;
+
+    // Actions - Updates
+    checkForUpdates: () => Promise<void>;
+    upgradeSubWorkflow: (nodeId: string, newVersion: string) => Promise<void>;
+    dismissUpdate: (nodeId: string) => void;
 }
 
 interface PortRef {
-  nodeId: string;
-  handleId: string;
+    nodeId: string;
+    handleId: string;
 }
 
 interface ConnectionValidation {
-  isValid: boolean;
-  reason?: string;
-  sourceType: PortDataType;
-  targetType: PortDataType;
-  requiresCast: boolean;
+    isValid: boolean;
+    reason?: string;
+    sourceType: PortDataType;
+    targetType: PortDataType;
+    requiresCast: boolean;
 }
 
 interface UpdateInfo {
-  currentVersion: string;
-  latestVersion: string;
-  latestWorkflowId: string;
-  isCompatible: boolean;
-  changelog?: string;
+    currentVersion: string;
+    latestVersion: string;
+    latestWorkflowId: string;
+    isCompatible: boolean;
+    changelog?: string;
 }
 
 interface PublishOptions {
-  visibility: 'private' | 'public';
-  changelog?: string;
+    visibility: "private" | "public";
+    changelog?: string;
 }
 ```
 
@@ -942,53 +960,54 @@ interface PublishOptions {
 
 ### Phase 1: Foundation (Week 1)
 
-| Task | Description | Priority |
-|------|-------------|----------|
-| 1.1 | Create Firestore schema and indexes | P0 |
-| 1.2 | Implement `WORKFLOW_INPUT` node type in editor | P0 |
-| 1.3 | Implement `WORKFLOW_OUTPUT` node type in editor | P0 |
-| 1.4 | Build port configuration UI for input/output nodes | P0 |
-| 1.5 | Implement type compatibility checking service | P0 |
-| 1.6 | Add connection validation in editor (visual feedback) | P0 |
+| Task | Description                                           | Priority |
+| ---- | ----------------------------------------------------- | -------- |
+| 1.1  | Create Firestore schema and indexes                   | P0       |
+| 1.2  | Implement `WORKFLOW_INPUT` node type in editor        | P0       |
+| 1.3  | Implement `WORKFLOW_OUTPUT` node type in editor       | P0       |
+| 1.4  | Build port configuration UI for input/output nodes    | P0       |
+| 1.5  | Implement type compatibility checking service         | P0       |
+| 1.6  | Add connection validation in editor (visual feedback) | P0       |
 
 ### Phase 2: Publishing (Week 2)
 
-| Task | Description | Priority |
-|------|-------------|----------|
-| 2.1 | Build publish modal UI | P0 |
-| 2.2 | Implement DAG cycle detection service | P0 |
-| 2.3 | Implement circular dependency detection (nested) | P0 |
-| 2.4 | Create publish API endpoint with validation | P0 |
-| 2.5 | Generate interface contract from input/output nodes | P0 |
-| 2.6 | Implement version numbering logic | P1 |
+| Task | Description                                         | Priority |
+| ---- | --------------------------------------------------- | -------- |
+| 2.1  | Build publish modal UI                              | P0       |
+| 2.2  | Implement DAG cycle detection service               | P0       |
+| 2.3  | Implement circular dependency detection (nested)    | P0       |
+| 2.4  | Create publish API endpoint with validation         | P0       |
+| 2.5  | Generate interface contract from input/output nodes | P0       |
+| 2.6  | Implement version numbering logic                   | P1       |
 
 ### Phase 3: Gallery & Usage (Week 3)
 
-| Task | Description | Priority |
-|------|-------------|----------|
-| 3.1 | Build workflow gallery UI | P0 |
-| 3.2 | Implement gallery listing API with filters | P0 |
-| 3.3 | Implement `CUSTOM_WORKFLOW` node type in editor | P0 |
-| 3.4 | Render custom node with correct input/output ports | P0 |
-| 3.5 | Wire up "Add to Editor" from gallery | P0 |
-| 3.6 | Increment usage count on add | P2 |
+| Task | Description                                        | Priority |
+| ---- | -------------------------------------------------- | -------- |
+| 3.1  | Build workflow gallery UI                          | P0       |
+| 3.2  | Implement gallery listing API with filters         | P0       |
+| 3.3  | Implement `CUSTOM_WORKFLOW` node type in editor    | P0       |
+| 3.4  | Render custom node with correct input/output ports | P0       |
+| 3.5  | Wire up "Add to Editor" from gallery               | P0       |
+| 3.6  | Increment usage count on add                       | P2       |
 
 ### Phase 4: Versioning (Week 4)
 
-| Task | Description | Priority |
-|------|-------------|----------|
-| 4.1 | Implement version history API | P0 |
-| 4.2 | Build version comparison service | P1 |
-| 4.3 | Add update check for sub-workflow nodes | P1 |
-| 4.4 | Build upgrade dialog UI | P1 |
-| 4.5 | Implement connection remapping on upgrade | P1 |
-| 4.6 | Handle breaking changes gracefully | P1 |
+| Task | Description                               | Priority |
+| ---- | ----------------------------------------- | -------- |
+| 4.1  | Implement version history API             | P0       |
+| 4.2  | Build version comparison service          | P1       |
+| 4.3  | Add update check for sub-workflow nodes   | P1       |
+| 4.4  | Build upgrade dialog UI                   | P1       |
+| 4.5  | Implement connection remapping on upgrade | P1       |
+| 4.6  | Handle breaking changes gracefully        | P1       |
 
 ---
 
 ## 11. Acceptance Criteria
 
 ### Must Have (P0)
+
 - [ ] User can add `WorkflowInput` nodes with name, type, required flag, default value
 - [ ] User can add `WorkflowOutput` nodes with name and type
 - [ ] Invalid type connections are visually rejected in the editor
@@ -1003,6 +1022,7 @@ interface PublishOptions {
 - [ ] Each publish creates a new version; previous versions preserved
 
 ### Should Have (P1)
+
 - [ ] Version number auto-increments (semantic versioning)
 - [ ] User sees badge when sub-workflow has newer version
 - [ ] User can view changelog before upgrading
@@ -1011,6 +1031,7 @@ interface PublishOptions {
 - [ ] Breaking changes clearly indicated
 
 ### Nice to Have (P2)
+
 - [ ] Usage count displayed in gallery
 - [ ] Sort gallery by usage/date/name
 - [ ] Tags for categorization
@@ -1021,13 +1042,13 @@ interface PublishOptions {
 
 ## 12. Open Questions
 
-| # | Question | Recommendation | Decision |
-|---|----------|----------------|----------|
-| 1 | Should draft workflows be sharable? | No, only published | |
-| 2 | Can users delete a published workflow? | No if in use; deprecate instead | |
-| 3 | Max nesting depth for safety? | 50 levels | |
-| 4 | Should public workflows require approval/moderation? | No for MVP | |
-| 5 | How to handle deleted sub-workflow at runtime? | Fail with clear error | |
+| #   | Question                                             | Recommendation                  | Decision |
+| --- | ---------------------------------------------------- | ------------------------------- | -------- |
+| 1   | Should draft workflows be sharable?                  | No, only published              |          |
+| 2   | Can users delete a published workflow?               | No if in use; deprecate instead |          |
+| 3   | Max nesting depth for safety?                        | 50 levels                       |          |
+| 4   | Should public workflows require approval/moderation? | No for MVP                      |          |
+| 5   | How to handle deleted sub-workflow at runtime?       | Fail with clear error           |          |
 
 ---
 

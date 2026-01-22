@@ -7,7 +7,10 @@ export const POST = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
         const { id: flowId } = await params;
         try {
-            const publishedFlow = await flowService.publishFlow(flowId, session.user!.id!);
+            const publishedFlow = await flowService.publishFlow(
+                flowId,
+                session.user!.id!,
+            );
             return NextResponse.json(publishedFlow);
         } catch (error) {
             if (error instanceof Error) {
@@ -28,7 +31,7 @@ export const POST = withAuth<{ params: Promise<{ id: string }> }>(
                     error.message.includes("Flow must have") ||
                     error.message.includes("cycle")
                 ) {
-                     return NextResponse.json(
+                    return NextResponse.json(
                         { error: error.message },
                         { status: 400 },
                     );

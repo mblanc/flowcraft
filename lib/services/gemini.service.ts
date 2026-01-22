@@ -257,6 +257,10 @@ export class GeminiService {
             }));
         }
 
+        logger.info(
+            `[GeminiService] Generating video with request: ${JSON.stringify(videoRequest, null, 2)}`,
+        );
+
         let operation = await this.ai.models.generateVideos(videoRequest);
 
         let pollCount = 0;

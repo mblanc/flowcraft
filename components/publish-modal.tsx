@@ -41,7 +41,9 @@ export function PublishModal({ flowId, onBeforePublish }: PublishModalProps) {
             toast.success(`Published version ${data.version}`);
             setOpen(false);
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Failed to publish");
+            toast.error(
+                error instanceof Error ? error.message : "Failed to publish",
+            );
         } finally {
             setLoading(false);
         }
@@ -59,13 +61,15 @@ export function PublishModal({ flowId, onBeforePublish }: PublishModalProps) {
                 <DialogHeader>
                     <DialogTitle>Publish Workflow</DialogTitle>
                     <DialogDescription>
-                        Publishing creates an immutable version of this workflow that can be used as a sub-graph in other workflows.
-                        Ensure you have defined at least one Input and one Output node.
+                        Publishing creates an immutable version of this workflow
+                        that can be used as a sub-graph in other workflows.
+                        Ensure you have defined at least one Input and one
+                        Output node.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     {/* Placeholder for future metadata inputs */}
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         Ready to publish?
                     </p>
                 </div>

@@ -6,9 +6,15 @@ import logger from "@/app/logger";
 export const GET = withAuth(async (req, context, session) => {
     try {
         const { searchParams } = new URL(req.url);
-        const filter = (searchParams.get("filter") || "all") as "mine" | "public" | "all";
-        
-        const flows = await flowService.listPublishedFlows(session.user!.id!, filter);
+        const filter = (searchParams.get("filter") || "all") as
+            | "mine"
+            | "public"
+            | "all";
+
+        const flows = await flowService.listPublishedFlows(
+            session.user!.id!,
+            filter,
+        );
         return NextResponse.json({ flows });
     } catch (error) {
         logger.error("Error fetching published flows:", error);

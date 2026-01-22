@@ -136,6 +136,9 @@ export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({
     subWorkflowVersion: z.string(),
     inputs: z.record(z.string(), z.string()).optional(),
     outputs: z.record(z.string(), z.string()).optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    results: z.record(z.string(), z.record(z.string(), z.any())).optional(),
 });
 
 export const NodeDataSchema = z.discriminatedUnion("type", [

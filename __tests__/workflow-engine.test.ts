@@ -6,8 +6,10 @@ import {
     TextData,
     LLMData,
     ImageData as FlowImageData,
+    CustomWorkflowData,
+    NodeInputs,
 } from "../lib/types";
-import { getNodeDefinition } from "../lib/node-registry";
+import { getNodeDefinition, NodeDefinition } from "../lib/node-registry";
 
 // Mock node-registry
 vi.mock("../lib/node-registry", async (importOriginal) => {
@@ -231,85 +233,162 @@ describe("WorkflowEngine", () => {
     describe("Recursive Execution (Sub-graphs)", () => {
         it("should execute a custom-workflow node by running its sub-graph", async () => {
             const nodes = [
-                { id: "input-node", type: "text", data: { type: "text", text: "hello", name: "Text" } },
-                { 
-                    id: "sub-workflow-node", 
-                    type: "custom-workflow", 
-                    data: { 
-                        type: "custom-workflow", 
-                        subWorkflowId: "flow-b", 
-                        subWorkflowVersion: "1.0.1",
-                        name: "Sub"
-                    } 
+                {
+                    id: "input-node",
+                    type: "text",
+                    data: { type: "text", text: "hello", name: "Text" },
                 },
-                { id: "output-node", type: "text", data: { type: "text", text: "", name: "Text" } }
+                {
+                    id: "sub-workflow-node",
+                    type: "custom-workflow",
+                    data: {
+                        type: "custom-workflow",
+                        subWorkflowId: "flow-b",
+                        subWorkflowVersion: "1.0.1",
+                        name: "Sub",
+                    },
+                },
+                {
+                    id: "output-node",
+                    type: "text",
+                    data: { type: "text", text: "", name: "Text" },
+                },
             ] as unknown as Node<NodeData>[];
 
             const edges = [
-                { id: "e1", source: "input-node", target: "sub-workflow-node", targetHandle: "sub-in-1" },
-                { id: "e2", source: "sub-workflow-node", sourceHandle: "sub-out-1", target: "output-node" }
+                {
+                    id: "e1",
+                    source: "input-node",
+                    target: "sub-workflow-node",
+                    targetHandle: "sub-in-1",
+                },
+                {
+                    id: "e2",
+                    source: "sub-workflow-node",
+                    sourceHandle: "sub-out-1",
+                    target: "output-node",
+                },
             ];
 
             // Sub-workflow definition
             const subFlow = {
                 nodes: [
-                    { id: "sub-in-1", type: "workflow-input", data: { type: "workflow-input", portName: "in", name: "In" } },
-                    { id: "sub-out-1", type: "workflow-output", data: { type: "workflow-output", portName: "out", name: "Out" } }
+                    {
+                        id: "sub-in-1",
+                        type: "workflow-input",
+                        data: {
+                            type: "workflow-input",
+                            portName: "in",
+                            name: "In",
+                        },
+                    },
+                    {
+                        id: "sub-out-1",
+                        type: "workflow-output",
+                        data: {
+                            type: "workflow-output",
+                            portName: "out",
+                            name: "Out",
+                        },
+                    },
                 ],
-                edges: [
-                    { id: "se1", source: "sub-in-1", target: "sub-out-1" }
-                ]
+                edges: [{ id: "se1", source: "sub-in-1", target: "sub-out-1" }],
             };
 
             // Mock fetch for sub-workflow
             const mockFetch = vi.fn().mockResolvedValue({
                 ok: true,
-                json: async () => subFlow
+                json: async () => subFlow,
             });
 
             // Mock node definitions
             vi.mocked(getNodeDefinition).mockImplementation((type) => {
-                if (type === 'text') return {
-                    type: 'text',
-                    gatherInputs: () => ({}),
-                    execute: async (node: any, inputs: any) => ({ ...node.data, ...inputs })
-                } as any;
-                if (type === 'workflow-input') return {
-                    type: 'workflow-input',
-                    gatherInputs: () => ({}),
-                    execute: async (node: any) => ({ ...node.data })
-                } as any;
-                if (type === 'workflow-output') return {
-                    type: 'workflow-output',
-                    gatherInputs: (node: any, edges: any, getSourceData: any) => ({ value: getSourceData(edges.find((e: any) => e.target === node.id)?.source || "") }),
-                    execute: async (node: any, inputs: any) => ({ ...node.data, ...inputs })
-                } as any;
-                if (type === 'custom-workflow') return {
-                    type: 'custom-workflow',
-                    gatherInputs: (node: any, edges: any, getSourceData: any) => {
-                        const inputs: any = {};
-                        edges.filter((e: any) => e.target === node.id).forEach((e: any) => {
-                            inputs[e.targetHandle!] = getSourceData(e.source);
-                        });
-                        return inputs;
-                    },
-                    execute: async () => ({})
-                } as any;
+                if (type === "text")
+                    return {
+                        type: "text",
+                        gatherInputs: () => ({}),
+                        execute: async (
+                            node: Node<NodeData>,
+                            inputs: unknown,
+                        ) => ({
+                            ...node.data,
+                            ...(inputs as object),
+                        }),
+                    } as unknown as NodeDefinition<NodeData, NodeInputs>;
+                if (type === "workflow-input")
+                    return {
+                        type: "workflow-input",
+                        gatherInputs: () => ({}),
+                        execute: async (node: Node<NodeData>) => ({
+                            ...node.data,
+                        }),
+                    } as unknown as NodeDefinition<NodeData, NodeInputs>;
+                if (type === "workflow-output")
+                    return {
+                        type: "workflow-output",
+                        gatherInputs: (
+                            node: Node<NodeData>,
+                            edges: Edge[],
+                            getSourceData: (id: string) => NodeData | null,
+                        ) => ({
+                            value: getSourceData(
+                                edges.find((e) => e.target === node.id)
+                                    ?.source || "",
+                            ),
+                        }),
+                        execute: async (
+                            node: Node<NodeData>,
+                            inputs: unknown,
+                        ) => ({
+                            ...node.data,
+                            ...(inputs as object),
+                        }),
+                    } as unknown as NodeDefinition<NodeData, NodeInputs>;
+                if (type === "custom-workflow")
+                    return {
+                        type: "custom-workflow",
+                        gatherInputs: (
+                            node: Node<NodeData>,
+                            edges: Edge[],
+                            getSourceData: (id: string) => NodeData | null,
+                        ) => {
+                            const inputs: Record<string, unknown> = {};
+                            edges
+                                .filter((e) => e.target === node.id)
+                                .forEach((e) => {
+                                    inputs[e.targetHandle!] = getSourceData(
+                                        e.source,
+                                    );
+                                });
+                            return inputs;
+                        },
+                        execute: async () => ({}),
+                    } as unknown as NodeDefinition<NodeData, NodeInputs>;
                 return undefined;
             });
 
-            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate, { fetch: mockFetch });
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate, {
+                fetch: mockFetch,
+            });
             await engine.run();
 
             // Verify fetch was called
             expect(mockFetch).toHaveBeenCalled();
 
             // Verify results
-            const subWorkflowResult = engine.executionResults.get("sub-workflow-node");
+            const subWorkflowResult = engine.executionResults.get(
+                "sub-workflow-node",
+            ) as CustomWorkflowData;
             expect(subWorkflowResult).toBeDefined();
             // In our implementation, the result of custom-workflow is { results: { outputNodeId: data } }
-            expect((subWorkflowResult as any).results["sub-out-1"]).toBeDefined();
-            expect((subWorkflowResult as any).results["sub-out-1"].value.text).toBe("hello");
+            expect(subWorkflowResult.results?.["sub-out-1"]).toBeDefined();
+            expect(
+                (
+                    subWorkflowResult.results?.["sub-out-1"] as {
+                        value: TextData;
+                    }
+                ).value.text,
+            ).toBe("hello");
         });
     });
 });

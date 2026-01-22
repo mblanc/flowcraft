@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { createNode } from "../lib/node-factory";
+import {
+    WorkflowInputData,
+    WorkflowOutputData,
+    CustomWorkflowData,
+    NodeType,
+} from "../lib/types";
 
 describe("Node Factory", () => {
     it("should create a workflow-input node", () => {
@@ -7,7 +13,7 @@ describe("Node Factory", () => {
         expect(node.type).toBe("workflow-input");
         expect(node.data.type).toBe("workflow-input");
         expect(node.data.name).toBe("Workflow Input");
-        expect((node.data as any).portName).toBe("input");
+        expect((node.data as WorkflowInputData).portName).toBe("input");
     });
 
     it("should create a workflow-output node", () => {
@@ -15,7 +21,7 @@ describe("Node Factory", () => {
         expect(node.type).toBe("workflow-output");
         expect(node.data.type).toBe("workflow-output");
         expect(node.data.name).toBe("Workflow Output");
-        expect((node.data as any).portName).toBe("output");
+        expect((node.data as WorkflowOutputData).portName).toBe("output");
     });
 
     it("should create a custom-workflow node", () => {
@@ -23,10 +29,12 @@ describe("Node Factory", () => {
         expect(node.type).toBe("custom-workflow");
         expect(node.data.type).toBe("custom-workflow");
         expect(node.data.name).toBe("Custom Workflow");
-        expect((node.data as any).subWorkflowId).toBe("");
+        expect((node.data as CustomWorkflowData).subWorkflowId).toBe("");
     });
 
     it("should throw error for unknown type", () => {
-        expect(() => createNode("unknown" as any)).toThrow("Unknown node type: unknown");
+        expect(() => createNode("unknown" as NodeType)).toThrow(
+            "Unknown node type: unknown",
+        );
     });
 });

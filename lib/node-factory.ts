@@ -11,6 +11,7 @@ import {
     type ResizeData,
     type WorkflowInputData,
     type WorkflowOutputData,
+    type CustomWorkflowData,
 } from "./types";
 import { MODELS, DEFAULTS } from "./constants";
 
@@ -150,7 +151,7 @@ export function createNode(
                     name: "Custom Workflow",
                     subWorkflowId: "",
                     subWorkflowVersion: "",
-                } as any,
+                } as CustomWorkflowData,
             };
         default:
             throw new Error(`Unknown node type: ${type}`);

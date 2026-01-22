@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { 
-    getNodeDefinition, 
-    getSourcePortType, 
-    getTargetPortType 
+import {
+    getNodeDefinition,
+    getSourcePortType,
+    getTargetPortType,
 } from "../lib/node-registry";
 import { Node, Edge } from "@xyflow/react";
 import {
@@ -13,6 +13,7 @@ import {
     ImageData,
     ResizeData,
     UpscaleData,
+    WorkflowOutputData,
 } from "../lib/types";
 
 describe("NodeRegistry - Node Definitions", () => {
@@ -31,22 +32,35 @@ describe("NodeRegistry - Node Definitions", () => {
 
 describe("NodeRegistry - Port Type Resolution", () => {
     it("should correctly resolve source port type for image node with null handle", () => {
-        const node: Node<any> = {
+        const node: Node<NodeData> = {
             id: "img-1",
             type: "image",
-            data: { type: "image" },
-            position: { x: 0, y: 0 }
+            data: {
+                type: "image",
+                name: "Image",
+                prompt: "",
+                images: [],
+                aspectRatio: "1:1",
+                model: "gemini-2.5-flash-image",
+                resolution: "1K",
+            } as ImageData,
+            position: { x: 0, y: 0 },
         };
         const type = getSourcePortType(node, null);
         expect(type).toBe("image");
     });
 
     it("should correctly resolve target port type for workflow-output node with null handle", () => {
-        const node: Node<any> = {
+        const node: Node<NodeData> = {
             id: "out-1",
             type: "workflow-output",
-            data: { type: "workflow-output", portType: "video" },
-            position: { x: 0, y: 0 }
+            data: {
+                type: "workflow-output",
+                name: "Out",
+                portName: "out",
+                portType: "video",
+            } as WorkflowOutputData,
+            position: { x: 0, y: 0 },
         };
         const type = getTargetPortType(node, null);
         expect(type).toBe("video");

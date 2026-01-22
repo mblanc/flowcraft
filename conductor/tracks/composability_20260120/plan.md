@@ -3,6 +3,7 @@
 This plan outlines the steps to implement modular, nestable workflows in FlowCraft, allowing workflows to be published as reusable nodes.
 
 ## Phase 1: Foundation (IO Nodes & Data Models)
+
 - [x] Task: Define Firestore Schema updates for versioning and interface contracts. 203ef60
 - [x] Task: Implement `Workflow Input` node component and registry entry. c1ed01e
 - [x] Task: Implement `Workflow Output` node component and registry entry. c1ed01e
@@ -11,6 +12,7 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)
 
 ## Phase 2: Publishing Logic [checkpoint: d825204]
+
 - [x] Task: Implement DAG Cycle Detection utility for graph validation. 43fcdf1
 - [x] Task: Implement Recursive Circular Dependency Detection (detecting cycles across nested sub-graphs). 3583b55
 - [x] Task: Create Publish API route (`/api/flows/[id]/publish`) to handle snapshotting and validation. 6ec02a1
@@ -18,6 +20,7 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Publishing Logic' (Protocol in workflow.md)
 
 ## Phase 3: Consumption & Gallery [checkpoint: a92f3af]
+
 - [x] Task: Implement `Custom Workflow` node with dynamic port generation based on sub-graph interface. 853f142
 - [x] Task: Build Workflow Gallery UI (browsing published workflows). 0eb545a
 - [x] Task: Implement Gallery Listing API with filters (Mine vs. Public). 0eb545a
@@ -25,9 +28,10 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Consumption & Gallery' (Protocol in workflow.md)
 
 ## Phase 4: Versioning & Execution [checkpoint: 5f64aea]
+
 - [x] Task: Update `WorkflowEngine` to support Recursive Execution of sub-graph nodes. 4dda77d
 - [x] Task: Implement Version History API and basic UI for viewing versions. bbe5bf0
 - [x] Task: Implement Version Upgrade logic (remapping connections when a newer version is selected). 230214b
 - [x] Task: Implement breaking change detection and UI warnings during upgrades. 9686c08
 - [x] Task: Enhance Custom Workflow node with resizing and output previews. 20fc240
-- [x] Task: Conductor - User Manual Verification 'Phase 4: Versioning & Execution' (Protocol in workflow.md)
+- [ ] Task: Conductor - User Manual Verification 'Phase 4: Versioning & Execution' (Protocol in workflow.md)
