@@ -205,17 +205,23 @@ export class WorkflowEngine {
             if (n.type === "workflow-input") {
                 // The key in 'inputs' is the nodeId of the original Workflow Input node
                 const providedValue = inputs[n.id];
-                if (providedValue) {
-                    const { type: _type, ...valueData } = providedValue as any;
-                    logger.debug(
-                        `[WorkflowEngine] Initializing sub-workflow input ${n.id} with:`,
-                        valueData,
-                    );
+                if (providedValue !== undefined) {
+                    let valueData: any;
+                    
+                    if (typeof providedValue === 'object' && providedValue !== null && !Array.isArray(providedValue)) {
+                        valueData = { ...providedValue };
+                        // We remove 'type' from providedValue to not overwrite n.data.type which is 'workflow-input'
+                        delete valueData.type;
+                    } else {
+                        // For strings, arrays, or other primitives, wrap it in a 'value' field
+                        valueData = { value: providedValue };
+                    }
+                    
                     return {
                         ...n,
                         data: {
                             ...n.data,
-                            ...valueData, // Merge values but keep n.data.type as 'workflow-input'
+                            ...valueData,
                         },
                     };
                 }

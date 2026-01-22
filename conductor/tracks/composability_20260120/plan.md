@@ -9,7 +9,7 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Implement `Workflow Output` node component and registry entry. c1ed01e
 - [x] Task: Implement Type Compatibility utility for strict port validation. 7563c74
 - [x] Task: Integrate strict connection validation into `FlowCanvas` UI. 12bc2ad
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)
 
 ## Phase 2: Publishing Logic [checkpoint: d825204]
 
@@ -34,4 +34,4 @@ This plan outlines the steps to implement modular, nestable workflows in FlowCra
 - [x] Task: Implement Version Upgrade logic (remapping connections when a newer version is selected). 230214b
 - [x] Task: Implement breaking change detection and UI warnings during upgrades. 9686c08
 - [x] Task: Enhance Custom Workflow node with resizing and output previews. 20fc240
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Versioning & Execution' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Versioning & Execution' (Protocol in workflow.md)

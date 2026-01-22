@@ -1,4 +1,5 @@
 import { Edge, Node } from "@xyflow/react";
+import logger from "@/app/logger";
 import {
     NodeData,
     NodeType,
@@ -119,42 +120,72 @@ const findInputByHandle = (
 
 const getSourceValue = (data: NodeData | null): any => {
     if (!data) return null;
-    if (data.type === "workflow-input") {
-        const inputData = data as WorkflowInputData;
+
+    // Robust unwrapping of nested workflow output data wrapper { value: ... }
+    // Handles multiple levels of wrapping if they occur
+    let unwrappedData = data as any;
+    while (unwrappedData && unwrappedData.value !== undefined && unwrappedData.type === undefined) {
+        unwrappedData = unwrappedData.value;
+    }
+
+    // If it's still a workflow output node, unwrap its value
+    if (unwrappedData.type === "workflow-output" && unwrappedData.value !== undefined) {
+        return getSourceValue(unwrappedData.value);
+    }
+
+    if (unwrappedData.type === "workflow-input") {
+        const inputData = unwrappedData as WorkflowInputData;
         let value: any = null;
 
         if (inputData.portType === "string") {
-            value = (data as any).text || (data as any).output;
+            value = unwrappedData.text || unwrappedData.output;
         } else if (inputData.portType === "image") {
-            value = (data as any).images || (data as any).image;
+            value = unwrappedData.images || unwrappedData.image;
         } else if (inputData.portType === "video") {
-            value = (data as any).videoUrl;
+            value = unwrappedData.videoUrl;
         } else if (inputData.portType === "json") {
-            value = (data as any).output || (data as any).text;
+            value = unwrappedData.output || unwrappedData.text;
         } else if (inputData.portType === "any") {
             value =
-                (data as any).text ||
-                (data as any).images ||
-                (data as any).videoUrl ||
-                (data as any).output ||
-                (data as any).gcsUri;
+                unwrappedData.text ||
+                unwrappedData.images ||
+                unwrappedData.videoUrl ||
+                unwrappedData.output ||
+                unwrappedData.gcsUri;
         }
 
         if (value === undefined || value === null) {
-            value = (data as any).value;
+            value = unwrappedData.value;
         }
 
-        return value !== undefined && value !== null
+        const finalValue = value !== undefined && value !== null
             ? value
             : inputData.portDefaultValue;
+            
+        return finalValue;
     }
-    if (data.type === "text") return (data as TextData).text;
-    if (data.type === "llm") return (data as LLMData).output;
-    if (data.type === "image") return (data as ImageData).images;
-    if (data.type === "video") return (data as VideoData).videoUrl;
-    if (data.type === "upscale") return (data as UpscaleData).image;
-    if (data.type === "resize") return (data as ResizeData).output;
-    if (data.type === "file") return (data as FileData).gcsUri;
+
+    if (unwrappedData.type === "text") return (unwrappedData as TextData).text;
+    if (unwrappedData.type === "llm") return (unwrappedData as LLMData).output;
+    if (unwrappedData.type === "image") return (unwrappedData as ImageData).images;
+    if (unwrappedData.type === "video") return (unwrappedData as VideoData).videoUrl;
+    if (unwrappedData.type === "upscale") return (unwrappedData as UpscaleData).image;
+    if (unwrappedData.type === "resize") return (unwrappedData as ResizeData).output;
+    if (unwrappedData.type === "file") return (unwrappedData as FileData).gcsUri;
+
+    // Fallback for direct values or results from other nodes
+    const fallbackValue = unwrappedData.images || unwrappedData.videoUrl || unwrappedData.output || unwrappedData.text || unwrappedData.image || unwrappedData.gcsUri || unwrappedData.value;
+    
+    if (fallbackValue !== undefined) {
+        return fallbackValue;
+    }
+
+    // If no known value field found but it's an object that might be the value itself
+    // (This happens when passing raw data through sub-workflows)
+    if (typeof unwrappedData === 'object' && unwrappedData !== null && !unwrappedData.type) {
+        return unwrappedData;
+    }
+
     return null;
 };
 
@@ -189,61 +220,37 @@ registerNode<LLMData, NodeInputs>({
             const sourceData = getSourceData(edge.source, edge.sourceHandle);
             if (!sourceData) continue;
 
-            if (sourceData.type === "workflow-input") {
-                const inputData = sourceData as WorkflowInputData;
-                const value = getSourceValue(sourceData);
-                if (inputData.portType === "image" && Array.isArray(value)) {
-                    for (const url of value) {
-                        inputs.files?.push({ url, type: "image/png" });
-                    }
-                } else if (
-                    inputData.portType === "video" &&
-                    typeof value === "string"
-                ) {
-                    inputs.files?.push({ url: value, type: "video/mp4" });
-                } else if (
-                    inputData.portType === "any" &&
-                    typeof value === "string"
-                ) {
-                    inputs.files?.push({
-                        url: value,
-                        type: "application/octet-stream",
-                    });
-                }
-            } else if (sourceData.type === "file" && sourceData.gcsUri) {
-                let mimeType = "application/octet-stream";
-                if (sourceData.fileType === "pdf") mimeType = "application/pdf";
-                else if (sourceData.fileType === "image")
-                    mimeType = "image/png";
-                else if (sourceData.fileType === "video")
-                    mimeType = "video/mp4";
+            const value = getSourceValue(sourceData);
+            if (!value) continue;
 
-                inputs.files?.push({
-                    url: sourceData.gcsUri,
-                    type: mimeType,
-                });
-            } else if (sourceData.type === "video" && sourceData.videoUrl) {
-                inputs.files?.push({
-                    url: sourceData.videoUrl,
-                    type: "video/mp4",
-                });
-            } else if (sourceData.type === "image" && sourceData.images) {
-                for (const url of sourceData.images) {
+            // Handle both arrays (images) and single values (files, strings, etc.)
+            const values = Array.isArray(value) ? value : [value];
+
+            for (const item of values) {
+                if (typeof item === "string") {
+                    let mimeType = "application/octet-stream";
+                    const lowerItem = item.toLowerCase();
+                    if (lowerItem.endsWith(".pdf")) mimeType = "application/pdf";
+                    else if (lowerItem.endsWith(".png") || lowerItem.endsWith(".jpg") || lowerItem.endsWith(".jpeg") || lowerItem.endsWith(".webp")) mimeType = "image/png";
+                    else if (lowerItem.endsWith(".mp4") || lowerItem.endsWith(".mov")) mimeType = "video/mp4";
+                    else {
+                        // For GCS URIs or files without extensions, use source metadata
+                        const srcAny = sourceData as any;
+                        if (srcAny.fileType === "pdf" || srcAny.portType === "pdf") mimeType = "application/pdf";
+                        else if (srcAny.fileType === "image" || srcAny.type === "image" || srcAny.portType === "image" || srcAny.type === "upscale" || srcAny.type === "resize") mimeType = "image/png";
+                        else if (srcAny.fileType === "video" || srcAny.type === "video" || srcAny.portType === "video") mimeType = "video/mp4";
+                    }
+
                     inputs.files?.push({
-                        url,
-                        type: "image/png",
+                        url: item,
+                        type: mimeType,
+                    });
+                } else if (typeof item === "object" && item !== null && (item as any).url) {
+                    inputs.files?.push({
+                        url: (item as any).url,
+                        type: (item as any).type || "application/octet-stream",
                     });
                 }
-            } else if (sourceData.type === "upscale" && sourceData.image) {
-                inputs.files?.push({
-                    url: sourceData.image,
-                    type: "image/png",
-                });
-            } else if (sourceData.type === "resize" && sourceData.output) {
-                inputs.files?.push({
-                    url: sourceData.output,
-                    type: "image/png",
-                });
             }
         }
         return inputs;
@@ -284,41 +291,21 @@ registerNode<ImageData, NodeInputs>({
             if (!sourceData) continue;
 
             const value = getSourceValue(sourceData);
+            if (!value) continue;
 
-            if (
-                sourceData.type === "workflow-input" &&
-                (sourceData as WorkflowInputData).portType === "image" &&
-                Array.isArray(value)
-            ) {
-                inputs.images?.push(
-                    ...value.map((url) => ({ url, type: "image/png" })),
-                );
-            } else if (sourceData.type === "image" && Array.isArray(value)) {
-                inputs.images?.push(
-                    ...value.map((url) => ({ url, type: "image/png" })),
-                );
-            } else if (
-                (sourceData.type === "file" ||
-                    sourceData.type === "workflow-input") &&
-                typeof value === "string"
-            ) {
-                inputs.images?.push({
-                    url: value,
-                    type:
-                        (sourceData as any).fileType === "pdf" ||
-                        (sourceData as any).portType === "pdf"
-                            ? "application/pdf"
-                            : "image/png",
-                });
-            } else if (
-                (sourceData.type === "upscale" ||
-                    sourceData.type === "resize") &&
-                typeof value === "string"
-            ) {
-                inputs.images?.push({
-                    url: value,
-                    type: "image/png",
-                });
+            const values = Array.isArray(value) ? value : [value];
+            for (const item of values) {
+                if (typeof item === "string") {
+                    inputs.images?.push({
+                        url: item,
+                        type: item.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/png",
+                    });
+                } else if (typeof item === "object" && item !== null && (item as any).url) {
+                    inputs.images?.push({
+                        url: (item as any).url,
+                        type: (item as any).type || "image/png",
+                    });
+                }
             }
         }
         return inputs;
@@ -360,10 +347,11 @@ registerNode<VideoData, NodeInputs>({
             getSourceData,
         );
         const firstFrameValue = getSourceValue(firstFrameData);
-        if (Array.isArray(firstFrameValue) && firstFrameValue[0])
-            inputs.firstFrame = firstFrameValue[0];
-        else if (typeof firstFrameValue === "string")
-            inputs.firstFrame = firstFrameValue;
+        if (firstFrameValue) {
+            const val = Array.isArray(firstFrameValue) ? firstFrameValue[0] : firstFrameValue;
+            if (typeof val === "string") inputs.firstFrame = val;
+            else if (typeof val === "object" && val !== null && (val as any).url) inputs.firstFrame = (val as any).url;
+        }
 
         const lastFrameData = findInputByHandle(
             node.id,
@@ -372,10 +360,11 @@ registerNode<VideoData, NodeInputs>({
             getSourceData,
         );
         const lastFrameValue = getSourceValue(lastFrameData);
-        if (Array.isArray(lastFrameValue) && lastFrameValue[0])
-            inputs.lastFrame = lastFrameValue[0];
-        else if (typeof lastFrameValue === "string")
-            inputs.lastFrame = lastFrameValue;
+        if (lastFrameValue) {
+            const val = Array.isArray(lastFrameValue) ? lastFrameValue[0] : lastFrameValue;
+            if (typeof val === "string") inputs.lastFrame = val;
+            else if (typeof val === "object" && val !== null && (val as any).url) inputs.lastFrame = (val as any).url;
+        }
 
         const imageEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "image-input",
@@ -384,19 +373,22 @@ registerNode<VideoData, NodeInputs>({
             const sourceData = getSourceData(edge.source, edge.sourceHandle);
             if (!sourceData) continue;
             const value = getSourceValue(sourceData);
+            if (!value) continue;
 
-            if (Array.isArray(value))
-                inputs.images?.push(
-                    ...value.map((url) => ({
-                        url,
+            const values = Array.isArray(value) ? value : [value];
+            for (const item of values) {
+                if (typeof item === "string") {
+                    inputs.images?.push({
+                        url: item,
                         type: "image/png",
-                    })),
-                );
-            else if (typeof value === "string")
-                inputs.images?.push({
-                    url: value,
-                    type: "image/png",
-                });
+                    });
+                } else if (typeof item === "object" && item !== null && (item as any).url) {
+                    inputs.images?.push({
+                        url: (item as any).url,
+                        type: (item as any).type || "image/png",
+                    });
+                }
+            }
         }
         return inputs;
     },
@@ -424,8 +416,11 @@ registerNode<UpscaleData, NodeInputs>({
             getSourceData,
         );
         const value = getSourceValue(imageData);
-        if (Array.isArray(value) && value[0]) inputs.image = value[0];
-        else if (typeof value === "string") inputs.image = value;
+        if (value) {
+            const val = Array.isArray(value) ? value[0] : value;
+            if (typeof val === "string") inputs.image = val;
+            else if (typeof val === "object" && val !== null && (val as any).url) inputs.image = (val as any).url;
+        }
         return inputs;
     },
     execute: async (node, inputs, context) => {
@@ -452,8 +447,11 @@ registerNode<ResizeData, NodeInputs>({
             getSourceData,
         );
         const value = getSourceValue(imageData);
-        if (Array.isArray(value) && value[0]) inputs.image = value[0];
-        else if (typeof value === "string") inputs.image = value;
+        if (value) {
+            const val = Array.isArray(value) ? value[0] : value;
+            if (typeof val === "string") inputs.image = val;
+            else if (typeof val === "object" && val !== null && (val as any).url) inputs.image = (val as any).url;
+        }
         return inputs;
     },
     execute: async (node, inputs, context) => {
