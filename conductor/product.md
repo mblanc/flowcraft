@@ -13,6 +13,7 @@ The primary users are **Content Creators and Digital Marketers** who need to aut
 ## Core Goals
 
 - **Seamless Orchestration:** Provide a drag-and-drop canvas to effortlessly connect different AI models.
+- **Workflow Composability:** Enable users to publish and reuse workflows as modular components (sub-graphs).
 - **Rapid Prototyping:** Enable users to quickly build and test content generation pipelines.
 - **Google AI Integration:** Deeply integrate with Google's state-of-the-art models (Gemini, Imagen, Veo) via Vertex AI.
 - **Multi-modal Support:** LLM nodes natively process text, images, videos, and PDFs for complex analysis.
@@ -23,6 +24,7 @@ The primary users are **Content Creators and Digital Marketers** who need to aut
 - **Real-time Execution Tracking:** Visual feedback and progress indicators for nodes during execution.
 - **Smart Execution Engine:** Automatic dependency resolution and parallel processing for optimal performance.
 - **Extensible Node Library:** Support for LLM (Text/JSON structured output with multi-modal inputs), Text, Image (Imagen), Video (Veo), and File nodes.
+- **Sub-Graph Architecture:** "Workflow as a Function" abstraction with strict typing, immutable versioning, and a searchable gallery.
 
 ## User Experience (UX)
 
