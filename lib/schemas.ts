@@ -42,6 +42,8 @@ export const LLMDataSchema = BaseNodeDataSchema.extend({
     outputType: z.enum(["text", "json"]).default("text"),
     responseSchema: z.string().optional(), // JSON string for now
     strictMode: z.boolean().default(false),
+    width: z.number().optional(),
+    height: z.number().optional(),
     visualSchema: z
         .array(
             z.object({
@@ -262,10 +264,6 @@ export const FlowCreateSchema = z.object({
     name: z.string().min(1, "Name is required"),
     nodes: z.array(NodeSchema),
     edges: z.array(EdgeSchema),
-    version: z.string().optional(),
-    isPublished: z.boolean().optional().default(false),
-    visibility: z.enum(["private", "public"]).optional().default("private"),
-    tags: z.array(z.string()).optional().default([]),
 });
 
 export const FlowUpdateSchema = z.object({
@@ -273,10 +271,27 @@ export const FlowUpdateSchema = z.object({
     nodes: z.array(NodeSchema).optional(),
     edges: z.array(EdgeSchema).optional(),
     thumbnail: z.string().optional(),
-    version: z.string().optional(),
-    isPublished: z.boolean().optional(),
-    visibility: z.enum(["private", "public"]).optional(),
-    tags: z.array(z.string()).optional(),
+});
+
+// --- Custom Node Schemas ---
+
+export const CustomNodePortSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.string(),
+});
+
+export const CustomNodeCreateSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    nodes: z.array(NodeSchema),
+    edges: z.array(EdgeSchema),
+});
+
+export const CustomNodeUpdateSchema = z.object({
+    name: z.string().optional(),
+    nodes: z.array(NodeSchema).optional(),
+    edges: z.array(EdgeSchema).optional(),
+    thumbnail: z.string().optional(),
 });
 
 // --- Infer Types ---
@@ -289,6 +304,8 @@ export type UpscaleImageRequest = z.infer<typeof UpscaleImageSchema>;
 export type GetSignedUrlRequest = z.infer<typeof GetSignedUrlSchema>;
 export type FlowCreateRequest = z.infer<typeof FlowCreateSchema>;
 export type FlowUpdateRequest = z.infer<typeof FlowUpdateSchema>;
+export type CustomNodeCreateRequest = z.infer<typeof CustomNodeCreateSchema>;
+export type CustomNodeUpdateRequest = z.infer<typeof CustomNodeUpdateSchema>;
 
 export type LLMData = z.infer<typeof LLMDataSchema>;
 export type TextData = z.infer<typeof TextDataSchema>;

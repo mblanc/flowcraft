@@ -12,6 +12,13 @@ import {
     NodeData as InferredNodeData,
 } from "./schemas";
 
+// Re-export Firestore document types
+export type {
+    FlowDocument,
+    CustomNodeDocument,
+    CustomNodePort,
+} from "./firestore";
+
 export type NodeType =
     | "llm"
     | "text"

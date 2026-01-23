@@ -9,14 +9,12 @@ export function useFlowPersistence() {
     const setNodes = useFlowStore((state) => state.setNodes);
     const setEdges = useFlowStore((state) => state.setEdges);
     const setFlowName = useFlowStore((state) => state.setFlowName);
+    const setEntityVersion = useFlowStore((state) => state.setEntityVersion);
 
-    const saveFlow = useCallback(async (thumbnail?: string) => {
-        const { flowId, flowName, nodes, edges } = useFlowStore.getState();
-        if (!flowId) return;
-
-        let thumbnailToUse = thumbnail;
-
-        if (!thumbnailToUse) {
+    const getThumbnailFromNodes = useCallback(
+        (
+            nodes: ReturnType<typeof useFlowStore.getState>["nodes"],
+        ): string | undefined => {
             const imageNodes = nodes.filter((node) => {
                 const data = node.data;
                 if (
@@ -45,37 +43,64 @@ export function useFlowPersistence() {
 
                 const latestNode = imageNodes[0];
                 const data = latestNode.data;
-                if (data.type === "image")
-                    thumbnailToUse = (data as ImageData).images[0];
+                if (data.type === "image") return (data as ImageData).images[0];
                 else if (data.type === "upscale")
-                    thumbnailToUse = (data as UpscaleData).image;
+                    return (data as UpscaleData).image;
                 else if (data.type === "resize")
-                    thumbnailToUse = (data as ResizeData).output;
+                    return (data as ResizeData).output;
                 else if (data.type === "video")
-                    thumbnailToUse = (data as VideoData).images[0];
+                    return (data as VideoData).images[0];
             }
-        }
+            return undefined;
+        },
+        [],
+    );
 
-        try {
-            await fetch(`/api/flows/${flowId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    name: flowName,
-                    nodes,
-                    edges,
-                    ...(thumbnailToUse !== undefined && {
-                        thumbnail: thumbnailToUse,
+    const saveFlow = useCallback(
+        async (thumbnail?: string) => {
+            const { flowId, flowName, nodes, edges, entityType } =
+                useFlowStore.getState();
+            if (!flowId) return;
+
+            const thumbnailToUse = thumbnail || getThumbnailFromNodes(nodes);
+
+            const apiPath =
+                entityType === "custom-node"
+                    ? `/api/custom-nodes/${flowId}`
+                    : `/api/flows/${flowId}`;
+
+            try {
+                const response = await fetch(apiPath, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        name: flowName,
+                        nodes,
+                        edges,
+                        ...(thumbnailToUse !== undefined && {
+                            thumbnail: thumbnailToUse,
+                        }),
                     }),
-                }),
-            });
-            logger.info("Flow auto-saved");
-        } catch (error) {
-            logger.error("Error saving flow:", error);
-        }
-    }, []);
+                });
+
+                if (response.ok && entityType === "custom-node") {
+                    const data = await response.json();
+                    if (data.version) {
+                        setEntityVersion(data.version);
+                    }
+                }
+
+                logger.info(
+                    `${entityType === "custom-node" ? "Custom node" : "Flow"} auto-saved`,
+                );
+            } catch (error) {
+                logger.error("Error saving:", error);
+            }
+        },
+        [getThumbnailFromNodes, setEntityVersion],
+    );
 
     const exportFlow = useCallback(() => {
         const { flowName, nodes, edges } = useFlowStore.getState();

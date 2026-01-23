@@ -1,18 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { FlowService } from "../lib/services/flow.service";
 import { COLLECTIONS } from "../lib/constants";
-import * as graphUtils from "../lib/graph-utils";
 
 // Mock Firestore
-const { mockCollection, mockDoc, mockGet, mockAdd, mockUpdate } = vi.hoisted(
-    () => ({
+const { mockCollection, mockDoc, mockGet, mockAdd, mockUpdate, mockDelete } =
+    vi.hoisted(() => ({
         mockCollection: vi.fn(),
         mockDoc: vi.fn(),
         mockGet: vi.fn(),
         mockAdd: vi.fn(),
         mockUpdate: vi.fn(),
-    }),
-);
+        mockDelete: vi.fn(),
+    }));
 
 vi.mock("@/lib/firestore", () => ({
     getFirestore: () => ({
@@ -20,235 +19,187 @@ vi.mock("@/lib/firestore", () => ({
     }),
 }));
 
-vi.mock("@/lib/graph-utils", async () => {
-    const actual =
-        await vi.importActual<typeof graphUtils>("../lib/graph-utils");
-    return {
-        ...actual,
-        detectRecursiveCycle: vi.fn(),
-    };
-});
-
-describe("FlowService - Publish Flow", () => {
+describe("FlowService", () => {
     let flowService: FlowService;
 
     beforeEach(() => {
         vi.clearAllMocks();
 
-        // Setup Firestore mocks
-        const mockCount = vi.fn().mockReturnValue({
-            get: vi.fn().mockResolvedValue({
-                data: () => ({ count: 0 }),
-            }),
-        });
-
         mockCollection.mockReturnValue({
             doc: mockDoc,
             add: mockAdd,
-            count: mockCount, // Support count() query
+            where: vi.fn().mockReturnThis(),
+            orderBy: vi.fn().mockReturnThis(),
+            get: mockGet,
         });
         mockDoc.mockReturnValue({
             get: mockGet,
-            collection: mockCollection, // For subcollections
             update: mockUpdate,
+            delete: mockDelete,
         });
 
         flowService = new FlowService();
     });
 
-    it("should throw error if flow not found", async () => {
-        mockGet.mockResolvedValue({ exists: false });
+    describe("listFlows", () => {
+        it("should list flows for a user", async () => {
+            const mockFlows = [
+                {
+                    id: "flow-1",
+                    data: () => ({
+                        userId: "user-1",
+                        name: "Test Flow",
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    }),
+                },
+            ];
 
-        await expect(
-            flowService.publishFlow("flow-1", "user-1"),
-        ).rejects.toThrow("Flow not found");
+            mockGet.mockResolvedValue({ docs: mockFlows });
+
+            const result = await flowService.listFlows("user-1");
+
+            expect(result).toHaveLength(1);
+            expect(result[0].id).toBe("flow-1");
+            expect(mockCollection).toHaveBeenCalledWith(COLLECTIONS.FLOWS);
+        });
     });
 
-    it("should throw error if unauthorized", async () => {
-        mockGet.mockResolvedValue({
-            exists: true,
-            data: () => ({ userId: "other-user" }),
-            id: "flow-1",
+    describe("getFlow", () => {
+        it("should get a flow by ID", async () => {
+            mockGet.mockResolvedValue({
+                exists: true,
+                id: "flow-1",
+                data: () => ({
+                    userId: "user-1",
+                    name: "Test Flow",
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                }),
+            });
+
+            const result = await flowService.getFlow("flow-1", "user-1");
+
+            expect(result.id).toBe("flow-1");
+            expect(result.name).toBe("Test Flow");
         });
 
-        await expect(
-            flowService.publishFlow("flow-1", "user-1"),
-        ).rejects.toThrow("Unauthorized");
-    });
+        it("should throw error if flow not found", async () => {
+            mockGet.mockResolvedValue({ exists: false });
 
-    it("should throw error if flow has no input/output nodes", async () => {
-        mockGet.mockResolvedValue({
-            exists: true,
-            data: () => ({ userId: "user-1", nodes: [], edges: [] }),
-            id: "flow-1",
+            await expect(
+                flowService.getFlow("flow-1", "user-1"),
+            ).rejects.toThrow("Flow not found");
         });
 
-        await expect(
-            flowService.publishFlow("flow-1", "user-1"),
-        ).rejects.toThrow(
-            "Flow must have at least one Workflow Input and one Workflow Output node",
-        );
-    });
+        it("should throw error if unauthorized", async () => {
+            mockGet.mockResolvedValue({
+                exists: true,
+                id: "flow-1",
+                data: () => ({ userId: "other-user" }),
+            });
 
-    it("should throw error if flow has a cycle", async () => {
-        const nodes = [
-            { id: "in", type: "workflow-input" },
-            { id: "out", type: "workflow-output" },
-            { id: "1" },
-            { id: "2" },
-        ];
-        const edges = [
-            { source: "1", target: "2" },
-            { source: "2", target: "1" },
-        ];
-
-        mockGet.mockResolvedValue({
-            exists: true,
-            data: () => ({ userId: "user-1", nodes, edges }),
-            id: "flow-1",
+            await expect(
+                flowService.getFlow("flow-1", "user-1"),
+            ).rejects.toThrow("Unauthorized");
         });
-
-        await expect(
-            flowService.publishFlow("flow-1", "user-1"),
-        ).rejects.toThrow("Flow contains a cycle");
     });
 
-    it("should throw error if recursive cycle detected", async () => {
-        const nodes = [
-            { id: "1", type: "workflow-input" },
-            { id: "2", type: "workflow-output" },
-            {
-                id: "3",
-                type: "custom-workflow",
-                data: { subWorkflowId: "sub-1" },
-            },
-        ];
+    describe("createFlow", () => {
+        it("should create a new flow", async () => {
+            mockAdd.mockResolvedValue({ id: "new-flow-id" });
 
-        mockGet.mockResolvedValue({
-            exists: true,
-            data: () => ({ userId: "user-1", nodes, edges: [] }),
-            id: "flow-1",
-        });
-
-        // Mock detectRecursiveCycle to return true
-        vi.mocked(graphUtils.detectRecursiveCycle).mockResolvedValue(true);
-
-        await expect(
-            flowService.publishFlow("flow-1", "user-1"),
-        ).rejects.toThrow("Recursive cycle detected");
-    });
-
-    it("should publish flow successfully", async () => {
-        const nodes = [
-            { id: "1", type: "workflow-input" },
-            { id: "2", type: "workflow-output" },
-        ];
-
-        mockGet.mockResolvedValue({
-            exists: true,
-            data: () => ({
-                userId: "user-1",
-                nodes,
+            const result = await flowService.createFlow("user-1", {
+                name: "New Flow",
+                nodes: [],
                 edges: [],
-                version: "1.0.0",
-            }),
-            id: "flow-1",
+            });
+
+            expect(result.id).toBe("new-flow-id");
+            expect(result.name).toBe("New Flow");
+            expect(mockAdd).toHaveBeenCalled();
         });
-
-        mockAdd.mockResolvedValue({ id: "version-id" });
-
-        vi.mocked(graphUtils.detectRecursiveCycle).mockResolvedValue(false);
-
-        const result = await flowService.publishFlow("flow-1", "user-1");
-
-        expect(result.version).toBeDefined();
-        // Check if added to versions collection
-        expect(mockCollection).toHaveBeenCalledWith(COLLECTIONS.FLOWS);
-        expect(mockDoc).toHaveBeenCalledWith("flow-1");
-        expect(mockCollection).toHaveBeenCalledWith("versions"); // subcollection
-
-        // Check update
-        expect(mockUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                isPublished: true,
-                publishedVersion: expect.any(String),
-            }),
-        );
     });
 
-    describe("listPublishedFlows", () => {
-        const mockFlows = [
-            {
-                id: "1",
-                userId: "user-1",
-                isPublished: true,
-                visibility: "private",
-                updatedAt: new Date(),
-            },
-            {
-                id: "2",
-                userId: "user-2",
-                isPublished: true,
-                visibility: "public",
-                updatedAt: new Date(),
-            },
-            {
-                id: "3",
-                userId: "user-1",
-                isPublished: false,
-                visibility: "private",
-                updatedAt: new Date(),
-            },
-        ];
-
-        beforeEach(() => {
-            const mockWhere = vi.fn().mockReturnThis();
-            const mockOrderBy = vi.fn().mockReturnThis();
-            const mockGet = vi.fn().mockResolvedValue({
-                docs: mockFlows
-                    .filter((f) => f.isPublished)
-                    .map((f) => ({
-                        id: f.id,
-                        data: () => f,
-                    })),
+    describe("updateFlow", () => {
+        it("should update an existing flow", async () => {
+            mockGet.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({ userId: "user-1" }),
+            });
+            mockGet.mockResolvedValueOnce({
+                exists: true,
+                id: "flow-1",
+                data: () => ({
+                    userId: "user-1",
+                    name: "Updated Flow",
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                }),
             });
 
-            mockCollection.mockReturnValue({
-                where: mockWhere,
-                orderBy: mockOrderBy,
-                get: mockGet,
+            const result = await flowService.updateFlow("flow-1", "user-1", {
+                name: "Updated Flow",
             });
+
+            expect(result.name).toBe("Updated Flow");
+            expect(mockUpdate).toHaveBeenCalled();
         });
 
-        it("should list all published flows that are mine or public", async () => {
-            // In our implementation 'all' fetches all published, then filters in memory
-            const results = await flowService.listPublishedFlows(
-                "user-1",
-                "all",
-            );
-            expect(results).toHaveLength(2);
-            expect(results.some((f) => f.id === "1")).toBe(true);
-            expect(results.some((f) => f.id === "2")).toBe(true);
+        it("should throw error if flow not found", async () => {
+            mockGet.mockResolvedValue({ exists: false });
+
+            await expect(
+                flowService.updateFlow("flow-1", "user-1", {
+                    name: "Updated",
+                }),
+            ).rejects.toThrow("Flow not found");
         });
 
-        it("should filter only mine", async () => {
-            // Re-mock to simulate firestore where filtering if possible,
-            // but for simplicity we can just check the service logic if it uses where correctly.
-            // Our service uses .where("userId", "==", userId) if filter === 'mine'
-            const mockWhere = vi.fn().mockReturnThis();
-            const mockOrderBy = vi.fn().mockReturnThis();
-            mockCollection.mockReturnValue({ where: mockWhere });
-            mockWhere.mockReturnValue({
-                where: mockWhere,
-                orderBy: mockOrderBy,
-            });
-            mockOrderBy.mockReturnValue({
-                get: vi.fn().mockResolvedValue({ docs: [] }),
+        it("should throw error if unauthorized", async () => {
+            mockGet.mockResolvedValue({
+                exists: true,
+                data: () => ({ userId: "other-user" }),
             });
 
-            await flowService.listPublishedFlows("user-1", "mine");
+            await expect(
+                flowService.updateFlow("flow-1", "user-1", {
+                    name: "Updated",
+                }),
+            ).rejects.toThrow("Unauthorized");
+        });
+    });
 
-            expect(mockWhere).toHaveBeenCalledWith("userId", "==", "user-1");
+    describe("deleteFlow", () => {
+        it("should delete a flow", async () => {
+            mockGet.mockResolvedValue({
+                exists: true,
+                data: () => ({ userId: "user-1" }),
+            });
+
+            const result = await flowService.deleteFlow("flow-1", "user-1");
+
+            expect(result.success).toBe(true);
+            expect(mockDelete).toHaveBeenCalled();
+        });
+
+        it("should throw error if flow not found", async () => {
+            mockGet.mockResolvedValue({ exists: false });
+
+            await expect(
+                flowService.deleteFlow("flow-1", "user-1"),
+            ).rejects.toThrow("Flow not found");
+        });
+
+        it("should throw error if unauthorized", async () => {
+            mockGet.mockResolvedValue({
+                exists: true,
+                data: () => ({ userId: "other-user" }),
+            });
+
+            await expect(
+                flowService.deleteFlow("flow-1", "user-1"),
+            ).rejects.toThrow("Unauthorized");
         });
     });
 });

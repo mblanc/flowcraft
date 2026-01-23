@@ -11,7 +11,7 @@ import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import logger from "@/app/logger";
 
-function FlowCanvasContent() {
+function CustomNodeEditorContent() {
     const params = useParams();
     const router = useRouter();
     const { data: session } = useSession();
@@ -20,25 +20,32 @@ function FlowCanvasContent() {
     const [notFound, setNotFound] = useState(false);
 
     // Ref to track the currently loaded ID to prevent re-fetching on tab switch
-    const loadedFlowId = useRef<string | null>(null);
+    const loadedNodeId = useRef<string | null>(null);
 
-    const fetchFlow = useCallback(
+    const fetchCustomNode = useCallback(
         async (id: string) => {
             try {
-                const response = await fetch(`/api/flows/${id}`);
+                const response = await fetch(`/api/custom-nodes/${id}`);
                 if (response.ok) {
-                    const flow = await response.json();
-                    loadFlow(id, flow.nodes, flow.edges, flow.name, "flow");
+                    const customNode = await response.json();
+                    loadFlow(
+                        id,
+                        customNode.nodes,
+                        customNode.edges,
+                        customNode.name,
+                        "custom-node",
+                        customNode.version,
+                    );
                     setLoading(false);
                 } else if (response.status === 404) {
                     setNotFound(true);
                     setLoading(false);
                 } else {
-                    logger.error("Error fetching flow");
+                    logger.error("Error fetching custom node");
                     setLoading(false);
                 }
             } catch (error) {
-                logger.error("Error fetching flow:", error);
+                logger.error("Error fetching custom node:", error);
                 setLoading(false);
             }
         },
@@ -49,13 +56,13 @@ function FlowCanvasContent() {
         const id = params.id as string;
 
         // Only fetch if session exists, ID exists, AND we haven't loaded this ID yet
-        if (session && id && loadedFlowId.current !== id) {
-            loadedFlowId.current = id; // Mark this ID as loaded
+        if (session && id && loadedNodeId.current !== id) {
+            loadedNodeId.current = id; // Mark this ID as loaded
             setTimeout(() => {
-                void fetchFlow(id);
+                void fetchCustomNode(id);
             }, 0);
         }
-    }, [session, params.id, fetchFlow]);
+    }, [session, params.id, fetchCustomNode]);
 
     if (loading) {
         return (
@@ -70,17 +77,17 @@ function FlowCanvasContent() {
             <div className="flex h-screen items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-foreground mb-2 text-2xl font-semibold">
-                        Flow not found
+                        Custom node not found
                     </h2>
                     <p className="text-muted-foreground mb-4">
-                        This flow doesn&apos;t exist or you don&apos;t have
-                        permission to access it.
+                        This custom node doesn&apos;t exist or you don&apos;t
+                        have permission to access it.
                     </p>
                     <button
                         onClick={() => router.push("/flows")}
                         className="text-primary hover:underline"
                     >
-                        Back to flows
+                        Back to dashboard
                     </button>
                 </div>
             </div>
@@ -98,6 +105,6 @@ function FlowCanvasContent() {
     );
 }
 
-export default function FlowPage() {
-    return <FlowCanvasContent />;
+export default function CustomNodePage() {
+    return <CustomNodeEditorContent />;
 }

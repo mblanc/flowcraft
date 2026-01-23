@@ -85,7 +85,9 @@ export class GeminiService {
         if (files && files.length > 0) {
             for (const file of files) {
                 if (!isSupportedMimeType(file.type)) {
-                    logger.error(`[GeminiService] Unsupported file type: ${file.type} for file: ${file.url}`);
+                    logger.error(
+                        `[GeminiService] Unsupported file type: ${file.type} for file: ${file.url}`,
+                    );
                     throw new Error(`Unsupported file type: ${file.type}`);
                 }
 
@@ -127,6 +129,10 @@ export class GeminiService {
                 }
             }
         }
+
+        logger.info(
+            `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
+        );
 
         const response = await this.ai.models.generateContent({
             model: selectedModel,
@@ -172,6 +178,10 @@ export class GeminiService {
         }
 
         contents.push(createPartFromText(prompt));
+
+        logger.info(
+            `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
+        );
 
         const response = await this.ai.models.generateContent({
             model: selectedModel,
@@ -253,6 +263,10 @@ export class GeminiService {
                 referenceType: VideoGenerationReferenceType.ASSET,
             }));
         }
+
+        logger.info(
+            `[GeminiService] Video request: ${JSON.stringify(videoRequest, null, 2)}`,
+        );
 
         let operation = await this.ai.models.generateVideos(videoRequest);
 

@@ -1,5 +1,4 @@
 import { Edge, Node } from "@xyflow/react";
-import logger from "@/app/logger";
 import {
     NodeData,
     NodeType,
@@ -118,71 +117,115 @@ const findInputByHandle = (
     return getSourceData(edge.source, edge.sourceHandle);
 };
 
-const getSourceValue = (data: NodeData | null): any => {
+const getSourceValue = (data: NodeData | null): unknown => {
     if (!data) return null;
 
     // Robust unwrapping of nested workflow output data wrapper { value: ... }
     // Handles multiple levels of wrapping if they occur
-    let unwrappedData = data as any;
-    while (unwrappedData && unwrappedData.value !== undefined && unwrappedData.type === undefined) {
-        unwrappedData = unwrappedData.value;
+    let unwrappedData: Record<string, unknown> = data as Record<
+        string,
+        unknown
+    >;
+    while (
+        unwrappedData &&
+        unwrappedData.value !== undefined &&
+        unwrappedData.type === undefined
+    ) {
+        unwrappedData = unwrappedData.value as Record<string, unknown>;
     }
 
     // If it's still a workflow output node, unwrap its value
-    if (unwrappedData.type === "workflow-output" && unwrappedData.value !== undefined) {
-        return getSourceValue(unwrappedData.value);
+    if (
+        unwrappedData.type === "workflow-output" &&
+        unwrappedData.value !== undefined
+    ) {
+        return getSourceValue(unwrappedData.value as NodeData | null);
     }
 
     if (unwrappedData.type === "workflow-input") {
-        const inputData = unwrappedData as WorkflowInputData;
-        let value: any = null;
+        const inputData = unwrappedData as unknown as WorkflowInputData;
+        let value: unknown = null;
+
+        // When data from another node (e.g., file node) is passed to a workflow-input,
+        // we need to check for various field names that could contain the actual value.
+        // File nodes use: fileUrl, gcsUri
+        // Image nodes use: images, image
+        // Video nodes use: videoUrl
+        // Text/LLM nodes use: text, output
 
         if (inputData.portType === "string") {
             value = unwrappedData.text || unwrappedData.output;
         } else if (inputData.portType === "image") {
-            value = unwrappedData.images || unwrappedData.image;
+            // Check for image data from various sources
+            value =
+                unwrappedData.images ||
+                unwrappedData.image ||
+                unwrappedData.gcsUri ||
+                unwrappedData.fileUrl;
         } else if (inputData.portType === "video") {
-            value = unwrappedData.videoUrl;
+            value =
+                unwrappedData.videoUrl ||
+                unwrappedData.gcsUri ||
+                unwrappedData.fileUrl;
         } else if (inputData.portType === "json") {
             value = unwrappedData.output || unwrappedData.text;
         } else if (inputData.portType === "any") {
             value =
                 unwrappedData.text ||
                 unwrappedData.images ||
+                unwrappedData.image ||
                 unwrappedData.videoUrl ||
                 unwrappedData.output ||
-                unwrappedData.gcsUri;
+                unwrappedData.gcsUri ||
+                unwrappedData.fileUrl;
         }
 
         if (value === undefined || value === null) {
             value = unwrappedData.value;
         }
 
-        const finalValue = value !== undefined && value !== null
-            ? value
-            : inputData.portDefaultValue;
-            
+        const finalValue =
+            value !== undefined && value !== null
+                ? value
+                : inputData.portDefaultValue;
+
         return finalValue;
     }
 
     if (unwrappedData.type === "text") return (unwrappedData as TextData).text;
     if (unwrappedData.type === "llm") return (unwrappedData as LLMData).output;
-    if (unwrappedData.type === "image") return (unwrappedData as ImageData).images;
-    if (unwrappedData.type === "video") return (unwrappedData as VideoData).videoUrl;
-    if (unwrappedData.type === "upscale") return (unwrappedData as UpscaleData).image;
-    if (unwrappedData.type === "resize") return (unwrappedData as ResizeData).output;
-    if (unwrappedData.type === "file") return (unwrappedData as FileData).gcsUri;
+    if (unwrappedData.type === "image")
+        return (unwrappedData as ImageData).images;
+    if (unwrappedData.type === "video")
+        return (unwrappedData as VideoData).videoUrl;
+    if (unwrappedData.type === "upscale")
+        return (unwrappedData as UpscaleData).image;
+    if (unwrappedData.type === "resize")
+        return (unwrappedData as ResizeData).output;
+    if (unwrappedData.type === "file")
+        return (unwrappedData as FileData).gcsUri;
 
     // Fallback for direct values or results from other nodes
-    const fallbackValue = unwrappedData.images || unwrappedData.videoUrl || unwrappedData.output || unwrappedData.text || unwrappedData.image || unwrappedData.gcsUri || unwrappedData.value;
-    
+    const fallbackValue =
+        unwrappedData.images ||
+        unwrappedData.videoUrl ||
+        unwrappedData.output ||
+        unwrappedData.text ||
+        unwrappedData.image ||
+        unwrappedData.gcsUri ||
+        unwrappedData.value;
+
     if (fallbackValue !== undefined) {
         return fallbackValue;
     }
 
     // If no known value field found but it's an object that might be the value itself
     // (This happens when passing raw data through sub-workflows)
-    if (typeof unwrappedData === 'object' && unwrappedData !== null && !unwrappedData.type) {
+    if (
+        typeof unwrappedData === "object" &&
+        unwrappedData !== null &&
+        !unwrappedData.type
+    ) {
         return unwrappedData;
     }
 
@@ -230,25 +273,59 @@ registerNode<LLMData, NodeInputs>({
                 if (typeof item === "string") {
                     let mimeType = "application/octet-stream";
                     const lowerItem = item.toLowerCase();
-                    if (lowerItem.endsWith(".pdf")) mimeType = "application/pdf";
-                    else if (lowerItem.endsWith(".png") || lowerItem.endsWith(".jpg") || lowerItem.endsWith(".jpeg") || lowerItem.endsWith(".webp")) mimeType = "image/png";
-                    else if (lowerItem.endsWith(".mp4") || lowerItem.endsWith(".mov")) mimeType = "video/mp4";
+                    if (lowerItem.endsWith(".pdf"))
+                        mimeType = "application/pdf";
+                    else if (
+                        lowerItem.endsWith(".png") ||
+                        lowerItem.endsWith(".jpg") ||
+                        lowerItem.endsWith(".jpeg") ||
+                        lowerItem.endsWith(".webp")
+                    )
+                        mimeType = "image/png";
+                    else if (
+                        lowerItem.endsWith(".mp4") ||
+                        lowerItem.endsWith(".mov")
+                    )
+                        mimeType = "video/mp4";
                     else {
                         // For GCS URIs or files without extensions, use source metadata
-                        const srcAny = sourceData as any;
-                        if (srcAny.fileType === "pdf" || srcAny.portType === "pdf") mimeType = "application/pdf";
-                        else if (srcAny.fileType === "image" || srcAny.type === "image" || srcAny.portType === "image" || srcAny.type === "upscale" || srcAny.type === "resize") mimeType = "image/png";
-                        else if (srcAny.fileType === "video" || srcAny.type === "video" || srcAny.portType === "video") mimeType = "video/mp4";
+                        const srcMeta = sourceData as Record<string, unknown>;
+                        if (
+                            srcMeta.fileType === "pdf" ||
+                            srcMeta.portType === "pdf"
+                        )
+                            mimeType = "application/pdf";
+                        else if (
+                            srcMeta.fileType === "image" ||
+                            srcMeta.type === "image" ||
+                            srcMeta.portType === "image" ||
+                            srcMeta.type === "upscale" ||
+                            srcMeta.type === "resize"
+                        )
+                            mimeType = "image/png";
+                        else if (
+                            srcMeta.fileType === "video" ||
+                            srcMeta.type === "video" ||
+                            srcMeta.portType === "video"
+                        )
+                            mimeType = "video/mp4";
                     }
 
                     inputs.files?.push({
                         url: item,
                         type: mimeType,
                     });
-                } else if (typeof item === "object" && item !== null && (item as any).url) {
+                } else if (
+                    typeof item === "object" &&
+                    item !== null &&
+                    (item as Record<string, unknown>).url
+                ) {
+                    const itemObj = item as Record<string, unknown>;
                     inputs.files?.push({
-                        url: (item as any).url,
-                        type: (item as any).type || "application/octet-stream",
+                        url: itemObj.url as string,
+                        type:
+                            (itemObj.type as string) ||
+                            "application/octet-stream",
                     });
                 }
             }
@@ -298,12 +375,19 @@ registerNode<ImageData, NodeInputs>({
                 if (typeof item === "string") {
                     inputs.images?.push({
                         url: item,
-                        type: item.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/png",
+                        type: item.toLowerCase().endsWith(".pdf")
+                            ? "application/pdf"
+                            : "image/png",
                     });
-                } else if (typeof item === "object" && item !== null && (item as any).url) {
+                } else if (
+                    typeof item === "object" &&
+                    item !== null &&
+                    (item as Record<string, unknown>).url
+                ) {
+                    const itemObj = item as Record<string, unknown>;
                     inputs.images?.push({
-                        url: (item as any).url,
-                        type: (item as any).type || "image/png",
+                        url: itemObj.url as string,
+                        type: (itemObj.type as string) || "image/png",
                     });
                 }
             }
@@ -348,9 +432,17 @@ registerNode<VideoData, NodeInputs>({
         );
         const firstFrameValue = getSourceValue(firstFrameData);
         if (firstFrameValue) {
-            const val = Array.isArray(firstFrameValue) ? firstFrameValue[0] : firstFrameValue;
+            const val = Array.isArray(firstFrameValue)
+                ? firstFrameValue[0]
+                : firstFrameValue;
             if (typeof val === "string") inputs.firstFrame = val;
-            else if (typeof val === "object" && val !== null && (val as any).url) inputs.firstFrame = (val as any).url;
+            else if (
+                typeof val === "object" &&
+                val !== null &&
+                (val as Record<string, unknown>).url
+            )
+                inputs.firstFrame = (val as Record<string, unknown>)
+                    .url as string;
         }
 
         const lastFrameData = findInputByHandle(
@@ -361,9 +453,17 @@ registerNode<VideoData, NodeInputs>({
         );
         const lastFrameValue = getSourceValue(lastFrameData);
         if (lastFrameValue) {
-            const val = Array.isArray(lastFrameValue) ? lastFrameValue[0] : lastFrameValue;
+            const val = Array.isArray(lastFrameValue)
+                ? lastFrameValue[0]
+                : lastFrameValue;
             if (typeof val === "string") inputs.lastFrame = val;
-            else if (typeof val === "object" && val !== null && (val as any).url) inputs.lastFrame = (val as any).url;
+            else if (
+                typeof val === "object" &&
+                val !== null &&
+                (val as Record<string, unknown>).url
+            )
+                inputs.lastFrame = (val as Record<string, unknown>)
+                    .url as string;
         }
 
         const imageEdges = edges.filter(
@@ -382,10 +482,15 @@ registerNode<VideoData, NodeInputs>({
                         url: item,
                         type: "image/png",
                     });
-                } else if (typeof item === "object" && item !== null && (item as any).url) {
+                } else if (
+                    typeof item === "object" &&
+                    item !== null &&
+                    (item as Record<string, unknown>).url
+                ) {
+                    const itemObj = item as Record<string, unknown>;
                     inputs.images?.push({
-                        url: (item as any).url,
-                        type: (item as any).type || "image/png",
+                        url: itemObj.url as string,
+                        type: (itemObj.type as string) || "image/png",
                     });
                 }
             }
@@ -419,7 +524,12 @@ registerNode<UpscaleData, NodeInputs>({
         if (value) {
             const val = Array.isArray(value) ? value[0] : value;
             if (typeof val === "string") inputs.image = val;
-            else if (typeof val === "object" && val !== null && (val as any).url) inputs.image = (val as any).url;
+            else if (
+                typeof val === "object" &&
+                val !== null &&
+                (val as Record<string, unknown>).url
+            )
+                inputs.image = (val as Record<string, unknown>).url as string;
         }
         return inputs;
     },
@@ -450,7 +560,12 @@ registerNode<ResizeData, NodeInputs>({
         if (value) {
             const val = Array.isArray(value) ? value[0] : value;
             if (typeof val === "string") inputs.image = val;
-            else if (typeof val === "object" && val !== null && (val as any).url) inputs.image = (val as any).url;
+            else if (
+                typeof val === "object" &&
+                val !== null &&
+                (val as Record<string, unknown>).url
+            )
+                inputs.image = (val as Record<string, unknown>).url as string;
         }
         return inputs;
     },

@@ -10,4 +10,4 @@ This file tracks all major tracks for the project. Each track has its own detail
 ---
 
 - [x] **Track: Workflow Composability (Sub-Graphs) - Enable users to publish workflows as reusable nodes that can be embedded in other workflows.**
-  Link: [./tracks/composability_20260120/](./tracks/composability_20260120/)
+      Link: [./tracks/composability_20260120/](./tracks/composability_20260120/)

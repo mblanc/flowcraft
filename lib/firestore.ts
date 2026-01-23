@@ -28,3 +28,23 @@ export interface FlowDocument {
     createdAt: Date;
     updatedAt: Date;
 }
+
+export interface CustomNodePort {
+    id: string;
+    name: string;
+    type: string;
+}
+
+export interface CustomNodeDocument {
+    id: string;
+    userId: string;
+    name: string;
+    nodes: unknown[];
+    edges: unknown[];
+    thumbnail?: string;
+    version: number;
+    inputs: CustomNodePort[];
+    outputs: CustomNodePort[];
+    createdAt: Date;
+    updatedAt: Date;
+}

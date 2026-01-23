@@ -3,12 +3,7 @@
 import { memo, useEffect, useState, useRef } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Box, Play } from "lucide-react";
-import {
-    CustomWorkflowData,
-    WorkflowInputData,
-    WorkflowOutputData,
-    NodeData,
-} from "@/lib/types";
+import { CustomWorkflowData } from "@/lib/types";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -25,83 +20,140 @@ function SubWorkflowOutputPreview({
     value: { value?: unknown } | unknown; // Value can be wrapped or direct
     maxHeight: number;
 }) {
-    const [signedUrl, setSignedUrl] = useState<string | null>(null);
+    const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
+    // Extract the actual value, unwrapping if it came from a workflow-output node
+    const actualValue =
+        value && typeof value === "object" && "value" in value
+            ? (value.value as Record<string, unknown>)
+            : (value as Record<string, unknown>);
+
+    // Extract URIs based on type
+    const extractUris = (): string[] => {
+        if (!actualValue) return [];
+
+        if (type === "image") {
+            // Handle array of images or single image
+            const images = actualValue.images as string[] | undefined;
+            const image = actualValue.image as string | undefined;
+            if (images && Array.isArray(images)) return images;
+            if (image) return [image];
+            return [];
+        }
+
+        if (type === "video") {
+            const videoUrl = actualValue.videoUrl as string | undefined;
+            if (videoUrl) return [videoUrl];
+            return [];
+        }
+
+        return [];
+    };
+
+    const uris = extractUris();
 
     useEffect(() => {
-        const fetchSignedUrl = async (uri: string) => {
-            try {
-                const res = await fetch(
-                    `/api/signed-url?gcsUri=${encodeURIComponent(uri)}`,
-                );
-                const result = await res.json();
-                if (result.signedUrl) setSignedUrl(result.signedUrl);
-            } catch (error) {
-                logger.error("Error fetching signed URL:", error);
+        const fetchSignedUrls = async () => {
+            const newSignedUrls: Record<string, string> = {};
+
+            for (const uri of uris) {
+                if (!uri) continue;
+
+                if (uri.startsWith("gs://")) {
+                    try {
+                        const res = await fetch(
+                            `/api/signed-url?gcsUri=${encodeURIComponent(uri)}`,
+                        );
+                        const result = await res.json();
+                        if (result.signedUrl) {
+                            newSignedUrls[uri] = result.signedUrl;
+                        }
+                    } catch (error) {
+                        logger.error("Error fetching signed URL:", error);
+                    }
+                } else {
+                    // Non-GCS URLs can be used directly
+                    newSignedUrls[uri] = uri;
+                }
+            }
+
+            if (Object.keys(newSignedUrls).length > 0) {
+                setSignedUrls((prev) => ({ ...prev, ...newSignedUrls }));
             }
         };
 
-        // For WorkflowOutput nodes, the value is wrapped in a 'value' object: { value: { images: [...], output: "..." } }
-        const actualValue =
-            value && typeof value === "object" && "value" in value
-                ? (value.value as Record<string, unknown>)
-                : (value as Record<string, unknown>);
-        const uri =
-            type === "image"
-                ? (actualValue?.images as string[])?.[0] ||
-                  (actualValue?.image as string)
-                : type === "video"
-                  ? (actualValue?.videoUrl as string)
-                  : null;
-
-        if (uri && uri.startsWith("gs://")) {
-            fetchSignedUrl(uri);
-        } else if (uri !== signedUrl) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setSignedUrl(uri);
+        if (uris.length > 0) {
+            fetchSignedUrls();
         }
-    }, [type, value, signedUrl]);
+    }, [JSON.stringify(uris)]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!value) return null;
 
-    if (type === "image") {
+    if (type === "image" && uris.length > 0) {
         return (
-            <div
-                className="border-border overflow-hidden rounded-md border"
-                style={{ maxHeight }}
-            >
-                <Image
-                    src={signedUrl || "/placeholder.svg"}
-                    alt="Output"
-                    width={400}
-                    height={300}
-                    className="h-auto w-full object-contain"
-                    style={{ maxHeight }}
-                />
+            <div className="flex flex-col gap-2">
+                {uris.map((uri, index) => {
+                    const displayUrl = signedUrls[uri];
+                    if (!displayUrl) {
+                        return (
+                            <div
+                                key={index}
+                                className="border-border bg-muted/30 flex items-center justify-center overflow-hidden rounded-md border"
+                                style={{ height: maxHeight / uris.length }}
+                            >
+                                <span className="text-muted-foreground text-xs">
+                                    Loading...
+                                </span>
+                            </div>
+                        );
+                    }
+                    return (
+                        <div
+                            key={index}
+                            className="border-border overflow-hidden rounded-md border"
+                            style={{ maxHeight: maxHeight / uris.length }}
+                        >
+                            <Image
+                                src={displayUrl}
+                                alt={`Output ${index + 1}`}
+                                width={400}
+                                height={300}
+                                className="h-auto w-full object-contain"
+                                style={{ maxHeight: maxHeight / uris.length }}
+                            />
+                        </div>
+                    );
+                })}
             </div>
         );
     }
 
-    if (type === "video") {
+    if (type === "video" && uris.length > 0) {
+        const displayUrl = signedUrls[uris[0]];
         return (
             <div
                 className="border-border overflow-hidden rounded-md border"
                 style={{ maxHeight }}
             >
-                <video
-                    src={signedUrl || undefined}
-                    controls
-                    className="h-auto w-full object-contain"
-                    style={{ maxHeight }}
-                />
+                {displayUrl ? (
+                    <video
+                        src={displayUrl}
+                        controls
+                        className="h-auto w-full object-contain"
+                        style={{ maxHeight }}
+                    />
+                ) : (
+                    <div className="bg-muted/30 flex items-center justify-center p-4">
+                        <span className="text-muted-foreground text-xs">
+                            Loading video...
+                        </span>
+                    </div>
+                )}
             </div>
         );
     }
 
     // Default to text/json
-    const actualValue =
-        value && typeof value === "object" && "value" in value
-            ? (value.value as Record<string, unknown>)
-            : (value as Record<string, unknown>);
     const textValue =
         typeof actualValue === "object"
             ? (actualValue?.output as string) ||
@@ -122,7 +174,6 @@ export const CustomWorkflowNode = memo(
     ({ data, selected, id }: NodeProps<Node<CustomWorkflowData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const removeEdges = useFlowStore((state) => state.removeEdges);
-        const edges = useFlowStore((state) => state.edges);
         const { executeNode } = useFlowExecution();
 
         const [interfaceData, setInterfaceData] = useState<{
@@ -151,50 +202,28 @@ export const CustomWorkflowNode = memo(
 
         useEffect(() => {
             const fetchInterface = async () => {
-                if (!subWorkflowId || !subWorkflowVersion) return;
+                if (!subWorkflowId) return;
 
-                const fetchKey = `${subWorkflowId}-${subWorkflowVersion}`;
+                // Use subWorkflowId and version as cache key
+                const fetchKey = `${subWorkflowId}-${subWorkflowVersion || "latest"}`;
                 if (lastFetchedRef.current === fetchKey) return;
 
                 setLoading(true);
                 try {
+                    // Fetch from the new custom-nodes API
                     const res = await fetch(
-                        `/api/flows/${subWorkflowId}/versions/${subWorkflowVersion}`,
+                        `/api/custom-nodes/${subWorkflowId}`,
                     );
                     if (!res.ok)
                         throw new Error(
-                            "Failed to fetch sub-workflow interface",
+                            "Failed to fetch custom node interface",
                         );
-                    const flow = await res.json();
+                    const customNode = await res.json();
                     lastFetchedRef.current = fetchKey;
 
-                    const nodes =
-                        (flow.nodes as (Node<NodeData> & {
-                            data: NodeData;
-                        })[]) || [];
-                    const inputs = nodes
-                        .filter(
-                            (n) =>
-                                n.type === "workflow-input" ||
-                                n.data?.type === "workflow-input",
-                        )
-                        .map((n) => ({
-                            id: n.id,
-                            name: (n.data as WorkflowInputData).portName,
-                            type: (n.data as WorkflowInputData).portType,
-                        }));
-
-                    const outputs = nodes
-                        .filter(
-                            (n) =>
-                                n.type === "workflow-output" ||
-                                n.data?.type === "workflow-output",
-                        )
-                        .map((n) => ({
-                            id: n.id,
-                            name: (n.data as WorkflowOutputData).portName,
-                            type: (n.data as WorkflowOutputData).portType,
-                        }));
+                    // The new API returns inputs and outputs directly
+                    const inputs = customNode.inputs || [];
+                    const outputs = customNode.outputs || [];
 
                     setInterfaceData({ inputs, outputs });
 
@@ -204,16 +233,16 @@ export const CustomWorkflowNode = memo(
                     const staleEdges = edges.filter((edge) => {
                         if (edge.target === id && edge.targetHandle) {
                             const input = inputs.find(
-                                (i) => i.id === edge.targetHandle,
+                                (i: { id: string }) =>
+                                    i.id === edge.targetHandle,
                             );
                             if (!input) return true;
-                            // Note: we can't easily check prevType here without 'data'
-                            // but we can trust the interface update.
                             return false;
                         }
                         if (edge.source === id && edge.sourceHandle) {
                             const output = outputs.find(
-                                (o) => o.id === edge.sourceHandle,
+                                (o: { id: string }) =>
+                                    o.id === edge.sourceHandle,
                             );
                             if (!output) return true;
                             return false;
@@ -229,9 +258,15 @@ export const CustomWorkflowNode = memo(
                     }
 
                     const inputTypes: Record<string, string> = {};
-                    inputs.forEach((i) => (inputTypes[i.id] = i.type));
+                    inputs.forEach(
+                        (i: { id: string; type: string }) =>
+                            (inputTypes[i.id] = i.type),
+                    );
                     const outputTypes: Record<string, string> = {};
-                    outputs.forEach((o) => (outputTypes[o.id] = o.type));
+                    outputs.forEach(
+                        (o: { id: string; type: string }) =>
+                            (outputTypes[o.id] = o.type),
+                    );
 
                     // Get current data from store for comparison
                     const currentNode = useFlowStore
@@ -240,14 +275,18 @@ export const CustomWorkflowNode = memo(
                     const currentData = currentNode?.data as CustomWorkflowData;
 
                     // Only update if actually changed to prevent loops
+                    // Also update the version if it changed
+                    const newVersion = String(customNode.version);
                     if (
                         !currentData ||
                         !shallowEqual(currentData.inputs, inputTypes) ||
-                        !shallowEqual(currentData.outputs, outputTypes)
+                        !shallowEqual(currentData.outputs, outputTypes) ||
+                        currentData.subWorkflowVersion !== newVersion
                     ) {
                         updateNodeData(id, {
                             inputs: inputTypes,
                             outputs: outputTypes,
+                            subWorkflowVersion: newVersion,
                         });
                     }
                 } catch (err) {
@@ -259,7 +298,13 @@ export const CustomWorkflowNode = memo(
             };
 
             fetchInterface();
-        }, [subWorkflowId, subWorkflowVersion, id, removeEdges, updateNodeData]);
+        }, [
+            subWorkflowId,
+            subWorkflowVersion,
+            id,
+            removeEdges,
+            updateNodeData,
+        ]);
 
         const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
             e.preventDefault();

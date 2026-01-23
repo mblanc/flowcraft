@@ -10,7 +10,7 @@ export function isTypeCompatible(source: string, target: string): boolean {
     return source === target;
 }
 
-export function shallowEqual(objA: any, objB: any) {
+export function shallowEqual(objA: unknown, objB: unknown) {
     if (Object.is(objA, objB)) return true;
     if (
         typeof objA !== "object" ||
@@ -20,13 +20,15 @@ export function shallowEqual(objA: any, objB: any) {
     ) {
         return false;
     }
-    const keysA = Object.keys(objA);
-    const keysB = Object.keys(objB);
+    const recordA = objA as Record<string, unknown>;
+    const recordB = objB as Record<string, unknown>;
+    const keysA = Object.keys(recordA);
+    const keysB = Object.keys(recordB);
     if (keysA.length !== keysB.length) return false;
     for (let i = 0; i < keysA.length; i++) {
         if (
-            !Object.prototype.hasOwnProperty.call(objB, keysA[i]) ||
-            !Object.is(objA[keysA[i]], objB[keysA[i]])
+            !Object.prototype.hasOwnProperty.call(recordB, keysA[i]) ||
+            !Object.is(recordA[keysA[i]], recordB[keysA[i]])
         ) {
             return false;
         }

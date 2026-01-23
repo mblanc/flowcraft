@@ -23,6 +23,9 @@ export class WorkflowEngine {
     }
 
     async run() {
+        // Validate edges from custom-workflow nodes
+        this.validateCustomWorkflowEdges();
+
         const levels = this.getExecutionLevels();
 
         for (const level of levels) {
@@ -31,6 +34,22 @@ export class WorkflowEngine {
                     await this.executeNodeSync(nodeId);
                 }),
             );
+        }
+    }
+
+    private validateCustomWorkflowEdges() {
+        for (const edge of this.edges) {
+            const sourceNode = this.nodesMap.get(edge.source);
+            if (sourceNode?.data.type === "custom-workflow") {
+                if (!edge.sourceHandle) {
+                    logger.warn(
+                        `[WorkflowEngine] Edge ${edge.id} from custom-workflow "${sourceNode.data.name}" (${edge.source}) ` +
+                            `to node ${edge.target} is missing sourceHandle. ` +
+                            `This may cause the output data to not be extracted correctly. ` +
+                            `Please reconnect the edge from the sub-workflow's output port.`,
+                    );
+                }
+            }
         }
     }
 
@@ -150,24 +169,78 @@ export class WorkflowEngine {
         ): NodeData | null => {
             const sourceNode = this.nodesMap.get(sourceId);
             const result = this.executionResults.get(sourceId);
-            if (!sourceNode) return null;
-
-            if (
-                sourceNode.data.type === "custom-workflow" &&
-                sourceHandle &&
-                result &&
-                (result as { results?: Record<string, { value?: unknown }> })
-                    .results
-            ) {
-                // Return the specific output node's data from the sub-workflow
-                const results = (
-                    result as { results: Record<string, { value?: unknown }> }
-                ).results;
-                const subOutput = results[sourceHandle];
-                // Unwraps { value: ... } if it came from a Workflow Output node
-                return (subOutput?.value || subOutput) as NodeData;
+            if (!sourceNode) {
+                logger.warn(
+                    `[getSourceData] Source node not found: ${sourceId}`,
+                );
+                return null;
             }
 
+            // Handle custom-workflow (sub-workflow) nodes
+            if (sourceNode.data.type === "custom-workflow") {
+                // First check executionResults from current run, then fall back to stored node data
+                // This is important for single-node execution where upstream nodes weren't re-executed
+                const cwData = sourceNode.data as CustomWorkflowData;
+                const cwResult = (result as
+                    | { results?: Record<string, { value?: unknown }> }
+                    | undefined) || { results: cwData.results };
+
+                // Check if we have results from the sub-workflow execution or stored in node data
+                if (!cwResult?.results) {
+                    logger.warn(
+                        `[getSourceData] Custom workflow ${sourceId} has no results. ` +
+                            `Has it been executed? Try running the full flow first.`,
+                    );
+                    return null;
+                }
+
+                logger.debug(
+                    `[getSourceData] Using ${result ? "execution" : "stored"} results for custom-workflow ${sourceId}`,
+                );
+
+                // sourceHandle is required for custom-workflow nodes to identify which output to use
+                if (!sourceHandle) {
+                    logger.warn(
+                        `[getSourceData] Missing sourceHandle for custom-workflow ${sourceId}. ` +
+                            `Edge may be misconfigured. Available outputs: ${Object.keys(cwResult.results).join(", ")}`,
+                    );
+                    // Attempt to use first available output as fallback
+                    const outputKeys = Object.keys(cwResult.results);
+                    if (outputKeys.length === 1) {
+                        logger.info(
+                            `[getSourceData] Using single available output: ${outputKeys[0]}`,
+                        );
+                        const subOutput = cwResult.results[outputKeys[0]];
+                        return (subOutput?.value || subOutput) as NodeData;
+                    }
+                    return null;
+                }
+
+                // Look up the specific output by sourceHandle (workflow-output node ID)
+                const subOutput = cwResult.results[sourceHandle];
+                if (subOutput === undefined) {
+                    logger.warn(
+                        `[getSourceData] Output "${sourceHandle}" not found in custom-workflow ${sourceId}. ` +
+                            `Available outputs: ${Object.keys(cwResult.results).join(", ")}. ` +
+                            `The sub-workflow may have been modified.`,
+                    );
+                    return null;
+                }
+
+                logger.debug(
+                    `[getSourceData] Extracted sub-workflow output "${sourceHandle}" from ${sourceId}`,
+                );
+
+                // Unwraps { value: ... } if it came from a Workflow Output node
+                // Use nullish coalescing to handle falsy values like empty strings correctly
+                const unwrapped =
+                    subOutput?.value !== undefined
+                        ? subOutput.value
+                        : subOutput;
+                return unwrapped as NodeData;
+            }
+
+            // For regular nodes, merge node data with execution result
             return { ...sourceNode.data, ...result } as NodeData;
         };
 
@@ -179,26 +252,26 @@ export class WorkflowEngine {
         inputs: NodeInputs,
     ): Promise<Partial<NodeData>> {
         const data = node.data as CustomWorkflowData;
-        if (!data.subWorkflowId || !data.subWorkflowVersion) {
+        if (!data.subWorkflowId) {
             throw new Error("Sub-workflow configuration missing");
         }
 
-        // 1. Fetch sub-workflow definition
+        // 1. Fetch custom node definition from the new API
         const baseUrl =
             typeof window !== "undefined"
                 ? window.location.origin
                 : process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
         const res = await (this.context.fetch || fetch)(
-            `${baseUrl}/api/flows/${data.subWorkflowId}/versions/${data.subWorkflowVersion}`,
+            `${baseUrl}/api/custom-nodes/${data.subWorkflowId}`,
         );
 
         if (!res.ok) {
-            throw new Error(`Failed to fetch sub-workflow: ${res.statusText}`);
+            throw new Error(`Failed to fetch custom node: ${res.statusText}`);
         }
 
-        const subFlow = await res.json();
-        const subNodes = subFlow.nodes as Node<NodeData>[];
-        const subEdges = subFlow.edges as Edge[];
+        const customNodeData = await res.json();
+        const subNodes = customNodeData.nodes as Node<NodeData>[];
+        const subEdges = customNodeData.edges as Edge[];
 
         // 2. Map external inputs to sub-workflow Input Nodes
         const initializedSubNodes = subNodes.map((n) => {
@@ -206,17 +279,23 @@ export class WorkflowEngine {
                 // The key in 'inputs' is the nodeId of the original Workflow Input node
                 const providedValue = inputs[n.id];
                 if (providedValue !== undefined) {
-                    let valueData: any;
-                    
-                    if (typeof providedValue === 'object' && providedValue !== null && !Array.isArray(providedValue)) {
-                        valueData = { ...providedValue };
+                    let valueData: Record<string, unknown>;
+
+                    if (
+                        typeof providedValue === "object" &&
+                        providedValue !== null &&
+                        !Array.isArray(providedValue)
+                    ) {
+                        valueData = {
+                            ...(providedValue as Record<string, unknown>),
+                        };
                         // We remove 'type' from providedValue to not overwrite n.data.type which is 'workflow-input'
                         delete valueData.type;
                     } else {
                         // For strings, arrays, or other primitives, wrap it in a 'value' field
                         valueData = { value: providedValue };
                     }
-                    
+
                     return {
                         ...n,
                         data: {
@@ -230,9 +309,8 @@ export class WorkflowEngine {
         });
 
         logger.debug(
-            `[WorkflowEngine] Executing sub-workflow ${data.subWorkflowId} v${data.subWorkflowVersion}`,
+            `[WorkflowEngine] Executing custom node ${data.subWorkflowId} v${customNodeData.version}`,
         );
-
 
         // 3. Execute sub-workflow
         // We use a nested engine.

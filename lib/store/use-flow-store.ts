@@ -15,6 +15,8 @@ import { createNode } from "@/lib/node-factory";
 import { NodeData, NodeType } from "@/lib/types";
 import { migrateNodes } from "@/lib/migration";
 
+export type EntityType = "flow" | "custom-node";
+
 export interface FlowState {
     nodes: Node<NodeData>[];
     edges: Edge[];
@@ -22,6 +24,8 @@ export interface FlowState {
     isRunning: boolean;
     flowId: string | null;
     flowName: string;
+    entityType: EntityType;
+    entityVersion: number | null;
 
     // Actions
     setNodes: (nodes: Node<NodeData>[]) => void;
@@ -33,6 +37,8 @@ export interface FlowState {
     setIsRunning: (isRunning: boolean) => void;
     setFlowId: (id: string | null) => void;
     setFlowName: (name: string) => void;
+    setEntityType: (type: EntityType) => void;
+    setEntityVersion: (version: number | null) => void;
 
     // Node Mutations
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
@@ -51,6 +57,8 @@ export interface FlowState {
         nodes: Node<NodeData>[],
         edges: Edge[],
         name: string,
+        entityType?: EntityType,
+        version?: number | null,
     ) => void;
 }
 
@@ -61,6 +69,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     isRunning: false,
     flowId: null,
     flowName: "Untitled Flow",
+    entityType: "flow",
+    entityVersion: null,
 
     setNodes: (nodes) => set({ nodes: migrateNodes(nodes) }),
     setEdges: (edges) => set({ edges }),
@@ -87,6 +97,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     setIsRunning: (isRunning) => set({ isRunning }),
     setFlowId: (flowId) => set({ flowId }),
     setFlowName: (flowName) => set({ flowName }),
+    setEntityType: (entityType) => set({ entityType }),
+    setEntityVersion: (entityVersion) => set({ entityVersion }),
 
     updateNodeData: (nodeId, data) => {
         const { nodes, selectedNode } = get();
@@ -143,12 +155,14 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         });
     },
 
-    loadFlow: (id, nodes, edges, name) => {
+    loadFlow: (id, nodes, edges, name, entityType = "flow", version = null) => {
         set({
             flowId: id,
             nodes: migrateNodes(nodes),
             edges,
             flowName: name,
+            entityType,
+            entityVersion: version,
         });
     },
 }));
