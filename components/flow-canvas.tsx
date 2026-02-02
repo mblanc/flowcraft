@@ -178,6 +178,15 @@ export function FlowCanvas() {
         [selectNode],
     );
 
+    const onEdgeClick = useCallback(
+        (event: React.MouseEvent) => {
+            if (!event.shiftKey) {
+                selectNode(null);
+            }
+        },
+        [selectNode],
+    );
+
     const onPaneClick = useCallback(() => {
         selectNode(null);
     }, [selectNode]);
@@ -319,16 +328,17 @@ export function FlowCanvas() {
 
     const highlightedEdges = edges.map((edge) => {
         const isHighlighted =
-            selectedNode &&
-            (edge.source === selectedNode.id ||
-                edge.target === selectedNode.id);
+            (selectedNode &&
+                (edge.source === selectedNode.id ||
+                    edge.target === selectedNode.id)) ||
+            edge.selected;
 
         if (!isHighlighted) return edge;
 
         const sourceNode = nodes.find((n) => n.id === edge.source);
         const color = sourceNode
             ? NODE_COLORS[sourceNode.data.type]
-            : undefined;
+            : "#3b82f6"; // Default blue if source not found
 
         return {
             ...edge,
@@ -460,6 +470,7 @@ export function FlowCanvas() {
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onNodeClick={onNodeClick}
+                    onEdgeClick={onEdgeClick}
                     onPaneClick={onPaneClick}
                     onInit={setRfInstance}
                     nodeTypes={nodeTypes}
