@@ -236,24 +236,25 @@ const getSourceValue = (data: NodeData | null): unknown => {
 registerNode<LLMData, NodeInputs>({
     type: "llm",
     inputs: {
-        "prompt-input": "string",
+        "prompts-input": "string",
         "file-input": "any",
     },
     outputs: {
         "": "string", // fallback, actual type handled by getSourcePortType
     },
     gatherInputs: (node, edges, getSourceData) => {
-        const inputs: NodeInputs = { files: [] };
+        const inputs: NodeInputs = { files: [], prompts: [] };
 
-        const promptData = findInputByHandle(
-            node.id,
-            edges,
-            "prompt-input",
-            getSourceData,
+        // Gather ALL prompt edges (multiple allowed)
+        const promptEdges = edges.filter(
+            (e) => e.target === node.id && e.targetHandle === "prompts-input",
         );
-        const promptValue = getSourceValue(promptData);
-        if (typeof promptValue === "string") {
-            inputs.prompt = promptValue;
+        for (const edge of promptEdges) {
+            const sourceData = getSourceData(edge.source, edge.sourceHandle);
+            const value = getSourceValue(sourceData);
+            if (typeof value === "string") {
+                inputs.prompts?.push(value);
+            }
         }
 
         const fileEdges = edges.filter(

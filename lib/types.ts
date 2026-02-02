@@ -33,6 +33,7 @@ export type NodeType =
 
 export interface NodeInputs {
     prompt?: string;
+    prompts?: string[];
     files?: { url: string; type: string }[];
     images?: { url: string; type: string }[];
     firstFrame?: string;

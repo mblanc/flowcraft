@@ -11,24 +11,32 @@ import { ExecutionContext } from "./node-registry";
 
 export async function executeLLMNode(
     node: Node<LLMData>,
-    inputs: { prompt?: string; files?: { url: string; type: string }[] },
+    inputs: { prompts?: string[]; files?: { url: string; type: string }[] },
     context?: ExecutionContext,
 ): Promise<Partial<LLMData>> {
-    const { prompt, files } = inputs;
-    const finalPrompt = prompt || node.data.instructions;
+    const { prompts = [], files } = inputs;
     const fetcher = context?.fetch || fetch;
 
-    if (!finalPrompt) {
+    // Build final prompts array: instructions first, then all connected prompts
+    const finalPrompts: string[] = [];
+    if (node.data.instructions) {
+        finalPrompts.push(node.data.instructions);
+    }
+    finalPrompts.push(...prompts);
+
+    if (finalPrompts.length === 0) {
         throw new Error("No prompt available for LLM node");
     }
 
-    logger.info(`[Executor] Generating text with prompt: ${finalPrompt}`);
+    logger.info(
+        `[Executor] Generating text with prompts: ${JSON.stringify(finalPrompts)}`,
+    );
 
     const response = await fetcher("/api/generate-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            prompt: finalPrompt,
+            prompts: finalPrompts,
             files: files || [],
             model: node.data.model,
             outputType: node.data.outputType,

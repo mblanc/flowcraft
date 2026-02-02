@@ -27,7 +27,7 @@ async function delay(ms: number) {
 }
 
 export interface GenerateTextOptions {
-    prompt: string;
+    prompts: string[];
     files?: Array<{ url: string; type: string }>;
     model?: string;
     outputType?: "text" | "json";
@@ -72,7 +72,7 @@ export class GeminiService {
     }
 
     async generateText(options: GenerateTextOptions): Promise<string> {
-        const { prompt, files, model, outputType, responseSchema, strictMode } =
+        const { prompts, files, model, outputType, responseSchema, strictMode } =
             options;
         const selectedModel = model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
 
@@ -80,7 +80,10 @@ export class GeminiService {
             `[GeminiService] Generating text with model: ${selectedModel}`,
         );
 
-        const contents: ContentListUnion = [createPartFromText(prompt)];
+        // Create a text part for each prompt
+        const contents: ContentListUnion = prompts.map((p) =>
+            createPartFromText(p),
+        );
 
         if (files && files.length > 0) {
             for (const file of files) {

@@ -139,12 +139,12 @@ export const LLMNode = memo(
                 <Handle
                     type="target"
                     position={Position.Left}
-                    id="prompt-input"
+                    id="prompts-input"
                     className="!bg-blue-500"
                     style={{ top: 35, left: -6 }}
                 />
                 <div className="absolute top-[18px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-blue-500">
-                    Prompt
+                    Prompts
                 </div>
 
                 <Handle
