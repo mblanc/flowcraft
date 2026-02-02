@@ -246,7 +246,7 @@ export const ResizeNode = memo(
                     type="source"
                     position={Position.Right}
                     className="!bg-blue-500"
-                    id="output"
+                    id="result-output"
                 />
             </div>
         );

@@ -79,9 +79,15 @@ export function getSourcePortType(
         return (node.data as FileData).fileType || "any";
     }
     const def = getNodeDefinition(node.data.type);
-    // Source handles are often null for the default output
+    const outputs = def?.outputs || {};
     const normalizedHandleId = handleId === null ? "" : handleId || "";
-    return def?.outputs?.[normalizedHandleId] || "any";
+
+    // If handleId is empty and there's only one output, use it (common for legacy/tests)
+    if (normalizedHandleId === "" && Object.keys(outputs).length === 1) {
+        return Object.values(outputs)[0];
+    }
+
+    return outputs[normalizedHandleId] || "any";
 }
 
 export function getTargetPortType(
@@ -97,8 +103,15 @@ export function getTargetPortType(
         );
     }
     const def = getNodeDefinition(node.data.type);
+    const inputs = def?.inputs || {};
     const normalizedHandleId = handleId === null ? "" : handleId || "";
-    return def?.inputs?.[normalizedHandleId] || "any";
+
+    // If handleId is empty and there's only one input, use it
+    if (normalizedHandleId === "" && Object.keys(inputs).length === 1) {
+        return Object.values(inputs)[0];
+    }
+
+    return inputs[normalizedHandleId] || "any";
 }
 
 // --- Node Definitions ---
@@ -343,7 +356,7 @@ registerNode<ImageData, NodeInputs>({
         "image-input": "image",
     },
     outputs: {
-        "": "image",
+        "result-output": "image",
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [] };
@@ -407,7 +420,7 @@ registerNode<VideoData, NodeInputs>({
         "last-frame-input": "image",
     },
     outputs: {
-        "": "video",
+        "result-output": "video",
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [] };
@@ -507,7 +520,7 @@ registerNode<UpscaleData, NodeInputs>({
         "image-input": "image",
     },
     outputs: {
-        "": "image",
+        "result-output": "image",
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = {};
@@ -543,7 +556,7 @@ registerNode<ResizeData, NodeInputs>({
         "image-input": "image",
     },
     outputs: {
-        "": "image",
+        "result-output": "image",
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = {};

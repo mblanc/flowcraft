@@ -16,6 +16,10 @@ Model
 - video
 - voice
 - music
+- extend video
+- upscale image
+- resize image
+- evaluate
 
 premade-model-node-with-prompt
 
