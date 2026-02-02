@@ -34,7 +34,6 @@ function CustomNodeEditorContent() {
                         customNode.edges,
                         customNode.name,
                         "custom-node",
-                        customNode.version,
                     );
                     setLoading(false);
                 } else if (response.status === 404) {

@@ -198,14 +198,13 @@ export const CustomWorkflowNode = memo(
         }, [data.width, data.height]);
 
         const subWorkflowId = data.subWorkflowId;
-        const subWorkflowVersion = data.subWorkflowVersion;
 
         useEffect(() => {
             const fetchInterface = async () => {
                 if (!subWorkflowId) return;
 
-                // Use subWorkflowId and version as cache key
-                const fetchKey = `${subWorkflowId}-${subWorkflowVersion || "latest"}`;
+                // Use subWorkflowId as cache key
+                const fetchKey = `${subWorkflowId}`;
                 if (lastFetchedRef.current === fetchKey) return;
 
                 setLoading(true);
@@ -275,18 +274,14 @@ export const CustomWorkflowNode = memo(
                     const currentData = currentNode?.data as CustomWorkflowData;
 
                     // Only update if actually changed to prevent loops
-                    // Also update the version if it changed
-                    const newVersion = String(customNode.version);
                     if (
                         !currentData ||
                         !shallowEqual(currentData.inputs, inputTypes) ||
-                        !shallowEqual(currentData.outputs, outputTypes) ||
-                        currentData.subWorkflowVersion !== newVersion
+                        !shallowEqual(currentData.outputs, outputTypes)
                     ) {
                         updateNodeData(id, {
                             inputs: inputTypes,
                             outputs: outputTypes,
-                            subWorkflowVersion: newVersion,
                         });
                     }
                 } catch (err) {
@@ -298,13 +293,7 @@ export const CustomWorkflowNode = memo(
             };
 
             fetchInterface();
-        }, [
-            subWorkflowId,
-            subWorkflowVersion,
-            id,
-            removeEdges,
-            updateNodeData,
-        ]);
+        }, [subWorkflowId, id, removeEdges, updateNodeData]);
 
         const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
             e.preventDefault();
@@ -371,9 +360,6 @@ export const CustomWorkflowNode = memo(
                         <h3 className="text-foreground truncate text-sm font-semibold">
                             {data.name}
                         </h3>
-                        <p className="text-muted-foreground text-[10px]">
-                            v{data.subWorkflowVersion}
-                        </p>
                     </div>
                 </div>
 

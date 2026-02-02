@@ -135,7 +135,6 @@ export const WorkflowOutputDataSchema = BaseNodeDataSchema.extend({
 export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({
     type: z.literal("custom-workflow"),
     subWorkflowId: z.string(),
-    subWorkflowVersion: z.string(),
     inputs: z.record(z.string(), z.string()).optional(),
     outputs: z.record(z.string(), z.string()).optional(),
     width: z.number().optional(),

@@ -25,7 +25,6 @@ export interface FlowState {
     flowId: string | null;
     flowName: string;
     entityType: EntityType;
-    entityVersion: number | null;
 
     // Actions
     setNodes: (nodes: Node<NodeData>[]) => void;
@@ -38,7 +37,6 @@ export interface FlowState {
     setFlowId: (id: string | null) => void;
     setFlowName: (name: string) => void;
     setEntityType: (type: EntityType) => void;
-    setEntityVersion: (version: number | null) => void;
 
     // Node Mutations
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
@@ -58,7 +56,6 @@ export interface FlowState {
         edges: Edge[],
         name: string,
         entityType?: EntityType,
-        version?: number | null,
     ) => void;
 }
 
@@ -70,7 +67,6 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     flowId: null,
     flowName: "Untitled Flow",
     entityType: "flow",
-    entityVersion: null,
 
     setNodes: (nodes) => set({ nodes: migrateNodes(nodes) }),
     setEdges: (edges) => set({ edges }),
@@ -98,7 +94,6 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     setFlowId: (flowId) => set({ flowId }),
     setFlowName: (flowName) => set({ flowName }),
     setEntityType: (entityType) => set({ entityType }),
-    setEntityVersion: (entityVersion) => set({ entityVersion }),
 
     updateNodeData: (nodeId, data) => {
         const { nodes, selectedNode } = get();
@@ -155,14 +150,13 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         });
     },
 
-    loadFlow: (id, nodes, edges, name, entityType = "flow", version = null) => {
+    loadFlow: (id, nodes, edges, name, entityType = "flow") => {
         set({
             flowId: id,
             nodes: migrateNodes(nodes),
             edges,
             flowName: name,
             entityType,
-            entityVersion: version,
         });
     },
 }));

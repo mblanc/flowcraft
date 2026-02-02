@@ -44,7 +44,6 @@ export class CustomNodeService {
             nodes: data?.nodes as unknown[],
             edges: data?.edges as unknown[],
             thumbnail: data?.thumbnail as string | undefined,
-            version: data?.version as number,
             inputs: data?.inputs as CustomNodePort[],
             outputs: data?.outputs as CustomNodePort[],
             createdAt:
@@ -152,7 +151,6 @@ export class CustomNodeService {
             name: data.name,
             nodes: data.nodes,
             edges: data.edges,
-            version: 1,
             inputs,
             outputs,
             createdAt: new Date(),
@@ -256,9 +254,6 @@ export class CustomNodeService {
             updateData.edges = data.edges;
             updateData.inputs = inputs;
             updateData.outputs = outputs;
-
-            // Auto-increment version on content changes
-            updateData.version = (existingData.version || 0) + 1;
         }
 
         await nodeRef.update(updateData);

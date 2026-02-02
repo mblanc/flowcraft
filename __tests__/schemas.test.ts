@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { NodeDataSchema, FlowCreateSchema } from "../lib/schemas";
+import { NodeDataSchema } from "../lib/schemas";
 
 describe("Schema Validation", () => {
     describe("Workflow Input Node", () => {
@@ -47,26 +47,8 @@ describe("Schema Validation", () => {
                 type: "custom-workflow",
                 name: "Sub Workflow",
                 subWorkflowId: "flow-123",
-                subWorkflowVersion: "1.0.0",
             };
             const result = NodeDataSchema.safeParse(data);
-            expect(result.success).toBe(true);
-        });
-    });
-
-    describe("Flow Versioning & Publishing", () => {
-        it("should validate a flow with publishing metadata", () => {
-            const flow = {
-                name: "Test Flow",
-                nodes: [],
-                edges: [],
-                version: "1.0.0",
-                isPublished: true,
-                visibility: "public",
-                tags: ["test"],
-            };
-            // Note: FlowCreateSchema/FlowUpdateSchema might need updates to include these
-            const result = FlowCreateSchema.safeParse(flow);
             expect(result.success).toBe(true);
         });
     });

@@ -1020,31 +1020,6 @@ function CustomWorkflowConfig({
     const updateNodeData = useFlowStore(
         (state: FlowState) => state.updateNodeData,
     );
-    const [versions, setVersions] = useState<
-        { version: string; publishedAt: string }[]
-    >([]);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        const fetchVersions = async () => {
-            if (!data.subWorkflowId) return;
-            setLoading(true);
-            try {
-                const res = await fetch(
-                    `/api/flows/${data.subWorkflowId}/versions`,
-                );
-                if (!res.ok) throw new Error("Failed to fetch versions");
-                const result = await res.json();
-                setVersions(result.versions);
-            } catch (error) {
-                logger.error("Error fetching versions:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchVersions();
-    }, [data.subWorkflowId]);
 
     return (
         <div className="space-y-6">
@@ -1058,34 +1033,6 @@ function CustomWorkflowConfig({
                     }
                     placeholder="Workflow name"
                 />
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="version">Version</Label>
-                <Select
-                    value={data.subWorkflowVersion}
-                    onValueChange={(value) =>
-                        updateNodeData(nodeId, { subWorkflowVersion: value })
-                    }
-                    disabled={loading || versions.length === 0}
-                >
-                    <SelectTrigger id="version">
-                        <SelectValue placeholder="Select version" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {versions.map((v) => (
-                            <SelectItem key={v.version} value={v.version}>
-                                {v.version} (
-                                {new Date(v.publishedAt).toLocaleDateString()})
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                {versions.length === 0 && !loading && (
-                    <p className="text-muted-foreground text-[10px] italic">
-                        No versions found for this workflow.
-                    </p>
-                )}
             </div>
         </div>
     );

@@ -21,7 +21,6 @@ interface CustomNode {
     id: string;
     name: string;
     thumbnail?: string;
-    version: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -248,7 +247,6 @@ export default function FlowsList() {
         onDelete: (id: string) => void,
     ) => {
         const isCustomNode = type === "custom-node";
-        const version = isCustomNode ? (item as CustomNode).version : null;
         const path = isCustomNode
             ? `/custom-node/${item.id}`
             : `/flow/${item.id}`;
@@ -288,11 +286,6 @@ export default function FlowsList() {
                         <h3 className="text-foreground group-hover:text-primary flex-1 truncate font-semibold transition-colors">
                             {item.name}
                         </h3>
-                        {version !== null && (
-                            <span className="bg-muted text-muted-foreground rounded px-2 py-0.5 text-xs">
-                                v{version}
-                            </span>
-                        )}
                     </div>
                     <div className="text-muted-foreground flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-1">

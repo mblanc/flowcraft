@@ -9,7 +9,6 @@ export function useFlowPersistence() {
     const setNodes = useFlowStore((state) => state.setNodes);
     const setEdges = useFlowStore((state) => state.setEdges);
     const setFlowName = useFlowStore((state) => state.setFlowName);
-    const setEntityVersion = useFlowStore((state) => state.setEntityVersion);
 
     const getThumbnailFromNodes = useCallback(
         (
@@ -86,10 +85,7 @@ export function useFlowPersistence() {
                 });
 
                 if (response.ok && entityType === "custom-node") {
-                    const data = await response.json();
-                    if (data.version) {
-                        setEntityVersion(data.version);
-                    }
+                    // Custom node saved successfully
                 }
 
                 logger.info(
@@ -99,7 +95,7 @@ export function useFlowPersistence() {
                 logger.error("Error saving:", error);
             }
         },
-        [getThumbnailFromNodes, setEntityVersion],
+        [getThumbnailFromNodes],
     );
 
     const exportFlow = useCallback(() => {

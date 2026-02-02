@@ -42,7 +42,6 @@ export interface CustomNodeDocument {
     nodes: unknown[];
     edges: unknown[];
     thumbnail?: string;
-    version: number;
     inputs: CustomNodePort[];
     outputs: CustomNodePort[];
     createdAt: Date;

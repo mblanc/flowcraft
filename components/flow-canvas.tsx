@@ -56,7 +56,6 @@ import logger from "@/app/logger";
 interface CustomNodeItem {
     id: string;
     name: string;
-    version: number;
 }
 
 const nodeTypes = {
@@ -242,7 +241,6 @@ export function FlowCanvas() {
                     ) as CustomNodeItem;
                     addNodeWithType("custom-workflow", position, {
                         subWorkflowId: customNode.id,
-                        subWorkflowVersion: String(customNode.version),
                         name: customNode.name,
                     } as Partial<CustomWorkflowData>);
                     return;
@@ -321,7 +319,6 @@ export function FlowCanvas() {
     const handleAddCustomNode = (customNode: CustomNodeItem) => {
         addNodeWithType("custom-workflow", undefined, {
             subWorkflowId: customNode.id,
-            subWorkflowVersion: String(customNode.version),
             name: customNode.name,
         } as Partial<CustomWorkflowData>);
     };
@@ -446,10 +443,7 @@ export function FlowCanvas() {
                                             </div>
                                         </TooltipTrigger>
                                         <TooltipContent side="right">
-                                            <p>
-                                                {customNode.name} (v
-                                                {customNode.version})
-                                            </p>
+                                            <p>{customNode.name}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 ))}

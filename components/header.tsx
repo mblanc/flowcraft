@@ -15,7 +15,6 @@ export function Header() {
     const flowName = useFlowStore((state) => state.flowName);
     const setFlowName = useFlowStore((state) => state.setFlowName);
     const entityType = useFlowStore((state) => state.entityType);
-    const entityVersion = useFlowStore((state) => state.entityVersion);
     const router = useRouter();
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState(flowName);
@@ -94,11 +93,6 @@ export function Header() {
                                 >
                                     {flowName}
                                 </h1>
-                            )}
-                            {isCustomNode && entityVersion !== null && (
-                                <span className="bg-muted text-muted-foreground rounded px-2 py-0.5 text-xs">
-                                    v{entityVersion}
-                                </span>
                             )}
                         </div>
                     ) : (

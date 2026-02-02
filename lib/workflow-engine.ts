@@ -309,7 +309,7 @@ export class WorkflowEngine {
         });
 
         logger.debug(
-            `[WorkflowEngine] Executing custom node ${data.subWorkflowId} v${customNodeData.version}`,
+            `[WorkflowEngine] Executing custom node ${data.subWorkflowId}`,
         );
 
         // 3. Execute sub-workflow
