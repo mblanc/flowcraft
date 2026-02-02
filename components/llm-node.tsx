@@ -126,11 +126,10 @@ export const LLMNode = memo(
 
         return (
             <div
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${
-                    selected
+                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
-                } ${data.executing ? "animate-pulse-bg" : ""}`}
+                    } ${data.executing ? "animate-pulse-bg" : ""}`}
                 style={{
                     width: dimensions.width,
                     minHeight: dimensions.height,
@@ -141,7 +140,7 @@ export const LLMNode = memo(
                     position={Position.Left}
                     id="prompts-input"
                     className="!bg-blue-500"
-                    style={{ top: 35, left: -6 }}
+                    style={{ top: 35 }}
                 />
                 <div className="absolute top-[18px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-blue-500">
                     Prompts
@@ -152,7 +151,7 @@ export const LLMNode = memo(
                     position={Position.Left}
                     id="file-input"
                     className="!bg-cyan-500"
-                    style={{ top: 65, left: -6 }}
+                    style={{ top: 65 }}
                 />
                 <div className="absolute top-[48px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-cyan-500">
                     File(s)

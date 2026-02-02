@@ -125,32 +125,32 @@
 /* Converting handle sizes from rem back to px */
 .react-flow__handle {
     background: oklch(0.65 0.25 252);
-    /* Increased handle size from 10px to 14px */
-    width: 14px !important;
-    height: 14px !important;
-    border: 2px solid oklch(0.16 0 0);
+    /* Increased handle size from 14px to 21px (1.5x) */
+    width: 21px !important;
+    height: 21px !important;
+    border: 3px solid var(--card) !important;
     border-radius: 50%;
 }
 
 /* Converting positioning offsets back to px */
 .react-flow__handle-left {
-    /* Adjusted offset from -10px to -7px to center 14px handles */
-    left: -7px !important;
+    /* Adjusted offset for 21px handles: -21/2 = -10.5px */
+    left: -10.5px !important;
 }
 
 .react-flow__handle-right {
-    /* Adjusted offset from -10px to -7px to center 14px handles */
-    right: -7px !important;
+    /* Adjusted offset for 21px handles: -21/2 = -10.5px */
+    right: -10.5px !important;
 }
 
 .react-flow__handle-top {
-    /* Adjusted offset from -10px to -7px to center 14px handles */
-    top: -7px !important;
+    /* Adjusted offset for 21px handles: -21/2 = -10.5px */
+    top: -10.5px !important;
 }
 
 .react-flow__handle-bottom {
-    /* Adjusted offset from -10px to -7px to center 14px handles */
-    bottom: -7px !important;
+    /* Adjusted offset for 21px handles: -21/2 = -10.5px */
+    bottom: -10.5px !important;
 }
 
 .react-flow__handle:hover {

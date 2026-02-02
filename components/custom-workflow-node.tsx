@@ -157,8 +157,8 @@ function SubWorkflowOutputPreview({
     const textValue =
         typeof actualValue === "object"
             ? (actualValue?.output as string) ||
-              (actualValue?.text as string) ||
-              JSON.stringify(actualValue, null, 2)
+            (actualValue?.text as string) ||
+            JSON.stringify(actualValue, null, 2)
             : String(actualValue);
     return (
         <div
@@ -345,11 +345,10 @@ export const CustomWorkflowNode = memo(
 
         return (
             <div
-                className={`bg-card custom-workflow-node relative rounded-lg border-2 p-4 shadow-lg transition-all ${
-                    selected
+                className={`bg-card custom-workflow-node relative rounded-lg border-2 p-4 shadow-lg transition-all ${selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
-                } ${data.executing ? "animate-pulse-bg" : ""}`}
+                    } ${data.executing ? "animate-pulse-bg" : ""}`}
                 style={{ width: dimensions.width }}
             >
                 <div className="border-border mb-2 flex items-center gap-3 border-b pb-2">
@@ -390,7 +389,7 @@ export const CustomWorkflowNode = memo(
                                             type="target"
                                             position={Position.Left}
                                             id={input.id}
-                                            className={`!-left-6 !h-3 !w-3 port-${input.type}`}
+                                            className={`port-${input.type}`}
                                         />
                                         <span className="text-foreground text-[10px] font-medium">
                                             {input.name}
@@ -413,7 +412,7 @@ export const CustomWorkflowNode = memo(
                                             type="source"
                                             position={Position.Right}
                                             id={output.id}
-                                            className={`!-right-6 !h-3 !w-3 port-${output.type}`}
+                                            className={`port-${output.type}`}
                                         />
                                     </div>
                                 ))}
