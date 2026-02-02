@@ -79,7 +79,7 @@ describe("WorkflowEngine Nested Subflows", () => {
                         type: "workflow-input",
                         name: "Prompt In",
                         portName: "prompt",
-                        portType: "string",
+                        portType: "text",
                     },
                 },
                 {
@@ -280,7 +280,7 @@ describe("WorkflowEngine Nested Subflows", () => {
                         type: "workflow-input",
                         name: "Prompt In",
                         portName: "prompt",
-                        portType: "string",
+                        portType: "text",
                     },
                 },
                 {
@@ -429,7 +429,7 @@ describe("WorkflowEngine Nested Subflows", () => {
                         type: "workflow-input",
                         name: "Prompt In",
                         portName: "prompt",
-                        portType: "string",
+                        portType: "text",
                     },
                 },
                 {
@@ -569,7 +569,7 @@ describe("WorkflowEngine Nested Subflows", () => {
                         type: "workflow-input",
                         name: "Prompt In",
                         portName: "prompt",
-                        portType: "string",
+                        portType: "text",
                     },
                 },
                 {
@@ -714,7 +714,7 @@ describe("WorkflowEngine Nested Subflows", () => {
                         type: "workflow-input",
                         name: "Prompt In",
                         portName: "prompt",
-                        portType: "string",
+                        portType: "text",
                     },
                 },
                 {
@@ -868,7 +868,7 @@ describe("WorkflowEngine Nested Subflows", () => {
                         type: "workflow-input",
                         name: "Prompt In",
                         portName: "prompt",
-                        portType: "string",
+                        portType: "text",
                     },
                 },
                 {

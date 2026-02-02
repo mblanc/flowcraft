@@ -125,7 +125,7 @@ export function createNode(
                     type: "workflow-input",
                     name: "Workflow Input",
                     portName: "input",
-                    portType: "string",
+                    portType: "text",
                     portRequired: true,
                 } as WorkflowInputData,
             };
@@ -138,7 +138,7 @@ export function createNode(
                     type: "workflow-output",
                     name: "Workflow Output",
                     portName: "output",
-                    portType: "string",
+                    portType: "text",
                 } as WorkflowOutputData,
             };
         case "custom-workflow":

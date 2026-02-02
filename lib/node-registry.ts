@@ -73,7 +73,7 @@ export function getSourcePortType(
         );
     }
     if (node.data.type === "llm") {
-        return (node.data as LLMData).outputType === "json" ? "json" : "string";
+        return "text";
     }
     if (node.data.type === "file") {
         return (node.data as FileData).fileType || "any";
@@ -153,7 +153,7 @@ const getSourceValue = (data: NodeData | null): unknown => {
         // Video nodes use: videoUrl
         // Text/LLM nodes use: text, output
 
-        if (inputData.portType === "string") {
+        if (inputData.portType === "text") {
             value = unwrappedData.text || unwrappedData.output;
         } else if (inputData.portType === "image") {
             // Check for image data from various sources
@@ -167,12 +167,8 @@ const getSourceValue = (data: NodeData | null): unknown => {
                 unwrappedData.videoUrl ||
                 unwrappedData.gcsUri ||
                 unwrappedData.fileUrl;
-        } else if (inputData.portType === "json") {
-            value = unwrappedData.output || unwrappedData.text;
         } else if (inputData.portType === "any") {
             value =
-                unwrappedData.text ||
-                unwrappedData.images ||
                 unwrappedData.image ||
                 unwrappedData.videoUrl ||
                 unwrappedData.output ||
@@ -236,11 +232,11 @@ const getSourceValue = (data: NodeData | null): unknown => {
 registerNode<LLMData, NodeInputs>({
     type: "llm",
     inputs: {
-        "prompts-input": "string",
+        "prompts-input": "text",
         "file-input": "any",
     },
     outputs: {
-        "": "string", // fallback, actual type handled by getSourcePortType
+        "": "text", // fallback, actual type handled by getSourcePortType
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { files: [], prompts: [] };
@@ -343,7 +339,7 @@ registerNode<LLMData, NodeInputs>({
 registerNode<ImageData, NodeInputs>({
     type: "image",
     inputs: {
-        "prompt-input": "string",
+        "prompt-input": "text",
         "image-input": "image",
     },
     outputs: {
@@ -405,7 +401,7 @@ registerNode<ImageData, NodeInputs>({
 registerNode<VideoData, NodeInputs>({
     type: "video",
     inputs: {
-        "prompt-input": "string",
+        "prompt-input": "text",
         "image-input": "image",
         "first-frame-input": "image",
         "last-frame-input": "image",
@@ -622,7 +618,7 @@ registerNode<CustomWorkflowData, NodeInputs>({
 // Text Node
 registerNode<TextData, NodeInputs>({
     type: "text",
-    outputs: { "": "string" },
+    outputs: { "": "text" },
     gatherInputs: () => ({}),
     execute: async () => ({}),
 });

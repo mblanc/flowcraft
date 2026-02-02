@@ -121,7 +121,7 @@ export const ResizeDataSchema = BaseNodeDataSchema.extend({
 export const WorkflowInputDataSchema = BaseNodeDataSchema.extend({
     type: z.literal("workflow-input"),
     portName: z.string(),
-    portType: z.enum(["string", "image", "video", "json"]),
+    portType: z.enum(["text", "image", "video"]),
     portRequired: z.boolean().default(true),
     portDefaultValue: z.any().optional(),
 });
@@ -129,7 +129,7 @@ export const WorkflowInputDataSchema = BaseNodeDataSchema.extend({
 export const WorkflowOutputDataSchema = BaseNodeDataSchema.extend({
     type: z.literal("workflow-output"),
     portName: z.string(),
-    portType: z.enum(["string", "image", "video", "json"]),
+    portType: z.enum(["text", "image", "video"]),
 });
 
 export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({

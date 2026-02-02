@@ -8,7 +8,7 @@ describe("Schema Validation", () => {
                 type: "workflow-input",
                 name: "Input Node",
                 portName: "prompt",
-                portType: "string",
+                portType: "text",
                 portRequired: true,
                 portDefaultValue: "Hello",
             };

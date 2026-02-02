@@ -77,10 +77,9 @@ export const WorkflowOutputNode = memo(
                                 <SelectValue placeholder="Select type" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="string">String</SelectItem>
+                                <SelectItem value="text">Text</SelectItem>
                                 <SelectItem value="image">Image</SelectItem>
                                 <SelectItem value="video">Video</SelectItem>
-                                <SelectItem value="json">JSON</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

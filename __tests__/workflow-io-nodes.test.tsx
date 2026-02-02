@@ -33,7 +33,7 @@ describe("Workflow IO Nodes", () => {
             type: "workflow-input",
             name: "Input Node",
             portName: "prompt",
-            portType: "string",
+            portType: "text",
             portRequired: true,
             portDefaultValue: "Hello",
         };
@@ -57,7 +57,7 @@ describe("Workflow IO Nodes", () => {
             );
             expect(screen.getByText("Workflow Input")).toBeInTheDocument();
             expect(screen.getByDisplayValue("prompt")).toBeInTheDocument();
-            expect(screen.getByText("String")).toBeInTheDocument();
+            expect(screen.getByText("Text")).toBeInTheDocument();
         });
     });
 
