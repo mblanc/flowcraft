@@ -181,8 +181,8 @@ describe("LLMNode Refactoring", () => {
 
         const mockInputs = { prompts: [] };
 
-        await expect(
-            executeLLMNode(mockNode, mockInputs, {}),
-        ).rejects.toThrow("No prompt available for LLM node");
+        await expect(executeLLMNode(mockNode, mockInputs, {})).rejects.toThrow(
+            "No prompt available for LLM node",
+        );
     });
 });

@@ -72,8 +72,14 @@ export class GeminiService {
     }
 
     async generateText(options: GenerateTextOptions): Promise<string> {
-        const { prompts, files, model, outputType, responseSchema, strictMode } =
-            options;
+        const {
+            prompts,
+            files,
+            model,
+            outputType,
+            responseSchema,
+            strictMode,
+        } = options;
         const selectedModel = model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
 
         logger.info(

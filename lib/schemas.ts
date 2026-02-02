@@ -199,9 +199,7 @@ export const GenerateImageSchema = z.object({
 });
 
 export const GenerateTextSchema = z.object({
-    prompts: z
-        .array(z.string())
-        .min(1, "At least one prompt is required"),
+    prompts: z.array(z.string()).min(1, "At least one prompt is required"),
     files: z
         .array(
             z.object({
