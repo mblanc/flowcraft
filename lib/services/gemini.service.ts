@@ -167,7 +167,7 @@ export class GeminiService {
     async generateImage(
         options: GenerateImageOptions,
     ): Promise<{ data: string; mimeType: string }> {
-        const { prompt, images = [], aspectRatio, model } = options;
+        const { prompt, images = [], aspectRatio, model, resolution } = options;
         const selectedModel = model || MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW;
 
         logger.info(
@@ -191,13 +191,25 @@ export class GeminiService {
         logger.info(
             `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
         );
+        logger.info(
+            `[GeminiService] Config: ${JSON.stringify({
+                responseModalities: ["IMAGE"],
+                imageConfig: {
+                    aspectRatio: aspectRatio as string,
+                    imageSize: resolution as string
+                },
+            }, null, 2)}`,
+        );
 
         const response = await this.ai.models.generateContent({
             model: selectedModel,
             contents,
             config: {
                 responseModalities: ["IMAGE"],
-                imageConfig: { aspectRatio: aspectRatio as string },
+                imageConfig: {
+                    aspectRatio: aspectRatio as string,
+                    imageSize: resolution as string
+                },
             },
         });
 
