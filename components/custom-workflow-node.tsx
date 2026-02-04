@@ -157,8 +157,8 @@ function SubWorkflowOutputPreview({
     const textValue =
         typeof actualValue === "object"
             ? (actualValue?.output as string) ||
-            (actualValue?.text as string) ||
-            JSON.stringify(actualValue, null, 2)
+              (actualValue?.text as string) ||
+              JSON.stringify(actualValue, null, 2)
             : String(actualValue);
     return (
         <div
@@ -345,10 +345,11 @@ export const CustomWorkflowNode = memo(
 
         return (
             <div
-                className={`bg-card custom-workflow-node relative rounded-lg border-2 p-4 shadow-lg transition-all ${selected
+                className={`bg-card custom-workflow-node relative rounded-lg border-2 p-4 shadow-lg transition-all ${
+                    selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
-                    } ${data.executing ? "animate-pulse-bg" : ""}`}
+                } ${data.executing ? "animate-pulse-bg" : ""}`}
                 style={{ width: dimensions.width }}
             >
                 <div className="border-border mb-2 flex items-center gap-3 border-b pb-2">

@@ -126,10 +126,11 @@ export const LLMNode = memo(
 
         return (
             <div
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${selected
+                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${
+                    selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
-                    } ${data.executing ? "animate-pulse-bg" : ""}`}
+                } ${data.executing ? "animate-pulse-bg" : ""}`}
                 style={{
                     width: dimensions.width,
                     minHeight: dimensions.height,

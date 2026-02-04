@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import {
     ReactFlow,
     Controls,
@@ -263,6 +263,7 @@ export function FlowCanvas() {
     } | null>(null);
     const [connectionStartParams, setConnectionStartParams] =
         useState<OnConnectStartParams | null>(null);
+    const connectionStartParamsRef = useRef<OnConnectStartParams | null>(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<{
         x: number;
@@ -272,6 +273,11 @@ export function FlowCanvas() {
         x: number;
         y: number;
     } | null>(null);
+
+    const clearConnectionParams = useCallback(() => {
+        setConnectionStartParams(null);
+        connectionStartParamsRef.current = null;
+    }, []);
 
     const [prevFlowId, setPrevFlowId] = useState(flowId);
     if (flowId !== prevFlowId) {
@@ -399,13 +405,14 @@ export function FlowCanvas() {
 
     const onConnectStart: OnConnectStart = useCallback((_event, params) => {
         setConnectionStartParams(params);
+        connectionStartParamsRef.current = params;
     }, []);
 
     const onConnectEnd: OnConnectEnd = useCallback(
         (event, connectionState) => {
             if (
                 !connectionState.isValid &&
-                connectionStartParams &&
+                connectionStartParamsRef.current &&
                 rfInstance
             ) {
                 const { clientX, clientY } =
@@ -419,9 +426,11 @@ export function FlowCanvas() {
                 setDropdownPosition(position);
                 setDropdownVisualPosition({ x: clientX, y: clientY });
                 setDropdownOpen(true);
+            } else if (connectionState.isValid) {
+                clearConnectionParams();
             }
         },
-        [connectionStartParams, rfInstance],
+        [rfInstance, clearConnectionParams],
     );
 
     const getCompatibleNodes = (
@@ -618,7 +627,7 @@ export function FlowCanvas() {
         }
 
         setDropdownOpen(false);
-        setConnectionStartParams(null);
+        clearConnectionParams();
     };
 
     const compatibleNodes = connectionStartParams
@@ -825,7 +834,12 @@ export function FlowCanvas() {
                                         <div style={{ pointerEvents: "auto" }}>
                                             <DropdownMenu
                                                 open={dropdownOpen}
-                                                onOpenChange={setDropdownOpen}
+                                                onOpenChange={(open) => {
+                                                    setDropdownOpen(open);
+                                                    if (!open) {
+                                                        clearConnectionParams();
+                                                    }
+                                                }}
                                             >
                                                 <DropdownMenuTrigger asChild>
                                                     <div className="h-0 w-0" />

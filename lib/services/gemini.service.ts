@@ -192,13 +192,17 @@ export class GeminiService {
             `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
         );
         logger.info(
-            `[GeminiService] Config: ${JSON.stringify({
-                responseModalities: ["IMAGE"],
-                imageConfig: {
-                    aspectRatio: aspectRatio as string,
-                    imageSize: resolution as string
+            `[GeminiService] Config: ${JSON.stringify(
+                {
+                    responseModalities: ["IMAGE"],
+                    imageConfig: {
+                        aspectRatio: aspectRatio as string,
+                        imageSize: resolution as string,
+                    },
                 },
-            }, null, 2)}`,
+                null,
+                2,
+            )}`,
         );
 
         const response = await this.ai.models.generateContent({
@@ -208,7 +212,7 @@ export class GeminiService {
                 responseModalities: ["IMAGE"],
                 imageConfig: {
                     aspectRatio: aspectRatio as string,
-                    imageSize: resolution as string
+                    imageSize: resolution as string,
                 },
             },
         });
