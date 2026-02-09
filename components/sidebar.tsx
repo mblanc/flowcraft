@@ -100,7 +100,7 @@ export function Sidebar() {
     const nodeInfo = getNodeTypeInfo();
 
     return (
-        <div className="border-border bg-background flex w-96 flex-col border-l">
+        <div className="border-border bg-card flex w-96 flex-col border-l">
             <div className="border-border flex items-center justify-between border-b px-4 py-3">
                 <div className="flex items-center gap-2">
                     <nodeInfo.icon className={`h-4 w-4 ${nodeInfo.color}`} />

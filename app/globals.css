@@ -47,7 +47,7 @@
     --foreground: #fafafa;
     --canvas-bg: #000000;
     --canvas-dots: #71717a;
-    --card: #3f3f46;
+    --card: #52525b;
     --card-foreground: #fafafa;
     --popover: #3f3f46;
     --popover-foreground: #fafafa;
@@ -61,7 +61,7 @@
     --accent-foreground: #fafafa;
     --destructive: #7f1d1d;
     --destructive-foreground: #fafafa;
-    --border: #52525b;
+    --border: #71717a;
     --input: #52525b;
     --ring: #3b82f6;
     --chart-1: #2662d9;
@@ -125,6 +125,7 @@
     * {
         @apply border-border outline-ring/50;
     }
+
     body {
         @apply bg-background text-foreground;
     }
@@ -232,6 +233,7 @@
     100% {
         background-color: rgb(255, 255, 255);
     }
+
     50% {
         background-color: rgb(200, 200, 200);
     }
@@ -243,17 +245,21 @@
 
 /* Port type handle colors */
 .custom-workflow-node .react-flow__handle.port-string {
-    background: #a855f7 !important; /* purple-500 */
+    background: #a855f7 !important;
+    /* purple-500 */
 }
 
 .custom-workflow-node .react-flow__handle.port-image {
-    background: #f97316 !important; /* orange-500 */
+    background: #f97316 !important;
+    /* orange-500 */
 }
 
 .custom-workflow-node .react-flow__handle.port-video {
-    background: #ec4899 !important; /* pink-500 */
+    background: #ec4899 !important;
+    /* pink-500 */
 }
 
 .custom-workflow-node .react-flow__handle.port-json {
-    background: #06b6d4 !important; /* cyan-500 */
+    background: #06b6d4 !important;
+    /* cyan-500 */
 }
