@@ -7,10 +7,10 @@ This plan outlines the steps to standardize the UI using design tokens and imple
 - [x] Task: Install `next-themes` and configure the `ThemeProvider` in `app/layout.tsx`. a95f9fd
     - [ ] Write Tests
     - [ ] Implement Feature
-- [~] Task: Update `tailwind.config.ts` to support dark mode (selector strategy) and ensure all primary/secondary colors are defined using CSS variables.
+- [x] Task: Update `tailwind.config.ts` to support dark mode (selector strategy) and ensure all primary/secondary colors are defined using CSS variables. 3c17ac2
     - [ ] Write Tests
     - [ ] Implement Feature
-- [ ] Task: Implement the `ThemeToggle` component in `components/header.tsx` with Sun/Moon icons.
+- [~] Task: Implement the `ThemeToggle` component in `components/header.tsx` with Sun/Moon icons.
     - [ ] Write Tests
     - [ ] Implement Feature
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Infrastructure & Theming Setup' (Protocol in workflow.md)

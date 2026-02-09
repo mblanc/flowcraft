@@ -8,6 +8,7 @@ import { Download, Upload, ArrowLeft, Save, Box, Workflow } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowPersistence } from "@/hooks/use-flow-persistence";
 import { UserProfile } from "./user-profile";
+import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
     const { exportFlow, importFlow, saveFlow } = useFlowPersistence();
@@ -126,6 +127,7 @@ export function Header() {
                         Export
                     </Button>
                 )}
+                <ThemeToggle />
                 <UserProfile isCollapsed={false} />
             </div>
         </header>
