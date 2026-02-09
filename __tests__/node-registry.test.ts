@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { getNodeDefinition } from "../lib/node-registry";
+import {
+    getNodeDefinition,
+    getSourcePortType,
+    getTargetPortType,
+} from "../lib/node-registry";
 import { Node, Edge } from "@xyflow/react";
 import {
     NodeData,
@@ -9,7 +13,59 @@ import {
     ImageData,
     ResizeData,
     UpscaleData,
+    WorkflowOutputData,
 } from "../lib/types";
+
+describe("NodeRegistry - Node Definitions", () => {
+    it("should retrieve workflow-input definition", () => {
+        const definition = getNodeDefinition("workflow-input");
+        expect(definition).toBeDefined();
+        expect(definition?.type).toBe("workflow-input");
+    });
+
+    it("should retrieve workflow-output definition", () => {
+        const definition = getNodeDefinition("workflow-output");
+        expect(definition).toBeDefined();
+        expect(definition?.type).toBe("workflow-output");
+    });
+});
+
+describe("NodeRegistry - Port Type Resolution", () => {
+    it("should correctly resolve source port type for image node with null handle", () => {
+        const node: Node<NodeData> = {
+            id: "img-1",
+            type: "image",
+            data: {
+                type: "image",
+                name: "Image",
+                prompt: "",
+                images: [],
+                aspectRatio: "1:1",
+                model: "gemini-2.5-flash-image",
+                resolution: "1K",
+            } as ImageData,
+            position: { x: 0, y: 0 },
+        };
+        const type = getSourcePortType(node, null);
+        expect(type).toBe("image");
+    });
+
+    it("should correctly resolve target port type for workflow-output node with null handle", () => {
+        const node: Node<NodeData> = {
+            id: "out-1",
+            type: "workflow-output",
+            data: {
+                type: "workflow-output",
+                name: "Out",
+                portName: "out",
+                portType: "video",
+            } as WorkflowOutputData,
+            position: { x: 0, y: 0 },
+        };
+        const type = getTargetPortType(node, null);
+        expect(type).toBe("video");
+    });
+});
 
 describe("NodeRegistry - LLMNode gatherInputs", () => {
     const llmDefinition = getNodeDefinition("llm")!;

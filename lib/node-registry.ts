@@ -4,10 +4,15 @@ import {
     NodeType,
     NodeInputs,
     LLMData,
+    TextData,
     ImageData,
     VideoData,
+    FileData,
     UpscaleData,
     ResizeData,
+    WorkflowInputData,
+    WorkflowOutputData,
+    CustomWorkflowData,
 } from "./types";
 
 export interface ExecutionContext {
@@ -23,10 +28,12 @@ export type NodeExecutor<T extends NodeData = NodeData, I = NodeInputs> = (
 
 export interface NodeDefinition<T extends NodeData = NodeData, I = NodeInputs> {
     type: T["type"];
+    inputs?: Record<string, string>; // handleId -> type
+    outputs?: Record<string, string>; // sourceHandleId -> type (use "" for default)
     gatherInputs: (
         node: Node<T>,
         edges: Edge[],
-        getSourceData: (id: string) => NodeData | null,
+        getSourceData: (id: string, handle?: string | null) => NodeData | null,
     ) => I;
     execute: NodeExecutor<T, I>;
 }
@@ -48,6 +55,65 @@ export function getNodeDefinition<T extends NodeData>(
     return registry.get(type) as NodeDefinition<T, NodeInputs> | undefined;
 }
 
+export function getSourcePortType(
+    node: Node<NodeData>,
+    handleId?: string | null,
+): string {
+    if (node.data.type === "workflow-input") {
+        return (node.data as WorkflowInputData).portType;
+    }
+    if (node.data.type === "custom-workflow") {
+        // Find the sub-workflow output node that matches this handleId
+        // In the UI we set the handleId to the original node ID of the Workflow Output node
+        // But since we don't have the sub-workflow data here synchronously,
+        // we might need to rely on the node.data.interface cache if we implement one.
+        // For now, let's assume handles are typed and we might need to store types in data.
+        return (
+            (node.data as CustomWorkflowData).outputs?.[handleId || ""] || "any"
+        );
+    }
+    if (node.data.type === "llm") {
+        return "text";
+    }
+    if (node.data.type === "file") {
+        return (node.data as FileData).fileType || "any";
+    }
+    const def = getNodeDefinition(node.data.type);
+    const outputs = def?.outputs || {};
+    const normalizedHandleId = handleId === null ? "" : handleId || "";
+
+    // If handleId is empty and there's only one output, use it (common for legacy/tests)
+    if (normalizedHandleId === "" && Object.keys(outputs).length === 1) {
+        return Object.values(outputs)[0];
+    }
+
+    return outputs[normalizedHandleId] || "any";
+}
+
+export function getTargetPortType(
+    node: Node<NodeData>,
+    handleId?: string | null,
+): string {
+    if (node.data.type === "workflow-output") {
+        return (node.data as WorkflowOutputData).portType;
+    }
+    if (node.data.type === "custom-workflow") {
+        return (
+            (node.data as CustomWorkflowData).inputs?.[handleId || ""] || "any"
+        );
+    }
+    const def = getNodeDefinition(node.data.type);
+    const inputs = def?.inputs || {};
+    const normalizedHandleId = handleId === null ? "" : handleId || "";
+
+    // If handleId is empty and there's only one input, use it
+    if (normalizedHandleId === "" && Object.keys(inputs).length === 1) {
+        return Object.values(inputs)[0];
+    }
+
+    return inputs[normalizedHandleId] || "any";
+}
+
 // --- Node Definitions ---
 
 // Helper to get source data for a specific handle
@@ -55,72 +121,223 @@ const findInputByHandle = (
     nodeId: string,
     edges: Edge[],
     handle: string,
-    getSourceData: (id: string) => NodeData | null,
+    getSourceData: (id: string, handle?: string | null) => NodeData | null,
 ) => {
     const edge = edges.find(
         (e) => e.target === nodeId && e.targetHandle === handle,
     );
     if (!edge) return null;
-    return getSourceData(edge.source);
+    return getSourceData(edge.source, edge.sourceHandle);
+};
+
+const getSourceValue = (data: NodeData | null): unknown => {
+    if (!data) return null;
+
+    // Robust unwrapping of nested workflow output data wrapper { value: ... }
+    // Handles multiple levels of wrapping if they occur
+    let unwrappedData: Record<string, unknown> = data as Record<
+        string,
+        unknown
+    >;
+    while (
+        unwrappedData &&
+        unwrappedData.value !== undefined &&
+        unwrappedData.type === undefined
+    ) {
+        unwrappedData = unwrappedData.value as Record<string, unknown>;
+    }
+
+    // If it's still a workflow output node, unwrap its value
+    if (
+        unwrappedData.type === "workflow-output" &&
+        unwrappedData.value !== undefined
+    ) {
+        return getSourceValue(unwrappedData.value as NodeData | null);
+    }
+
+    if (unwrappedData.type === "workflow-input") {
+        const inputData = unwrappedData as unknown as WorkflowInputData;
+        let value: unknown = null;
+
+        // When data from another node (e.g., file node) is passed to a workflow-input,
+        // we need to check for various field names that could contain the actual value.
+        // File nodes use: fileUrl, gcsUri
+        // Image nodes use: images, image
+        // Video nodes use: videoUrl
+        // Text/LLM nodes use: text, output
+
+        if (inputData.portType === "text") {
+            value = unwrappedData.text || unwrappedData.output;
+        } else if (inputData.portType === "image") {
+            // Check for image data from various sources
+            value =
+                unwrappedData.images ||
+                unwrappedData.image ||
+                unwrappedData.gcsUri ||
+                unwrappedData.fileUrl;
+        } else if (inputData.portType === "video") {
+            value =
+                unwrappedData.videoUrl ||
+                unwrappedData.gcsUri ||
+                unwrappedData.fileUrl;
+        } else if (inputData.portType === "any") {
+            value =
+                unwrappedData.image ||
+                unwrappedData.videoUrl ||
+                unwrappedData.output ||
+                unwrappedData.gcsUri ||
+                unwrappedData.fileUrl;
+        }
+
+        if (value === undefined || value === null) {
+            value = unwrappedData.value;
+        }
+
+        const finalValue =
+            value !== undefined && value !== null
+                ? value
+                : inputData.portDefaultValue;
+
+        return finalValue;
+    }
+
+    if (unwrappedData.type === "text") return (unwrappedData as TextData).text;
+    if (unwrappedData.type === "llm") return (unwrappedData as LLMData).output;
+    if (unwrappedData.type === "image")
+        return (unwrappedData as ImageData).images;
+    if (unwrappedData.type === "video")
+        return (unwrappedData as VideoData).videoUrl;
+    if (unwrappedData.type === "upscale")
+        return (unwrappedData as UpscaleData).image;
+    if (unwrappedData.type === "resize")
+        return (unwrappedData as ResizeData).output;
+    if (unwrappedData.type === "file")
+        return (unwrappedData as FileData).gcsUri;
+
+    // Fallback for direct values or results from other nodes
+    const fallbackValue =
+        unwrappedData.images ||
+        unwrappedData.videoUrl ||
+        unwrappedData.output ||
+        unwrappedData.text ||
+        unwrappedData.image ||
+        unwrappedData.gcsUri ||
+        unwrappedData.value;
+
+    if (fallbackValue !== undefined) {
+        return fallbackValue;
+    }
+
+    // If no known value field found but it's an object that might be the value itself
+    // (This happens when passing raw data through sub-workflows)
+    if (
+        typeof unwrappedData === "object" &&
+        unwrappedData !== null &&
+        !unwrappedData.type
+    ) {
+        return unwrappedData;
+    }
+
+    return null;
 };
 
 // LLM Node
 registerNode<LLMData, NodeInputs>({
     type: "llm",
+    inputs: {
+        "prompts-input": "text",
+        "file-input": "any",
+    },
+    outputs: {
+        "": "text", // fallback, actual type handled by getSourcePortType
+    },
     gatherInputs: (node, edges, getSourceData) => {
-        const inputs: NodeInputs = { files: [] };
+        const inputs: NodeInputs = { files: [], prompts: [] };
 
-        const promptData = findInputByHandle(
-            node.id,
-            edges,
-            "prompt-input",
-            getSourceData,
+        // Gather ALL prompt edges (multiple allowed)
+        const promptEdges = edges.filter(
+            (e) => e.target === node.id && e.targetHandle === "prompts-input",
         );
-        if (promptData?.type === "text") {
-            inputs.prompt = promptData.text;
+        for (const edge of promptEdges) {
+            const sourceData = getSourceData(edge.source, edge.sourceHandle);
+            const value = getSourceValue(sourceData);
+            if (typeof value === "string") {
+                inputs.prompts?.push(value);
+            }
         }
 
         const fileEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "file-input",
         );
         for (const edge of fileEdges) {
-            const sourceData = getSourceData(edge.source);
+            const sourceData = getSourceData(edge.source, edge.sourceHandle);
             if (!sourceData) continue;
 
-            if (sourceData.type === "file" && sourceData.gcsUri) {
-                let mimeType = "application/octet-stream";
-                if (sourceData.fileType === "pdf") mimeType = "application/pdf";
-                else if (sourceData.fileType === "image")
-                    mimeType = "image/png";
-                else if (sourceData.fileType === "video")
-                    mimeType = "video/mp4";
+            const value = getSourceValue(sourceData);
+            if (!value) continue;
 
-                inputs.files?.push({
-                    url: sourceData.gcsUri,
-                    type: mimeType,
-                });
-            } else if (sourceData.type === "video" && sourceData.videoUrl) {
-                inputs.files?.push({
-                    url: sourceData.videoUrl,
-                    type: "video/mp4",
-                });
-            } else if (sourceData.type === "image" && sourceData.images) {
-                for (const url of sourceData.images) {
+            // Handle both arrays (images) and single values (files, strings, etc.)
+            const values = Array.isArray(value) ? value : [value];
+
+            for (const item of values) {
+                if (typeof item === "string") {
+                    let mimeType = "application/octet-stream";
+                    const lowerItem = item.toLowerCase();
+                    if (lowerItem.endsWith(".pdf"))
+                        mimeType = "application/pdf";
+                    else if (
+                        lowerItem.endsWith(".png") ||
+                        lowerItem.endsWith(".jpg") ||
+                        lowerItem.endsWith(".jpeg") ||
+                        lowerItem.endsWith(".webp")
+                    )
+                        mimeType = "image/png";
+                    else if (
+                        lowerItem.endsWith(".mp4") ||
+                        lowerItem.endsWith(".mov")
+                    )
+                        mimeType = "video/mp4";
+                    else {
+                        // For GCS URIs or files without extensions, use source metadata
+                        const srcMeta = sourceData as Record<string, unknown>;
+                        if (
+                            srcMeta.fileType === "pdf" ||
+                            srcMeta.portType === "pdf"
+                        )
+                            mimeType = "application/pdf";
+                        else if (
+                            srcMeta.fileType === "image" ||
+                            srcMeta.type === "image" ||
+                            srcMeta.portType === "image" ||
+                            srcMeta.type === "upscale" ||
+                            srcMeta.type === "resize"
+                        )
+                            mimeType = "image/png";
+                        else if (
+                            srcMeta.fileType === "video" ||
+                            srcMeta.type === "video" ||
+                            srcMeta.portType === "video"
+                        )
+                            mimeType = "video/mp4";
+                    }
+
                     inputs.files?.push({
-                        url,
-                        type: "image/png",
+                        url: item,
+                        type: mimeType,
+                    });
+                } else if (
+                    typeof item === "object" &&
+                    item !== null &&
+                    (item as Record<string, unknown>).url
+                ) {
+                    const itemObj = item as Record<string, unknown>;
+                    inputs.files?.push({
+                        url: itemObj.url as string,
+                        type:
+                            (itemObj.type as string) ||
+                            "application/octet-stream",
                     });
                 }
-            } else if (sourceData.type === "upscale" && sourceData.image) {
-                inputs.files?.push({
-                    url: sourceData.image,
-                    type: "image/png",
-                });
-            } else if (sourceData.type === "resize" && sourceData.output) {
-                inputs.files?.push({
-                    url: sourceData.output,
-                    type: "image/png",
-                });
             }
         }
         return inputs;
@@ -134,51 +351,55 @@ registerNode<LLMData, NodeInputs>({
 // Image Node
 registerNode<ImageData, NodeInputs>({
     type: "image",
+    inputs: {
+        "prompt-input": "text",
+        "image-input": "image",
+    },
+    outputs: {
+        "result-output": "image",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [] };
 
-        const promptEdge = edges.find(
-            (e) =>
-                e.target === node.id &&
-                (!e.targetHandle || e.targetHandle !== "image-input"),
+        const promptData = findInputByHandle(
+            node.id,
+            edges,
+            "prompt-input",
+            getSourceData,
         );
-        if (promptEdge) {
-            const sourceData = getSourceData(promptEdge.source);
-            if (sourceData?.type === "text") inputs.prompt = sourceData.text;
-            else if (sourceData?.type === "llm")
-                inputs.prompt = sourceData.output;
-        }
+        const promptValue = getSourceValue(promptData);
+        if (typeof promptValue === "string") inputs.prompt = promptValue;
 
         const imageEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "image-input",
         );
         for (const edge of imageEdges) {
-            const sourceData = getSourceData(edge.source);
-            if (sourceData?.type === "image" && sourceData.images) {
-                inputs.images?.push(
-                    ...sourceData.images.map((url) => ({
-                        url,
-                        type: "image/png",
-                    })),
-                );
-            } else if (sourceData?.type === "file" && sourceData.gcsUri) {
-                inputs.images?.push({
-                    url: sourceData.gcsUri,
-                    type:
-                        sourceData.fileType === "pdf"
+            const sourceData = getSourceData(edge.source, edge.sourceHandle);
+            if (!sourceData) continue;
+
+            const value = getSourceValue(sourceData);
+            if (!value) continue;
+
+            const values = Array.isArray(value) ? value : [value];
+            for (const item of values) {
+                if (typeof item === "string") {
+                    inputs.images?.push({
+                        url: item,
+                        type: item.toLowerCase().endsWith(".pdf")
                             ? "application/pdf"
                             : "image/png",
-                });
-            } else if (sourceData?.type === "upscale" && sourceData.image) {
-                inputs.images?.push({
-                    url: sourceData.image,
-                    type: "image/png",
-                });
-            } else if (sourceData?.type === "resize" && sourceData.output) {
-                inputs.images?.push({
-                    url: sourceData.output,
-                    type: "image/png",
-                });
+                    });
+                } else if (
+                    typeof item === "object" &&
+                    item !== null &&
+                    (item as Record<string, unknown>).url
+                ) {
+                    const itemObj = item as Record<string, unknown>;
+                    inputs.images?.push({
+                        url: itemObj.url as string,
+                        type: (itemObj.type as string) || "image/png",
+                    });
+                }
             }
         }
         return inputs;
@@ -192,6 +413,15 @@ registerNode<ImageData, NodeInputs>({
 // Video Node
 registerNode<VideoData, NodeInputs>({
     type: "video",
+    inputs: {
+        "prompt-input": "text",
+        "image-input": "image",
+        "first-frame-input": "image",
+        "last-frame-input": "image",
+    },
+    outputs: {
+        "result-output": "video",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [] };
 
@@ -201,8 +431,8 @@ registerNode<VideoData, NodeInputs>({
             "prompt-input",
             getSourceData,
         );
-        if (promptData?.type === "text") inputs.prompt = promptData.text;
-        else if (promptData?.type === "llm") inputs.prompt = promptData.output;
+        const promptValue = getSourceValue(promptData);
+        if (typeof promptValue === "string") inputs.prompt = promptValue;
 
         const firstFrameData = findInputByHandle(
             node.id,
@@ -210,18 +440,20 @@ registerNode<VideoData, NodeInputs>({
             "first-frame-input",
             getSourceData,
         );
-        if (firstFrameData?.type === "image" && firstFrameData.images?.[0])
-            inputs.firstFrame = firstFrameData.images[0];
-        else if (
-            firstFrameData?.type === "file" &&
-            firstFrameData.fileType === "image" &&
-            firstFrameData.gcsUri
-        )
-            inputs.firstFrame = firstFrameData.gcsUri;
-        else if (firstFrameData?.type === "upscale" && firstFrameData.image)
-            inputs.firstFrame = firstFrameData.image;
-        else if (firstFrameData?.type === "resize" && firstFrameData.output)
-            inputs.firstFrame = firstFrameData.output;
+        const firstFrameValue = getSourceValue(firstFrameData);
+        if (firstFrameValue) {
+            const val = Array.isArray(firstFrameValue)
+                ? firstFrameValue[0]
+                : firstFrameValue;
+            if (typeof val === "string") inputs.firstFrame = val;
+            else if (
+                typeof val === "object" &&
+                val !== null &&
+                (val as Record<string, unknown>).url
+            )
+                inputs.firstFrame = (val as Record<string, unknown>)
+                    .url as string;
+        }
 
         const lastFrameData = findInputByHandle(
             node.id,
@@ -229,50 +461,49 @@ registerNode<VideoData, NodeInputs>({
             "last-frame-input",
             getSourceData,
         );
-        if (lastFrameData?.type === "image" && lastFrameData.images?.[0])
-            inputs.lastFrame = lastFrameData.images[0];
-        else if (
-            lastFrameData?.type === "file" &&
-            lastFrameData.fileType === "image" &&
-            lastFrameData.gcsUri
-        )
-            inputs.lastFrame = lastFrameData.gcsUri;
-        else if (lastFrameData?.type === "upscale" && lastFrameData.image)
-            inputs.lastFrame = lastFrameData.image;
-        else if (lastFrameData?.type === "resize" && lastFrameData.output)
-            inputs.lastFrame = lastFrameData.output;
+        const lastFrameValue = getSourceValue(lastFrameData);
+        if (lastFrameValue) {
+            const val = Array.isArray(lastFrameValue)
+                ? lastFrameValue[0]
+                : lastFrameValue;
+            if (typeof val === "string") inputs.lastFrame = val;
+            else if (
+                typeof val === "object" &&
+                val !== null &&
+                (val as Record<string, unknown>).url
+            )
+                inputs.lastFrame = (val as Record<string, unknown>)
+                    .url as string;
+        }
 
         const imageEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "image-input",
         );
         for (const edge of imageEdges) {
-            const sourceData = getSourceData(edge.source);
-            if (sourceData?.type === "image" && sourceData.images)
-                inputs.images?.push(
-                    ...sourceData.images.map((url) => ({
-                        url,
+            const sourceData = getSourceData(edge.source, edge.sourceHandle);
+            if (!sourceData) continue;
+            const value = getSourceValue(sourceData);
+            if (!value) continue;
+
+            const values = Array.isArray(value) ? value : [value];
+            for (const item of values) {
+                if (typeof item === "string") {
+                    inputs.images?.push({
+                        url: item,
                         type: "image/png",
-                    })),
-                );
-            else if (
-                sourceData?.type === "file" &&
-                sourceData.fileType === "image" &&
-                sourceData.gcsUri
-            )
-                inputs.images?.push({
-                    url: sourceData.gcsUri,
-                    type: "image/png",
-                });
-            else if (sourceData?.type === "upscale" && sourceData.image)
-                inputs.images?.push({
-                    url: sourceData.image,
-                    type: "image/png",
-                });
-            else if (sourceData?.type === "resize" && sourceData.output)
-                inputs.images?.push({
-                    url: sourceData.output,
-                    type: "image/png",
-                });
+                    });
+                } else if (
+                    typeof item === "object" &&
+                    item !== null &&
+                    (item as Record<string, unknown>).url
+                ) {
+                    const itemObj = item as Record<string, unknown>;
+                    inputs.images?.push({
+                        url: itemObj.url as string,
+                        type: (itemObj.type as string) || "image/png",
+                    });
+                }
+            }
         }
         return inputs;
     },
@@ -285,6 +516,12 @@ registerNode<VideoData, NodeInputs>({
 // Upscale Node
 registerNode<UpscaleData, NodeInputs>({
     type: "upscale",
+    inputs: {
+        "image-input": "image",
+    },
+    outputs: {
+        "result-output": "image",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = {};
         const imageData = findInputByHandle(
@@ -293,18 +530,17 @@ registerNode<UpscaleData, NodeInputs>({
             "image-input",
             getSourceData,
         );
-        if (imageData?.type === "image" && imageData.images?.[0])
-            inputs.image = imageData.images[0];
-        else if (
-            imageData?.type === "file" &&
-            imageData.fileType === "image" &&
-            imageData.gcsUri
-        )
-            inputs.image = imageData.gcsUri;
-        else if (imageData?.type === "upscale" && imageData.image)
-            inputs.image = imageData.image;
-        else if (imageData?.type === "resize" && imageData.output)
-            inputs.image = imageData.output;
+        const value = getSourceValue(imageData);
+        if (value) {
+            const val = Array.isArray(value) ? value[0] : value;
+            if (typeof val === "string") inputs.image = val;
+            else if (
+                typeof val === "object" &&
+                val !== null &&
+                (val as Record<string, unknown>).url
+            )
+                inputs.image = (val as Record<string, unknown>).url as string;
+        }
         return inputs;
     },
     execute: async (node, inputs, context) => {
@@ -316,6 +552,12 @@ registerNode<UpscaleData, NodeInputs>({
 // Resize Node
 registerNode<ResizeData, NodeInputs>({
     type: "resize",
+    inputs: {
+        "image-input": "image",
+    },
+    outputs: {
+        "result-output": "image",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = {};
         const imageData = findInputByHandle(
@@ -324,22 +566,80 @@ registerNode<ResizeData, NodeInputs>({
             "image-input",
             getSourceData,
         );
-        if (imageData?.type === "image" && imageData.images?.[0])
-            inputs.image = imageData.images[0];
-        else if (
-            imageData?.type === "file" &&
-            imageData.fileType === "image" &&
-            imageData.gcsUri
-        )
-            inputs.image = imageData.gcsUri;
-        else if (imageData?.type === "upscale" && imageData.image)
-            inputs.image = imageData.image;
-        else if (imageData?.type === "resize" && imageData.output)
-            inputs.image = imageData.output;
+        const value = getSourceValue(imageData);
+        if (value) {
+            const val = Array.isArray(value) ? value[0] : value;
+            if (typeof val === "string") inputs.image = val;
+            else if (
+                typeof val === "object" &&
+                val !== null &&
+                (val as Record<string, unknown>).url
+            )
+                inputs.image = (val as Record<string, unknown>).url as string;
+        }
         return inputs;
     },
     execute: async (node, inputs, context) => {
         const { executeResizeNode } = await import("./executors");
         return executeResizeNode(node, inputs, context);
     },
+});
+
+// Workflow Input Node
+registerNode<WorkflowInputData, NodeInputs>({
+    type: "workflow-input",
+    gatherInputs: () => ({}),
+    execute: async () => ({}),
+});
+
+// Workflow Output Node
+registerNode<WorkflowOutputData, NodeInputs>({
+    type: "workflow-output",
+    gatherInputs: (node, edges, getSourceData) => {
+        const edge = edges.find((e) => e.target === node.id);
+        if (!edge) return {};
+        return { value: getSourceData(edge.source, edge.sourceHandle) };
+    },
+    execute: async (_node, inputs) => {
+        return { ...inputs } as Partial<WorkflowOutputData>;
+    },
+});
+
+// Custom Workflow Node
+registerNode<CustomWorkflowData, NodeInputs>({
+    type: "custom-workflow",
+    gatherInputs: (node, edges, getSourceData) => {
+        const inputs: Record<string, unknown> = {};
+        // Find all edges targeting this node
+        const inputEdges = edges.filter((e) => e.target === node.id);
+        for (const edge of inputEdges) {
+            if (edge.targetHandle) {
+                inputs[edge.targetHandle] = getSourceData(
+                    edge.source,
+                    edge.sourceHandle,
+                );
+            }
+        }
+        return inputs;
+    },
+    execute: async () => {
+        // Recursive execution handled in WorkflowEngine
+        return {};
+    },
+});
+
+// Text Node
+registerNode<TextData, NodeInputs>({
+    type: "text",
+    outputs: { "": "text" },
+    gatherInputs: () => ({}),
+    execute: async () => ({}),
+});
+
+// File Node
+registerNode<FileData, NodeInputs>({
+    type: "file",
+    outputs: { "": "any" },
+    gatherInputs: () => ({}),
+    execute: async () => ({}),
 });

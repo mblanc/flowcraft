@@ -15,6 +15,8 @@ import { createNode } from "@/lib/node-factory";
 import { NodeData, NodeType } from "@/lib/types";
 import { migrateNodes } from "@/lib/migration";
 
+export type EntityType = "flow" | "custom-node";
+
 export interface FlowState {
     nodes: Node<NodeData>[];
     edges: Edge[];
@@ -22,6 +24,7 @@ export interface FlowState {
     isRunning: boolean;
     flowId: string | null;
     flowName: string;
+    entityType: EntityType;
 
     // Actions
     setNodes: (nodes: Node<NodeData>[]) => void;
@@ -33,6 +36,7 @@ export interface FlowState {
     setIsRunning: (isRunning: boolean) => void;
     setFlowId: (id: string | null) => void;
     setFlowName: (name: string) => void;
+    setEntityType: (type: EntityType) => void;
 
     // Node Mutations
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
@@ -40,8 +44,10 @@ export interface FlowState {
     addNodeWithType: (
         type: NodeType,
         position?: { x: number; y: number },
+        data?: Partial<NodeData>,
     ) => void;
     selectNode: (nodeId: string | null) => void;
+    removeEdges: (edgeIds: string[]) => void;
 
     // Load/Reset
     loadFlow: (
@@ -49,6 +55,7 @@ export interface FlowState {
         nodes: Node<NodeData>[],
         edges: Edge[],
         name: string,
+        entityType?: EntityType,
     ) => void;
 }
 
@@ -59,6 +66,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     isRunning: false,
     flowId: null,
     flowName: "Untitled Flow",
+    entityType: "flow",
 
     setNodes: (nodes) => set({ nodes: migrateNodes(nodes) }),
     setEdges: (edges) => set({ edges }),
@@ -85,6 +93,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     setIsRunning: (isRunning) => set({ isRunning }),
     setFlowId: (flowId) => set({ flowId }),
     setFlowName: (flowName) => set({ flowName }),
+    setEntityType: (entityType) => set({ entityType }),
 
     updateNodeData: (nodeId, data) => {
         const { nodes, selectedNode } = get();
@@ -109,8 +118,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         set({ nodes: [...get().nodes, node] });
     },
 
-    addNodeWithType: (type, position) => {
-        set({ nodes: [...get().nodes, createNode(type, position)] });
+    addNodeWithType: (type, position, data) => {
+        const node = createNode(type, position);
+        if (data) {
+            node.data = { ...node.data, ...data } as NodeData;
+        }
+        set({ nodes: [...get().nodes, node] });
     },
 
     selectNode: (nodeId) => {
@@ -131,12 +144,19 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         }
     },
 
-    loadFlow: (id, nodes, edges, name) => {
+    removeEdges: (edgeIds) => {
+        set({
+            edges: get().edges.filter((edge) => !edgeIds.includes(edge.id)),
+        });
+    },
+
+    loadFlow: (id, nodes, edges, name, entityType = "flow") => {
         set({
             flowId: id,
             nodes: migrateNodes(nodes),
             edges,
             flowName: name,
+            entityType,
         });
     },
 }));

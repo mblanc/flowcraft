@@ -27,7 +27,7 @@ async function delay(ms: number) {
 }
 
 export interface GenerateTextOptions {
-    prompt: string;
+    prompts: string[];
     files?: Array<{ url: string; type: string }>;
     model?: string;
     outputType?: "text" | "json";
@@ -72,19 +72,31 @@ export class GeminiService {
     }
 
     async generateText(options: GenerateTextOptions): Promise<string> {
-        const { prompt, files, model, outputType, responseSchema, strictMode } =
-            options;
+        const {
+            prompts,
+            files,
+            model,
+            outputType,
+            responseSchema,
+            strictMode,
+        } = options;
         const selectedModel = model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
 
         logger.info(
             `[GeminiService] Generating text with model: ${selectedModel}`,
         );
 
-        const contents: ContentListUnion = [createPartFromText(prompt)];
+        // Create a text part for each prompt
+        const contents: ContentListUnion = prompts.map((p) =>
+            createPartFromText(p),
+        );
 
         if (files && files.length > 0) {
             for (const file of files) {
                 if (!isSupportedMimeType(file.type)) {
+                    logger.error(
+                        `[GeminiService] Unsupported file type: ${file.type} for file: ${file.url}`,
+                    );
                     throw new Error(`Unsupported file type: ${file.type}`);
                 }
 
@@ -127,6 +139,10 @@ export class GeminiService {
             }
         }
 
+        logger.info(
+            `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
+        );
+
         const response = await this.ai.models.generateContent({
             model: selectedModel,
             contents,
@@ -151,7 +167,7 @@ export class GeminiService {
     async generateImage(
         options: GenerateImageOptions,
     ): Promise<{ data: string; mimeType: string }> {
-        const { prompt, images = [], aspectRatio, model } = options;
+        const { prompt, images = [], aspectRatio, model, resolution } = options;
         const selectedModel = model || MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW;
 
         logger.info(
@@ -172,12 +188,32 @@ export class GeminiService {
 
         contents.push(createPartFromText(prompt));
 
+        logger.info(
+            `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
+        );
+        logger.info(
+            `[GeminiService] Config: ${JSON.stringify(
+                {
+                    responseModalities: ["IMAGE"],
+                    imageConfig: {
+                        aspectRatio: aspectRatio as string,
+                        imageSize: resolution as string,
+                    },
+                },
+                null,
+                2,
+            )}`,
+        );
+
         const response = await this.ai.models.generateContent({
             model: selectedModel,
             contents,
             config: {
                 responseModalities: ["IMAGE"],
-                imageConfig: { aspectRatio: aspectRatio as string },
+                imageConfig: {
+                    aspectRatio: aspectRatio as string,
+                    imageSize: resolution as string,
+                },
             },
         });
 
@@ -252,6 +288,10 @@ export class GeminiService {
                 referenceType: VideoGenerationReferenceType.ASSET,
             }));
         }
+
+        logger.info(
+            `[GeminiService] Video request: ${JSON.stringify(videoRequest, null, 2)}`,
+        );
 
         let operation = await this.ai.models.generateVideos(videoRequest);
 

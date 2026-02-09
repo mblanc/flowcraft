@@ -367,7 +367,7 @@ export const ImageNode = memo(
                                 width={1200}
                                 height={800}
                                 className="max-h-[90vh] max-w-full rounded-md object-contain"
-                                unoptimized={displayUrl.startsWith("data:")}
+                                unoptimized={true}
                             />
                         </DialogContent>
                     </Dialog>

@@ -8,6 +8,7 @@ import {
     type ImageData,
     type VideoData,
     type FileData,
+    type CustomWorkflowData,
 } from "@/lib/types";
 import { MODELS } from "@/lib/constants";
 import { Input } from "./ui/input";
@@ -1009,6 +1010,34 @@ function TextConfig({ data, nodeId }: { data: TextData; nodeId: string }) {
     );
 }
 
+function CustomWorkflowConfig({
+    data,
+    nodeId,
+}: {
+    data: CustomWorkflowData;
+    nodeId: string;
+}) {
+    const updateNodeData = useFlowStore(
+        (state: FlowState) => state.updateNodeData,
+    );
+
+    return (
+        <div className="space-y-6">
+            <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                    id="name"
+                    value={data.name}
+                    onChange={(e) =>
+                        updateNodeData(nodeId, { name: e.target.value })
+                    }
+                    placeholder="Workflow name"
+                />
+            </div>
+        </div>
+    );
+}
+
 export function ConfigPanel() {
     const selectedNode = useFlowStore((state: FlowState) => state.selectedNode);
 
@@ -1034,6 +1063,10 @@ export function ConfigPanel() {
 
     if (data.type === "file") {
         return <FileConfig data={data as FileData} nodeId={id} />;
+    }
+
+    if (data.type === "custom-workflow") {
+        return <CustomWorkflowConfig data={data} nodeId={id} />;
     }
 
     return null;

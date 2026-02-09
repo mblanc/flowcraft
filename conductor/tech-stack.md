@@ -13,7 +13,7 @@
 
 - **Platform:** Node.js (Next.js Serverless Functions)
 - **Authentication:** NextAuth.js (v5 beta)
-- **AI SDK:** @google/genai (Vertex AI integration)
+- **AI SDK:** @google/genai (Vertex AI integration) with multimodal recursive execution support
 - **Database:** Google Cloud Firestore
 - **Storage:** Google Cloud Storage (GCS)
 

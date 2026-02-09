@@ -42,6 +42,8 @@ export const LLMDataSchema = BaseNodeDataSchema.extend({
     outputType: z.enum(["text", "json"]).default("text"),
     responseSchema: z.string().optional(), // JSON string for now
     strictMode: z.boolean().default(false),
+    width: z.number().optional(),
+    height: z.number().optional(),
     visualSchema: z
         .array(
             z.object({
@@ -116,6 +118,30 @@ export const ResizeDataSchema = BaseNodeDataSchema.extend({
     height: z.number().optional(),
 });
 
+export const WorkflowInputDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("workflow-input"),
+    portName: z.string(),
+    portType: z.enum(["text", "image", "video"]),
+    portRequired: z.boolean().default(true),
+    portDefaultValue: z.any().optional(),
+});
+
+export const WorkflowOutputDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("workflow-output"),
+    portName: z.string(),
+    portType: z.enum(["text", "image", "video"]),
+});
+
+export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("custom-workflow"),
+    subWorkflowId: z.string(),
+    inputs: z.record(z.string(), z.string()).optional(),
+    outputs: z.record(z.string(), z.string()).optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    results: z.record(z.string(), z.record(z.string(), z.any())).optional(),
+});
+
 export const NodeDataSchema = z.discriminatedUnion("type", [
     LLMDataSchema,
     TextDataSchema,
@@ -124,6 +150,9 @@ export const NodeDataSchema = z.discriminatedUnion("type", [
     FileDataSchema,
     UpscaleDataSchema,
     ResizeDataSchema,
+    WorkflowInputDataSchema,
+    WorkflowOutputDataSchema,
+    CustomWorkflowDataSchema,
 ]);
 
 export const NodeSchema = z.object({
@@ -169,7 +198,7 @@ export const GenerateImageSchema = z.object({
 });
 
 export const GenerateTextSchema = z.object({
-    prompt: z.string().min(1, "Prompt is required"),
+    prompts: z.array(z.string()).min(1, "At least one prompt is required"),
     files: z
         .array(
             z.object({
@@ -243,6 +272,27 @@ export const FlowUpdateSchema = z.object({
     thumbnail: z.string().optional(),
 });
 
+// --- Custom Node Schemas ---
+
+export const CustomNodePortSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.string(),
+});
+
+export const CustomNodeCreateSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    nodes: z.array(NodeSchema),
+    edges: z.array(EdgeSchema),
+});
+
+export const CustomNodeUpdateSchema = z.object({
+    name: z.string().optional(),
+    nodes: z.array(NodeSchema).optional(),
+    edges: z.array(EdgeSchema).optional(),
+    thumbnail: z.string().optional(),
+});
+
 // --- Infer Types ---
 
 export type GenerateImageRequest = z.infer<typeof GenerateImageSchema>;
@@ -253,6 +303,8 @@ export type UpscaleImageRequest = z.infer<typeof UpscaleImageSchema>;
 export type GetSignedUrlRequest = z.infer<typeof GetSignedUrlSchema>;
 export type FlowCreateRequest = z.infer<typeof FlowCreateSchema>;
 export type FlowUpdateRequest = z.infer<typeof FlowUpdateSchema>;
+export type CustomNodeCreateRequest = z.infer<typeof CustomNodeCreateSchema>;
+export type CustomNodeUpdateRequest = z.infer<typeof CustomNodeUpdateSchema>;
 
 export type LLMData = z.infer<typeof LLMDataSchema>;
 export type TextData = z.infer<typeof TextDataSchema>;
@@ -261,4 +313,7 @@ export type VideoData = z.infer<typeof VideoDataSchema>;
 export type FileData = z.infer<typeof FileDataSchema>;
 export type UpscaleData = z.infer<typeof UpscaleDataSchema>;
 export type ResizeData = z.infer<typeof ResizeDataSchema>;
+export type WorkflowInputData = z.infer<typeof WorkflowInputDataSchema>;
+export type WorkflowOutputData = z.infer<typeof WorkflowOutputDataSchema>;
+export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;

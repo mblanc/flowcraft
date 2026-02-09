@@ -1,0 +1,8 @@
+{
+    "track_id": "composability_20260120",
+    "type": "feature",
+    "status": "new",
+    "created_at": "2026-01-20T12:00:00Z",
+    "updated_at": "2026-01-20T12:00:00Z",
+    "description": "Workflow Composability (Sub-Graphs) - Enable users to publish workflows as reusable nodes that can be embedded in other workflows."
+}

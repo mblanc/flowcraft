@@ -75,7 +75,7 @@ describe("GeminiService", () => {
             mockAi.models.generateContent.mockResolvedValue(mockResponse);
 
             const options = {
-                prompt: "Summarize this PDF",
+                prompts: ["Summarize this PDF"],
                 files: [
                     { url: "gs://bucket/file.pdf", type: "application/pdf" },
                 ],
@@ -116,7 +116,7 @@ describe("GeminiService", () => {
             mockAi.models.generateContent.mockResolvedValue(mockResponse);
 
             const options = {
-                prompt: "What is in this video?",
+                prompts: ["What is in this video?"],
                 files: [{ url: "gs://bucket/video.mp4", type: "video/mp4" }],
             };
 
@@ -155,7 +155,7 @@ describe("GeminiService", () => {
             mockAi.models.generateContent.mockResolvedValue(mockResponse);
 
             const options = {
-                prompt: "What is in this image?",
+                prompts: ["What is in this image?"],
                 files: [
                     {
                         url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
@@ -175,7 +175,7 @@ describe("GeminiService", () => {
 
         it("should throw an error for unsupported file types", async () => {
             const options = {
-                prompt: "Process this zip",
+                prompts: ["Process this zip"],
                 files: [
                     { url: "gs://bucket/file.zip", type: "application/zip" },
                 ],
