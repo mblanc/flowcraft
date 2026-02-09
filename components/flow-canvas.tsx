@@ -13,6 +13,8 @@ import {
     type Connection,
     Background,
     BackgroundVariant,
+    SelectionMode,
+    ControlButton,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { LLMNode } from "./llm-node";
@@ -58,6 +60,8 @@ import {
     Box,
     ChevronDown,
     ChevronRight,
+    MousePointer2,
+    Hand,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
@@ -206,9 +210,11 @@ export function FlowCanvas() {
     const addNodeWithType = useFlowStore(
         (state: FlowState) => state.addNodeWithType,
     );
-    const { runFlow } = useFlowExecution();
+    const { runFlow, runSelectedNodes } = useFlowExecution();
     const isRunning = useFlowStore((state: FlowState) => state.isRunning);
     const { theme, resolvedTheme } = useTheme();
+
+    const [mode, setMode] = useState<"selection" | "hand">("hand");
 
     const [customNodes, setCustomNodes] = useState<CustomNodeItem[]>([]);
     const [customNodesExpanded, setCustomNodesExpanded] = useState(true);
@@ -296,6 +302,113 @@ export function FlowCanvas() {
             });
         }
     }, [rfInstance, nodes.length, hasFitted, flowId]);
+
+    const copyNodes = useCallback(() => {
+        if (!rfInstance) return;
+        const selectedNodes = rfInstance.getNodes().filter((n) => n.selected);
+        const selectedEdges = rfInstance.getEdges().filter((e) => e.selected);
+        if (selectedNodes.length > 0) {
+            const copyData = { nodes: selectedNodes, edges: selectedEdges };
+            localStorage.setItem(
+                "flowcraft-copy-buffer",
+                JSON.stringify(copyData),
+            );
+        }
+    }, [rfInstance]);
+
+    const pasteNodes = useCallback(() => {
+        const copyDataStr = localStorage.getItem("flowcraft-copy-buffer");
+        if (copyDataStr && rfInstance) {
+            try {
+                const { nodes: copiedNodes, edges: copiedEdges } =
+                    JSON.parse(copyDataStr);
+                const idMap: Record<string, string> = {};
+
+                // Offset for pasted nodes
+                const offset = { x: 50, y: 50 };
+
+                const newNodes = (copiedNodes as Node<NodeData>[]).map(
+                    (node: Node<NodeData>) => {
+                        const newId = uuidv4();
+                        idMap[node.id] = newId;
+                        return {
+                            ...node,
+                            id: newId,
+                            position: {
+                                x: node.position.x + offset.x,
+                                y: node.position.y + offset.y,
+                            },
+                            selected: true,
+                        } as Node<NodeData>;
+                    },
+                );
+
+                const newEdges = (copiedEdges || [])
+                    .map((edge: Edge) => ({
+                        ...edge,
+                        id: uuidv4(),
+                        source: idMap[edge.source] || edge.source,
+                        target: idMap[edge.target] || edge.target,
+                        selected: true,
+                    }))
+                    .filter(
+                        (edge: Edge) =>
+                            idMap[edge.source] && idMap[edge.target],
+                    );
+
+                // Deselect current nodes
+                onNodesChange(
+                    nodes.map((n) => ({
+                        id: n.id,
+                        type: "select",
+                        selected: false,
+                    })),
+                );
+                onEdgesChange(
+                    edges.map((e) => ({
+                        id: e.id,
+                        type: "select",
+                        selected: false,
+                    })),
+                );
+
+                // Add new nodes and edges
+                newNodes.forEach((node: Node<NodeData>) =>
+                    useFlowStore.getState().addNode(node),
+                );
+                if (newEdges.length > 0) {
+                    useFlowStore
+                        .getState()
+                        .setEdges([
+                            ...useFlowStore.getState().edges,
+                            ...newEdges,
+                        ]);
+                }
+            } catch (error) {
+                logger.error("Error pasting nodes:", error);
+            }
+        }
+    }, [rfInstance, onNodesChange, onEdgesChange, nodes, edges]);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (
+                event.target instanceof HTMLInputElement ||
+                event.target instanceof HTMLTextAreaElement
+            ) {
+                return;
+            }
+
+            if ((event.ctrlKey || event.metaKey) && event.key === "c") {
+                copyNodes();
+            }
+            if ((event.ctrlKey || event.metaKey) && event.key === "v") {
+                pasteNodes();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [copyNodes, pasteNodes]);
 
     const onNodeClick = useCallback(
         (_: React.MouseEvent, node: Node) => {
@@ -447,13 +560,13 @@ export function FlowCanvas() {
         const portType =
             params.handleType === "source"
                 ? getSourcePortType(
-                    sourceNode as Node<NodeData>,
-                    params.handleId,
-                )
+                      sourceNode as Node<NodeData>,
+                      params.handleId,
+                  )
                 : getTargetPortType(
-                    sourceNode as Node<NodeData>,
-                    params.handleId,
-                );
+                      sourceNode as Node<NodeData>,
+                      params.handleId,
+                  );
 
         // Filter native nodes
         const filteredNative = nativeItems.filter((item) => {
@@ -533,13 +646,13 @@ export function FlowCanvas() {
             const sourcePortType =
                 connectionStartParams.handleType === "source"
                     ? getSourcePortType(
-                        sourceNode as Node<NodeData>,
-                        connectionStartParams.handleId,
-                    )
+                          sourceNode as Node<NodeData>,
+                          connectionStartParams.handleId,
+                      )
                     : getTargetPortType(
-                        sourceNode as Node<NodeData>,
-                        connectionStartParams.handleId,
-                    );
+                          sourceNode as Node<NodeData>,
+                          connectionStartParams.handleId,
+                      );
 
             const newDef = getNodeDefinition(newNode.data.type as NodeType);
             let targetHandle: string | null = null;
@@ -794,6 +907,10 @@ export function FlowCanvas() {
                                 onNodeClick={onNodeClick}
                                 onEdgeClick={onEdgeClick}
                                 onPaneClick={onPaneClick}
+                                panOnDrag={mode === "hand" ? true : [2]}
+                                selectionOnDrag={mode === "selection"}
+                                selectionMode={SelectionMode.Partial}
+                                panOnScroll={true}
                                 onInit={setRfInstance}
                                 nodeTypes={nodeTypes}
                                 isValidConnection={isValidConnection}
@@ -811,10 +928,33 @@ export function FlowCanvas() {
                                     }
                                     variant={BackgroundVariant.Dots}
                                 />
-                                <Controls />
+                                <Controls>
+                                    <ControlButton
+                                        onClick={() => setMode("selection")}
+                                        className={
+                                            mode === "selection"
+                                                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                                : ""
+                                        }
+                                        title="Selection Mode"
+                                    >
+                                        <MousePointer2 className="h-4 w-4" />
+                                    </ControlButton>
+                                    <ControlButton
+                                        onClick={() => setMode("hand")}
+                                        className={
+                                            mode === "hand"
+                                                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                                : ""
+                                        }
+                                        title="Hand Mode"
+                                    >
+                                        <Hand className="h-4 w-4" />
+                                    </ControlButton>
+                                </Controls>
                                 <Panel
                                     position="top-right"
-                                    className="bg-card border-border rounded-lg border p-2"
+                                    className="bg-card border-border flex gap-2 rounded-lg border p-2"
                                 >
                                     <Button
                                         onClick={runFlow}
@@ -825,6 +965,18 @@ export function FlowCanvas() {
                                         <Play className="mr-2 h-4 w-4" />
                                         {isRunning ? "Running..." : "Run Flow"}
                                     </Button>
+                                    {nodes.some((n) => n.selected) && (
+                                        <Button
+                                            onClick={runSelectedNodes}
+                                            disabled={isRunning}
+                                            size="sm"
+                                            variant="outline"
+                                            className="border-green-500 text-green-500 hover:bg-green-50 dark:hover:bg-green-950/20"
+                                        >
+                                            <Play className="mr-2 h-4 w-4" />
+                                            Run Selected
+                                        </Button>
+                                    )}
                                 </Panel>
 
                                 {dropdownVisualPosition && dropdownPosition && (
@@ -879,45 +1031,45 @@ export function FlowCanvas() {
 
                                                     {compatibleNodes.custom
                                                         .length > 0 && (
-                                                            <>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuSub>
-                                                                    <DropdownMenuSubTrigger>
-                                                                        <Box className="mr-2 h-4 w-4" />
-                                                                        <span>
-                                                                            Custom
-                                                                            Nodes
-                                                                        </span>
-                                                                    </DropdownMenuSubTrigger>
-                                                                    <DropdownMenuSubContent className="w-48">
-                                                                        {compatibleNodes.custom.map(
-                                                                            (
-                                                                                node,
-                                                                            ) => (
-                                                                                <DropdownMenuItem
-                                                                                    key={
-                                                                                        node.id
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuSub>
+                                                                <DropdownMenuSubTrigger>
+                                                                    <Box className="mr-2 h-4 w-4" />
+                                                                    <span>
+                                                                        Custom
+                                                                        Nodes
+                                                                    </span>
+                                                                </DropdownMenuSubTrigger>
+                                                                <DropdownMenuSubContent className="w-48">
+                                                                    {compatibleNodes.custom.map(
+                                                                        (
+                                                                            node,
+                                                                        ) => (
+                                                                            <DropdownMenuItem
+                                                                                key={
+                                                                                    node.id
+                                                                                }
+                                                                                onClick={() =>
+                                                                                    handleSelectDropdownNode(
+                                                                                        "custom-workflow",
+                                                                                        node,
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <Box className="mr-2 h-4 w-4" />
+                                                                                <span>
+                                                                                    {
+                                                                                        node.name
                                                                                     }
-                                                                                    onClick={() =>
-                                                                                        handleSelectDropdownNode(
-                                                                                            "custom-workflow",
-                                                                                            node,
-                                                                                        )
-                                                                                    }
-                                                                                >
-                                                                                    <Box className="mr-2 h-4 w-4" />
-                                                                                    <span>
-                                                                                        {
-                                                                                            node.name
-                                                                                        }
-                                                                                    </span>
-                                                                                </DropdownMenuItem>
-                                                                            ),
-                                                                        )}
-                                                                    </DropdownMenuSubContent>
-                                                                </DropdownMenuSub>
-                                                            </>
-                                                        )}
+                                                                                </span>
+                                                                            </DropdownMenuItem>
+                                                                        ),
+                                                                    )}
+                                                                </DropdownMenuSubContent>
+                                                            </DropdownMenuSub>
+                                                        </>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>

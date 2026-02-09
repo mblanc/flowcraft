@@ -21,6 +21,28 @@ export function useFlowExecution() {
         }
     }, [setIsRunning]);
 
+    const runSelectedNodes = useCallback(async () => {
+        const { nodes, edges, updateNodeData } = useFlowStore.getState();
+        const selectedNodes = nodes.filter((n) => n.selected);
+        if (selectedNodes.length === 0) return;
+
+        setIsRunning(true);
+        try {
+            const engine = new WorkflowEngine(nodes, edges, updateNodeData);
+            // We need to execute nodes in order. The engine doesn't currently have a "runSelected"
+            // but we can execute them individually or enhance the engine.
+            // For now, let's run them individually if they have no dependencies within the selection,
+            // or just rely on the engine's executeNode logic for each selected node.
+            for (const node of selectedNodes) {
+                await engine.executeNode(node.id);
+            }
+        } catch (error) {
+            logger.error("Error running selected nodes:", error);
+        } finally {
+            setIsRunning(false);
+        }
+    }, [setIsRunning]);
+
     const executeNode = useCallback(async (nodeId: string) => {
         const { nodes, edges, updateNodeData } = useFlowStore.getState();
         try {
@@ -33,6 +55,7 @@ export function useFlowExecution() {
 
     return {
         runFlow,
+        runSelectedNodes,
         executeNode,
     };
 }
