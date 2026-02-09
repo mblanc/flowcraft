@@ -10,4 +10,4 @@ This file tracks all major tracks for the project. Each track has its own detail
 ---
 
 - [ ] **Track: Standardize UI with design system tokens and implement dark mode.**
-*Link: [./tracks/ui_dark_mode_20260209/](./tracks/ui_dark_mode_20260209/)*
+      _Link: [./tracks/ui_dark_mode_20260209/](./tracks/ui_dark_mode_20260209/)_

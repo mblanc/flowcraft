@@ -7,7 +7,7 @@ describe("ThemeProvider", () => {
         render(
             <ThemeProvider attribute="class">
                 <div data-testid="test-child">Child</div>
-            </ThemeProvider>
+            </ThemeProvider>,
         );
         expect(screen.getByTestId("test-child")).toBeDefined();
     });
