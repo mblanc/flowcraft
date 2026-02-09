@@ -6,6 +6,7 @@ import "./globals.css";
 
 import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const openSans = Open_Sans({
     weight: ["300", "400", "500", "600", "700"],
@@ -26,11 +27,18 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body className={`font-sans ${openSans.variable}`}>
                 <NextAuthSessionProvider>
-                    <Suspense fallback={null}>{children}</Suspense>
-                    <Toaster richColors closeButton />
+                    <ThemeProvider
+                        attribute="class"
+                        defaultTheme="system"
+                        enableSystem
+                        disableTransitionOnChange
+                    >
+                        <Suspense fallback={null}>{children}</Suspense>
+                        <Toaster richColors closeButton />
+                    </ThemeProvider>
                 </NextAuthSessionProvider>
             </body>
         </html>

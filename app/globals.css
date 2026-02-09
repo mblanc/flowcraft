@@ -4,45 +4,79 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    --background: rgb(231, 231, 231);
-    --foreground: rgb(0, 0, 0);
-    --card: rgb(
-        255,
-        255,
-        255
-    ); /* Changed card background from pure black to dark grey for better contrast with canvas */
-    --card-foreground: oklch(0.98 0 0);
-    --popover: oklch(0.14 0 0);
-    --popover-foreground: oklch(0.98 0 0);
-    --primary: oklch(0.65 0.25 252);
-    --primary-foreground: oklch(0.98 0 0);
-    --secondary: rgb(0, 0, 0);
-    --secondary-foreground: oklch(0.98 0 0);
-    --muted: oklch(0.22 0 0);
-    --muted-foreground: oklch(0.62 0 0);
-    --accent: oklch(0.65 0.25 252);
-    --accent-foreground: oklch(0.98 0 0);
-    --destructive: oklch(0.55 0.22 25);
-    --destructive-foreground: oklch(0.98 0 0);
-    --border: rgb(255, 255, 255);
-    --input: oklch(0.24 0 0);
-    --ring: oklch(0.65 0.25 252);
-    --chart-1: oklch(0.65 0.25 252);
-    --chart-2: oklch(0.6 0.2 180);
-    --chart-3: oklch(0.7 0.18 140);
-    --chart-4: oklch(0.75 0.15 60);
-    --chart-5: oklch(0.68 0.22 320);
+    --background: #f1f5f9;
+    --foreground: #09090b;
+    --card: #ffffff;
+    --card-foreground: #09090b;
+    --popover: #ffffff;
+    --popover-foreground: #09090b;
+    --primary: #2563eb;
+    --primary-foreground: #ffffff;
+    --secondary: #e2e8f0;
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --accent: #e2e8f0;
+    --accent-foreground: #0f172a;
+    --destructive: #ef4444;
+    --destructive-foreground: #fafafa;
+    --border: #cbd5e1;
+    --input: #cbd5e1;
+    --ring: #2563eb;
+    --chart-1: #f97316;
+    --chart-2: #2662d9;
+    --chart-3: #e23670;
+    --chart-4: #e8c468;
+    --chart-5: #27ceba;
     --radius: 0.5rem;
-    --sidebar: oklch(0.14 0 0);
-    --sidebar-foreground: oklch(0.98 0 0);
-    --sidebar-primary: oklch(0.65 0.25 252);
-    --sidebar-primary-foreground: oklch(0.98 0 0);
-    --sidebar-accent: oklch(0.22 0 0);
-    --sidebar-accent-foreground: oklch(0.98 0 0);
-    --sidebar-border: oklch(0.24 0 0);
-    --sidebar-ring: oklch(0.65 0.25 252);
-    /* Update font variable to use Open Sans */
+    --sidebar: #f1f5f9;
+    --sidebar-foreground: #475569;
+    --sidebar-primary: #1e293b;
+    --sidebar-primary-foreground: #f1f5f9;
+    --sidebar-accent: #e2e8f0;
+    --sidebar-accent-foreground: #0f172a;
+    --sidebar-border: #cbd5e1;
+    --sidebar-ring: #2563eb;
+    --canvas-bg: #e2e8f0;
+    --canvas-dots: #64748b;
     --font-sans: var(--font-open-sans);
+}
+
+.dark {
+    --background: #18181b;
+    --foreground: #fafafa;
+    --canvas-bg: #000000;
+    --canvas-dots: #71717a;
+    --card: #52525b;
+    --card-foreground: #fafafa;
+    --popover: #3f3f46;
+    --popover-foreground: #fafafa;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #27272a;
+    --secondary-foreground: #fafafa;
+    --muted: #27272a;
+    --muted-foreground: #a1a1aa;
+    --accent: #52525b;
+    --accent-foreground: #fafafa;
+    --destructive: #7f1d1d;
+    --destructive-foreground: #fafafa;
+    --border: #71717a;
+    --input: #52525b;
+    --ring: #3b82f6;
+    --chart-1: #2662d9;
+    --chart-2: #2eb88a;
+    --chart-3: #e88d39;
+    --chart-4: #af57db;
+    --chart-5: #e23670;
+    --sidebar: #18181b;
+    --sidebar-foreground: #d4d4d8;
+    --sidebar-primary: #3b82f6;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #27272a;
+    --sidebar-accent-foreground: #fafafa;
+    --sidebar-border: #27272a;
+    --sidebar-ring: #3b82f6;
 }
 
 @theme inline {
@@ -91,15 +125,15 @@
     * {
         @apply border-border outline-ring/50;
     }
+
     body {
         @apply bg-background text-foreground;
     }
 }
 
 /* React Flow custom styles */
-/* Removed grid pattern to have plain background */
 .react-flow {
-    background-color: oklch(0.12 0 0);
+    background-color: var(--canvas-bg);
 }
 
 .react-flow__node {
@@ -117,14 +151,14 @@
 }
 
 .react-flow__edge-path {
-    stroke: oklch(0.65 0.25 252);
+    stroke: var(--primary);
     /* Increased stroke-width from 2 to 4 for better visibility */
     stroke-width: 4;
 }
 
 /* Converting handle sizes from rem back to px */
 .react-flow__handle {
-    background: oklch(0.65 0.25 252);
+    background: var(--primary);
     /* Increased handle size from 14px to 21px (1.5x) */
     width: 21px !important;
     height: 21px !important;
@@ -154,23 +188,24 @@
 }
 
 .react-flow__handle:hover {
-    background: oklch(0.75 0.25 252);
+    background: var(--primary);
+    opacity: 0.8;
 }
 
 /* Enhanced controls styling with !important to override React Flow defaults */
 .react-flow__controls {
-    background: oklch(0.16 0 0) !important;
-    border: 1px solid oklch(0.24 0 0) !important;
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
     border-radius: 0.5rem !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3) !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
 }
 
 .react-flow__controls-button {
-    background: oklch(0.16 0 0) !important;
+    background: var(--card) !important;
     border: none !important;
-    border-bottom: 1px solid oklch(0.24 0 0) !important;
-    color: oklch(0.98 0 0) !important;
-    fill: oklch(0.98 0 0) !important;
+    border-bottom: 1px solid var(--border) !important;
+    color: var(--foreground) !important;
+    fill: var(--foreground) !important;
     width: 32px !important;
     height: 32px !important;
     display: flex !important;
@@ -183,11 +218,11 @@
 }
 
 .react-flow__controls-button:hover {
-    background: oklch(0.22 0 0) !important;
+    background: var(--accent) !important;
 }
 
 .react-flow__controls-button svg {
-    fill: oklch(0.98 0 0) !important;
+    fill: var(--foreground) !important;
     width: 16px !important;
     height: 16px !important;
 }
@@ -198,6 +233,7 @@
     100% {
         background-color: rgb(255, 255, 255);
     }
+
     50% {
         background-color: rgb(200, 200, 200);
     }
@@ -209,17 +245,21 @@
 
 /* Port type handle colors */
 .custom-workflow-node .react-flow__handle.port-string {
-    background: #a855f7 !important; /* purple-500 */
+    background: #a855f7 !important;
+    /* purple-500 */
 }
 
 .custom-workflow-node .react-flow__handle.port-image {
-    background: #f97316 !important; /* orange-500 */
+    background: #f97316 !important;
+    /* orange-500 */
 }
 
 .custom-workflow-node .react-flow__handle.port-video {
-    background: #ec4899 !important; /* pink-500 */
+    background: #ec4899 !important;
+    /* pink-500 */
 }
 
 .custom-workflow-node .react-flow__handle.port-json {
-    background: #06b6d4 !important; /* cyan-500 */
+    background: #06b6d4 !important;
+    /* cyan-500 */
 }
