@@ -4,24 +4,24 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    --background: #ffffff;
-    --foreground: #0a0a0a;
+    --background: #f1f5f9;
+    --foreground: #09090b;
     --card: #ffffff;
-    --card-foreground: #0a0a0a;
+    --card-foreground: #09090b;
     --popover: #ffffff;
-    --popover-foreground: #0a0a0a;
+    --popover-foreground: #09090b;
     --primary: #2563eb;
     --primary-foreground: #ffffff;
-    --secondary: #f4f4f5;
-    --secondary-foreground: #18181b;
-    --muted: #f4f4f5;
-    --muted-foreground: #71717a;
-    --accent: #f4f4f5;
-    --accent-foreground: #18181b;
+    --secondary: #e2e8f0;
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --accent: #e2e8f0;
+    --accent-foreground: #0f172a;
     --destructive: #ef4444;
     --destructive-foreground: #fafafa;
-    --border: #e4e4e7;
-    --input: #e4e4e7;
+    --border: #cbd5e1;
+    --input: #cbd5e1;
     --ring: #2563eb;
     --chart-1: #f97316;
     --chart-2: #2662d9;
@@ -29,23 +29,27 @@
     --chart-4: #e8c468;
     --chart-5: #27ceba;
     --radius: 0.5rem;
-    --sidebar: #fafafa;
-    --sidebar-foreground: #3f3f46;
-    --sidebar-primary: #18181b;
-    --sidebar-primary-foreground: #fafafa;
-    --sidebar-accent: #f4f4f5;
-    --sidebar-accent-foreground: #18181b;
-    --sidebar-border: #e4e4e7;
+    --sidebar: #f1f5f9;
+    --sidebar-foreground: #475569;
+    --sidebar-primary: #1e293b;
+    --sidebar-primary-foreground: #f1f5f9;
+    --sidebar-accent: #e2e8f0;
+    --sidebar-accent-foreground: #0f172a;
+    --sidebar-border: #cbd5e1;
     --sidebar-ring: #2563eb;
+    --canvas-bg: #e2e8f0;
+    --canvas-dots: #64748b;
     --font-sans: var(--font-open-sans);
 }
 
 .dark {
-    --background: #09090b;
+    --background: #18181b;
     --foreground: #fafafa;
-    --card: #09090b;
+    --canvas-bg: #000000;
+    --canvas-dots: #71717a;
+    --card: #3f3f46;
     --card-foreground: #fafafa;
-    --popover: #09090b;
+    --popover: #3f3f46;
     --popover-foreground: #fafafa;
     --primary: #3b82f6;
     --primary-foreground: #ffffff;
@@ -53,12 +57,12 @@
     --secondary-foreground: #fafafa;
     --muted: #27272a;
     --muted-foreground: #a1a1aa;
-    --accent: #27272a;
+    --accent: #52525b;
     --accent-foreground: #fafafa;
     --destructive: #7f1d1d;
     --destructive-foreground: #fafafa;
-    --border: #27272a;
-    --input: #27272a;
+    --border: #52525b;
+    --input: #52525b;
     --ring: #3b82f6;
     --chart-1: #2662d9;
     --chart-2: #2eb88a;
@@ -66,7 +70,7 @@
     --chart-4: #af57db;
     --chart-5: #e23670;
     --sidebar: #18181b;
-    --sidebar-foreground: #a1a1aa;
+    --sidebar-foreground: #d4d4d8;
     --sidebar-primary: #3b82f6;
     --sidebar-primary-foreground: #ffffff;
     --sidebar-accent: #27272a;
@@ -127,9 +131,8 @@
 }
 
 /* React Flow custom styles */
-/* Removed grid pattern to have plain background */
 .react-flow {
-    background-color: var(--background);
+    background-color: var(--canvas-bg);
 }
 
 .react-flow__node {

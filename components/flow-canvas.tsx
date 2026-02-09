@@ -62,6 +62,7 @@ import {
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
+import { useTheme } from "next-themes";
 import logger from "@/app/logger";
 import {
     ContextMenu,
@@ -207,6 +208,7 @@ export function FlowCanvas() {
     );
     const { runFlow } = useFlowExecution();
     const isRunning = useFlowStore((state: FlowState) => state.isRunning);
+    const { theme, resolvedTheme } = useTheme();
 
     const [customNodes, setCustomNodes] = useState<CustomNodeItem[]>([]);
     const [customNodesExpanded, setCustomNodesExpanded] = useState(true);
@@ -445,13 +447,13 @@ export function FlowCanvas() {
         const portType =
             params.handleType === "source"
                 ? getSourcePortType(
-                      sourceNode as Node<NodeData>,
-                      params.handleId,
-                  )
+                    sourceNode as Node<NodeData>,
+                    params.handleId,
+                )
                 : getTargetPortType(
-                      sourceNode as Node<NodeData>,
-                      params.handleId,
-                  );
+                    sourceNode as Node<NodeData>,
+                    params.handleId,
+                );
 
         // Filter native nodes
         const filteredNative = nativeItems.filter((item) => {
@@ -531,13 +533,13 @@ export function FlowCanvas() {
             const sourcePortType =
                 connectionStartParams.handleType === "source"
                     ? getSourcePortType(
-                          sourceNode as Node<NodeData>,
-                          connectionStartParams.handleId,
-                      )
+                        sourceNode as Node<NodeData>,
+                        connectionStartParams.handleId,
+                    )
                     : getTargetPortType(
-                          sourceNode as Node<NodeData>,
-                          connectionStartParams.handleId,
-                      );
+                        sourceNode as Node<NodeData>,
+                        connectionStartParams.handleId,
+                    );
 
             const newDef = getNodeDefinition(newNode.data.type as NodeType);
             let targetHandle: string | null = null;
@@ -693,7 +695,7 @@ export function FlowCanvas() {
 
     return (
         <div className="relative flex h-full flex-1">
-            <aside className="border-border bg-card z-10 flex w-14 flex-col items-center gap-2 overflow-y-auto border-r py-4">
+            <aside className="border-border bg-background z-10 flex w-14 flex-col items-center gap-2 overflow-y-auto border-r py-4">
                 <TooltipProvider>
                     {/* Native Nodes */}
                     {nativeItems.map(renderNodeButton)}
@@ -802,7 +804,11 @@ export function FlowCanvas() {
                                 className="react-flow"
                             >
                                 <Background
-                                    color="#000"
+                                    color={
+                                        resolvedTheme === "dark"
+                                            ? "#71717a"
+                                            : "#64748b"
+                                    }
                                     variant={BackgroundVariant.Dots}
                                 />
                                 <Controls />
@@ -873,45 +879,45 @@ export function FlowCanvas() {
 
                                                     {compatibleNodes.custom
                                                         .length > 0 && (
-                                                        <>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuSub>
-                                                                <DropdownMenuSubTrigger>
-                                                                    <Box className="mr-2 h-4 w-4" />
-                                                                    <span>
-                                                                        Custom
-                                                                        Nodes
-                                                                    </span>
-                                                                </DropdownMenuSubTrigger>
-                                                                <DropdownMenuSubContent className="w-48">
-                                                                    {compatibleNodes.custom.map(
-                                                                        (
-                                                                            node,
-                                                                        ) => (
-                                                                            <DropdownMenuItem
-                                                                                key={
-                                                                                    node.id
-                                                                                }
-                                                                                onClick={() =>
-                                                                                    handleSelectDropdownNode(
-                                                                                        "custom-workflow",
-                                                                                        node,
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                <Box className="mr-2 h-4 w-4" />
-                                                                                <span>
-                                                                                    {
-                                                                                        node.name
+                                                            <>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuSub>
+                                                                    <DropdownMenuSubTrigger>
+                                                                        <Box className="mr-2 h-4 w-4" />
+                                                                        <span>
+                                                                            Custom
+                                                                            Nodes
+                                                                        </span>
+                                                                    </DropdownMenuSubTrigger>
+                                                                    <DropdownMenuSubContent className="w-48">
+                                                                        {compatibleNodes.custom.map(
+                                                                            (
+                                                                                node,
+                                                                            ) => (
+                                                                                <DropdownMenuItem
+                                                                                    key={
+                                                                                        node.id
                                                                                     }
-                                                                                </span>
-                                                                            </DropdownMenuItem>
-                                                                        ),
-                                                                    )}
-                                                                </DropdownMenuSubContent>
-                                                            </DropdownMenuSub>
-                                                        </>
-                                                    )}
+                                                                                    onClick={() =>
+                                                                                        handleSelectDropdownNode(
+                                                                                            "custom-workflow",
+                                                                                            node,
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    <Box className="mr-2 h-4 w-4" />
+                                                                                    <span>
+                                                                                        {
+                                                                                            node.name
+                                                                                        }
+                                                                                    </span>
+                                                                                </DropdownMenuItem>
+                                                                            ),
+                                                                        )}
+                                                                    </DropdownMenuSubContent>
+                                                                </DropdownMenuSub>
+                                                            </>
+                                                        )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>

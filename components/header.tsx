@@ -43,7 +43,7 @@ export function Header() {
     };
 
     return (
-        <header className="border-border bg-card flex h-14 items-center justify-between border-b px-4">
+        <header className="border-border bg-background flex h-14 items-center justify-between border-b px-4">
             <div className="flex items-center gap-3">
                 {flowId && (
                     <Button variant="ghost" size="sm" onClick={handleBack}>
