@@ -55,6 +55,7 @@ export const PUT = withAuth<{ params: Promise<{ id: string }> }>(
                 flowId,
                 session.user!.id!,
                 result.data,
+                session.user!.email!,
             );
             return NextResponse.json(updatedFlow);
         } catch (error) {
@@ -80,6 +81,8 @@ export const PUT = withAuth<{ params: Promise<{ id: string }> }>(
         }
     },
 );
+
+export const PATCH = PUT;
 
 export const DELETE = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {

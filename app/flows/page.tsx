@@ -3,9 +3,20 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Plus, Trash2, Calendar, Loader2, Box, Workflow } from "lucide-react";
+import {
+    Plus,
+    Trash2,
+    Calendar,
+    Loader2,
+    Box,
+    Workflow,
+    Users,
+    Globe,
+    Copy,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserProfile } from "@/components/user-profile";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Image from "next/image";
 import logger from "@/app/logger";
 
@@ -24,10 +35,10 @@ interface CustomNode {
     createdAt: string;
     updatedAt: string;
 }
-
 export default function FlowsList() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const [activeTab, setActiveTab] = useState("my");
     const [flows, setFlows] = useState<Flow[]>([]);
     const [customNodes, setCustomNodes] = useState<CustomNode[]>([]);
     const [loading, setLoading] = useState(true);
@@ -62,11 +73,12 @@ export default function FlowsList() {
     };
 
     const fetchData = useCallback(async () => {
+        setLoading(true);
         try {
             if (session) {
-                // Fetch flows and custom nodes in parallel
+                // Fetch flows based on active tab and custom nodes
                 const [flowsResponse, customNodesResponse] = await Promise.all([
-                    fetch("/api/flows"),
+                    fetch(`/api/flows?tab=${activeTab}`),
                     fetch("/api/custom-nodes"),
                 ]);
 
@@ -111,7 +123,7 @@ export default function FlowsList() {
         } finally {
             setLoading(false);
         }
-    }, [session]);
+    }, [session, activeTab]);
 
     useEffect(() => {
         if (status === "authenticated") {
@@ -207,6 +219,21 @@ export default function FlowsList() {
         }
     };
 
+    const handleCloneFlow = async (flowId: string) => {
+        try {
+            const response = await fetch(`/api/flows/${flowId}/clone`, {
+                method: "POST",
+            });
+
+            if (response.ok) {
+                const newFlow = await response.json();
+                router.push(`/flow/${newFlow.id}`);
+            }
+        } catch (error) {
+            logger.error("Error cloning flow:", error);
+        }
+    };
+
     const handleDeleteCustomNode = async (nodeId: string) => {
         if (!confirm("Are you sure you want to delete this custom node?"))
             return;
@@ -294,15 +321,34 @@ export default function FlowsList() {
                         </div>
                     </div>
                 </div>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(item.id);
-                    }}
-                    className="bg-background/80 hover:bg-background absolute top-2 right-2 rounded-md p-2 opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                    <Trash2 className="text-destructive h-4 w-4" />
-                </button>
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    {!isCustomNode &&
+                        (activeTab === "shared" ||
+                            activeTab === "community") && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCloneFlow(item.id);
+                                }}
+                                title="Clone Flow"
+                                className="bg-background/80 hover:bg-background rounded-md p-2"
+                            >
+                                <Copy className="text-primary h-4 w-4" />
+                            </button>
+                        )}
+                    {activeTab === "my" && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(item.id);
+                            }}
+                            title="Delete"
+                            className="bg-background/80 hover:bg-background rounded-md p-2"
+                        >
+                            <Trash2 className="text-destructive h-4 w-4" />
+                        </button>
+                    )}
+                </div>
             </div>
         );
     };
@@ -313,30 +359,50 @@ export default function FlowsList() {
         creating: boolean,
     ) => {
         const isFlow = type === "flow";
+        const isMyTab = activeTab === "my";
+
+        let title = `No ${isFlow ? "flows" : "custom nodes"} yet`;
+        let description = isFlow
+            ? "Create your first flow to get started"
+            : "Create reusable components for your flows";
+
+        if (isFlow && !isMyTab) {
+            if (activeTab === "shared") {
+                title = "No flows shared with you yet";
+                description =
+                    "Flows shared with you by others will appear here";
+            } else if (activeTab === "community") {
+                title = "No community templates available yet";
+                description = "Check back later for new templates";
+            }
+        }
+
         return (
             <div className="border-border flex h-48 flex-col items-center justify-center rounded-lg border-2 border-dashed">
                 <div className="max-w-md text-center">
                     <h3 className="text-foreground mb-2 text-lg font-semibold">
-                        No {isFlow ? "flows" : "custom nodes"} yet
+                        {title}
                     </h3>
-                    <p className="text-muted-foreground mb-4">
-                        {isFlow
-                            ? "Create your first flow to get started"
-                            : "Create reusable components for your flows"}
-                    </p>
-                    <Button onClick={onCreate} disabled={creating} size="sm">
-                        {creating ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creating...
-                            </>
-                        ) : (
-                            <>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Create {isFlow ? "Flow" : "Custom Node"}
-                            </>
-                        )}
-                    </Button>
+                    <p className="text-muted-foreground mb-4">{description}</p>
+                    {isMyTab && (
+                        <Button
+                            onClick={onCreate}
+                            disabled={creating}
+                            size="sm"
+                        >
+                            {creating ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Creating...
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Create {isFlow ? "Flow" : "Custom Node"}
+                                </>
+                            )}
+                        </Button>
+                    )}
                 </div>
             </div>
         );
@@ -363,122 +429,165 @@ export default function FlowsList() {
             <div className="flex-1 overflow-auto p-8">
                 <div className="mx-auto max-w-7xl">
                     {/* Header */}
-                    <div className="mb-8">
-                        <h2 className="text-foreground mb-2 text-2xl font-semibold">
-                            Dashboard
-                        </h2>
-                        <p className="text-muted-foreground">
-                            Manage your workflows and custom nodes
-                        </p>
+                    <div className="mb-8 flex items-end justify-between">
+                        <div>
+                            <h2 className="text-foreground mb-2 text-2xl font-semibold">
+                                Dashboard
+                            </h2>
+                            <p className="text-muted-foreground">
+                                Manage your workflows and custom nodes
+                            </p>
+                        </div>
                     </div>
 
-                    {loading ? (
-                        <div className="flex h-64 items-center justify-center">
-                            <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
-                        </div>
-                    ) : (
-                        <div className="space-y-12">
-                            {/* Flows Section */}
-                            <section>
-                                <div className="mb-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Workflow className="text-primary h-5 w-5" />
-                                        <h3 className="text-foreground text-lg font-semibold">
-                                            Flows
-                                        </h3>
-                                        <span className="text-muted-foreground text-sm">
-                                            ({flows.length})
-                                        </span>
-                                    </div>
-                                    <Button
-                                        onClick={handleCreateFlow}
-                                        disabled={creatingFlow}
-                                        size="sm"
-                                    >
-                                        {creatingFlow ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Creating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                New Flow
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                                {flows.length === 0 ? (
-                                    renderEmptyState(
-                                        "flow",
-                                        handleCreateFlow,
-                                        creatingFlow,
-                                    )
-                                ) : (
-                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                        {flows.map((flow) =>
-                                            renderCard(
-                                                flow,
-                                                "flow",
-                                                handleDeleteFlow,
-                                            ),
-                                        )}
-                                    </div>
-                                )}
-                            </section>
+                    <Tabs
+                        value={activeTab}
+                        onValueChange={setActiveTab}
+                        className="space-y-8"
+                    >
+                        <TabsList className="bg-muted/50 border-border border p-1">
+                            <TabsTrigger
+                                value="my"
+                                className="data-[state=active]:bg-background flex items-center gap-2 px-6"
+                            >
+                                <Workflow className="h-4 w-4" />
+                                My Flows
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="shared"
+                                className="data-[state=active]:bg-background flex items-center gap-2 px-6"
+                            >
+                                <Users className="h-4 w-4" />
+                                Shared with me
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="community"
+                                className="data-[state=active]:bg-background flex items-center gap-2 px-6"
+                            >
+                                <Globe className="h-4 w-4" />
+                                Community
+                            </TabsTrigger>
+                        </TabsList>
 
-                            {/* Custom Nodes Section */}
-                            <section>
-                                <div className="mb-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Box className="h-5 w-5 text-purple-500" />
-                                        <h3 className="text-foreground text-lg font-semibold">
-                                            Custom Nodes
-                                        </h3>
-                                        <span className="text-muted-foreground text-sm">
-                                            ({customNodes.length})
-                                        </span>
-                                    </div>
-                                    <Button
-                                        onClick={handleCreateCustomNode}
-                                        disabled={creatingNode}
-                                        size="sm"
-                                        variant="outline"
-                                        className="border-purple-500 text-purple-500 hover:bg-purple-500/10"
-                                    >
-                                        {creatingNode ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Creating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                New Custom Node
-                                            </>
-                                        )}
-                                    </Button>
+                        <TabsContent value={activeTab} className="space-y-12">
+                            {loading ? (
+                                <div className="flex h-64 items-center justify-center">
+                                    <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
                                 </div>
-                                {customNodes.length === 0 ? (
-                                    renderEmptyState(
-                                        "custom-node",
-                                        handleCreateCustomNode,
-                                        creatingNode,
-                                    )
-                                ) : (
-                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                        {customNodes.map((node) =>
-                                            renderCard(
-                                                node,
-                                                "custom-node",
-                                                handleDeleteCustomNode,
-                                            ),
+                            ) : (
+                                <>
+                                    {/* Flows Section */}
+                                    <section>
+                                        <div className="mb-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="text-foreground text-lg font-semibold">
+                                                    {activeTab === "my"
+                                                        ? "Flows"
+                                                        : activeTab === "shared"
+                                                          ? "Shared Flows"
+                                                          : "Community Templates"}
+                                                </h3>
+                                                <span className="text-muted-foreground text-sm">
+                                                    ({flows.length})
+                                                </span>
+                                            </div>
+                                            {activeTab === "my" && (
+                                                <Button
+                                                    onClick={handleCreateFlow}
+                                                    disabled={creatingFlow}
+                                                    size="sm"
+                                                >
+                                                    {creatingFlow ? (
+                                                        <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Creating...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Plus className="mr-2 h-4 w-4" />
+                                                            New Flow
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            )}
+                                        </div>
+                                        {flows.length === 0 ? (
+                                            renderEmptyState(
+                                                "flow",
+                                                handleCreateFlow,
+                                                creatingFlow,
+                                            )
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                                {flows.map((flow) =>
+                                                    renderCard(
+                                                        flow,
+                                                        "flow",
+                                                        handleDeleteFlow,
+                                                    ),
+                                                )}
+                                            </div>
                                         )}
-                                    </div>
-                                )}
-                            </section>
-                        </div>
-                    )}
+                                    </section>
+
+                                    {/* Custom Nodes Section - Only show in My Flows for now */}
+                                    {activeTab === "my" && (
+                                        <section>
+                                            <div className="mb-4 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Box className="h-5 w-5 text-purple-500" />
+                                                    <h3 className="text-foreground text-lg font-semibold">
+                                                        Custom Nodes
+                                                    </h3>
+                                                    <span className="text-muted-foreground text-sm">
+                                                        ({customNodes.length})
+                                                    </span>
+                                                </div>
+                                                <Button
+                                                    onClick={
+                                                        handleCreateCustomNode
+                                                    }
+                                                    disabled={creatingNode}
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="border-purple-500 text-purple-500 hover:bg-purple-500/10"
+                                                >
+                                                    {creatingNode ? (
+                                                        <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Creating...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Plus className="mr-2 h-4 w-4" />
+                                                            New Custom Node
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                            {customNodes.length === 0 ? (
+                                                renderEmptyState(
+                                                    "custom-node",
+                                                    handleCreateCustomNode,
+                                                    creatingNode,
+                                                )
+                                            ) : (
+                                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                                    {customNodes.map((node) =>
+                                                        renderCard(
+                                                            node,
+                                                            "custom-node",
+                                                            handleDeleteCustomNode,
+                                                        ),
+                                                    )}
+                                                </div>
+                                            )}
+                                        </section>
+                                    )}
+                                </>
+                            )}
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </div>
         </div>

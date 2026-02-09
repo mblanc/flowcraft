@@ -55,6 +55,15 @@ export const authConfig = {
                 // Fallback to NextAuth's ID if Google ID is not available
                 session.user.id = token.sub;
             }
+            // Add isAdmin flag
+            if (session.user?.email) {
+                const adminEmails = config.ADMIN_EMAILS.split(",").map((e) =>
+                    e.trim().toLowerCase(),
+                );
+                session.user.isAdmin = adminEmails.includes(
+                    session.user.email.toLowerCase(),
+                );
+            }
             return session;
         },
     },

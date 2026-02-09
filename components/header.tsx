@@ -4,23 +4,48 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Upload, ArrowLeft, Save, Box, Workflow } from "lucide-react";
+import {
+    Download,
+    Upload,
+    ArrowLeft,
+    Save,
+    Box,
+    Workflow,
+    Users,
+    Copy,
+} from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowPersistence } from "@/hooks/use-flow-persistence";
 import { UserProfile } from "./user-profile";
 import { ThemeToggle } from "./theme-toggle";
+import { ShareFlowModal } from "./share-flow-modal";
+import { useSession } from "next-auth/react";
 
 export function Header() {
+    const { data: session } = useSession();
     const { exportFlow, importFlow, saveFlow } = useFlowPersistence();
     const flowId = useFlowStore((state) => state.flowId);
     const flowName = useFlowStore((state) => state.flowName);
     const setFlowName = useFlowStore((state) => state.setFlowName);
     const entityType = useFlowStore((state) => state.entityType);
+    const ownerId = useFlowStore((state) => state.ownerId);
+    const sharedWith = useFlowStore((state) => state.sharedWith);
+    const isTemplate = useFlowStore((state) => state.isTemplate);
+    const visibility = useFlowStore((state) => state.visibility);
+
     const router = useRouter();
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState(flowName);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [isCloning, setIsCloning] = useState(false);
 
     const isCustomNode = entityType === "custom-node";
+    const isAdmin = session?.user?.isAdmin || false;
+    const isOwner = session?.user?.id === ownerId;
+    const isEditor = sharedWith?.some(
+        (s) => s.email === session?.user?.email && s.role === "edit",
+    );
+    const isEditable = isOwner || isEditor || isAdmin;
 
     useEffect(() => {
         setEditedName(flowName);
@@ -36,10 +61,29 @@ export function Header() {
         setIsEditing(false);
     };
 
-    // New handler function to Save then Navigate
     const handleBack = async () => {
-        await saveFlow(); // Wait for the save operation to finish
+        await saveFlow();
         router.push("/flows");
+    };
+
+    const handleClone = async () => {
+        if (!flowId) return;
+        setIsCloning(true);
+        try {
+            const response = await fetch(`/api/flows/${flowId}/clone`, {
+                method: "POST",
+            });
+            if (response.ok) {
+                const newFlow = await response.json();
+                router.push(`/flow/${newFlow.id}`);
+            } else {
+                console.error("Failed to clone flow");
+            }
+        } catch (error) {
+            console.error("Error cloning flow:", error);
+        } finally {
+            setIsCloning(false);
+        }
     };
 
     return (
@@ -89,8 +133,10 @@ export function Header() {
                                 </div>
                             ) : (
                                 <h1
-                                    className="text-foreground hover:text-primary cursor-pointer text-lg font-semibold transition-colors"
-                                    onClick={() => setIsEditing(true)}
+                                    className={`text-foreground text-lg font-semibold transition-colors ${isEditable ? "hover:text-primary cursor-pointer" : ""}`}
+                                    onClick={() =>
+                                        isEditable && setIsEditing(true)
+                                    }
                                 >
                                     {flowName}
                                 </h1>
@@ -105,7 +151,17 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-2">
-                {flowId && (
+                {flowId && !isCustomNode && isOwner && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsShareModalOpen(true)}
+                    >
+                        <Users className="mr-2 h-4 w-4" />
+                        Share
+                    </Button>
+                )}
+                {flowId && isEditable && (
                     <>
                         <Button
                             variant="ghost"
@@ -116,6 +172,18 @@ export function Header() {
                             Save
                         </Button>
                     </>
+                )}
+                {flowId && !isEditable && (
+                    <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleClone}
+                        disabled={isCloning}
+                        className="bg-purple-600 hover:bg-purple-700"
+                    >
+                        <Copy className="mr-2 h-4 w-4" />
+                        {isCloning ? "Cloning..." : "Remix"}
+                    </Button>
                 )}
                 <Button variant="ghost" size="sm" onClick={importFlow}>
                     <Upload className="mr-2 h-4 w-4" />
@@ -130,6 +198,20 @@ export function Header() {
                 <ThemeToggle />
                 <UserProfile isCollapsed={false} />
             </div>
+
+            {flowId && (
+                <ShareFlowModal
+                    isOpen={isShareModalOpen}
+                    onClose={() => setIsShareModalOpen(false)}
+                    flowId={flowId}
+                    flowName={flowName}
+                    initialVisibility={visibility}
+                    initialSharedWith={sharedWith}
+                    isOwner={isOwner}
+                    isAdmin={isAdmin}
+                    initialIsTemplate={isTemplate}
+                />
+            )}
         </header>
     );
 }
