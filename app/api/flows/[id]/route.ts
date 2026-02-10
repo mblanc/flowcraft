@@ -8,7 +8,11 @@ export const GET = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
         const { id: flowId } = await params;
         try {
-            const flow = await flowService.getFlow(flowId, session.user!.id!);
+            const flow = await flowService.getFlow(
+                flowId,
+                session.user!.id!,
+                session.user!.email!,
+            );
             return NextResponse.json(flow);
         } catch (error) {
             if (error instanceof Error) {
