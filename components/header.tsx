@@ -20,6 +20,7 @@ import { UserProfile } from "./user-profile";
 import { ThemeToggle } from "./theme-toggle";
 import { ShareFlowModal } from "./share-flow-modal";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 export function Header() {
     const { data: session } = useSession();
@@ -169,7 +170,10 @@ export function Header() {
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => saveFlow()}
+                            onClick={async () => {
+                                await saveFlow();
+                                toast.success("Flow saved successfully");
+                            }}
                         >
                             <Save className="mr-2 h-4 w-4" />
                             Save
