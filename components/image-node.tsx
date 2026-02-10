@@ -2,24 +2,32 @@
 
 import type React from "react";
 
-import { memo, useRef, useEffect, useState } from "react";
+import { memo, useRef, useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ImageData } from "@/lib/types";
-import { ImageIcon, Play } from "lucide-react";
+import { ImageIcon, Play, ChevronDown, FastForward } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import logger from "@/app/logger";
 
 export const ImageNode = memo(
     ({ data, selected, id }: NodeProps<Node<ImageData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
-        const { executeNode } = useFlowExecution();
+        const { executeNode, runFromNode } = useFlowExecution();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const nodeRef = useRef<HTMLDivElement>(null);
         const [localPrompt, setLocalPrompt] = useState(data.prompt);
         const [prevDataPrompt, setPrevDataPrompt] = useState(data.prompt);
+        const [isImageOpen, setIsImageOpen] = useState(false);
+        const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const [dimensions, setDimensions] = useState({
             width: data.width || 400,
             height: data.height || 600,
@@ -187,6 +195,15 @@ export const ImageNode = memo(
             executeNode(id);
         };
 
+        const handleRunFromHere = useCallback(
+            (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                runFromNode(id);
+            },
+            [runFromNode, id],
+        );
+
         const handlePromptChange = (
             e: React.ChangeEvent<HTMLTextAreaElement>,
         ) => {
@@ -341,7 +358,7 @@ export const ImageNode = memo(
                 </div>
 
                 {data.images.length > 0 && displayUrl && (
-                    <Dialog>
+                    <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
                         <DialogTrigger asChild>
                             <div
                                 className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
@@ -360,27 +377,57 @@ export const ImageNode = memo(
                                 />
                             </div>
                         </DialogTrigger>
-                        <DialogContent className="flex h-auto max-h-[90vh] w-auto max-w-[90vw] items-center justify-center border-none bg-transparent p-0 shadow-none">
+                        <DialogContent
+                            className="flex h-auto max-h-[100vh] w-auto max-w-[100vw] items-center justify-center border-none bg-transparent p-0 shadow-none outline-none"
+                            onClick={() => setIsImageOpen(false)}
+                        >
                             <Image
                                 src={displayUrl}
                                 alt={data.name}
                                 width={1200}
                                 height={800}
-                                className="max-h-[90vh] max-w-full rounded-md object-contain"
+                                className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
                                 unoptimized={true}
+                                onClick={(e) => e.stopPropagation()}
                             />
                         </DialogContent>
                     </Dialog>
                 )}
 
-                <button
-                    onClick={handleExecute}
-                    disabled={data.executing}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-orange-500/10 px-3 py-2 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <Play className="h-3 w-3" />
-                    Execute Node
-                </button>
+                <div className="mt-3 flex w-full flex-col gap-1">
+                    <div className="flex w-full">
+                        <button
+                            onClick={handleExecute}
+                            disabled={data.executing}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-l-md border-r border-orange-500/20 bg-orange-500/10 px-3 py-2 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Play className="h-3 w-3" />
+                            Execute Node
+                        </button>
+                        <button
+                            onClick={() => setIsRunMenuOpen(!isRunMenuOpen)}
+                            disabled={data.executing}
+                            className={`flex items-center justify-center rounded-r-md bg-orange-500/10 px-2 py-2 text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-orange-500/20" : ""}`}
+                        >
+                            <ChevronDown
+                                className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
+                            />
+                        </button>
+                    </div>
+                    {isRunMenuOpen && (
+                        <button
+                            onClick={(e) => {
+                                handleRunFromHere(e);
+                                setIsRunMenuOpen(false);
+                            }}
+                            disabled={data.executing}
+                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-orange-500/20 bg-orange-500/10 px-3 py-2 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <FastForward className="h-3 w-3" />
+                            Run from here
+                        </button>
+                    )}
+                </div>
 
                 {/* Resize handle */}
                 <div

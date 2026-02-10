@@ -38,7 +38,23 @@ interface CustomNode {
 export default function FlowsList() {
     const { data: session, status } = useSession();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState("my");
+    const [activeTab, setActiveTabRaw] = useState<string>("my");
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const savedTab = localStorage.getItem("flowcraft_tab");
+            if (savedTab && savedTab !== "my") {
+                setActiveTabRaw(savedTab);
+            }
+        }
+    }, []);
+
+    const setActiveTab = (val: string) => {
+        setActiveTabRaw(val);
+        if (typeof window !== "undefined") {
+            localStorage.setItem("flowcraft_tab", val);
+        }
+    };
     const [flows, setFlows] = useState<Flow[]>([]);
     const [customNodes, setCustomNodes] = useState<CustomNode[]>([]);
     const [loading, setLoading] = useState(true);

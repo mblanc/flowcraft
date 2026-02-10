@@ -37,6 +37,46 @@ export class WorkflowEngine {
         }
     }
 
+    async runFromNode(startNodeId: string) {
+        this.validateCustomWorkflowEdges();
+
+        const levels = this.getExecutionLevelsFromNode(startNodeId);
+
+        for (const level of levels) {
+            await Promise.all(
+                level.map(async (nodeId) => {
+                    await this.executeNodeSync(nodeId);
+                }),
+            );
+        }
+    }
+
+    private getExecutionLevelsFromNode(startNodeId: string): string[][] {
+        const queue = [startNodeId];
+        const downstreamNodes = new Set<string>();
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            downstreamNodes.add(current);
+            const outgoingEdges = this.edges.filter(
+                (e) => e.source === current,
+            );
+            for (const edge of outgoingEdges) {
+                if (!downstreamNodes.has(edge.target)) {
+                    queue.push(edge.target);
+                    downstreamNodes.add(edge.target);
+                }
+            }
+        }
+
+        const allLevels = this.getExecutionLevels();
+        return allLevels
+            .map((level) =>
+                level.filter((nodeId) => downstreamNodes.has(nodeId)),
+            )
+            .filter((level) => level.length > 0);
+    }
+
     private validateCustomWorkflowEdges() {
         for (const edge of this.edges) {
             const sourceNode = this.nodesMap.get(edge.source);
