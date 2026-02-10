@@ -25,10 +25,10 @@ export interface FlowState {
     flowId: string | null;
     flowName: string;
     entityType: EntityType;
-    visibility?: "private" | "public" | "restricted";
-    sharedWith?: { email: string; role: "view" | "edit" }[];
-    isTemplate?: boolean;
-    ownerId?: string;
+    visibility: "private" | "public" | "restricted" | null;
+    sharedWith: { email: string; role: "view" | "edit" }[];
+    isTemplate: boolean;
+    ownerId: string | null;
 
     // Actions
     setNodes: (nodes: Node<NodeData>[]) => void;
@@ -82,6 +82,10 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     flowId: null,
     flowName: "Untitled Flow",
     entityType: "flow",
+    visibility: null,
+    sharedWith: [],
+    isTemplate: false,
+    ownerId: null,
 
     setNodes: (nodes) => set({ nodes: migrateNodes(nodes) }),
     setEdges: (edges) => set({ edges }),
@@ -173,7 +177,10 @@ export const useFlowStore = create<FlowState>((set, get) => ({
             edges,
             flowName: name,
             entityType,
-            ...sharing,
+            visibility: sharing?.visibility ?? null,
+            sharedWith: sharing?.sharedWith ?? [],
+            isTemplate: sharing?.isTemplate ?? false,
+            ownerId: sharing?.ownerId ?? null,
         });
     },
 }));

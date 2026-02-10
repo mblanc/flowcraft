@@ -41,11 +41,14 @@ export function Header() {
 
     const isCustomNode = entityType === "custom-node";
     const isAdmin = session?.user?.isAdmin || false;
-    const isOwner = session?.user?.id === ownerId;
-    const isEditor = sharedWith?.some(
-        (s) => s.email === session?.user?.email && s.role === "edit",
-    );
-    const isEditable = isOwner || isEditor || isAdmin;
+    const isOwner =
+        !!session?.user?.id && !!ownerId && session.user.id === ownerId;
+    const isEditor =
+        !!session?.user?.email &&
+        sharedWith?.some(
+            (s) => s.email === session.user?.email && s.role === "edit",
+        );
+    const isEditable = isOwner || isEditor;
 
     useEffect(() => {
         setEditedName(flowName);
@@ -205,7 +208,7 @@ export function Header() {
                     onClose={() => setIsShareModalOpen(false)}
                     flowId={flowId}
                     flowName={flowName}
-                    initialVisibility={visibility}
+                    initialVisibility={visibility || undefined}
                     initialSharedWith={sharedWith}
                     isOwner={isOwner}
                     isAdmin={isAdmin}

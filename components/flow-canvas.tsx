@@ -218,12 +218,14 @@ export function FlowCanvas() {
     const { data: session } = useSession();
     const ownerId = useFlowStore((state: FlowState) => state.ownerId);
     const sharedWith = useFlowStore((state: FlowState) => state.sharedWith);
-    const isAdmin = session?.user?.isAdmin || false;
-    const isOwner = session?.user?.id === ownerId;
-    const isEditor = sharedWith?.some(
-        (s) => s.email === session?.user?.email && s.role === "edit",
-    );
-    const isEditable = isOwner || isEditor || isAdmin;
+    const isOwner =
+        !!session?.user?.id && !!ownerId && session.user.id === ownerId;
+    const isEditor =
+        !!session?.user?.email &&
+        sharedWith?.some(
+            (s) => s.email === session.user?.email && s.role === "edit",
+        );
+    const isEditable = isOwner || isEditor;
 
     const [mode, setMode] = useState<"selection" | "hand">("hand");
 

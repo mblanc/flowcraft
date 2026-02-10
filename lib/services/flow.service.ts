@@ -144,7 +144,9 @@ export class FlowService {
                     s.email === userEmail && s.role === "edit",
             );
 
-        if (!isOwner && !isEditor) {
+        const isAdmin = userEmail ? await this.isAdmin(userEmail) : false;
+
+        if (!isOwner && !isEditor && !isAdmin) {
             throw new Error("Unauthorized");
         }
 
@@ -174,7 +176,7 @@ export class FlowService {
         return this.transformDoc(updatedDoc);
     }
 
-    async deleteFlow(flowId: string, userId: string) {
+    async deleteFlow(flowId: string, userId: string, userEmail?: string) {
         logger.info(
             `[FlowService] Deleting flow: ${flowId} for user: ${userId}`,
         );
@@ -187,7 +189,8 @@ export class FlowService {
             throw new Error("Flow not found");
         }
 
-        if (flowDoc.data()?.userId !== userId) {
+        const isAdmin = userEmail ? await this.isAdmin(userEmail) : false;
+        if (flowDoc.data()?.userId !== userId && !isAdmin) {
             throw new Error("Unauthorized");
         }
 

@@ -91,6 +91,7 @@ export const DELETE = withAuth<{ params: Promise<{ id: string }> }>(
             const result = await flowService.deleteFlow(
                 flowId,
                 session.user!.id!,
+                session.user!.email!,
             );
             return NextResponse.json(result);
         } catch (error) {
