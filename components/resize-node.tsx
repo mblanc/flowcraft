@@ -15,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { MediaViewer } from "@/components/media-viewer";
 import logger from "@/app/logger";
 
 export const ResizeNode = memo(
@@ -22,6 +23,7 @@ export const ResizeNode = memo(
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const { executeNode } = useFlowExecution();
         const nodeRef = useRef<HTMLDivElement>(null);
+        const [isImageOpen, setIsImageOpen] = useState(false);
         const [dimensions, setDimensions] = useState({
             width: data.width || 400,
             height: data.height || 600,
@@ -205,23 +207,35 @@ export const ResizeNode = memo(
                 </div>
 
                 {outputSignedUrl && (
-                    <div
-                        className="border-border mt-3 overflow-hidden rounded-md border"
-                        style={{
-                            maxHeight: dimensions.height - 150,
-                            position: "relative",
-                        }}
-                    >
-                        <Image
-                            src={outputSignedUrl}
+                    <>
+                        <div
+                            className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
+                            style={{
+                                maxHeight: dimensions.height - 150,
+                                position: "relative",
+                            }}
+                            onClick={() => setIsImageOpen(true)}
+                        >
+                            <Image
+                                src={outputSignedUrl}
+                                alt="Resized output"
+                                width={dimensions.width - 32}
+                                height={dimensions.height - 150}
+                                className="h-auto w-full object-contain"
+                                style={{ maxHeight: dimensions.height - 150 }}
+                                unoptimized={outputSignedUrl.startsWith(
+                                    "data:",
+                                )}
+                                onContextMenu={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                        <MediaViewer
+                            isOpen={isImageOpen}
+                            onOpenChange={setIsImageOpen}
+                            url={outputSignedUrl}
                             alt="Resized output"
-                            width={dimensions.width - 32}
-                            height={dimensions.height - 150}
-                            className="h-auto w-full object-contain"
-                            style={{ maxHeight: dimensions.height - 150 }}
-                            unoptimized={outputSignedUrl.startsWith("data:")}
                         />
-                    </div>
+                    </>
                 )}
 
                 <button

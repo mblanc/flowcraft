@@ -9,13 +9,8 @@ import type { ImageData } from "@/lib/types";
 import { ImageIcon, Play, ChevronDown, FastForward } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
+import { MediaViewer } from "@/components/media-viewer";
 import logger from "@/app/logger";
 
 export const ImageNode = memo(
@@ -358,40 +353,37 @@ export const ImageNode = memo(
                 </div>
 
                 {data.images.length > 0 && displayUrl && (
-                    <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
-                        <DialogTrigger asChild>
-                            <div
-                                className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
-                                style={{ maxHeight: dimensions.height - 200 }}
-                            >
-                                <Image
-                                    src={displayUrl}
-                                    alt={data.name}
-                                    width={dimensions.width - 32}
-                                    height={dimensions.height - 200}
-                                    className="h-auto w-full object-contain"
-                                    style={{
-                                        maxHeight: dimensions.height - 200,
-                                    }}
-                                    unoptimized={displayUrl.startsWith("data:")}
-                                />
-                            </div>
-                        </DialogTrigger>
-                        <DialogContent
-                            className="flex h-auto max-h-[100vh] w-auto max-w-[100vw] items-center justify-center border-none bg-transparent p-0 shadow-none outline-none"
-                            onClick={() => setIsImageOpen(false)}
+                    <>
+                        <div
+                            className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
+                            style={{ maxHeight: dimensions.height - 200 }}
+                            onClick={() => setIsImageOpen(true)}
                         >
                             <Image
                                 src={displayUrl}
                                 alt={data.name}
-                                width={1200}
-                                height={800}
-                                className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
-                                unoptimized={true}
-                                onClick={(e) => e.stopPropagation()}
+                                width={dimensions.width - 32}
+                                height={dimensions.height - 200}
+                                className="h-auto w-full object-contain"
+                                style={{
+                                    maxHeight: dimensions.height - 200,
+                                }}
+                                unoptimized={displayUrl.startsWith("data:")}
+                                onContextMenu={(e) => {
+                                    // Allow native context menu on thumbnail too if requested,
+                                    // but usually users want it on the full view.
+                                    // If we want it on thumbnail, we should stop propagation here too.
+                                    e.stopPropagation();
+                                }}
                             />
-                        </DialogContent>
-                    </Dialog>
+                        </div>
+                        <MediaViewer
+                            isOpen={isImageOpen}
+                            onOpenChange={setIsImageOpen}
+                            url={displayUrl}
+                            alt={data.name}
+                        />
+                    </>
                 )}
 
                 <div className="mt-3 flex w-full flex-col gap-1">

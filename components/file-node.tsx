@@ -8,6 +8,7 @@ import type { FileData } from "@/lib/types";
 import { FileUp, ImageIcon, Video, FileText } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import Image from "next/image";
+import { MediaViewer } from "@/components/media-viewer";
 import logger from "@/app/logger";
 import { PdfPreview } from "./pdf-preview";
 
@@ -18,6 +19,7 @@ export const FileNode = memo(
         const [asyncSignedUrl, setAsyncSignedUrl] = useState<
             string | undefined
         >(undefined);
+        const [isMediaOpen, setIsMediaOpen] = useState(false);
         const [prevGcsUri, setPrevGcsUri] = useState(data.gcsUri);
         const [prevFileUrl, setPrevFileUrl] = useState(data.fileUrl);
 
@@ -145,28 +147,63 @@ export const FileNode = memo(
                 </div>
 
                 {signedUrl && (
-                    <div className="border-border mt-3 overflow-hidden rounded-md border">
-                        {data.fileType === "image" ? (
-                            <Image
-                                src={signedUrl}
-                                alt={data.fileName || "File"}
-                                width={200}
-                                height={150}
-                                className="h-auto max-h-[300px] w-full object-contain"
-                            />
-                        ) : data.fileType === "video" ? (
-                            <video
-                                src={signedUrl}
-                                controls
-                                className="h-auto max-h-[300px] w-full"
-                            />
-                        ) : data.fileType === "pdf" ? (
-                            <PdfPreview
+                    <>
+                        <div className="border-border mt-3 overflow-hidden rounded-md border">
+                            {data.fileType === "image" ? (
+                                <div
+                                    className="cursor-pointer transition-opacity hover:opacity-90"
+                                    onClick={() => setIsMediaOpen(true)}
+                                >
+                                    <Image
+                                        src={signedUrl}
+                                        alt={data.fileName || "File"}
+                                        width={200}
+                                        height={150}
+                                        className="h-auto max-h-[300px] w-full object-contain"
+                                        onContextMenu={(e) =>
+                                            e.stopPropagation()
+                                        }
+                                    />
+                                </div>
+                            ) : data.fileType === "video" ? (
+                                <div className="relative">
+                                    <video
+                                        src={signedUrl}
+                                        controls
+                                        className="h-auto max-h-[300px] w-full"
+                                        onContextMenu={(e) =>
+                                            e.stopPropagation()
+                                        }
+                                    />
+                                    <div
+                                        className="absolute top-2 right-2 cursor-pointer rounded bg-black/50 p-1 transition-colors hover:bg-black/70"
+                                        onClick={() => setIsMediaOpen(true)}
+                                    >
+                                        <ImageIcon className="h-4 w-4 text-white" />
+                                    </div>
+                                </div>
+                            ) : data.fileType === "pdf" ? (
+                                <PdfPreview
+                                    url={signedUrl}
+                                    className="h-auto max-h-[300px] min-h-[150px] w-full"
+                                />
+                            ) : null}
+                        </div>
+                        {(data.fileType === "image" ||
+                            data.fileType === "video") && (
+                            <MediaViewer
+                                isOpen={isMediaOpen}
+                                onOpenChange={setIsMediaOpen}
                                 url={signedUrl}
-                                className="h-auto max-h-[300px] min-h-[150px] w-full"
+                                alt={data.fileName || "File"}
+                                type={
+                                    data.fileType === "video"
+                                        ? "video"
+                                        : "image"
+                                }
                             />
-                        ) : null}
-                    </div>
+                        )}
+                    </>
                 )}
 
                 <input
