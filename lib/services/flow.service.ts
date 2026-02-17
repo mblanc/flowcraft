@@ -165,10 +165,17 @@ export class FlowService {
             }
         }
 
-        // Ownership check for sharing settings
-        const isChangingSharing =
-            data.visibility !== undefined || data.sharedWith !== undefined;
-        if (isChangingSharing && !isOwner && !isAdmin) {
+        // Restriction: Only owner or admin can change visibility and sharing settings
+        const isChangingVisibility =
+            data.visibility !== undefined &&
+            data.visibility !== currentData.visibility;
+        const isChangingSharedWith = data.sharedWith !== undefined;
+
+        if (
+            (isChangingVisibility || isChangingSharedWith) &&
+            !isOwner &&
+            !isAdmin
+        ) {
             throw new Error("Only the owner can change sharing settings");
         }
 
@@ -219,10 +226,8 @@ export class FlowService {
 
         const cloneData: FlowCreateRequest = {
             name: `Copy of ${originalFlow.name}`,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            nodes: originalFlow.nodes as any[],
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            edges: originalFlow.edges as any[],
+            nodes: originalFlow.nodes as FlowCreateRequest['nodes'],
+            edges: originalFlow.edges as FlowCreateRequest['edges'],
         };
 
         return this.createFlow(userId, cloneData);
