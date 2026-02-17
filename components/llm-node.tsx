@@ -8,12 +8,6 @@ import type { LLMData } from "@/lib/types";
 import { Bot, Play, ChevronDown, FastForward } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const DEFAULT_WIDTH = 220;
 const MIN_WIDTH = 180;

@@ -213,7 +213,7 @@ export function FlowCanvas() {
     );
     const { runFlow, runSelectedNodes } = useFlowExecution();
     const isRunning = useFlowStore((state: FlowState) => state.isRunning);
-    const { theme, resolvedTheme } = useTheme();
+    const { resolvedTheme } = useTheme();
 
     const { data: session } = useSession();
     const ownerId = useFlowStore((state: FlowState) => state.ownerId);
@@ -679,10 +679,10 @@ export function FlowCanvas() {
                     // 1. Try exact match first
                     targetHandle =
                         inputs.find(
-                            ([_, type]) => type === sourcePortType,
+                            ([, type]) => type === sourcePortType,
                         )?.[0] ||
                         // 2. Fall back to compatible match
-                        inputs.find(([_, type]) =>
+                        inputs.find(([, type]) =>
                             isTypeCompatible(sourcePortType, type),
                         )?.[0] ||
                         null;
@@ -691,10 +691,10 @@ export function FlowCanvas() {
                     // 1. Try exact match first
                     targetHandle =
                         inputs.find(
-                            ([_, type]) => type === sourcePortType,
+                            ([, type]) => type === sourcePortType,
                         )?.[0] ||
                         // 2. Fall back to compatible match
-                        inputs.find(([_, type]) =>
+                        inputs.find(([, type]) =>
                             isTypeCompatible(sourcePortType, type),
                         )?.[0] ||
                         null;
@@ -707,10 +707,10 @@ export function FlowCanvas() {
                     // 1. Try exact match first
                     targetHandle =
                         outputs.find(
-                            ([_, type]) => type === sourcePortType,
+                            ([, type]) => type === sourcePortType,
                         )?.[0] ||
                         // 2. Fall back to compatible match
-                        outputs.find(([_, type]) =>
+                        outputs.find(([, type]) =>
                             isTypeCompatible(type, sourcePortType),
                         )?.[0] ||
                         null;
@@ -719,10 +719,10 @@ export function FlowCanvas() {
                     // 1. Try exact match first
                     targetHandle =
                         outputs.find(
-                            ([_, type]) => type === sourcePortType,
+                            ([, type]) => type === sourcePortType,
                         )?.[0] ||
                         // 2. Fall back to compatible match
-                        outputs.find(([_, type]) =>
+                        outputs.find(([, type]) =>
                             isTypeCompatible(type, sourcePortType),
                         )?.[0] ||
                         null;

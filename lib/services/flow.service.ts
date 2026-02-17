@@ -226,8 +226,8 @@ export class FlowService {
 
         const cloneData: FlowCreateRequest = {
             name: `Copy of ${originalFlow.name}`,
-            nodes: originalFlow.nodes as FlowCreateRequest['nodes'],
-            edges: originalFlow.edges as FlowCreateRequest['edges'],
+            nodes: originalFlow.nodes as FlowCreateRequest["nodes"],
+            edges: originalFlow.edges as FlowCreateRequest["edges"],
         };
 
         return this.createFlow(userId, cloneData);

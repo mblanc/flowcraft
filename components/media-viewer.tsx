@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+
 import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 interface MediaViewerProps {
     isOpen: boolean;
@@ -52,6 +51,7 @@ export function MediaViewer({
                             onContextMenu={handleContextMenu}
                         >
                             {/* Use a regular img tag for full flexibility or next/image with generic styling */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={url}
                                 alt={alt}
