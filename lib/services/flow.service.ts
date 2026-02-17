@@ -165,10 +165,21 @@ export class FlowService {
             }
         }
 
+        // Ownership check for sharing settings
+        const isChangingSharing =
+            data.visibility !== undefined || data.sharedWith !== undefined;
+        if (isChangingSharing && !isOwner && !isAdmin) {
+            throw new Error("Only the owner can change sharing settings");
+        }
+
         const updateData: Record<string, unknown> = {
             ...data,
             updatedAt: new Date(),
         };
+
+        if (data.sharedWith) {
+            updateData.sharedWithEmails = data.sharedWith.map((s) => s.email);
+        }
 
         await flowRef.update(updateData);
 

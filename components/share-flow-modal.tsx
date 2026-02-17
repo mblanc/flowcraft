@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FlowUpdateRequest } from "@/lib/schemas";
 import {
     Dialog,
     DialogContent,
@@ -104,35 +105,27 @@ export function ShareFlowModal({
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            // Update sharing settings
-            const shareResponse = await fetch(`/api/flows/${flowId}/share`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    visibility,
-                    sharedWith,
-                }),
-            });
-
-            if (!shareResponse.ok) {
-                const error = await shareResponse.json();
-                throw new Error(
-                    error.error || "Failed to save sharing settings",
-                );
-            }
+            const updatePayload: FlowUpdateRequest = {
+                visibility,
+                sharedWith,
+            };
 
             // Update template status if admin and owner
             if (isAdmin && isOwner) {
-                const updateResponse = await fetch(`/api/flows/${flowId}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        isTemplate,
-                    }),
-                });
-                if (!updateResponse.ok) {
-                    logger.error("Failed to update template status");
-                }
+                updatePayload.isTemplate = isTemplate;
+            }
+
+            const response = await fetch(`/api/flows/${flowId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatePayload),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(
+                    error.error || "Failed to save sharing settings",
+                );
             }
 
             toast.success("Sharing settings updated");

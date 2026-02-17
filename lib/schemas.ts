@@ -272,6 +272,14 @@ export const FlowUpdateSchema = z.object({
     thumbnail: z.string().optional(),
     visibility: z.enum(["private", "public", "restricted"]).optional(),
     isTemplate: z.boolean().optional(),
+    sharedWith: z
+        .array(
+            z.object({
+                email: z.string().email(),
+                role: z.enum(["view", "edit"]),
+            }),
+        )
+        .optional(),
 });
 
 export const FlowShareSchema = z.object({
