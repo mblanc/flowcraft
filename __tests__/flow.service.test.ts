@@ -19,6 +19,12 @@ vi.mock("@/lib/firestore", () => ({
     }),
 }));
 
+vi.mock("@/lib/config", () => ({
+    config: {
+        ADMIN_EMAILS: "admin@example.com",
+    },
+}));
+
 describe("FlowService", () => {
     let flowService: FlowService;
 
@@ -143,6 +149,74 @@ describe("FlowService", () => {
             });
 
             expect(result.name).toBe("Updated Flow");
+            expect(mockUpdate).toHaveBeenCalled();
+        });
+
+        it("should allow an editor to update flow content but not visibility", async () => {
+            const editorEmail = "editor@example.com";
+            mockGet.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({
+                    userId: "owner-1",
+                    visibility: "private",
+                    sharedWith: [{ email: editorEmail, role: "edit" }],
+                }),
+            });
+
+            // Editor updates nodes
+            await flowService.updateFlow(
+                "flow-1",
+                "editor-1",
+                { nodes: [] },
+                editorEmail,
+            );
+            expect(mockUpdate).toHaveBeenCalled();
+
+            // Editor tries to update visibility
+            mockGet.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({
+                    userId: "owner-1",
+                    visibility: "private",
+                    sharedWith: [{ email: editorEmail, role: "edit" }],
+                }),
+            });
+            await expect(
+                flowService.updateFlow(
+                    "flow-1",
+                    "editor-1",
+                    { visibility: "public" },
+                    editorEmail,
+                ),
+            ).rejects.toThrow("Only the owner can change sharing settings");
+        });
+
+        it("should allow owner to update visibility", async () => {
+            mockGet.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({ userId: "user-1", visibility: "private" }),
+            });
+
+            await flowService.updateFlow("flow-1", "user-1", {
+                visibility: "public",
+            });
+            expect(mockUpdate).toHaveBeenCalled();
+        });
+
+        it("should allow admin to update visibility", async () => {
+            const adminEmail = "admin@example.com";
+
+            mockGet.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({ userId: "owner-1", visibility: "private" }),
+            });
+
+            await flowService.updateFlow(
+                "flow-1",
+                "admin-1",
+                { visibility: "public" },
+                adminEmail,
+            );
             expect(mockUpdate).toHaveBeenCalled();
         });
 

@@ -16,6 +16,7 @@ import {
     SelectionMode,
     ControlButton,
 } from "@xyflow/react";
+import { useSession } from "next-auth/react";
 import "@xyflow/react/dist/style.css";
 import { LLMNode } from "./llm-node";
 import { TextNode } from "./text-node";
@@ -212,7 +213,19 @@ export function FlowCanvas() {
     );
     const { runFlow, runSelectedNodes } = useFlowExecution();
     const isRunning = useFlowStore((state: FlowState) => state.isRunning);
-    const { theme, resolvedTheme } = useTheme();
+    const { resolvedTheme } = useTheme();
+
+    const { data: session } = useSession();
+    const ownerId = useFlowStore((state: FlowState) => state.ownerId);
+    const sharedWith = useFlowStore((state: FlowState) => state.sharedWith);
+    const isOwner =
+        !!session?.user?.id && !!ownerId && session.user.id === ownerId;
+    const isEditor =
+        !!session?.user?.email &&
+        sharedWith?.some(
+            (s) => s.email === session.user?.email && s.role === "edit",
+        );
+    const isEditable = isOwner || isEditor;
 
     const [mode, setMode] = useState<"selection" | "hand">("hand");
 
@@ -666,10 +679,10 @@ export function FlowCanvas() {
                     // 1. Try exact match first
                     targetHandle =
                         inputs.find(
-                            ([_, type]) => type === sourcePortType,
+                            ([, type]) => type === sourcePortType,
                         )?.[0] ||
                         // 2. Fall back to compatible match
-                        inputs.find(([_, type]) =>
+                        inputs.find(([, type]) =>
                             isTypeCompatible(sourcePortType, type),
                         )?.[0] ||
                         null;
@@ -678,10 +691,10 @@ export function FlowCanvas() {
                     // 1. Try exact match first
                     targetHandle =
                         inputs.find(
-                            ([_, type]) => type === sourcePortType,
+                            ([, type]) => type === sourcePortType,
                         )?.[0] ||
                         // 2. Fall back to compatible match
-                        inputs.find(([_, type]) =>
+                        inputs.find(([, type]) =>
                             isTypeCompatible(sourcePortType, type),
                         )?.[0] ||
                         null;
@@ -694,10 +707,10 @@ export function FlowCanvas() {
                     // 1. Try exact match first
                     targetHandle =
                         outputs.find(
-                            ([_, type]) => type === sourcePortType,
+                            ([, type]) => type === sourcePortType,
                         )?.[0] ||
                         // 2. Fall back to compatible match
-                        outputs.find(([_, type]) =>
+                        outputs.find(([, type]) =>
                             isTypeCompatible(type, sourcePortType),
                         )?.[0] ||
                         null;
@@ -706,10 +719,10 @@ export function FlowCanvas() {
                     // 1. Try exact match first
                     targetHandle =
                         outputs.find(
-                            ([_, type]) => type === sourcePortType,
+                            ([, type]) => type === sourcePortType,
                         )?.[0] ||
                         // 2. Fall back to compatible match
-                        outputs.find(([_, type]) =>
+                        outputs.find(([, type]) =>
                             isTypeCompatible(type, sourcePortType),
                         )?.[0] ||
                         null;
@@ -808,82 +821,84 @@ export function FlowCanvas() {
 
     return (
         <div className="relative flex h-full flex-1">
-            <aside className="border-border bg-card z-10 flex w-14 flex-col items-center gap-2 overflow-y-auto border-r py-4">
-                <TooltipProvider>
-                    {/* Native Nodes */}
-                    {nativeItems.map(renderNodeButton)}
+            {isEditable && (
+                <aside className="border-border bg-card z-10 flex w-14 flex-col items-center gap-2 overflow-y-auto border-r py-4">
+                    <TooltipProvider>
+                        {/* Native Nodes */}
+                        {nativeItems.map(renderNodeButton)}
 
-                    {/* Workflow I/O - only show in custom node editor */}
-                    {isCustomNodeEditor && (
-                        <>
-                            <div className="border-border my-2 w-8 border-t" />
-                            {workflowIOItems.map(renderNodeButton)}
-                        </>
-                    )}
+                        {/* Workflow I/O - only show in custom node editor */}
+                        {isCustomNodeEditor && (
+                            <>
+                                <div className="border-border my-2 w-8 border-t" />
+                                {workflowIOItems.map(renderNodeButton)}
+                            </>
+                        )}
 
-                    {/* Custom Nodes Section - only show in flow editor */}
-                    {!isCustomNodeEditor && customNodes.length > 0 && (
-                        <>
-                            <div className="border-border my-2 w-8 border-t" />
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        onClick={() =>
-                                            setCustomNodesExpanded(
-                                                !customNodesExpanded,
-                                            )
-                                        }
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-8 w-8 text-purple-500"
-                                    >
-                                        {customNodesExpanded ? (
-                                            <ChevronDown className="h-4 w-4" />
-                                        ) : (
-                                            <ChevronRight className="h-4 w-4" />
-                                        )}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">
-                                    <p>Custom Nodes</p>
-                                </TooltipContent>
-                            </Tooltip>
-                            {customNodesExpanded &&
-                                customNodes.map((customNode) => (
-                                    <Tooltip key={customNode.id}>
-                                        <TooltipTrigger asChild>
-                                            <div
-                                                onDragStart={(event) =>
-                                                    onCustomNodeDragStart(
-                                                        event,
-                                                        customNode,
-                                                    )
-                                                }
-                                                draggable
-                                            >
-                                                <Button
-                                                    onClick={() =>
-                                                        handleAddCustomNode(
+                        {/* Custom Nodes Section - only show in flow editor */}
+                        {!isCustomNodeEditor && customNodes.length > 0 && (
+                            <>
+                                <div className="border-border my-2 w-8 border-t" />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            onClick={() =>
+                                                setCustomNodesExpanded(
+                                                    !customNodesExpanded,
+                                                )
+                                            }
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8 text-purple-500"
+                                        >
+                                            {customNodesExpanded ? (
+                                                <ChevronDown className="h-4 w-4" />
+                                            ) : (
+                                                <ChevronRight className="h-4 w-4" />
+                                            )}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        <p>Custom Nodes</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                {customNodesExpanded &&
+                                    customNodes.map((customNode) => (
+                                        <Tooltip key={customNode.id}>
+                                            <TooltipTrigger asChild>
+                                                <div
+                                                    onDragStart={(event) =>
+                                                        onCustomNodeDragStart(
+                                                            event,
                                                             customNode,
                                                         )
                                                     }
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-10 w-10 cursor-grab text-purple-500 hover:bg-purple-50 hover:text-purple-600 active:cursor-grabbing dark:hover:bg-purple-950/20"
+                                                    draggable
                                                 >
-                                                    <Box className="h-5 w-5" />
-                                                </Button>
-                                            </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="right">
-                                            <p>{customNode.name}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                ))}
-                        </>
-                    )}
-                </TooltipProvider>
-            </aside>
+                                                    <Button
+                                                        onClick={() =>
+                                                            handleAddCustomNode(
+                                                                customNode,
+                                                            )
+                                                        }
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-10 w-10 cursor-grab text-purple-500 hover:bg-purple-50 hover:text-purple-600 active:cursor-grabbing dark:hover:bg-purple-950/20"
+                                                    >
+                                                        <Box className="h-5 w-5" />
+                                                    </Button>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="right">
+                                                <p>{customNode.name}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    ))}
+                            </>
+                        )}
+                    </TooltipProvider>
+                </aside>
+            )}
 
             <div
                 className="relative h-full flex-1"
@@ -891,7 +906,7 @@ export function FlowCanvas() {
                 onDragOver={onDragOver}
             >
                 <ContextMenu>
-                    <ContextMenuTrigger asChild>
+                    <ContextMenuTrigger asChild disabled={!isEditable}>
                         <div
                             className="h-full w-full"
                             onContextMenu={handleContextMenu}
@@ -901,9 +916,13 @@ export function FlowCanvas() {
                                 edges={highlightedEdges}
                                 onNodesChange={onNodesChange}
                                 onEdgesChange={onEdgesChange}
-                                onConnect={onConnect}
-                                onConnectStart={onConnectStart}
-                                onConnectEnd={onConnectEnd}
+                                onConnect={isEditable ? onConnect : undefined}
+                                onConnectStart={
+                                    isEditable ? onConnectStart : undefined
+                                }
+                                onConnectEnd={
+                                    isEditable ? onConnectEnd : undefined
+                                }
                                 onNodeClick={onNodeClick}
                                 onEdgeClick={onEdgeClick}
                                 onPaneClick={onPaneClick}
@@ -913,6 +932,9 @@ export function FlowCanvas() {
                                 panOnScroll={true}
                                 onInit={setRfInstance}
                                 nodeTypes={nodeTypes}
+                                nodesDraggable={isEditable}
+                                nodesConnectable={isEditable}
+                                elementsSelectable={true}
                                 isValidConnection={isValidConnection}
                                 proOptions={{ hideAttribution: true }}
                                 defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}

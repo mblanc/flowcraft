@@ -6,6 +6,8 @@ import {
     DocumentSnapshot,
     QueryDocumentSnapshot,
 } from "@google-cloud/firestore";
+import { FlowDocument } from "@/lib/firestore";
+import { config } from "@/lib/config";
 
 export class FlowService {
     private firestore = getFirestore();
@@ -28,18 +30,34 @@ export class FlowService {
         } as Record<string, unknown>;
     }
 
-    async listFlows(userId: string) {
-        logger.debug(`[FlowService] Listing flows for user: ${userId}`);
+    async listFlows(userId: string, userEmail?: string, tab: string = "my") {
+        logger.debug(
+            `[FlowService] Listing flows for user: ${userId}, tab: ${tab}`,
+        );
         const flowsRef = this.firestore.collection(COLLECTIONS.FLOWS);
-        const userFlows = await flowsRef
-            .where("userId", "==", userId)
-            .orderBy("updatedAt", "desc")
-            .get();
+        let query;
 
-        return userFlows.docs.map((doc) => this.transformDoc(doc));
+        if (tab === "shared" && userEmail) {
+            query = flowsRef
+                .where("sharedWithEmails", "array-contains", userEmail)
+                .orderBy("updatedAt", "desc");
+        } else if (tab === "community") {
+            query = flowsRef
+                .where("isTemplate", "==", true)
+                .where("visibility", "==", "public")
+                .orderBy("updatedAt", "desc");
+        } else {
+            // Default to "my"
+            query = flowsRef
+                .where("userId", "==", userId)
+                .orderBy("updatedAt", "desc");
+        }
+
+        const snapshot = await query.get();
+        return snapshot.docs.map((doc) => this.transformDoc(doc));
     }
 
-    async getFlow(flowId: string, userId: string) {
+    async getFlow(flowId: string, userId: string, userEmail?: string) {
         logger.debug(
             `[FlowService] Getting flow: ${flowId} for user: ${userId}`,
         );
@@ -52,13 +70,26 @@ export class FlowService {
             throw new Error("Flow not found");
         }
 
-        const flowData = this.transformDoc(flowDoc);
+        const flowData = this.transformDoc(flowDoc) as unknown as FlowDocument;
 
-        if (flowData.userId !== userId) {
+        const isOwner = flowData.userId === userId;
+        const isShared =
+            userEmail && flowData.sharedWithEmails?.includes(userEmail);
+        const isPublic = flowData.visibility === "public";
+
+        if (!isOwner && !isShared && !isPublic) {
             throw new Error("Unauthorized");
         }
 
         return flowData;
+    }
+
+    async isAdmin(email: string) {
+        if (!email) return false;
+        const adminEmails = config.ADMIN_EMAILS.split(",").map((e: string) =>
+            e.trim().toLowerCase(),
+        );
+        return adminEmails.includes(email.toLowerCase());
     }
 
     async createFlow(userId: string, data: FlowCreateRequest) {
@@ -70,6 +101,8 @@ export class FlowService {
         const flowData = {
             userId,
             ...data,
+            visibility: "private" as const,
+            isTemplate: false,
             createdAt: new Date(),
             updatedAt: new Date(),
         };
@@ -84,7 +117,12 @@ export class FlowService {
         };
     }
 
-    async updateFlow(flowId: string, userId: string, data: FlowUpdateRequest) {
+    async updateFlow(
+        flowId: string,
+        userId: string,
+        data: FlowUpdateRequest,
+        userEmail?: string,
+    ) {
         logger.info(
             `[FlowService] Updating flow: ${flowId} for user: ${userId}`,
         );
@@ -97,8 +135,48 @@ export class FlowService {
             throw new Error("Flow not found");
         }
 
-        if (flowDoc.data()?.userId !== userId) {
+        const currentData = flowDoc.data() as unknown as FlowDocument;
+        const isOwner = currentData.userId === userId;
+        const isEditor =
+            userEmail &&
+            currentData.sharedWith?.some(
+                (s: { email: string; role: string }) =>
+                    s.email === userEmail && s.role === "edit",
+            );
+
+        const isAdmin = userEmail ? await this.isAdmin(userEmail) : false;
+
+        if (!isOwner && !isEditor && !isAdmin) {
             throw new Error("Unauthorized");
+        }
+
+        // Only admins can change isTemplate status
+        if (
+            data.isTemplate !== undefined &&
+            data.isTemplate !== currentData.isTemplate
+        ) {
+            const isAdmin = await this.isAdmin(userEmail || "");
+            if (!isAdmin) {
+                throw new Error("Only admins can change template status");
+            }
+            // If setting as template, ensure it's public
+            if (data.isTemplate) {
+                data.visibility = "public";
+            }
+        }
+
+        // Restriction: Only owner or admin can change visibility and sharing settings
+        const isChangingVisibility =
+            data.visibility !== undefined &&
+            data.visibility !== currentData.visibility;
+        const isChangingSharedWith = data.sharedWith !== undefined;
+
+        if (
+            (isChangingVisibility || isChangingSharedWith) &&
+            !isOwner &&
+            !isAdmin
+        ) {
+            throw new Error("Only the owner can change sharing settings");
         }
 
         const updateData: Record<string, unknown> = {
@@ -106,13 +184,17 @@ export class FlowService {
             updatedAt: new Date(),
         };
 
+        if (data.sharedWith) {
+            updateData.sharedWithEmails = data.sharedWith.map((s) => s.email);
+        }
+
         await flowRef.update(updateData);
 
         const updatedDoc = await flowRef.get();
         return this.transformDoc(updatedDoc);
     }
 
-    async deleteFlow(flowId: string, userId: string) {
+    async deleteFlow(flowId: string, userId: string, userEmail?: string) {
         logger.info(
             `[FlowService] Deleting flow: ${flowId} for user: ${userId}`,
         );
@@ -125,12 +207,30 @@ export class FlowService {
             throw new Error("Flow not found");
         }
 
-        if (flowDoc.data()?.userId !== userId) {
+        const isAdmin = userEmail ? await this.isAdmin(userEmail) : false;
+        if (flowDoc.data()?.userId !== userId && !isAdmin) {
             throw new Error("Unauthorized");
         }
 
         await flowRef.delete();
         return { success: true };
+    }
+
+    async cloneFlow(flowId: string, userId: string, userEmail?: string) {
+        logger.info(
+            `[FlowService] Cloning flow: ${flowId} for user: ${userId}`,
+        );
+
+        // Get the original flow (this also checks permissions)
+        const originalFlow = await this.getFlow(flowId, userId, userEmail);
+
+        const cloneData: FlowCreateRequest = {
+            name: `Copy of ${originalFlow.name}`,
+            nodes: originalFlow.nodes as FlowCreateRequest["nodes"],
+            edges: originalFlow.edges as FlowCreateRequest["edges"],
+        };
+
+        return this.createFlow(userId, cloneData);
     }
 }
 

@@ -25,6 +25,10 @@ export interface FlowState {
     flowId: string | null;
     flowName: string;
     entityType: EntityType;
+    visibility: "private" | "public" | "restricted" | null;
+    sharedWith: { email: string; role: "view" | "edit" }[];
+    isTemplate: boolean;
+    ownerId: string | null;
 
     // Actions
     setNodes: (nodes: Node<NodeData>[]) => void;
@@ -37,6 +41,11 @@ export interface FlowState {
     setFlowId: (id: string | null) => void;
     setFlowName: (name: string) => void;
     setEntityType: (type: EntityType) => void;
+    setSharing: (data: {
+        visibility?: "private" | "public" | "restricted";
+        sharedWith?: { email: string; role: "view" | "edit" }[];
+        isTemplate?: boolean;
+    }) => void;
 
     // Node Mutations
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
@@ -56,6 +65,12 @@ export interface FlowState {
         edges: Edge[],
         name: string,
         entityType?: EntityType,
+        sharing?: {
+            visibility?: "private" | "public" | "restricted";
+            sharedWith?: { email: string; role: "view" | "edit" }[];
+            isTemplate?: boolean;
+            ownerId?: string;
+        },
     ) => void;
 }
 
@@ -67,6 +82,10 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     flowId: null,
     flowName: "Untitled Flow",
     entityType: "flow",
+    visibility: null,
+    sharedWith: [],
+    isTemplate: false,
+    ownerId: null,
 
     setNodes: (nodes) => set({ nodes: migrateNodes(nodes) }),
     setEdges: (edges) => set({ edges }),
@@ -94,6 +113,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     setFlowId: (flowId) => set({ flowId }),
     setFlowName: (flowName) => set({ flowName }),
     setEntityType: (entityType) => set({ entityType }),
+    setSharing: (data) => set({ ...data }),
 
     updateNodeData: (nodeId, data) => {
         const { nodes, selectedNode } = get();
@@ -150,13 +170,17 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         });
     },
 
-    loadFlow: (id, nodes, edges, name, entityType = "flow") => {
+    loadFlow: (id, nodes, edges, name, entityType = "flow", sharing) => {
         set({
             flowId: id,
             nodes: migrateNodes(nodes),
             edges,
             flowName: name,
             entityType,
+            visibility: sharing?.visibility ?? null,
+            sharedWith: sharing?.sharedWith ?? [],
+            isTemplate: sharing?.isTemplate ?? false,
+            ownerId: sharing?.ownerId ?? null,
         });
     },
 }));

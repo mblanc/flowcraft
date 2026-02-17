@@ -28,7 +28,12 @@ function FlowCanvasContent() {
                 const response = await fetch(`/api/flows/${id}`);
                 if (response.ok) {
                     const flow = await response.json();
-                    loadFlow(id, flow.nodes, flow.edges, flow.name, "flow");
+                    loadFlow(id, flow.nodes, flow.edges, flow.name, "flow", {
+                        visibility: flow.visibility,
+                        sharedWith: flow.sharedWith,
+                        isTemplate: flow.isTemplate,
+                        ownerId: flow.userId,
+                    });
                     setLoading(false);
                 } else if (response.status === 404) {
                     setNotFound(true);

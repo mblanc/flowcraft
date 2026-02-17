@@ -8,6 +8,7 @@ import {
 } from "./types";
 import { Node } from "@xyflow/react";
 import { ExecutionContext } from "./node-registry";
+import { withRetry } from "./retry";
 
 export async function executeLLMNode(
     node: Node<LLMData>,
@@ -73,24 +74,69 @@ export async function executeImageNode(
 
     logger.info(`[Executor] Generating image with prompt: ${finalPrompt}`);
 
-    const response = await fetcher("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            prompt: finalPrompt,
-            images: images || [],
-            aspectRatio: node.data.aspectRatio,
-            model: node.data.model,
-            resolution: node.data.resolution,
-        }),
-    });
+    const generateFn = async () => {
+        const response = await fetcher("/api/generate-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                prompt: finalPrompt,
+                images: images || [],
+                aspectRatio: node.data.aspectRatio,
+                model: node.data.model,
+                resolution: node.data.resolution,
+            }),
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to generate image: ${errorText}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            const error = new Error(`Failed to generate image: ${errorText}`);
+            Object.assign(error, { status: response.status });
+            throw error;
+        }
+
+        // On success, clear any preceding retry errors
+        context?.onNodeUpdate?.(node.id, { error: undefined });
+        return response.json();
+    };
+
+    let data;
+    try {
+        data = await withRetry(generateFn, {
+            maxRetries: 3,
+            onRetry: (attempt, error, delay) => {
+                const status =
+                    typeof error === "object" &&
+                    error !== null &&
+                    "status" in error
+                        ? (error as { status: number }).status
+                        : undefined;
+                if (status === 429) {
+                    const msg = `High traffic detected! Our AI artists are working overtime. Retrying in a moment... (Attempt ${attempt}/3)`;
+                    context?.onNodeUpdate?.(node.id, { error: msg });
+                } else {
+                    context?.onNodeUpdate?.(node.id, {
+                        error: `Generation failed. Retrying in a moment... (Attempt ${attempt}/3)`,
+                    });
+                }
+                logger.warn(
+                    `[Executor] Attempt ${attempt} failed for image node ${node.id}. Retrying in ${Math.round(delay)}ms...`,
+                    error,
+                );
+            },
+        });
+    } catch (error) {
+        const status =
+            typeof error === "object" && error !== null && "status" in error
+                ? (error as { status: number }).status
+                : undefined;
+        if (status === 429) {
+            const finalErr = `High traffic detected! Our AI artists are working overtime. Please try again later.`;
+            context?.onNodeUpdate?.(node.id, { error: finalErr });
+            throw new Error(finalErr);
+        }
+        throw error;
     }
 
-    const data = await response.json();
     return { images: [data.imageUrl] };
 }
 

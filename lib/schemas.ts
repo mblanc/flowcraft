@@ -270,6 +270,28 @@ export const FlowUpdateSchema = z.object({
     nodes: z.array(NodeSchema).optional(),
     edges: z.array(EdgeSchema).optional(),
     thumbnail: z.string().optional(),
+    visibility: z.enum(["private", "public", "restricted"]).optional(),
+    isTemplate: z.boolean().optional(),
+    sharedWith: z
+        .array(
+            z.object({
+                email: z.string().email(),
+                role: z.enum(["view", "edit"]),
+            }),
+        )
+        .optional(),
+});
+
+export const FlowShareSchema = z.object({
+    visibility: z.enum(["private", "public", "restricted"]).optional(),
+    sharedWith: z
+        .array(
+            z.object({
+                email: z.string().email(),
+                role: z.enum(["view", "edit"]),
+            }),
+        )
+        .optional(),
 });
 
 // --- Custom Node Schemas ---

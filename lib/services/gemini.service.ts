@@ -218,6 +218,13 @@ export class GeminiService {
         });
 
         if (!response.candidates || response.candidates.length === 0) {
+            logger.error(
+                `[GeminiService] No candidates in response: ${JSON.stringify(
+                    response,
+                    null,
+                    2,
+                )}`,
+            );
             throw new Error("No candidates in response");
         }
 

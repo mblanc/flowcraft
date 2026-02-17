@@ -2,10 +2,10 @@
 
 import type React from "react";
 
-import { memo, useRef, useEffect, useState } from "react";
+import { memo, useRef, useEffect, useState, useCallback } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { LLMData } from "@/lib/types";
-import { Bot, Play } from "lucide-react";
+import { Bot, Play, ChevronDown, FastForward } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 
@@ -16,7 +16,7 @@ const MIN_HEIGHT = 150;
 export const LLMNode = memo(
     ({ data, selected, id }: NodeProps<Node<LLMData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
-        const { executeNode } = useFlowExecution();
+        const { executeNode, runFromNode } = useFlowExecution();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const [localInstructions, setLocalInstructions] = useState(
             data.instructions,
@@ -24,6 +24,7 @@ export const LLMNode = memo(
         const [prevDataInstructions, setPrevDataInstructions] = useState(
             data.instructions,
         );
+        const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
 
         // Resize state
         const [dimensions, setDimensions] = useState({
@@ -76,6 +77,15 @@ export const LLMNode = memo(
             e.stopPropagation();
             executeNode(id);
         };
+
+        const handleRunFromHere = useCallback(
+            (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                runFromNode(id);
+            },
+            [runFromNode, id],
+        );
 
         const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
             e.preventDefault();
@@ -217,14 +227,40 @@ export const LLMNode = memo(
                     </div>
                 )}
 
-                <button
-                    onClick={handleExecute}
-                    disabled={data.executing}
-                    className="bg-primary/10 hover:bg-primary/20 text-primary mt-3 flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <Play className="h-3 w-3" />
-                    Execute Node
-                </button>
+                <div className="mt-3 flex w-full flex-col gap-1">
+                    <div className="flex w-full">
+                        <button
+                            onClick={handleExecute}
+                            disabled={data.executing}
+                            className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/20 flex flex-1 items-center justify-center gap-2 rounded-l-md border-r px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Play className="h-3 w-3" />
+                            Execute Node
+                        </button>
+                        <button
+                            onClick={() => setIsRunMenuOpen(!isRunMenuOpen)}
+                            disabled={data.executing}
+                            className={`bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center rounded-r-md px-2 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-primary/20" : ""}`}
+                        >
+                            <ChevronDown
+                                className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
+                            />
+                        </button>
+                    </div>
+                    {isRunMenuOpen && (
+                        <button
+                            onClick={(e) => {
+                                handleRunFromHere(e);
+                                setIsRunMenuOpen(false);
+                            }}
+                            disabled={data.executing}
+                            className="bg-primary/10 hover:bg-primary/20 text-primary focus:text-primary border-primary/20 flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <FastForward className="h-3 w-3" />
+                            Run from here
+                        </button>
+                    )}
+                </div>
 
                 <Handle
                     type="source"

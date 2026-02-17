@@ -27,6 +27,10 @@ export interface FlowDocument {
     thumbnail?: string;
     createdAt: Date;
     updatedAt: Date;
+    visibility: "private" | "public" | "restricted";
+    sharedWith?: { email: string; role: "view" | "edit" }[];
+    sharedWithEmails?: string[];
+    isTemplate?: boolean;
 }
 
 export interface CustomNodePort {

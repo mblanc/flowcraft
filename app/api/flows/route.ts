@@ -4,9 +4,15 @@ import { FlowCreateSchema } from "@/lib/schemas";
 import { flowService } from "@/lib/services/flow.service";
 import logger from "@/app/logger";
 
-export const GET = withAuth(async (_req, context, session) => {
+export const GET = withAuth(async (req, context, session) => {
     try {
-        const flows = await flowService.listFlows(session.user!.id!);
+        const { searchParams } = new URL(req.url);
+        const tab = searchParams.get("tab") || "my";
+        const flows = await flowService.listFlows(
+            session.user!.id!,
+            session.user!.email!,
+            tab,
+        );
         return NextResponse.json({ flows });
     } catch (error) {
         logger.error("Error fetching flows:", error);

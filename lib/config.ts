@@ -10,6 +10,7 @@ const envSchema = z.object({
     AUTH_GOOGLE_ID: z.string().min(1, "AUTH_GOOGLE_ID is required"),
     AUTH_GOOGLE_SECRET: z.string().min(1, "AUTH_GOOGLE_SECRET is required"),
     LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
+    ADMIN_EMAILS: z.string().default(""), // Comma-separated list
 });
 
 const _env = envSchema.safeParse({
@@ -20,6 +21,7 @@ const _env = envSchema.safeParse({
     AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID,
     AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
     LOG_LEVEL: process.env.LOG_LEVEL,
+    ADMIN_EMAILS: process.env.ADMIN_EMAILS,
 });
 
 const isBuildTime =

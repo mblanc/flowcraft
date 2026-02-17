@@ -8,7 +8,11 @@ export const GET = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
         const { id: flowId } = await params;
         try {
-            const flow = await flowService.getFlow(flowId, session.user!.id!);
+            const flow = await flowService.getFlow(
+                flowId,
+                session.user!.id!,
+                session.user!.email!,
+            );
             return NextResponse.json(flow);
         } catch (error) {
             if (error instanceof Error) {
@@ -55,6 +59,7 @@ export const PUT = withAuth<{ params: Promise<{ id: string }> }>(
                 flowId,
                 session.user!.id!,
                 result.data,
+                session.user!.email!,
             );
             return NextResponse.json(updatedFlow);
         } catch (error) {
@@ -81,6 +86,8 @@ export const PUT = withAuth<{ params: Promise<{ id: string }> }>(
     },
 );
 
+export const PATCH = PUT;
+
 export const DELETE = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
         const { id: flowId } = await params;
@@ -88,6 +95,7 @@ export const DELETE = withAuth<{ params: Promise<{ id: string }> }>(
             const result = await flowService.deleteFlow(
                 flowId,
                 session.user!.id!,
+                session.user!.email!,
             );
             return NextResponse.json(result);
         } catch (error) {

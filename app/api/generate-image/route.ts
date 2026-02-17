@@ -42,12 +42,36 @@ export const POST = withAuth(async (req) => {
         });
     } catch (error) {
         logger.error("[SERVER] Error generating image:", error);
+
+        let status = 500;
+        let errorMessage = "Failed to generate image";
+
+        if (error instanceof Error) {
+            errorMessage = error.message;
+            if (
+                errorMessage.includes("429") ||
+                errorMessage.includes("Quota") ||
+                ("status" in error &&
+                    (error as { status: number }).status === 429)
+            ) {
+                status = 429;
+            }
+        } else if (
+            typeof error === "object" &&
+            error !== null &&
+            "status" in error
+        ) {
+            if ((error as { status: number }).status === 429) {
+                status = 429;
+            }
+        }
+
         return NextResponse.json(
             {
-                error: "Failed to generate image",
+                error: errorMessage,
                 details: error instanceof Error ? error.message : String(error),
             },
-            { status: 500 },
+            { status },
         );
     }
 });

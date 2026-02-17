@@ -43,6 +43,22 @@ export function useFlowExecution() {
         }
     }, [setIsRunning]);
 
+    const runFromNode = useCallback(
+        async (nodeId: string) => {
+            const { nodes, edges, updateNodeData } = useFlowStore.getState();
+            setIsRunning(true);
+            try {
+                const engine = new WorkflowEngine(nodes, edges, updateNodeData);
+                await engine.runFromNode(nodeId);
+            } catch (error) {
+                logger.error("Error running from node:", error);
+            } finally {
+                setIsRunning(false);
+            }
+        },
+        [setIsRunning],
+    );
+
     const executeNode = useCallback(async (nodeId: string) => {
         const { nodes, edges, updateNodeData } = useFlowStore.getState();
         try {
@@ -56,6 +72,7 @@ export function useFlowExecution() {
     return {
         runFlow,
         runSelectedNodes,
+        runFromNode,
         executeNode,
     };
 }

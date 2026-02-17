@@ -1,3 +1,6 @@
+- terraform
+- go/demos
+
 - prompt vs text edge => multi parts?
 
 - Array/List
