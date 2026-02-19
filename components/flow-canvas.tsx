@@ -33,6 +33,7 @@ import {
     NodeData,
     CustomWorkflowData,
     CustomNodePort,
+    FileData,
 } from "@/lib/types";
 import {
     getSourcePortType,
@@ -210,6 +211,10 @@ export function FlowCanvas() {
     const entityType = useFlowStore((state: FlowState) => state.entityType);
     const addNodeWithType = useFlowStore(
         (state: FlowState) => state.addNodeWithType,
+    );
+    const addNode = useFlowStore((state: FlowState) => state.addNode);
+    const updateNodeData = useFlowStore(
+        (state: FlowState) => state.updateNodeData,
     );
     const { runFlow, runSelectedNodes } = useFlowExecution();
     const isRunning = useFlowStore((state: FlowState) => state.isRunning);
@@ -469,12 +474,7 @@ export function FlowCanvas() {
         (event: React.DragEvent) => {
             event.preventDefault();
 
-            const type = event.dataTransfer.getData(
-                "application/reactflow",
-            ) as NodeType;
-
-            // check if the dropped element is valid
-            if (typeof type === "undefined" || !type || !rfInstance) {
+            if (!rfInstance) {
                 return;
             }
 
@@ -482,6 +482,62 @@ export function FlowCanvas() {
                 x: event.clientX,
                 y: event.clientY,
             });
+
+            // Handle native file drops
+            if (
+                event.dataTransfer.files &&
+                event.dataTransfer.files.length > 0
+            ) {
+                const file = event.dataTransfer.files[0];
+                const fileType = file.type.startsWith("image/")
+                    ? "image"
+                    : file.type.startsWith("video/")
+                      ? "video"
+                      : file.type === "application/pdf"
+                        ? "pdf"
+                        : null;
+
+                if (fileType) {
+                    const newNode = createNode("file", position);
+                    newNode.data = {
+                        ...newNode.data,
+                        fileName: file.name,
+                        fileType,
+                    } as FileData;
+                    addNode(newNode);
+
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    fetch("/api/upload-file", {
+                        method: "POST",
+                        body: formData,
+                    })
+                        .then((res) => {
+                            if (!res.ok) throw new Error("Upload failed");
+                            return res.json();
+                        })
+                        .then((data) => {
+                            updateNodeData(newNode.id, {
+                                fileUrl: data.signedUrl,
+                                gcsUri: data.gcsUri,
+                            });
+                        })
+                        .catch((error) => {
+                            logger.error("Drop upload error:", error);
+                        });
+                    return;
+                }
+            }
+
+            const type = event.dataTransfer.getData(
+                "application/reactflow",
+            ) as NodeType;
+
+            // check if the dropped element is valid
+            if (typeof type === "undefined" || !type) {
+                return;
+            }
 
             // Check if this is a custom node drop
             const customNodeData = event.dataTransfer.getData(
@@ -504,7 +560,7 @@ export function FlowCanvas() {
 
             addNodeWithType(type, position);
         },
-        [rfInstance, addNodeWithType],
+        [rfInstance, addNodeWithType, addNode, updateNodeData],
     );
 
     const handleContextMenu = (event: React.MouseEvent) => {
