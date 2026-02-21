@@ -1,0 +1,3 @@
+## 2026-02-21 - [Topological Sort Optimization in WorkflowEngine]
+**Learning:** The initial implementation of topological sorting in the WorkflowEngine was O(V^2) due to repeated filtering of all nodes and checking dependencies in each iteration. For large workflows (e.g., 1000 nodes), this resulted in measurable latency (~72ms).
+**Action:** Replaced the O(V^2) implementation with Kahn's algorithm (O(V+E)) and pre-calculated adjacency lists/incoming edge maps in the constructor. This reduced the time for 1000 nodes to ~2.5ms (a 29x improvement). Also optimized input gathering by using a pre-calculated map of incoming edges for each node, reducing edge lookup from O(E) to O(1).

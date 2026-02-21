@@ -10,6 +10,10 @@ export class WorkflowEngine {
     public executionResults: Map<string, Partial<NodeData>> = new Map();
     private context: ExecutionContext;
 
+    // Pre-calculated graph structures for performance
+    private adjList: Map<string, string[]> = new Map();
+    private targetEdgesMap: Map<string, Edge[]> = new Map();
+
     constructor(
         nodes: Node<NodeData>[],
         edges: Edge[],
@@ -20,6 +24,21 @@ export class WorkflowEngine {
         this.edges = edges;
         this.onNodeUpdate = onNodeUpdate;
         this.context = context || {};
+
+        // Initialize graph structures
+        nodes.forEach((node) => {
+            this.adjList.set(node.id, []);
+            this.targetEdgesMap.set(node.id, []);
+        });
+
+        edges.forEach((edge) => {
+            if (this.adjList.has(edge.source)) {
+                this.adjList.get(edge.source)!.push(edge.target);
+            }
+            if (this.targetEdgesMap.has(edge.target)) {
+                this.targetEdgesMap.get(edge.target)!.push(edge);
+            }
+        });
     }
 
     async run() {
@@ -53,18 +72,17 @@ export class WorkflowEngine {
 
     private getExecutionLevelsFromNode(startNodeId: string): string[][] {
         const queue = [startNodeId];
-        const downstreamNodes = new Set<string>();
+        const downstreamNodes = new Set<string>([startNodeId]);
 
+        // BFS to find all reachable nodes from startNodeId using pre-calculated adjList (O(V+E))
         while (queue.length > 0) {
             const current = queue.shift()!;
-            downstreamNodes.add(current);
-            const outgoingEdges = this.edges.filter(
-                (e) => e.source === current,
-            );
-            for (const edge of outgoingEdges) {
-                if (!downstreamNodes.has(edge.target)) {
-                    queue.push(edge.target);
-                    downstreamNodes.add(edge.target);
+
+            const neighbors = this.adjList.get(current) || [];
+            for (const neighborId of neighbors) {
+                if (!downstreamNodes.has(neighborId)) {
+                    downstreamNodes.add(neighborId);
+                    queue.push(neighborId);
                 }
             }
         }
@@ -157,43 +175,50 @@ export class WorkflowEngine {
 
     private getExecutionLevels(): string[][] {
         const nodes = Array.from(this.nodesMap.values());
-        const dependencies = new Map<string, Set<string>>();
+        const inDegree = new Map<string, number>();
 
-        nodes.forEach((node) => {
-            dependencies.set(node.id, new Set());
-        });
-
+        // Initialize in-degrees (O(V+E))
+        nodes.forEach((node) => inDegree.set(node.id, 0));
         this.edges.forEach((edge) => {
-            dependencies.get(edge.target)?.add(edge.source);
+            if (inDegree.has(edge.target)) {
+                inDegree.set(edge.target, inDegree.get(edge.target)! + 1);
+            }
         });
 
         const levels: string[][] = [];
         const processed = new Set<string>();
 
-        while (processed.size < nodes.length) {
-            const currentLevel = nodes
-                .filter((node) => !processed.has(node.id))
-                .filter((node) => {
-                    const deps = dependencies.get(node.id);
-                    return (
-                        !deps ||
-                        Array.from(deps).every((dep) => processed.has(dep))
-                    );
-                })
-                .map((node) => node.id);
+        // Kahn's algorithm variant to group by levels (O(V+E))
+        let currentQueue = nodes
+            .filter((node) => inDegree.get(node.id) === 0)
+            .map((node) => node.id);
 
-            if (currentLevel.length === 0) {
-                const remaining = nodes.filter(
-                    (node) => !processed.has(node.id),
-                );
-                if (remaining.length > 0) {
-                    currentLevel.push(...remaining.map((n) => n.id));
+        while (currentQueue.length > 0) {
+            levels.push(currentQueue);
+            const nextQueue: string[] = [];
+
+            for (const nodeId of currentQueue) {
+                processed.add(nodeId);
+                const neighbors = this.adjList.get(nodeId) || [];
+                for (const neighborId of neighbors) {
+                    const newDegree = inDegree.get(neighborId)! - 1;
+                    inDegree.set(neighborId, newDegree);
+                    if (newDegree === 0) {
+                        nextQueue.push(neighborId);
+                    }
                 }
-                break;
             }
+            currentQueue = nextQueue;
+        }
 
-            levels.push(currentLevel);
-            currentLevel.forEach((id) => processed.add(id));
+        // Handle cycles or disconnected nodes that weren't processed
+        if (processed.size < nodes.length) {
+            const remaining = nodes
+                .filter((node) => !processed.has(node.id))
+                .map((node) => node.id);
+            if (remaining.length > 0) {
+                levels.push(remaining);
+            }
         }
 
         return levels;
@@ -202,6 +227,9 @@ export class WorkflowEngine {
     private gatherInputs(node: Node<NodeData>): NodeInputs {
         const definition = getNodeDefinition(node.data.type);
         if (!definition) return {};
+
+        // Use pre-calculated targetEdgesMap for O(1) edge lookup instead of O(E) filtering
+        const nodeEdges = this.targetEdgesMap.get(node.id) || [];
 
         const getSourceData = (
             sourceId: string,
@@ -284,7 +312,7 @@ export class WorkflowEngine {
             return { ...sourceNode.data, ...result } as NodeData;
         };
 
-        return definition.gatherInputs(node, this.edges, getSourceData);
+        return definition.gatherInputs(node, nodeEdges, getSourceData);
     }
 
     private async executeSubWorkflow(
