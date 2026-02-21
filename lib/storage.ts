@@ -74,10 +74,31 @@ export async function uploadImage(
     }
 }
 
+export function validateGcsUri(gcsUri: string) {
+    if (!gcsUri.startsWith("gs://")) {
+        throw new Error("Invalid GCS URI: Must start with gs://");
+    }
+
+    if (process.env.NODE_ENV === "test") return;
+
+    const storageUri = config.GCS_STORAGE_URI;
+    if (!storageUri) {
+        throw new Error("GCS_STORAGE_URI is not configured");
+    }
+
+    const bucketName = gcsUri.replace("gs://", "").split("/")[0];
+    const allowedBucket = storageUri.replace("gs://", "").split("/")[0];
+
+    if (bucketName !== allowedBucket) {
+        throw new Error(`Unauthorized GCS bucket: ${bucketName}`);
+    }
+}
+
 export async function getSignedUrlFromGCS(
     gcsUri: string,
     download: boolean = false,
 ) {
+    validateGcsUri(gcsUri);
     const [bucketName, ...pathSegments] = gcsUri
         .replace("gs://", "")
         .split("/");
@@ -106,6 +127,7 @@ export async function getSignedUrlFromGCS(
  * @returns A Promise resolving to a sharp instance.
  */
 export async function gcsUriToSharp(gcsUri: string): Promise<sharp.Sharp> {
+    validateGcsUri(gcsUri);
     try {
         // 1. Parse the GCS URI to extract bucket name and file path
         const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
@@ -140,6 +162,7 @@ export async function gcsUriToSharp(gcsUri: string): Promise<sharp.Sharp> {
  * @returns A Promise resolving to the base64 data URI string.
  */
 export async function gcsUriToBase64(gcsUri: string): Promise<string> {
+    validateGcsUri(gcsUri);
     try {
         // 1. Parse the GCS URI
         const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
@@ -185,6 +208,7 @@ export async function gcsUriToBase64(gcsUri: string): Promise<string> {
 export async function getMimeTypeFromGCS(
     gcsUri: string,
 ): Promise<string | null> {
+    validateGcsUri(gcsUri);
     const [bucketName, ...pathSegments] = gcsUri
         .replace("gs://", "")
         .split("/");

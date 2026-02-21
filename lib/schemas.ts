@@ -256,7 +256,10 @@ export const UpscaleImageSchema = z.object({
 });
 
 export const GetSignedUrlSchema = z.object({
-    gcsUri: z.string().min(1, "gcsUri is required"),
+    gcsUri: z
+        .string()
+        .min(1, "gcsUri is required")
+        .startsWith("gs://", "Invalid GCS URI: Must start with gs://"),
 });
 
 export const FlowCreateSchema = z.object({

@@ -11,6 +11,7 @@ import {
 } from "@google/genai";
 import logger from "@/app/logger";
 import { config } from "../config";
+import { validateGcsUri } from "../storage";
 import {
     MODELS,
     DEFAULTS,
@@ -101,6 +102,7 @@ export class GeminiService {
                 }
 
                 if (file.url.startsWith("gs://")) {
+                    validateGcsUri(file.url);
                     contents.push(createPartFromUri(file.url, file.type));
                 } else if (file.url.startsWith("data:")) {
                     const base64Match = file.url.match(
@@ -182,6 +184,7 @@ export class GeminiService {
                 const mimeType = image.url.split(";")[0].split(":")[1];
                 contents.push(createPartFromBase64(base64Data, mimeType));
             } else if (image.url.startsWith("gs://")) {
+                validateGcsUri(image.url);
                 contents.push(createPartFromUri(image.url, image.type));
             }
         }
@@ -275,6 +278,7 @@ export class GeminiService {
         };
 
         if (firstFrame?.startsWith("gs://")) {
+            validateGcsUri(firstFrame);
             videoRequest.source!.image = {
                 gcsUri: firstFrame,
                 mimeType: "image/png",
@@ -282,6 +286,7 @@ export class GeminiService {
         }
 
         if (lastFrame?.startsWith("gs://")) {
+            validateGcsUri(lastFrame);
             videoRequest.config!.lastFrame = {
                 gcsUri: lastFrame,
                 mimeType: "image/png",
@@ -290,10 +295,13 @@ export class GeminiService {
 
         if (images && images.length > 0) {
             videoRequest.model = MODELS.VIDEO.VEO_3_1_PRO_PREVIEW;
-            videoRequest.config!.referenceImages = images.map((image) => ({
-                image: { gcsUri: image.url, mimeType: "image/png" },
-                referenceType: VideoGenerationReferenceType.ASSET,
-            }));
+            videoRequest.config!.referenceImages = images.map((image) => {
+                validateGcsUri(image.url);
+                return {
+                    image: { gcsUri: image.url, mimeType: "image/png" },
+                    referenceType: VideoGenerationReferenceType.ASSET,
+                };
+            });
         }
 
         logger.info(
@@ -344,6 +352,7 @@ export class GeminiService {
             imageInput.imageBytes = base64Data;
             imageInput.mimeType = mimeType;
         } else if (image.startsWith("gs://")) {
+            validateGcsUri(image);
             imageInput.gcsUri = image;
         } else {
             throw new Error("Invalid image format for upscaling");
