@@ -13,6 +13,7 @@ import {
     Workflow,
     Users,
     Copy,
+    X,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowPersistence } from "@/hooks/use-flow-persistence";
@@ -114,6 +115,7 @@ export function Header() {
                             {isEditing ? (
                                 <div className="flex items-center gap-2">
                                     <Input
+                                        aria-label="Flow name"
                                         value={editedName}
                                         onChange={(e) =>
                                             setEditedName(e.target.value)
@@ -131,12 +133,26 @@ export function Header() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={handleSaveName}
+                                        aria-label="Save flow name"
                                     >
                                         <Save className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleCancelEdit}
+                                        aria-label="Cancel editing"
+                                    >
+                                        <X className="h-4 w-4" />
                                     </Button>
                                 </div>
                             ) : (
                                 <h1
+                                    aria-label={
+                                        isEditable
+                                            ? "Edit flow name"
+                                            : undefined
+                                    }
                                     className={`text-foreground text-lg font-semibold transition-colors ${isEditable ? "hover:text-primary cursor-pointer" : ""}`}
                                     onClick={() =>
                                         isEditable && setIsEditing(true)

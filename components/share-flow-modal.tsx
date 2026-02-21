@@ -259,6 +259,7 @@ export function ShareFlowModal({
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-7 w-7"
+                                                        aria-label="Remove user"
                                                         onClick={() =>
                                                             handleRemoveUser(
                                                                 user.email,
