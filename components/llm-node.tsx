@@ -241,6 +241,8 @@ export const LLMNode = memo(
                             onClick={() => setIsRunMenuOpen(!isRunMenuOpen)}
                             disabled={data.executing}
                             className={`bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center rounded-r-md px-2 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-primary/20" : ""}`}
+                            aria-label="Run options"
+                            title="Run options"
                         >
                             <ChevronDown
                                 className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}

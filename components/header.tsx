@@ -126,11 +126,14 @@ export function Header() {
                                         }}
                                         className="h-8 w-48"
                                         autoFocus
+                                        aria-label="Edit flow name"
                                     />
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={handleSaveName}
+                                        aria-label="Save flow name"
+                                        title="Save flow name"
                                     >
                                         <Save className="h-4 w-4" />
                                     </Button>

@@ -906,6 +906,16 @@ export function FlowCanvas() {
                                             size="icon"
                                             variant="ghost"
                                             className="h-8 w-8 text-purple-500"
+                                            aria-label={
+                                                customNodesExpanded
+                                                    ? "Collapse custom nodes"
+                                                    : "Expand custom nodes"
+                                            }
+                                            title={
+                                                customNodesExpanded
+                                                    ? "Collapse custom nodes"
+                                                    : "Expand custom nodes"
+                                            }
                                         >
                                             {customNodesExpanded ? (
                                                 <ChevronDown className="h-4 w-4" />

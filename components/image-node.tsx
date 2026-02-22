@@ -400,6 +400,8 @@ export const ImageNode = memo(
                             onClick={() => setIsRunMenuOpen(!isRunMenuOpen)}
                             disabled={data.executing}
                             className={`flex items-center justify-center rounded-r-md bg-orange-500/10 px-2 py-2 text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-orange-500/20" : ""}`}
+                            aria-label="Run options"
+                            title="Run options"
                         >
                             <ChevronDown
                                 className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}

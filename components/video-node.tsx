@@ -286,6 +286,8 @@ export const VideoNode = memo(
                             onClick={() => setIsRunMenuOpen(!isRunMenuOpen)}
                             disabled={data.executing}
                             className={`flex items-center justify-center rounded-r-md bg-pink-500/10 px-2 py-2 text-pink-400 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-pink-500/20" : ""}`}
+                            aria-label="Run options"
+                            title="Run options"
                         >
                             <ChevronDown
                                 className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
