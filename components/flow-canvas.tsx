@@ -28,6 +28,7 @@ import { ResizeNode } from "./resize-node";
 import { WorkflowInputNode } from "./workflow-input-node";
 import { WorkflowOutputNode } from "./workflow-output-node";
 import { CustomWorkflowNode } from "./custom-workflow-node";
+import { PromptNode } from "./prompt-node";
 import {
     NodeType,
     NodeData,
@@ -64,6 +65,7 @@ import {
     ChevronRight,
     MousePointer2,
     Hand,
+    Terminal,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
@@ -118,6 +120,7 @@ const nodeTypes = {
     "workflow-input": WorkflowInputNode,
     "workflow-output": WorkflowOutputNode,
     "custom-workflow": CustomWorkflowNode,
+    prompt: PromptNode,
 };
 
 const NODE_COLORS: Record<string, string> = {
@@ -131,6 +134,7 @@ const NODE_COLORS: Record<string, string> = {
     "workflow-input": "#60a5fa", // blue-400
     "workflow-output": "#fb923c", // orange-400
     "custom-workflow": "#3b82f6", // blue-500
+    prompt: "#10b981", // emerald-500
 };
 
 // Native node items - always available
@@ -176,6 +180,12 @@ const nativeItems = [
         icon: Scaling,
         color: "text-blue-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/20",
         label: "Resize",
+    },
+    {
+        type: "prompt",
+        icon: Terminal,
+        color: "text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/20",
+        label: "Prompt",
     },
 ] as const;
 

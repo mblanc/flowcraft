@@ -3,7 +3,7 @@ import {
     createPartFromBase64,
     createPartFromText,
     createPartFromUri,
-    ContentListUnion,
+    PartUnion,
     GenerateVideosParameters,
     VideoGenerationReferenceType,
     Image as GeminiImage,
@@ -27,7 +27,7 @@ async function delay(ms: number) {
 }
 
 export interface GenerateTextOptions {
-    prompts: string[];
+    prompts: string | string[];
     files?: Array<{ url: string; type: string }>;
     model?: string;
     outputType?: "text" | "json";
@@ -36,7 +36,7 @@ export interface GenerateTextOptions {
 }
 
 export interface GenerateImageOptions {
-    prompt: string;
+    prompt: string | string[];
     images?: Array<{ url: string; type: string }>;
     aspectRatio?: string;
     model?: string;
@@ -44,7 +44,7 @@ export interface GenerateImageOptions {
 }
 
 export interface GenerateVideoOptions {
-    prompt: string;
+    prompt: string | string[];
     firstFrame?: string;
     lastFrame?: string;
     images?: Array<{ url: string; type: string }>;
@@ -58,6 +58,48 @@ export interface GenerateVideoOptions {
 export interface UpscaleImageOptions {
     image: string;
     upscaleFactor: "x2" | "x3" | "x4";
+}
+
+/**
+ * Maps a list of strings (possibly including URIs) to Gemini content parts.
+ */
+function mapStringsToParts(
+    inputs: string | string[] | PartUnion[],
+): PartUnion[] {
+    // Changed return type to PartUnion[] and input type
+    const items = Array.isArray(inputs) ? inputs : [inputs];
+    const parts: PartUnion[] = []; // Changed type to PartUnion[]
+
+    for (const item of items) {
+        if (typeof item !== "string") {
+            parts.push(item); // If it's already a PartUnion, push it directly
+            continue;
+        }
+
+        if (item.startsWith("gs://")) {
+            // Simple heuristic for mime type
+            let mimeType = "application/octet-stream";
+            const lowerItem = item.toLowerCase();
+            if (lowerItem.match(/\.(png|jpg|jpeg|webp)$/i))
+                mimeType = "image/png";
+            else if (lowerItem.match(/\.(mp4|mov)$/i)) mimeType = "video/mp4";
+            else if (lowerItem.endsWith(".pdf")) mimeType = "application/pdf";
+
+            parts.push(createPartFromUri(item, mimeType));
+        } else if (item.startsWith("data:")) {
+            const base64Match = item.match(/^data:([^;]+);base64,(.+)$/);
+            if (base64Match) {
+                parts.push(
+                    createPartFromBase64(base64Match[2], base64Match[1]),
+                );
+            } else {
+                parts.push(createPartFromText(item));
+            }
+        } else {
+            parts.push(createPartFromText(item));
+        }
+    }
+    return parts;
 }
 
 export class GeminiService {
@@ -86,10 +128,8 @@ export class GeminiService {
             `[GeminiService] Generating text with model: ${selectedModel}`,
         );
 
-        // Create a text part for each prompt
-        const contents: ContentListUnion = prompts.map((p) =>
-            createPartFromText(p),
-        );
+        // Create content parts from prompts (supporting string[] and content detection)
+        const contents: PartUnion[] = mapStringsToParts(prompts);
 
         if (files && files.length > 0) {
             for (const file of files) {
@@ -174,7 +214,7 @@ export class GeminiService {
             `[GeminiService] Generating image with model: ${selectedModel}`,
         );
 
-        const contents: ContentListUnion = [];
+        const contents: PartUnion[] = [];
 
         for (const image of images) {
             if (image.url.startsWith("data:")) {
@@ -186,7 +226,7 @@ export class GeminiService {
             }
         }
 
-        contents.push(createPartFromText(prompt));
+        contents.push(...mapStringsToParts(prompt));
 
         logger.info(
             `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
@@ -263,7 +303,9 @@ export class GeminiService {
 
         const videoRequest: GenerateVideosParameters = {
             model: selectedModel,
-            source: { prompt },
+            source: {
+                prompt: Array.isArray(prompt) ? prompt.join(" ") : prompt,
+            },
             config: {
                 numberOfVideos: 1,
                 durationSeconds: duration || DEFAULTS.VIDEO_DURATION,

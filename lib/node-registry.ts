@@ -13,6 +13,7 @@ import {
     WorkflowInputData,
     WorkflowOutputData,
     CustomWorkflowData,
+    PromptData,
 } from "./types";
 
 export interface ExecutionContext {
@@ -213,6 +214,8 @@ const getSourceValue = (data: NodeData | null): unknown => {
         return (unwrappedData as ResizeData).output;
     if (unwrappedData.type === "file")
         return (unwrappedData as FileData).gcsUri;
+    if (unwrappedData.type === "prompt")
+        return (unwrappedData as PromptData).text;
 
     // Fallback for direct values or results from other nodes
     const fallbackValue =
@@ -261,8 +264,9 @@ registerNode<LLMData, NodeInputs>({
         for (const edge of promptEdges) {
             const sourceData = getSourceData(edge.source, edge.sourceHandle);
             const value = getSourceValue(sourceData);
-            if (typeof value === "string") {
-                inputs.prompts?.push(value);
+            if (typeof value === "string" || Array.isArray(value)) {
+                const vals = Array.isArray(value) ? value : [value];
+                inputs.prompts?.push(...vals);
             }
         }
 
@@ -368,7 +372,9 @@ registerNode<ImageData, NodeInputs>({
             getSourceData,
         );
         const promptValue = getSourceValue(promptData);
-        if (typeof promptValue === "string") inputs.prompt = promptValue;
+        if (typeof promptValue === "string" || Array.isArray(promptValue)) {
+            inputs.prompt = promptValue as string | string[];
+        }
 
         const imageEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "image-input",
@@ -432,7 +438,9 @@ registerNode<VideoData, NodeInputs>({
             getSourceData,
         );
         const promptValue = getSourceValue(promptData);
-        if (typeof promptValue === "string") inputs.prompt = promptValue;
+        if (typeof promptValue === "string" || Array.isArray(promptValue)) {
+            inputs.prompt = promptValue as string | string[];
+        }
 
         const firstFrameData = findInputByHandle(
             node.id,
@@ -642,4 +650,33 @@ registerNode<FileData, NodeInputs>({
     outputs: { "": "any" },
     gatherInputs: () => ({}),
     execute: async () => ({}),
+});
+
+// Prompt Node
+registerNode<PromptData, NodeInputs>({
+    type: "prompt",
+    outputs: { "": "text" },
+    gatherInputs: (node, edges, getSourceData) => {
+        const inputs: Record<string, unknown> = {};
+        // Map node names to their output values
+        const promptEdges = edges.filter((e) => e.target === node.id);
+        for (const edge of promptEdges) {
+            const sourceData = getSourceData(edge.source, edge.sourceHandle);
+            if (sourceData) {
+                const value = getSourceValue(sourceData);
+                // We use the source node's name as the key (e.g., "Image#1")
+                // Note: The UI component will handle dynamic handles, but gatherInputs
+                // typically maps handleId -> value. For @ references, we might need
+                // to map the handleId (which will match the node name in our design) to the value.
+                if (edge.targetHandle) {
+                    inputs[edge.targetHandle] = value;
+                }
+            }
+        }
+        return inputs;
+    },
+    execute: async (node, inputs, context) => {
+        const { executePromptNode } = await import("./executors");
+        return executePromptNode(node, inputs, context);
+    },
 });

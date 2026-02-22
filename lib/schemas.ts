@@ -142,6 +142,15 @@ export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({
     results: z.record(z.string(), z.record(z.string(), z.any())).optional(),
 });
 
+export const PromptDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("prompt"),
+    prompt: z.string(),
+    output: z.any().optional(),
+    text: z.array(z.string()).optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+});
+
 export const NodeDataSchema = z.discriminatedUnion("type", [
     LLMDataSchema,
     TextDataSchema,
@@ -153,6 +162,7 @@ export const NodeDataSchema = z.discriminatedUnion("type", [
     WorkflowInputDataSchema,
     WorkflowOutputDataSchema,
     CustomWorkflowDataSchema,
+    PromptDataSchema,
 ]);
 
 export const NodeSchema = z.object({
@@ -176,7 +186,7 @@ export const EdgeSchema = z.object({
 // --- API Schemas ---
 
 export const GenerateImageSchema = z.object({
-    prompt: z.string().min(1, "Prompt is required"),
+    prompt: z.union([z.string(), z.array(z.string())]),
     images: z
         .array(
             z.object({
@@ -198,7 +208,7 @@ export const GenerateImageSchema = z.object({
 });
 
 export const GenerateTextSchema = z.object({
-    prompts: z.array(z.string()).min(1, "At least one prompt is required"),
+    prompts: z.union([z.string(), z.array(z.string())]),
     files: z
         .array(
             z.object({
@@ -215,7 +225,7 @@ export const GenerateTextSchema = z.object({
 });
 
 export const GenerateVideoSchema = z.object({
-    prompt: z.string().min(1, "Prompt is required"),
+    prompt: z.union([z.string(), z.array(z.string())]),
     firstFrame: z.string().optional(),
     lastFrame: z.string().optional(),
     images: z
@@ -338,4 +348,5 @@ export type ResizeData = z.infer<typeof ResizeDataSchema>;
 export type WorkflowInputData = z.infer<typeof WorkflowInputDataSchema>;
 export type WorkflowOutputData = z.infer<typeof WorkflowOutputDataSchema>;
 export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;
+export type PromptData = z.infer<typeof PromptDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;

@@ -12,6 +12,7 @@ import {
     type WorkflowInputData,
     type WorkflowOutputData,
     type CustomWorkflowData,
+    type PromptData,
 } from "./types";
 import { MODELS, DEFAULTS } from "./constants";
 
@@ -152,6 +153,17 @@ export function createNode(
                     subWorkflowId: "",
                     subWorkflowVersion: "",
                 } as CustomWorkflowData,
+            };
+        case "prompt":
+            return {
+                id,
+                type: "prompt",
+                position,
+                data: {
+                    type: "prompt",
+                    name: "Prompt",
+                    prompt: "",
+                } as PromptData,
             };
         default:
             throw new Error(`Unknown node type: ${type}`);

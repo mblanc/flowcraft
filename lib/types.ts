@@ -9,6 +9,7 @@ import {
     WorkflowInputData as InferredWorkflowInputData,
     WorkflowOutputData as InferredWorkflowOutputData,
     CustomWorkflowData as InferredCustomWorkflowData,
+    PromptData as InferredPromptData,
     NodeData as InferredNodeData,
 } from "./schemas";
 
@@ -29,10 +30,11 @@ export type NodeType =
     | "resize"
     | "workflow-input"
     | "workflow-output"
-    | "custom-workflow";
+    | "custom-workflow"
+    | "prompt";
 
 export interface NodeInputs {
-    prompt?: string;
+    prompt?: string | string[];
     prompts?: string[];
     files?: { url: string; type: string }[];
     images?: { url: string; type: string }[];
@@ -52,6 +54,7 @@ export type ResizeData = InferredResizeData;
 export type WorkflowInputData = InferredWorkflowInputData;
 export type WorkflowOutputData = InferredWorkflowOutputData;
 export type CustomWorkflowData = InferredCustomWorkflowData;
+export type PromptData = InferredPromptData;
 export type NodeData = InferredNodeData;
 
 export interface BaseNodeData {

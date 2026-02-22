@@ -14,6 +14,7 @@ import {
 import { createNode } from "@/lib/node-factory";
 import { NodeData, NodeType } from "@/lib/types";
 import { migrateNodes } from "@/lib/migration";
+import { generateUniqueNodeName } from "@/lib/node-utils";
 
 export type EntityType = "flow" | "custom-node";
 
@@ -103,9 +104,29 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     },
 
     onConnect: (connection) => {
-        set({
-            edges: addEdge(connection, get().edges),
-        });
+        const { nodes, edges } = get();
+        const targetNode = nodes.find((n) => n.id === connection.target);
+
+        // Special handling for Prompt Node "plus" handle
+        if (
+            targetNode?.type === "prompt" &&
+            connection.targetHandle === "plus"
+        ) {
+            const sourceNode = nodes.find((n) => n.id === connection.source);
+            const sourceName = sourceNode?.data?.name || "input";
+
+            const newConnection = {
+                ...connection,
+                targetHandle: sourceName,
+            };
+            set({
+                edges: addEdge(newConnection, edges),
+            });
+        } else {
+            set({
+                edges: addEdge(connection, get().edges),
+            });
+        }
     },
 
     setSelectedNode: (selectedNode) => set({ selectedNode }),
@@ -140,10 +161,19 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
     addNodeWithType: (type, position, data) => {
         const node = createNode(type, position);
-        if (data) {
-            node.data = { ...node.data, ...data } as NodeData;
-        }
-        set({ nodes: [...get().nodes, node] });
+        const { nodes } = get();
+
+        // Generate unique incremental name
+        const baseName = node.data.name;
+        const uniqueName = generateUniqueNodeName(nodes, baseName);
+
+        node.data = {
+            ...node.data,
+            name: uniqueName,
+            ...(data || {}),
+        } as NodeData;
+
+        set({ nodes: [...nodes, node] });
     },
 
     selectNode: (nodeId) => {
