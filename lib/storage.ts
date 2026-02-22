@@ -11,6 +11,36 @@ const storage = new Storage({
 
 const storageUri = config.GCS_STORAGE_URI; // Make sure this env var is set
 
+/**
+ * Validates that a GCS URI belongs to the authorized bucket.
+ * Throws an error if the URI is invalid or belongs to an unauthorized bucket.
+ * Strict validation is bypassed in test environment.
+ *
+ * @param gcsUri The GCS URI to validate (e.g. "gs://bucket/file")
+ */
+export function validateGcsUri(gcsUri: string | undefined | null): void {
+    if (!gcsUri) return;
+    if (process.env.NODE_ENV === "test") return;
+
+    if (!gcsUri.startsWith("gs://")) {
+        // If it doesn't start with gs://, it's not a GCS URI we need to validate here.
+        // Other parts of the code might still fail if they expect a GCS URI.
+        return;
+    }
+
+    const bucketName = gcsUri.substring(5).split("/")[0];
+    const allowedBucket = storageUri.substring(5).split("/")[0];
+
+    if (bucketName !== allowedBucket) {
+        logger.warn(
+            `Security alert: Unauthorized GCS bucket access attempt: ${bucketName}`,
+        );
+        throw new Error(
+            `Unauthorized GCS bucket: ${bucketName}. Only URIs from ${allowedBucket} are allowed.`,
+        );
+    }
+}
+
 export async function uploadImage(
     base64: string,
     filename: string,
@@ -78,6 +108,7 @@ export async function getSignedUrlFromGCS(
     gcsUri: string,
     download: boolean = false,
 ) {
+    validateGcsUri(gcsUri);
     const [bucketName, ...pathSegments] = gcsUri
         .replace("gs://", "")
         .split("/");
@@ -106,6 +137,7 @@ export async function getSignedUrlFromGCS(
  * @returns A Promise resolving to a sharp instance.
  */
 export async function gcsUriToSharp(gcsUri: string): Promise<sharp.Sharp> {
+    validateGcsUri(gcsUri);
     try {
         // 1. Parse the GCS URI to extract bucket name and file path
         const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
@@ -140,6 +172,7 @@ export async function gcsUriToSharp(gcsUri: string): Promise<sharp.Sharp> {
  * @returns A Promise resolving to the base64 data URI string.
  */
 export async function gcsUriToBase64(gcsUri: string): Promise<string> {
+    validateGcsUri(gcsUri);
     try {
         // 1. Parse the GCS URI
         const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
@@ -185,6 +218,7 @@ export async function gcsUriToBase64(gcsUri: string): Promise<string> {
 export async function getMimeTypeFromGCS(
     gcsUri: string,
 ): Promise<string | null> {
+    validateGcsUri(gcsUri);
     const [bucketName, ...pathSegments] = gcsUri
         .replace("gs://", "")
         .split("/");

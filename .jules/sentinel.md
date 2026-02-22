@@ -1,0 +1,4 @@
+## 2025-02-22 - [GCS URI Validation for SSRF and Unauthorized Access Prevention]
+**Vulnerability:** Missing validation for Google Cloud Storage (GCS) URIs allowed arbitrary bucket access. An authenticated user could provide a `gs://` URI from any bucket that the service account had access to, allowing them to generate signed URLs, download images for processing, or use them as inputs for Gemini models.
+**Learning:** Even when using cloud-native storage like GCS, failing to validate that user-provided URIs belong to the application's own bucket can lead to cross-tenant data access or SSRF-like vulnerabilities within the cloud environment.
+**Prevention:** Always validate cloud storage URIs against a whitelist of authorized buckets. Implement a centralized `validateGcsUri` function and apply it to all entry points where GCS URIs are accepted from clients.
