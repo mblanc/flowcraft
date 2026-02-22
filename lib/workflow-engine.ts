@@ -6,6 +6,8 @@ import { getNodeDefinition, ExecutionContext } from "./node-registry";
 export class WorkflowEngine {
     private nodesMap: Map<string, Node<NodeData>>;
     private edges: Edge[];
+    private incomingEdgesMap: Map<string, Edge[]> = new Map();
+    private outgoingEdgesMap: Map<string, Edge[]> = new Map();
     private onNodeUpdate: (nodeId: string, data: Partial<NodeData>) => void;
     public executionResults: Map<string, Partial<NodeData>> = new Map();
     private context: ExecutionContext;
@@ -20,6 +22,19 @@ export class WorkflowEngine {
         this.edges = edges;
         this.onNodeUpdate = onNodeUpdate;
         this.context = context || {};
+
+        // Pre-calculate adjacency lists for O(V+E) performance
+        this.edges.forEach((edge) => {
+            if (!this.incomingEdgesMap.has(edge.target)) {
+                this.incomingEdgesMap.set(edge.target, []);
+            }
+            this.incomingEdgesMap.get(edge.target)!.push(edge);
+
+            if (!this.outgoingEdgesMap.has(edge.source)) {
+                this.outgoingEdgesMap.set(edge.source, []);
+            }
+            this.outgoingEdgesMap.get(edge.source)!.push(edge);
+        });
     }
 
     async run() {
@@ -51,16 +66,20 @@ export class WorkflowEngine {
         }
     }
 
+    /**
+     * Finds all downstream nodes starting from a specific node and groups them into levels.
+     * Complexity: O(V + E)
+     */
     private getExecutionLevelsFromNode(startNodeId: string): string[][] {
         const queue = [startNodeId];
         const downstreamNodes = new Set<string>();
 
-        while (queue.length > 0) {
-            const current = queue.shift()!;
+        let head = 0;
+        while (head < queue.length) {
+            const current = queue[head++]!;
             downstreamNodes.add(current);
-            const outgoingEdges = this.edges.filter(
-                (e) => e.source === current,
-            );
+            // Use pre-calculated outgoing edges map for O(1) access instead of O(E) filter
+            const outgoingEdges = this.outgoingEdgesMap.get(current) || [];
             for (const edge of outgoingEdges) {
                 if (!downstreamNodes.has(edge.target)) {
                     queue.push(edge.target);
@@ -155,45 +174,61 @@ export class WorkflowEngine {
         }
     }
 
+    /**
+     * Groups nodes into execution levels based on their dependencies using Kahn's algorithm.
+     * Nodes in the same level can be executed in parallel.
+     * Complexity: O(V + E)
+     */
     private getExecutionLevels(): string[][] {
         const nodes = Array.from(this.nodesMap.values());
-        const dependencies = new Map<string, Set<string>>();
+        const inDegree = new Map<string, number>();
+        const processed = new Set<string>();
 
-        nodes.forEach((node) => {
-            dependencies.set(node.id, new Set());
-        });
-
+        // Initialize in-degrees
+        nodes.forEach((node) => inDegree.set(node.id, 0));
         this.edges.forEach((edge) => {
-            dependencies.get(edge.target)?.add(edge.source);
+            if (inDegree.has(edge.target)) {
+                inDegree.set(edge.target, inDegree.get(edge.target)! + 1);
+            }
         });
 
         const levels: string[][] = [];
-        const processed = new Set<string>();
+        // Start with nodes that have no incoming edges
+        let currentLevel = nodes
+            .filter((node) => inDegree.get(node.id) === 0)
+            .map((node) => node.id);
 
-        while (processed.size < nodes.length) {
-            const currentLevel = nodes
-                .filter((node) => !processed.has(node.id))
-                .filter((node) => {
-                    const deps = dependencies.get(node.id);
-                    return (
-                        !deps ||
-                        Array.from(deps).every((dep) => processed.has(dep))
-                    );
-                })
-                .map((node) => node.id);
-
-            if (currentLevel.length === 0) {
-                const remaining = nodes.filter(
-                    (node) => !processed.has(node.id),
-                );
-                if (remaining.length > 0) {
-                    currentLevel.push(...remaining.map((n) => n.id));
-                }
-                break;
-            }
-
+        while (currentLevel.length > 0) {
             levels.push(currentLevel);
-            currentLevel.forEach((id) => processed.add(id));
+            const nextLevel: string[] = [];
+
+            for (const nodeId of currentLevel) {
+                processed.add(nodeId);
+                const outgoing = this.outgoingEdgesMap.get(nodeId) || [];
+                for (const edge of outgoing) {
+                    const targetId = edge.target;
+                    const degree = inDegree.get(targetId);
+                    if (degree !== undefined) {
+                        const newDegree = degree - 1;
+                        inDegree.set(targetId, newDegree);
+                        // If in-degree becomes 0, all dependencies are met
+                        if (newDegree === 0) {
+                            nextLevel.push(targetId);
+                        }
+                    }
+                }
+            }
+            currentLevel = nextLevel;
+        }
+
+        // If there are unprocessed nodes (e.g., cycles), group them as a final fallback level
+        if (processed.size < nodes.length) {
+            const remaining = nodes
+                .filter((node) => !processed.has(node.id))
+                .map((node) => node.id);
+            if (remaining.length > 0) {
+                levels.push(remaining);
+            }
         }
 
         return levels;
@@ -284,7 +319,9 @@ export class WorkflowEngine {
             return { ...sourceNode.data, ...result } as NodeData;
         };
 
-        return definition.gatherInputs(node, this.edges, getSourceData);
+        // Optimization: Pass only relevant incoming edges to avoid O(E) filter in gatherInputs
+        const incomingEdges = this.incomingEdgesMap.get(node.id) || [];
+        return definition.gatherInputs(node, incomingEdges, getSourceData);
     }
 
     private async executeSubWorkflow(
