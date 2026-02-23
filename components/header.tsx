@@ -131,6 +131,8 @@ export function Header() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={handleSaveName}
+                                        aria-label="Save flow name"
+                                        title="Save flow name"
                                     >
                                         <Save className="h-4 w-4" />
                                     </Button>

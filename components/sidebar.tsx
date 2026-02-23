@@ -111,6 +111,8 @@ export function Sidebar() {
                     size="sm"
                     className="h-8 w-8 p-0"
                     onClick={() => selectNode(null)}
+                    aria-label="Close configuration"
+                    title="Close configuration"
                 >
                     <X className="h-4 w-4" />
                 </Button>
