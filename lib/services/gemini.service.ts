@@ -17,6 +17,7 @@ import {
     ALL_SUPPORTED_MIME_TYPES,
     SupportedMimeType,
 } from "../constants";
+import { validateGcsUri } from "../storage";
 
 function isSupportedMimeType(mimeType: string): mimeType is SupportedMimeType {
     return (ALL_SUPPORTED_MIME_TYPES as readonly string[]).includes(mimeType);
@@ -101,6 +102,9 @@ export class GeminiService {
                 }
 
                 if (file.url.startsWith("gs://")) {
+                    if (!validateGcsUri(file.url)) {
+                        throw new Error(`Unauthorized GCS URI: ${file.url}`);
+                    }
                     contents.push(createPartFromUri(file.url, file.type));
                 } else if (file.url.startsWith("data:")) {
                     const base64Match = file.url.match(
@@ -182,6 +186,9 @@ export class GeminiService {
                 const mimeType = image.url.split(";")[0].split(":")[1];
                 contents.push(createPartFromBase64(base64Data, mimeType));
             } else if (image.url.startsWith("gs://")) {
+                if (!validateGcsUri(image.url)) {
+                    throw new Error(`Unauthorized GCS URI: ${image.url}`);
+                }
                 contents.push(createPartFromUri(image.url, image.type));
             }
         }
@@ -275,6 +282,9 @@ export class GeminiService {
         };
 
         if (firstFrame?.startsWith("gs://")) {
+            if (!validateGcsUri(firstFrame)) {
+                throw new Error(`Unauthorized GCS URI: ${firstFrame}`);
+            }
             videoRequest.source!.image = {
                 gcsUri: firstFrame,
                 mimeType: "image/png",
@@ -282,6 +292,9 @@ export class GeminiService {
         }
 
         if (lastFrame?.startsWith("gs://")) {
+            if (!validateGcsUri(lastFrame)) {
+                throw new Error(`Unauthorized GCS URI: ${lastFrame}`);
+            }
             videoRequest.config!.lastFrame = {
                 gcsUri: lastFrame,
                 mimeType: "image/png",
@@ -290,10 +303,18 @@ export class GeminiService {
 
         if (images && images.length > 0) {
             videoRequest.model = MODELS.VIDEO.VEO_3_1_PRO_PREVIEW;
-            videoRequest.config!.referenceImages = images.map((image) => ({
-                image: { gcsUri: image.url, mimeType: "image/png" },
-                referenceType: VideoGenerationReferenceType.ASSET,
-            }));
+            videoRequest.config!.referenceImages = images.map((image) => {
+                if (
+                    image.url.startsWith("gs://") &&
+                    !validateGcsUri(image.url)
+                ) {
+                    throw new Error(`Unauthorized GCS URI: ${image.url}`);
+                }
+                return {
+                    image: { gcsUri: image.url, mimeType: "image/png" },
+                    referenceType: VideoGenerationReferenceType.ASSET,
+                };
+            });
         }
 
         logger.info(
@@ -344,6 +365,9 @@ export class GeminiService {
             imageInput.imageBytes = base64Data;
             imageInput.mimeType = mimeType;
         } else if (image.startsWith("gs://")) {
+            if (!validateGcsUri(image)) {
+                throw new Error(`Unauthorized GCS URI: ${image}`);
+            }
             imageInput.gcsUri = image;
         } else {
             throw new Error("Invalid image format for upscaling");

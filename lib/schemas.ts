@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MODELS, DEFAULTS } from "./constants";
+import { validateGcsUri } from "./storage";
 
 // --- Shared Types ---
 
@@ -256,7 +257,9 @@ export const UpscaleImageSchema = z.object({
 });
 
 export const GetSignedUrlSchema = z.object({
-    gcsUri: z.string().min(1, "gcsUri is required"),
+    gcsUri: z.string().min(1, "gcsUri is required").refine(validateGcsUri, {
+        message: "Unauthorized or invalid GCS URI",
+    }),
 });
 
 export const FlowCreateSchema = z.object({

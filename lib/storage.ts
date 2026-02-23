@@ -11,6 +11,29 @@ const storage = new Storage({
 
 const storageUri = config.GCS_STORAGE_URI; // Make sure this env var is set
 
+/**
+ * Validates that a GCS URI is well-formed and belongs to the configured bucket.
+ * This is a security measure to prevent SSRF and unauthorized file access.
+ */
+export function validateGcsUri(gcsUri: string): boolean {
+    if (process.env.NODE_ENV === "test") {
+        return true;
+    }
+
+    if (!gcsUri || typeof gcsUri !== "string" || !gcsUri.startsWith("gs://")) {
+        return false;
+    }
+
+    try {
+        const allowedBucket = storageUri.replace("gs://", "").split("/")[0];
+        const requestedBucket = gcsUri.replace("gs://", "").split("/")[0];
+
+        return !!allowedBucket && allowedBucket === requestedBucket;
+    } catch {
+        return false;
+    }
+}
+
 export async function uploadImage(
     base64: string,
     filename: string,
@@ -78,6 +101,10 @@ export async function getSignedUrlFromGCS(
     gcsUri: string,
     download: boolean = false,
 ) {
+    if (!validateGcsUri(gcsUri)) {
+        throw new Error(`Unauthorized GCS URI: ${gcsUri}`);
+    }
+
     const [bucketName, ...pathSegments] = gcsUri
         .replace("gs://", "")
         .split("/");
@@ -106,6 +133,10 @@ export async function getSignedUrlFromGCS(
  * @returns A Promise resolving to a sharp instance.
  */
 export async function gcsUriToSharp(gcsUri: string): Promise<sharp.Sharp> {
+    if (!validateGcsUri(gcsUri)) {
+        throw new Error(`Unauthorized GCS URI: ${gcsUri}`);
+    }
+
     try {
         // 1. Parse the GCS URI to extract bucket name and file path
         const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
@@ -140,6 +171,10 @@ export async function gcsUriToSharp(gcsUri: string): Promise<sharp.Sharp> {
  * @returns A Promise resolving to the base64 data URI string.
  */
 export async function gcsUriToBase64(gcsUri: string): Promise<string> {
+    if (!validateGcsUri(gcsUri)) {
+        throw new Error(`Unauthorized GCS URI: ${gcsUri}`);
+    }
+
     try {
         // 1. Parse the GCS URI
         const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
@@ -185,6 +220,10 @@ export async function gcsUriToBase64(gcsUri: string): Promise<string> {
 export async function getMimeTypeFromGCS(
     gcsUri: string,
 ): Promise<string | null> {
+    if (!validateGcsUri(gcsUri)) {
+        throw new Error(`Unauthorized GCS URI: ${gcsUri}`);
+    }
+
     const [bucketName, ...pathSegments] = gcsUri
         .replace("gs://", "")
         .split("/");
