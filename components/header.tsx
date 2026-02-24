@@ -13,6 +13,7 @@ import {
     Workflow,
     Users,
     Copy,
+    Pencil,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowPersistence } from "@/hooks/use-flow-persistence";
@@ -126,24 +127,49 @@ export function Header() {
                                         }}
                                         className="h-8 w-48"
                                         autoFocus
+                                        aria-label="Flow name"
                                     />
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={handleSaveName}
+                                        aria-label="Save flow name"
                                     >
                                         <Save className="h-4 w-4" />
                                     </Button>
                                 </div>
                             ) : (
-                                <h1
-                                    className={`text-foreground text-lg font-semibold transition-colors ${isEditable ? "hover:text-primary cursor-pointer" : ""}`}
+                                <div
+                                    className={`group flex items-center gap-2 transition-colors ${isEditable ? "cursor-pointer" : ""}`}
                                     onClick={() =>
                                         isEditable && setIsEditing(true)
                                     }
+                                    onKeyDown={(e) => {
+                                        if (
+                                            isEditable &&
+                                            (e.key === "Enter" || e.key === " ")
+                                        ) {
+                                            e.preventDefault();
+                                            setIsEditing(true);
+                                        }
+                                    }}
+                                    tabIndex={isEditable ? 0 : undefined}
+                                    role={isEditable ? "button" : undefined}
+                                    aria-label={
+                                        isEditable
+                                            ? `Edit flow name: ${flowName}`
+                                            : undefined
+                                    }
                                 >
-                                    {flowName}
-                                </h1>
+                                    <h1
+                                        className={`text-foreground text-lg font-semibold transition-colors ${isEditable ? "group-hover:text-primary" : ""}`}
+                                    >
+                                        {flowName}
+                                    </h1>
+                                    {isEditable && (
+                                        <Pencil className="text-muted-foreground h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
+                                    )}
+                                </div>
                             )}
                         </div>
                     ) : (
