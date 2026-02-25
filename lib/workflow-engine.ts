@@ -10,6 +10,10 @@ export class WorkflowEngine {
     public executionResults: Map<string, Partial<NodeData>> = new Map();
     private context: ExecutionContext;
 
+    // Optimized data structures for graph traversal
+    private adj: Map<string, string[]> = new Map();
+    private incomingEdges: Map<string, Edge[]> = new Map();
+
     constructor(
         nodes: Node<NodeData>[],
         edges: Edge[],
@@ -20,6 +24,23 @@ export class WorkflowEngine {
         this.edges = edges;
         this.onNodeUpdate = onNodeUpdate;
         this.context = context || {};
+
+        // Pre-calculate adjacency list and incoming edges map for O(V+E) performance
+        nodes.forEach((node) => {
+            this.adj.set(node.id, []);
+            this.incomingEdges.set(node.id, []);
+        });
+
+        edges.forEach((edge) => {
+            // Only consider edges between nodes present in the current execution set
+            if (
+                this.nodesMap.has(edge.source) &&
+                this.nodesMap.has(edge.target)
+            ) {
+                this.adj.get(edge.source)?.push(edge.target);
+                this.incomingEdges.get(edge.target)?.push(edge);
+            }
+        });
     }
 
     async run() {
@@ -53,18 +74,17 @@ export class WorkflowEngine {
 
     private getExecutionLevelsFromNode(startNodeId: string): string[][] {
         const queue = [startNodeId];
-        const downstreamNodes = new Set<string>();
+        const downstreamNodes = new Set<string>([startNodeId]);
+        let head = 0;
 
-        while (queue.length > 0) {
-            const current = queue.shift()!;
-            downstreamNodes.add(current);
-            const outgoingEdges = this.edges.filter(
-                (e) => e.source === current,
-            );
-            for (const edge of outgoingEdges) {
-                if (!downstreamNodes.has(edge.target)) {
-                    queue.push(edge.target);
-                    downstreamNodes.add(edge.target);
+        // O(V+E) BFS using pre-calculated adjacency list and head pointer instead of shift()
+        while (head < queue.length) {
+            const current = queue[head++]!;
+            const neighbors = this.adj.get(current) || [];
+            for (const neighbor of neighbors) {
+                if (!downstreamNodes.has(neighbor)) {
+                    downstreamNodes.add(neighbor);
+                    queue.push(neighbor);
                 }
             }
         }
@@ -156,44 +176,54 @@ export class WorkflowEngine {
     }
 
     private getExecutionLevels(): string[][] {
-        const nodes = Array.from(this.nodesMap.values());
-        const dependencies = new Map<string, Set<string>>();
+        const nodeIds = Array.from(this.nodesMap.keys());
+        const inDegree = new Map<string, number>();
 
-        nodes.forEach((node) => {
-            dependencies.set(node.id, new Set());
-        });
+        // Initialize in-degrees for all nodes
+        nodeIds.forEach((id) => inDegree.set(id, 0));
 
-        this.edges.forEach((edge) => {
-            dependencies.get(edge.target)?.add(edge.source);
-        });
+        // Calculate in-degrees based on pre-calculated adjacency list
+        for (const targets of this.adj.values()) {
+            for (const target of targets) {
+                inDegree.set(target, (inDegree.get(target) || 0) + 1);
+            }
+        }
 
         const levels: string[][] = [];
-        const processed = new Set<string>();
+        // Start with all nodes that have no incoming dependencies
+        let currentLevel = nodeIds.filter(
+            (id) => (inDegree.get(id) || 0) === 0,
+        );
 
-        while (processed.size < nodes.length) {
-            const currentLevel = nodes
-                .filter((node) => !processed.has(node.id))
-                .filter((node) => {
-                    const deps = dependencies.get(node.id);
-                    return (
-                        !deps ||
-                        Array.from(deps).every((dep) => processed.has(dep))
-                    );
-                })
-                .map((node) => node.id);
-
-            if (currentLevel.length === 0) {
-                const remaining = nodes.filter(
-                    (node) => !processed.has(node.id),
-                );
-                if (remaining.length > 0) {
-                    currentLevel.push(...remaining.map((n) => n.id));
-                }
-                break;
-            }
-
+        while (currentLevel.length > 0) {
             levels.push(currentLevel);
-            currentLevel.forEach((id) => processed.add(id));
+            const nextLevel: string[] = [];
+
+            for (const nodeId of currentLevel) {
+                const neighbors = this.adj.get(nodeId) || [];
+                for (const neighbor of neighbors) {
+                    // Reduce in-degree of neighbor and if it reaches zero, add to next level
+                    const newInDegree = (inDegree.get(neighbor) || 1) - 1;
+                    inDegree.set(neighbor, newInDegree);
+                    if (newInDegree === 0) {
+                        nextLevel.push(neighbor);
+                    }
+                }
+            }
+            currentLevel = nextLevel;
+        }
+
+        // Handle cases with cycles or disconnected nodes that were not reached by BFS
+        const processedCount = levels.reduce(
+            (sum, level) => sum + level.length,
+            0,
+        );
+        if (processedCount < nodeIds.length) {
+            const processedSet = new Set(levels.flat());
+            const remaining = nodeIds.filter((id) => !processedSet.has(id));
+            if (remaining.length > 0) {
+                levels.push(remaining);
+            }
         }
 
         return levels;
@@ -284,7 +314,9 @@ export class WorkflowEngine {
             return { ...sourceNode.data, ...result } as NodeData;
         };
 
-        return definition.gatherInputs(node, this.edges, getSourceData);
+        // Optimization: only pass edges that target this node
+        const nodeIncomingEdges = this.incomingEdges.get(node.id) || [];
+        return definition.gatherInputs(node, nodeIncomingEdges, getSourceData);
     }
 
     private async executeSubWorkflow(
