@@ -74,14 +74,43 @@ export async function uploadImage(
     }
 }
 
+/**
+ * Validates a GCS URI and ensures it belongs to the configured bucket.
+ *
+ * @param gcsUri The GCS URI to validate (e.g., "gs://bucket/path/to/file").
+ * @returns An object containing the bucket name and file path.
+ * @throws Error if the URI is malformed or points to an unauthorized bucket.
+ */
+export function validateAndParseGcsUri(gcsUri: string): {
+    bucketName: string;
+    filePath: string;
+} {
+    const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
+    if (!match) {
+        throw new Error(`Invalid GCS URI format: ${gcsUri}`);
+    }
+    const bucketName = match[1];
+    const filePath = match[2];
+
+    const configuredBucket = config.GCS_STORAGE_URI.startsWith("gs://")
+        ? config.GCS_STORAGE_URI.substring(5).split("/")[0]
+        : config.GCS_STORAGE_URI.split("/")[0];
+
+    if (bucketName !== configuredBucket) {
+        logger.error(
+            `Unauthorized bucket access attempt: ${bucketName}. Only ${configuredBucket} is allowed.`,
+        );
+        throw new Error("Unauthorized bucket access.");
+    }
+
+    return { bucketName, filePath };
+}
+
 export async function getSignedUrlFromGCS(
     gcsUri: string,
     download: boolean = false,
 ) {
-    const [bucketName, ...pathSegments] = gcsUri
-        .replace("gs://", "")
-        .split("/");
-    const fileName = pathSegments.join("/");
+    const { bucketName, filePath: fileName } = validateAndParseGcsUri(gcsUri);
     const options: GetSignedUrlConfig = {
         version: "v4",
         action: "read",
@@ -107,13 +136,8 @@ export async function getSignedUrlFromGCS(
  */
 export async function gcsUriToSharp(gcsUri: string): Promise<sharp.Sharp> {
     try {
-        // 1. Parse the GCS URI to extract bucket name and file path
-        const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
-        if (!match) {
-            throw new Error(`Invalid GCS URI format: ${gcsUri}`);
-        }
-        const bucketName = match[1];
-        const filePath = match[2];
+        // 1. Parse and validate the GCS URI
+        const { bucketName, filePath } = validateAndParseGcsUri(gcsUri);
 
         // 2. Download the image file from GCS into a buffer
         logger.debug(`Downloading image from gs://${bucketName}/${filePath}`);
@@ -141,13 +165,8 @@ export async function gcsUriToSharp(gcsUri: string): Promise<sharp.Sharp> {
  */
 export async function gcsUriToBase64(gcsUri: string): Promise<string> {
     try {
-        // 1. Parse the GCS URI
-        const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
-        if (!match) {
-            throw new Error(`Invalid GCS URI format: ${gcsUri}`);
-        }
-        const bucketName = match[1];
-        const filePath = match[2];
+        // 1. Parse and validate the GCS URI
+        const { bucketName, filePath } = validateAndParseGcsUri(gcsUri);
 
         // 2. Download the image file into a buffer
         logger.debug(
@@ -185,10 +204,7 @@ export async function gcsUriToBase64(gcsUri: string): Promise<string> {
 export async function getMimeTypeFromGCS(
     gcsUri: string,
 ): Promise<string | null> {
-    const [bucketName, ...pathSegments] = gcsUri
-        .replace("gs://", "")
-        .split("/");
-    const fileName = pathSegments.join("/");
+    const { bucketName, filePath: fileName } = validateAndParseGcsUri(gcsUri);
     const [metadata] = await storage
         .bucket(bucketName)
         .file(fileName)
