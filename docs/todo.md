@@ -1,4 +1,3 @@
-
 - cost details
 
 # UI
@@ -8,8 +7,9 @@ Edges animation when generating
 Dark mode : canvas bg #171717 node color #262626, borders #404040
 
 # Nodes
+
 - prompt creation with variables
-- Video Stitch 
+- Video Stitch
 
 - Image Search : Google Search
 - Ease Curve
@@ -29,8 +29,6 @@ Dark mode : canvas bg #171717 node color #262626, borders #404040
 - Logic Nodes : branch, merge
 - Lyria/Chirp/Gemini 2.5 TTS
 
-
 # Custom Nodes
 
 Sharing
-

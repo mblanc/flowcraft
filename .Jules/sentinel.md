@@ -1,0 +1,4 @@
+## 2025-02-27 - Unauthorized GCS Bucket Access
+**Vulnerability:** GCS URIs provided by users (or via API) were parsed without validating that the bucket name matched the application's configured storage bucket. This could allow an attacker to make the server process files from arbitrary GCS buckets that the service account has access to.
+**Learning:** Repetitive parsing of URIs in different utility functions led to inconsistent validation. While basic format was checked in some places, the identity of the bucket was never verified against a trust list or configuration.
+**Prevention:** Centralize URI parsing and validation into a single function (`validateAndParseGcsUri`) that enforces bucket ownership against configuration (`config.GCS_STORAGE_URI`). All storage utility functions must use this validator before performing operations.
