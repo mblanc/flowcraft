@@ -6,6 +6,8 @@ import { getNodeDefinition, ExecutionContext } from "./node-registry";
 export class WorkflowEngine {
     private nodesMap: Map<string, Node<NodeData>>;
     private edges: Edge[];
+    private sourceEdgesMap: Map<string, Edge[]> = new Map();
+    private targetEdgesMap: Map<string, Edge[]> = new Map();
     private onNodeUpdate: (nodeId: string, data: Partial<NodeData>) => void;
     public executionResults: Map<string, Partial<NodeData>> = new Map();
     private context: ExecutionContext;
@@ -20,6 +22,19 @@ export class WorkflowEngine {
         this.edges = edges;
         this.onNodeUpdate = onNodeUpdate;
         this.context = context || {};
+
+        // Pre-calculate adjacency lists for O(1) edge lookup
+        for (const edge of edges) {
+            if (!this.sourceEdgesMap.has(edge.source)) {
+                this.sourceEdgesMap.set(edge.source, []);
+            }
+            this.sourceEdgesMap.get(edge.source)!.push(edge);
+
+            if (!this.targetEdgesMap.has(edge.target)) {
+                this.targetEdgesMap.set(edge.target, []);
+            }
+            this.targetEdgesMap.get(edge.target)!.push(edge);
+        }
     }
 
     async run() {
@@ -52,29 +67,59 @@ export class WorkflowEngine {
     }
 
     private getExecutionLevelsFromNode(startNodeId: string): string[][] {
+        // 1. Find all reachable nodes using BFS
+        const reachable = new Set<string>();
         const queue = [startNodeId];
-        const downstreamNodes = new Set<string>();
+        reachable.add(startNodeId);
 
-        while (queue.length > 0) {
-            const current = queue.shift()!;
-            downstreamNodes.add(current);
-            const outgoingEdges = this.edges.filter(
-                (e) => e.source === current,
-            );
+        let head = 0;
+        while (head < queue.length) {
+            const current = queue[head++]!;
+            const outgoingEdges = this.sourceEdgesMap.get(current) || [];
             for (const edge of outgoingEdges) {
-                if (!downstreamNodes.has(edge.target)) {
+                if (!reachable.has(edge.target)) {
+                    reachable.add(edge.target);
                     queue.push(edge.target);
-                    downstreamNodes.add(edge.target);
                 }
             }
         }
 
-        const allLevels = this.getExecutionLevels();
-        return allLevels
-            .map((level) =>
-                level.filter((nodeId) => downstreamNodes.has(nodeId)),
-            )
-            .filter((level) => level.length > 0);
+        // 2. Run Kahn's algorithm only on the reachable subgraph
+        const inDegree = new Map<string, number>();
+        for (const nodeId of reachable) {
+            // Count incoming edges that originate from WITHIN the reachable set
+            const incoming = this.targetEdgesMap.get(nodeId) || [];
+            const internalInDegree = incoming.filter((e) =>
+                reachable.has(e.source),
+            ).length;
+            inDegree.set(nodeId, internalInDegree);
+        }
+
+        const levels: string[][] = [];
+        let currentLevel = Array.from(reachable).filter(
+            (id) => inDegree.get(id) === 0,
+        );
+
+        while (currentLevel.length > 0) {
+            levels.push(currentLevel);
+            const nextLevel: string[] = [];
+
+            for (const nodeId of currentLevel) {
+                const outgoing = this.sourceEdgesMap.get(nodeId) || [];
+                for (const edge of outgoing) {
+                    if (reachable.has(edge.target)) {
+                        const newInDegree = (inDegree.get(edge.target) || 0) - 1;
+                        inDegree.set(edge.target, newInDegree);
+                        if (newInDegree === 0) {
+                            nextLevel.push(edge.target);
+                        }
+                    }
+                }
+            }
+            currentLevel = nextLevel;
+        }
+
+        return levels;
     }
 
     private validateCustomWorkflowEdges() {
@@ -157,43 +202,49 @@ export class WorkflowEngine {
 
     private getExecutionLevels(): string[][] {
         const nodes = Array.from(this.nodesMap.values());
-        const dependencies = new Map<string, Set<string>>();
-
-        nodes.forEach((node) => {
-            dependencies.set(node.id, new Set());
-        });
-
-        this.edges.forEach((edge) => {
-            dependencies.get(edge.target)?.add(edge.source);
-        });
-
+        const inDegree = new Map<string, number>();
         const levels: string[][] = [];
-        const processed = new Set<string>();
 
-        while (processed.size < nodes.length) {
-            const currentLevel = nodes
-                .filter((node) => !processed.has(node.id))
-                .filter((node) => {
-                    const deps = dependencies.get(node.id);
-                    return (
-                        !deps ||
-                        Array.from(deps).every((dep) => processed.has(dep))
-                    );
-                })
-                .map((node) => node.id);
+        // Initialize in-degree count for all nodes
+        nodes.forEach((node) => {
+            inDegree.set(node.id, this.targetEdgesMap.get(node.id)?.length || 0);
+        });
 
-            if (currentLevel.length === 0) {
-                const remaining = nodes.filter(
-                    (node) => !processed.has(node.id),
-                );
-                if (remaining.length > 0) {
-                    currentLevel.push(...remaining.map((n) => n.id));
+        // Queue for nodes with no incoming edges (ready to execute)
+        let currentLevelNodes = nodes
+            .filter((node) => inDegree.get(node.id) === 0)
+            .map((node) => node.id);
+
+        let processedCount = 0;
+
+        while (currentLevelNodes.length > 0) {
+            levels.push(currentLevelNodes);
+            processedCount += currentLevelNodes.length;
+
+            const nextLevelNodes: string[] = [];
+            for (const nodeId of currentLevelNodes) {
+                const outgoingEdges = this.sourceEdgesMap.get(nodeId) || [];
+                for (const edge of outgoingEdges) {
+                    const targetId = edge.target;
+                    const newInDegree = (inDegree.get(targetId) || 0) - 1;
+                    inDegree.set(targetId, newInDegree);
+
+                    if (newInDegree === 0) {
+                        nextLevelNodes.push(targetId);
+                    }
                 }
-                break;
             }
+            currentLevelNodes = nextLevelNodes;
+        }
 
-            levels.push(currentLevel);
-            currentLevel.forEach((id) => processed.add(id));
+        // Handle remaining nodes in case of cycles (though they should be avoided earlier)
+        if (processedCount < nodes.length) {
+            const remaining = nodes
+                .filter((node) => (inDegree.get(node.id) || 0) > 0)
+                .map((node) => node.id);
+            if (remaining.length > 0) {
+                levels.push(remaining);
+            }
         }
 
         return levels;
@@ -284,7 +335,8 @@ export class WorkflowEngine {
             return { ...sourceNode.data, ...result } as NodeData;
         };
 
-        return definition.gatherInputs(node, this.edges, getSourceData);
+        const relevantEdges = this.targetEdgesMap.get(node.id) || [];
+        return definition.gatherInputs(node, relevantEdges, getSourceData);
     }
 
     private async executeSubWorkflow(
