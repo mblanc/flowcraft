@@ -7,6 +7,7 @@ import "./globals.css";
 import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const openSans = Open_Sans({
     weight: ["300", "400", "500", "600", "700"],
@@ -36,8 +37,10 @@ export default function RootLayout({
                         enableSystem
                         disableTransitionOnChange
                     >
-                        <Suspense fallback={null}>{children}</Suspense>
-                        <Toaster richColors closeButton />
+                        <TooltipProvider>
+                            <Suspense fallback={null}>{children}</Suspense>
+                            <Toaster richColors closeButton />
+                        </TooltipProvider>
                     </ThemeProvider>
                 </NextAuthSessionProvider>
             </body>
