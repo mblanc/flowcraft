@@ -9,6 +9,7 @@ export class WorkflowEngine {
     private onNodeUpdate: (nodeId: string, data: Partial<NodeData>) => void;
     public executionResults: Map<string, Partial<NodeData>> = new Map();
     private context: ExecutionContext;
+    private adj: Map<string, string[]>;
 
     constructor(
         nodes: Node<NodeData>[],
@@ -20,6 +21,17 @@ export class WorkflowEngine {
         this.edges = edges;
         this.onNodeUpdate = onNodeUpdate;
         this.context = context || {};
+
+        // Pre-calculate adjacency list (outgoing edges) for O(1) neighbor lookups
+        this.adj = new Map();
+        for (const nodeId of this.nodesMap.keys()) {
+            this.adj.set(nodeId, []);
+        }
+        for (const edge of this.edges) {
+            if (this.adj.has(edge.source)) {
+                this.adj.get(edge.source)!.push(edge.target);
+            }
+        }
     }
 
     async run() {
@@ -54,17 +66,18 @@ export class WorkflowEngine {
     private getExecutionLevelsFromNode(startNodeId: string): string[][] {
         const queue = [startNodeId];
         const downstreamNodes = new Set<string>();
+        downstreamNodes.add(startNodeId);
 
-        while (queue.length > 0) {
-            const current = queue.shift()!;
-            downstreamNodes.add(current);
-            const outgoingEdges = this.edges.filter(
-                (e) => e.source === current,
-            );
-            for (const edge of outgoingEdges) {
-                if (!downstreamNodes.has(edge.target)) {
-                    queue.push(edge.target);
-                    downstreamNodes.add(edge.target);
+        // Optimized BFS: use head pointer instead of shift() to avoid O(N) penalties
+        // and use pre-calculated adjacency list for O(1) neighbor lookups.
+        let head = 0;
+        while (head < queue.length) {
+            const current = queue[head++];
+            const neighbors = this.adj.get(current) || [];
+            for (const neighbor of neighbors) {
+                if (!downstreamNodes.has(neighbor)) {
+                    downstreamNodes.add(neighbor);
+                    queue.push(neighbor);
                 }
             }
         }
@@ -155,45 +168,62 @@ export class WorkflowEngine {
         }
     }
 
+    /**
+     * Group nodes into execution levels using Kahn's algorithm for topological sorting.
+     * Time Complexity: O(V + E) where V is nodes and E is edges.
+     * This is significantly faster than the previous O(V^2) approach on large graphs.
+     */
     private getExecutionLevels(): string[][] {
-        const nodes = Array.from(this.nodesMap.values());
-        const dependencies = new Map<string, Set<string>>();
+        const inDegree = new Map<string, number>();
+        for (const nodeId of this.nodesMap.keys()) {
+            inDegree.set(nodeId, 0);
+        }
 
-        nodes.forEach((node) => {
-            dependencies.set(node.id, new Set());
-        });
+        for (const edge of this.edges) {
+            if (inDegree.has(edge.target)) {
+                inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
+            }
+        }
 
-        this.edges.forEach((edge) => {
-            dependencies.get(edge.target)?.add(edge.source);
-        });
+        let queue: string[] = [];
+        for (const [nodeId, degree] of inDegree.entries()) {
+            if (degree === 0) {
+                queue.push(nodeId);
+            }
+        }
 
         const levels: string[][] = [];
-        const processed = new Set<string>();
+        let processedCount = 0;
 
-        while (processed.size < nodes.length) {
-            const currentLevel = nodes
-                .filter((node) => !processed.has(node.id))
-                .filter((node) => {
-                    const deps = dependencies.get(node.id);
-                    return (
-                        !deps ||
-                        Array.from(deps).every((dep) => processed.has(dep))
-                    );
-                })
-                .map((node) => node.id);
+        while (queue.length > 0) {
+            levels.push(queue);
+            processedCount += queue.length;
+            const nextQueue: string[] = [];
 
-            if (currentLevel.length === 0) {
-                const remaining = nodes.filter(
-                    (node) => !processed.has(node.id),
-                );
-                if (remaining.length > 0) {
-                    currentLevel.push(...remaining.map((n) => n.id));
+            for (const nodeId of queue) {
+                const neighbors = this.adj.get(nodeId) || [];
+                for (const neighbor of neighbors) {
+                    const degree = (inDegree.get(neighbor) || 0) - 1;
+                    inDegree.set(neighbor, degree);
+                    if (degree === 0) {
+                        nextQueue.push(neighbor);
+                    }
                 }
-                break;
             }
+            queue = nextQueue;
+        }
 
-            levels.push(currentLevel);
-            currentLevel.forEach((id) => processed.add(id));
+        // Handle cycles by grouping all remaining unprocessed nodes into a final level
+        if (processedCount < this.nodesMap.size) {
+            const remaining: string[] = [];
+            for (const [nodeId, degree] of inDegree.entries()) {
+                if (degree > 0) {
+                    remaining.push(nodeId);
+                }
+            }
+            if (remaining.length > 0) {
+                levels.push(remaining);
+            }
         }
 
         return levels;
