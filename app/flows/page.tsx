@@ -308,6 +308,7 @@ export default function FlowsList() {
                             width={300}
                             height={200}
                             className="h-full w-full object-cover"
+                            unoptimized
                         />
                     ) : (
                         <div className="text-muted-foreground text-center">

@@ -559,12 +559,17 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value={MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE}>
-                            Gemini 2.5 Flash Image
+                            Nano Banana (Gemini 2.5 Flash Image)
                         </SelectItem>
                         <SelectItem
                             value={MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW}
                         >
-                            Gemini 3 Pro Image Preview
+                            Nano Banana Pro (Gemini 3 Pro Image Preview)
+                        </SelectItem>
+                        <SelectItem
+                            value={MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW}
+                        >
+                            Nano Banana 2 (Gemini 3.1 Flash Image Preview)
                         </SelectItem>
                     </SelectContent>
                 </Select>

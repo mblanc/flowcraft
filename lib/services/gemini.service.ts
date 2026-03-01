@@ -168,7 +168,8 @@ export class GeminiService {
         options: GenerateImageOptions,
     ): Promise<{ data: string; mimeType: string }> {
         const { prompt, images = [], aspectRatio, model, resolution } = options;
-        const selectedModel = model || MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW;
+        const selectedModel =
+            model || MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW;
 
         logger.info(
             `[GeminiService] Generating image with model: ${selectedModel}`,
