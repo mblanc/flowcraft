@@ -1,0 +1,6 @@
+project_id = "your-project-id"
+region     = "us-central1"
+# auth_secret = "..."
+# auth_google_id = "..."
+# auth_google_secret = "..."
+# next_auth_url = "..."

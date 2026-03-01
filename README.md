@@ -10,7 +10,7 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 - **Generative AI Integration**: First-class support for Gemini (3 Pro, 3 Flash), Nano Banana Pro, and Veo 3.1
 - **Real-time Execution**: Run individual nodes or full workflows with visual feedback and progress tracking
 - **Parallel Processing Engine**: Automatic dependency resolution and smart execution paths
-- **Cloud Native**: Integrates seamlessly with Google Cloud Platform, using Firestore and GCS
+- **Cloud Native**: Infrastructure managed via Terraform, provisioning Cloud Run, Firestore, GCS, and Secret Manager.
 - **Custom Nodes & Sharing**: Convert sub-workflows into custom reusable nodes, and share workflows with public or restricted access via email authentication (NextAuth).
 
 ### Built-in Nodes
@@ -48,6 +48,7 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 
 - **Node.js (Next.js serverless functions)**
 - **Google GenAI SDK** - Core interactions with Vertex AI
+- **Terraform** - Infrastructure as Code (IaC) for reproducible deployments
 - **Google Cloud Run** - Containerized App Hosting
 - **Google Cloud Storage** - Artifact / Asset Storage
 - **Google Cloud Firestore** - NoSQL Database for robust, real-time sync
@@ -100,10 +101,14 @@ AUTH_TRUST_HOST="true"
 
 ### 4. Google Cloud Setup
 
-1. Create a Google Cloud Project & Enable the Vertex AI API
-2. Create a service account with IAM permissions to GCS, Firestore, and Vertex AI.
-3. Download the service account JSON key file.
-4. Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to point to your key file for local testing (or use ADC via `gcloud auth application-default login`).
+1. Create a Google Cloud Project.
+2. Ensure you have the [Terraform CLI](https://developer.hashicorp.com/terraform/downloads) installed.
+3. Authenticate with Google Cloud:
+   ```bash
+   gcloud auth login
+   gcloud auth application-default login
+   ```
+4. Terraform will handle API enablement and IAM permissions during deployment.
 
 ### 5. Run the Local Validation & Dev Server
 
@@ -155,19 +160,27 @@ flowcraft/
 │   ├── workflow-engine.ts # Parallel runner and topological sorter
 │   └── types.ts           # Typescript interfaces
 ├── package.json
-└── deploy.sh              # Cloud Build & Cloud Run automation
+├── terraform/             # Terraform infrastructure definitions
+└── scripts/
+    └── deploy.sh          # Orchestrated Terraform deployment script
 ```
 
 ## 🚀 Deployment
 
-The project contains a pre-configured `deploy.sh` pipeline leveraging Next.js standalone builds to drastically improve caching and bootup times via `cloudbuild.yaml` and `Dockerfile`.
+The project uses Terraform to provision and manage its infrastructure. A helper script is provided to simplify the process.
 
-1. Authenticate with Google Cloud `$ gcloud auth login`
-2. Run the deployment script:
-    ```bash
-    ./deploy.sh
-    ```
-    This will compile the application, build a Docker Linux image, upload it to Artifact Registry, and provision a Cloud Run service configured with the mapped `.env` variables.
+1. **Configure Variables**:
+   Copy the template and fill in your project details:
+   ```bash
+   cp terraform/terraform.tfvars.template terraform/terraform.tfvars
+   ```
+   Edit `terraform/terraform.tfvars` with your `project_id`, OAuth credentials, and other secrets.
+
+2. **Run the Deployment**:
+   ```bash
+   ./scripts/deploy.sh
+   ```
+   This script will initialize Terraform, create a build plan, and apply it to provision all necessary GCP resources, build the Docker image via Cloud Build, and deploy to Cloud Run.
 
 ## 🤝 Contributing
 
