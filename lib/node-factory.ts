@@ -61,6 +61,8 @@ export function createNode(
                     aspectRatio: DEFAULTS.ASPECT_RATIO,
                     model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
                     resolution: DEFAULTS.IMAGE_RESOLUTION,
+                    groundingGoogleSearch: false,
+                    groundingImageSearch: false,
                 } as ImageData,
             };
         case "video":

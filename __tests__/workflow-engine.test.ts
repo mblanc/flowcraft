@@ -72,6 +72,8 @@ describe("WorkflowEngine", () => {
                         aspectRatio: "16:9",
                         model: "gemini-2.5-flash-image",
                         resolution: "1K",
+                        groundingGoogleSearch: false,
+                        groundingImageSearch: false,
                         name: "Image",
                     } as FlowImageData,
                     position: { x: 0, y: 0 },

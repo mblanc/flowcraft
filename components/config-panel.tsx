@@ -440,11 +440,70 @@ function LLMConfig({ data, nodeId }: { data: LLMData; nodeId: string }) {
     );
 }
 
+const IMAGE_MODEL_CONFIGS = {
+    [MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE]: {
+        ratios: [
+            "1:1",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        resolutions: ["1K"],
+        grounding: { google: true, image: false },
+    },
+    [MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW]: {
+        ratios: [
+            "1:1",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        resolutions: ["1K", "2K", "4K"],
+        grounding: { google: true, image: false },
+    },
+    [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW]: {
+        ratios: [
+            "1:1",
+            "1:4",
+            "1:8",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        resolutions: ["512", "1K", "2K", "4K"],
+        grounding: { google: true, image: true },
+    },
+} as const;
+
 function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
     const updateNodeData = useFlowStore(
         (state: FlowState) => state.updateNodeData,
     );
     const [signedImageUrls, setSignedImageUrls] = useState<string[]>([]);
+
+    const currentModelConfig =
+        IMAGE_MODEL_CONFIGS[data.model as keyof typeof IMAGE_MODEL_CONFIGS] ||
+        IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW];
 
     useEffect(() => {
         const fetchSignedUrls = async () => {
@@ -489,6 +548,31 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
         updateNodeData(nodeId, { images: newImages });
     };
 
+    const handleModelChange = (value: string) => {
+        const newModel = value as keyof typeof IMAGE_MODEL_CONFIGS;
+        const config = IMAGE_MODEL_CONFIGS[newModel];
+        const updates: Partial<ImageData> = { model: newModel };
+
+        // Reset ratio if not supported
+        if (!(config.ratios as readonly string[]).includes(data.aspectRatio)) {
+            updates.aspectRatio = config.ratios[0] as ImageData["aspectRatio"];
+        }
+
+        // Reset resolution if not supported
+        if (
+            !(config.resolutions as readonly string[]).includes(data.resolution)
+        ) {
+            updates.resolution = config
+                .resolutions[0] as ImageData["resolution"];
+        }
+
+        // Reset grounding if not supported
+        if (!config.grounding.google) updates.groundingGoogleSearch = false;
+        if (!config.grounding.image) updates.groundingImageSearch = false;
+
+        updateNodeData(nodeId, updates);
+    };
+
     return (
         <div className="space-y-6">
             <div className="space-y-2">
@@ -517,43 +601,8 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="aspectRatio">Aspect Ratio</Label>
-                <Select
-                    value={data.aspectRatio}
-                    onValueChange={(value) =>
-                        updateNodeData(nodeId, {
-                            aspectRatio: value as "16:9" | "9:16",
-                        })
-                    }
-                >
-                    <SelectTrigger>
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="16:9">16:9</SelectItem>
-                        <SelectItem value="9:16">9:16</SelectItem>
-                        <SelectItem value="1:1">1:1</SelectItem>
-                        <SelectItem value="3:2">3:2</SelectItem>
-                        <SelectItem value="2:3">2:3</SelectItem>
-                        <SelectItem value="4:3">4:3</SelectItem>
-                        <SelectItem value="3:4">3:4</SelectItem>
-                        <SelectItem value="5:4">5:4</SelectItem>
-                        <SelectItem value="4:5">4:5</SelectItem>
-                        <SelectItem value="21:9">21:9</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="space-y-2">
                 <Label htmlFor="model">Model</Label>
-                <Select
-                    value={data.model}
-                    onValueChange={(value) =>
-                        updateNodeData(nodeId, {
-                            model: value as ImageData["model"],
-                        })
-                    }
-                >
+                <Select value={data.model} onValueChange={handleModelChange}>
                     <SelectTrigger>
                         <SelectValue />
                     </SelectTrigger>
@@ -576,12 +625,12 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="resolution">Resolution</Label>
+                <Label htmlFor="aspectRatio">Aspect Ratio</Label>
                 <Select
-                    value={data.resolution}
+                    value={data.aspectRatio}
                     onValueChange={(value) =>
                         updateNodeData(nodeId, {
-                            resolution: value as "1K" | "2K",
+                            aspectRatio: value as ImageData["aspectRatio"],
                         })
                     }
                 >
@@ -589,11 +638,80 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="1K">1K</SelectItem>
-                        <SelectItem value="2K">2K</SelectItem>
-                        <SelectItem value="4K">4K</SelectItem>
+                        {currentModelConfig.ratios.map((ratio) => (
+                            <SelectItem key={ratio} value={ratio}>
+                                {ratio}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="resolution">Resolution</Label>
+                <Select
+                    value={data.resolution}
+                    onValueChange={(value) =>
+                        updateNodeData(nodeId, {
+                            resolution: value as ImageData["resolution"],
+                        })
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {currentModelConfig.resolutions.map((res) => (
+                            <SelectItem key={res} value={res}>
+                                {res}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="border-border space-y-4 border-t pt-4">
+                <Label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                    Grounding Options
+                </Label>
+
+                <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="google-search">Google Search</Label>
+                        <div className="text-muted-foreground text-[10px]">
+                            Use Google Search for grounding
+                        </div>
+                    </div>
+                    <Switch
+                        id="google-search"
+                        disabled={!currentModelConfig.grounding.google}
+                        checked={data.groundingGoogleSearch}
+                        onCheckedChange={(checked) =>
+                            updateNodeData(nodeId, {
+                                groundingGoogleSearch: checked,
+                            })
+                        }
+                    />
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="image-search">Image Search</Label>
+                        <div className="text-muted-foreground text-[10px]">
+                            Use Image Search for grounding
+                        </div>
+                    </div>
+                    <Switch
+                        id="image-search"
+                        disabled={!currentModelConfig.grounding.image}
+                        checked={data.groundingImageSearch}
+                        onCheckedChange={(checked) =>
+                            updateNodeData(nodeId, {
+                                groundingImageSearch: checked,
+                            })
+                        }
+                    />
+                </div>
             </div>
 
             <div className="space-y-4">

@@ -43,6 +43,8 @@ describe("NodeRegistry - Port Type Resolution", () => {
                 aspectRatio: "1:1",
                 model: "gemini-2.5-flash-image",
                 resolution: "1K",
+                groundingGoogleSearch: false,
+                groundingImageSearch: false,
             } as ImageData,
             position: { x: 0, y: 0 },
         };
@@ -140,6 +142,8 @@ describe("NodeRegistry - LLMNode gatherInputs", () => {
                     aspectRatio: "1:1",
                     model: "gemini-2.5-flash-image",
                     resolution: "1K",
+                    groundingGoogleSearch: false,
+                    groundingImageSearch: false,
                 } as ImageData,
                 position: { x: 0, y: 0 },
             },

@@ -8,6 +8,8 @@ import {
     VideoGenerationReferenceType,
     Image as GeminiImage,
     GenerateContentConfig,
+    Tool,
+    SearchTypes,
 } from "@google/genai";
 import logger from "@/app/logger";
 import { config } from "../config";
@@ -41,6 +43,8 @@ export interface GenerateImageOptions {
     aspectRatio?: string;
     model?: string;
     resolution?: string;
+    groundingGoogleSearch?: boolean;
+    groundingImageSearch?: boolean;
 }
 
 export interface GenerateVideoOptions {
@@ -167,7 +171,15 @@ export class GeminiService {
     async generateImage(
         options: GenerateImageOptions,
     ): Promise<{ data: string; mimeType: string }> {
-        const { prompt, images = [], aspectRatio, model, resolution } = options;
+        const {
+            prompt,
+            images = [],
+            aspectRatio,
+            model,
+            resolution,
+            groundingGoogleSearch,
+            groundingImageSearch,
+        } = options;
         const selectedModel =
             model || MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW;
 
@@ -192,30 +204,36 @@ export class GeminiService {
         logger.info(
             `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
         );
-        logger.info(
-            `[GeminiService] Config: ${JSON.stringify(
+        const generateContentConfig: GenerateContentConfig = {
+            responseModalities: ["IMAGE"],
+            imageConfig: {
+                aspectRatio: aspectRatio as string,
+                imageSize: resolution as string,
+            },
+        };
+
+        if (groundingGoogleSearch || groundingImageSearch) {
+            const searchTypes: SearchTypes = {};
+            if (groundingGoogleSearch) searchTypes.webSearch = {};
+            if (groundingImageSearch) searchTypes.imageSearch = {};
+
+            generateContentConfig.tools = [
                 {
-                    responseModalities: ["IMAGE"],
-                    imageConfig: {
-                        aspectRatio: aspectRatio as string,
-                        imageSize: resolution as string,
+                    googleSearch: {
+                        searchTypes,
                     },
-                },
-                null,
-                2,
-            )}`,
+                } as Tool,
+            ];
+        }
+
+        logger.info(
+            `[GeminiService] Config: ${JSON.stringify(generateContentConfig, null, 2)}`,
         );
 
         const response = await this.ai.models.generateContent({
             model: selectedModel,
             contents,
-            config: {
-                responseModalities: ["IMAGE"],
-                imageConfig: {
-                    aspectRatio: aspectRatio as string,
-                    imageSize: resolution as string,
-                },
-            },
+            config: generateContentConfig,
         });
 
         if (!response.candidates || response.candidates.length === 0) {

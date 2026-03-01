@@ -104,10 +104,10 @@ AUTH_TRUST_HOST="true"
 1. Create a Google Cloud Project.
 2. Ensure you have the [Terraform CLI](https://developer.hashicorp.com/terraform/downloads) installed.
 3. Authenticate with Google Cloud:
-   ```bash
-   gcloud auth login
-   gcloud auth application-default login
-   ```
+    ```bash
+    gcloud auth login
+    gcloud auth application-default login
+    ```
 4. Terraform will handle API enablement and IAM permissions during deployment.
 
 ### 5. Run the Local Validation & Dev Server
@@ -171,16 +171,18 @@ The project uses Terraform to provision and manage its infrastructure. A helper 
 
 1. **Configure Variables**:
    Copy the template and fill in your project details:
-   ```bash
-   cp terraform/terraform.tfvars.template terraform/terraform.tfvars
-   ```
-   Edit `terraform/terraform.tfvars` with your `project_id`, OAuth credentials, and other secrets.
+
+    ```bash
+    cp terraform/terraform.tfvars.template terraform/terraform.tfvars
+    ```
+
+    Edit `terraform/terraform.tfvars` with your `project_id`, OAuth credentials, and other secrets.
 
 2. **Run the Deployment**:
-   ```bash
-   ./scripts/deploy.sh
-   ```
-   This script will initialize Terraform, create a build plan, and apply it to provision all necessary GCP resources, build the Docker image via Cloud Build, and deploy to Cloud Run.
+    ```bash
+    ./scripts/deploy.sh
+    ```
+    This script will initialize Terraform, create a build plan, and apply it to provision all necessary GCP resources, build the Docker image via Cloud Build, and deploy to Cloud Run.
 
 ## 🤝 Contributing
 
