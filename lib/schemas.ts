@@ -21,6 +21,7 @@ const ImageDataAspectRatioSchema = z.enum([
 const ImageDataModelSchema = z.enum([
     MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
     MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW,
+    MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
 ]);
 
 const ImageDataResolutionSchema = z.enum(["1K", "2K", "4K"]);
@@ -190,7 +191,7 @@ export const GenerateImageSchema = z.object({
         DEFAULTS.ASPECT_RATIO,
     ),
     model: ImageDataModelSchema.optional().default(
-        MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW,
+        MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
     ),
     resolution: ImageDataResolutionSchema.optional().default(
         DEFAULTS.IMAGE_RESOLUTION,

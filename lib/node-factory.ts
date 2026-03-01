@@ -59,7 +59,7 @@ export function createNode(
                     prompt: "",
                     images: [],
                     aspectRatio: DEFAULTS.ASPECT_RATIO,
-                    model: MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW,
+                    model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
                     resolution: DEFAULTS.IMAGE_RESOLUTION,
                 } as ImageData,
             };
