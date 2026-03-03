@@ -37,3 +37,37 @@ export function formatZodError(error: ZodError) {
         message: issue.message,
     }));
 }
+
+export function handleApiError(error: unknown, fallbackMessage: string) {
+    logger.error(`[SERVER] ${fallbackMessage}:`, error);
+
+    let status = 500;
+    let errorMessage = fallbackMessage;
+
+    if (error instanceof Error) {
+        errorMessage = error.message;
+        if (
+            errorMessage.includes("429") ||
+            errorMessage.includes("Quota") ||
+            ("status" in error && (error as { status: number }).status === 429)
+        ) {
+            status = 429;
+        }
+    } else if (
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error
+    ) {
+        if ((error as { status: number }).status === 429) {
+            status = 429;
+        }
+    }
+
+    return NextResponse.json(
+        {
+            error: errorMessage,
+            details: error instanceof Error ? error.message : String(error),
+        },
+        { status },
+    );
+}

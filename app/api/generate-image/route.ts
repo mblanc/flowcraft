@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { withAuth, formatZodError } from "@/lib/api-utils";
+import { withAuth, formatZodError, handleApiError } from "@/lib/api-utils";
 import { GenerateImageSchema } from "@/lib/schemas";
 import { geminiService } from "@/lib/services/gemini.service";
 import { storageService } from "@/lib/services/storage.service";
@@ -41,37 +41,6 @@ export const POST = withAuth(async (req) => {
             prompt,
         });
     } catch (error) {
-        logger.error("[SERVER] Error generating image:", error);
-
-        let status = 500;
-        let errorMessage = "Failed to generate image";
-
-        if (error instanceof Error) {
-            errorMessage = error.message;
-            if (
-                errorMessage.includes("429") ||
-                errorMessage.includes("Quota") ||
-                ("status" in error &&
-                    (error as { status: number }).status === 429)
-            ) {
-                status = 429;
-            }
-        } else if (
-            typeof error === "object" &&
-            error !== null &&
-            "status" in error
-        ) {
-            if ((error as { status: number }).status === 429) {
-                status = 429;
-            }
-        }
-
-        return NextResponse.json(
-            {
-                error: errorMessage,
-                details: error instanceof Error ? error.message : String(error),
-            },
-            { status },
-        );
+        return handleApiError(error, "Error generating image");
     }
 });
