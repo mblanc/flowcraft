@@ -10,6 +10,56 @@ import { Node } from "@xyflow/react";
 import { ExecutionContext } from "./node-registry";
 import { withRetry } from "./retry";
 
+async function withNodeRetry<T>(
+    nodeId: string,
+    fn: () => Promise<T>,
+    context?: ExecutionContext,
+    maxRetries = 3,
+): Promise<T> {
+    try {
+        const data = await withRetry(fn, {
+            maxRetries,
+            onRetry: (attempt, error, delay) => {
+                const status =
+                    typeof error === "object" &&
+                    error !== null &&
+                    "status" in error
+                        ? (error as { status: number }).status
+                        : undefined;
+
+                if (status === 429) {
+                    const msg = `High traffic detected! Our AI artists are working overtime. Retrying in a moment... (Attempt ${attempt}/${maxRetries})`;
+                    context?.onNodeUpdate?.(nodeId, { error: msg });
+                } else {
+                    context?.onNodeUpdate?.(nodeId, {
+                        error: `Generation failed. Retrying in a moment... (Attempt ${attempt}/${maxRetries})`,
+                    });
+                }
+                logger.warn(
+                    `[Executor] Attempt ${attempt} failed for node ${nodeId}. Retrying in ${Math.round(delay)}ms...`,
+                    error,
+                );
+            },
+        });
+
+        // On success, clear any preceding retry errors
+        context?.onNodeUpdate?.(nodeId, { error: undefined });
+        return data;
+    } catch (error) {
+        const status =
+            typeof error === "object" && error !== null && "status" in error
+                ? (error as { status: number }).status
+                : undefined;
+
+        if (status === 429) {
+            const finalErr = `High traffic detected! Our AI artists are working overtime. Please try again later.`;
+            context?.onNodeUpdate?.(nodeId, { error: finalErr });
+            throw new Error(finalErr);
+        }
+        throw error;
+    }
+}
+
 export async function executeLLMNode(
     node: Node<LLMData>,
     inputs: { prompts?: string[]; files?: { url: string; type: string }[] },
@@ -74,7 +124,7 @@ export async function executeImageNode(
 
     logger.info(`[Executor] Generating image with prompt: ${finalPrompt}`);
 
-    const generateFn = async () => {
+    const data = await withNodeRetry(node.id, async () => {
         const response = await fetcher("/api/generate-image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -94,48 +144,8 @@ export async function executeImageNode(
             throw error;
         }
 
-        // On success, clear any preceding retry errors
-        context?.onNodeUpdate?.(node.id, { error: undefined });
         return response.json();
-    };
-
-    let data;
-    try {
-        data = await withRetry(generateFn, {
-            maxRetries: 3,
-            onRetry: (attempt, error, delay) => {
-                const status =
-                    typeof error === "object" &&
-                    error !== null &&
-                    "status" in error
-                        ? (error as { status: number }).status
-                        : undefined;
-                if (status === 429) {
-                    const msg = `High traffic detected! Our AI artists are working overtime. Retrying in a moment... (Attempt ${attempt}/3)`;
-                    context?.onNodeUpdate?.(node.id, { error: msg });
-                } else {
-                    context?.onNodeUpdate?.(node.id, {
-                        error: `Generation failed. Retrying in a moment... (Attempt ${attempt}/3)`,
-                    });
-                }
-                logger.warn(
-                    `[Executor] Attempt ${attempt} failed for image node ${node.id}. Retrying in ${Math.round(delay)}ms...`,
-                    error,
-                );
-            },
-        });
-    } catch (error) {
-        const status =
-            typeof error === "object" && error !== null && "status" in error
-                ? (error as { status: number }).status
-                : undefined;
-        if (status === 429) {
-            const finalErr = `High traffic detected! Our AI artists are working overtime. Please try again later.`;
-            context?.onNodeUpdate?.(node.id, { error: finalErr });
-            throw new Error(finalErr);
-        }
-        throw error;
-    }
+    }, context);
 
     return { images: [data.imageUrl] };
 }
@@ -160,28 +170,33 @@ export async function executeVideoNode(
 
     logger.info(`[Executor] Generating video with prompt: ${finalPrompt}`);
 
-    const response = await fetcher("/api/generate-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            prompt: finalPrompt,
-            firstFrame,
-            lastFrame,
-            images: images || [],
-            aspectRatio: node.data.aspectRatio,
-            duration: node.data.duration,
-            model: node.data.model,
-            generateAudio: node.data.generateAudio,
-            resolution: node.data.resolution,
-        }),
-    });
+    const data = await withNodeRetry(node.id, async () => {
+        const response = await fetcher("/api/generate-video", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                prompt: finalPrompt,
+                firstFrame,
+                lastFrame,
+                images: images || [],
+                aspectRatio: node.data.aspectRatio,
+                duration: node.data.duration,
+                model: node.data.model,
+                generateAudio: node.data.generateAudio,
+                resolution: node.data.resolution,
+            }),
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to generate video: ${errorText}`);
-    }
+        if (!response.ok) {
+            const errorText = await response.text();
+            const error = new Error(`Failed to generate video: ${errorText}`);
+            Object.assign(error, { status: response.status });
+            throw error;
+        }
 
-    const data = await response.json();
+        return response.json();
+    }, context);
+
     return {
         videoUrl: data.videoUrl,
         firstFrame,
