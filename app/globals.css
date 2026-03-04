@@ -43,26 +43,26 @@
 }
 
 .dark {
-    --background: #18181b;
+    --background: #171717;
     --foreground: #fafafa;
-    --canvas-bg: #000000;
-    --canvas-dots: #71717a;
-    --card: #52525b;
+    --canvas-bg: #171717;
+    --canvas-dots: #404040;
+    --card: #262626;
     --card-foreground: #fafafa;
-    --popover: #3f3f46;
+    --popover: #262626;
     --popover-foreground: #fafafa;
     --primary: #3b82f6;
     --primary-foreground: #ffffff;
-    --secondary: #27272a;
+    --secondary: #262626;
     --secondary-foreground: #fafafa;
-    --muted: #27272a;
+    --muted: #262626;
     --muted-foreground: #a1a1aa;
-    --accent: #52525b;
+    --accent: #404040;
     --accent-foreground: #fafafa;
     --destructive: #7f1d1d;
     --destructive-foreground: #fafafa;
-    --border: #71717a;
-    --input: #52525b;
+    --border: #404040;
+    --input: #404040;
     --ring: #3b82f6;
     --chart-1: #2662d9;
     --chart-2: #2eb88a;
@@ -231,11 +231,11 @@
 @keyframes pulse-bg {
     0%,
     100% {
-        background-color: rgb(255, 255, 255);
+        background-color: var(--card);
     }
 
     50% {
-        background-color: rgb(200, 200, 200);
+        background-color: var(--accent);
     }
 }
 

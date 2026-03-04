@@ -10,7 +10,14 @@ import { useFlowStore } from "@/lib/store/use-flow-store";
 import Image from "next/image";
 import { MediaViewer } from "@/components/media-viewer";
 import logger from "@/app/logger";
-import { PdfPreview } from "./pdf-preview";
+import dynamic from "next/dynamic";
+
+const PdfPreview = dynamic(
+    () => import("./pdf-preview").then((mod) => mod.PdfPreview),
+    {
+        ssr: false,
+    },
+);
 
 export const FileNode = memo(
     ({ data, selected, id }: NodeProps<Node<FileData>>) => {
