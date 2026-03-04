@@ -140,12 +140,23 @@ export const LLMNode = memo(
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
-                } ${data.executing ? "animate-pulse-bg" : ""}`}
+                }`}
                 style={{
                     width: dimensions.width,
                     minHeight: dimensions.height,
                 }}
             >
+                {data.executing && (
+                    <div
+                        className="border-beam-glow"
+                        style={
+                            {
+                                "--beam-color": "var(--primary)",
+                            } as React.CSSProperties
+                        }
+                    />
+                )}
+
                 <Handle
                     type="target"
                     position={Position.Left}

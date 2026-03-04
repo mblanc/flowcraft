@@ -157,9 +157,18 @@ export const UpscaleNode = memo(
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
-                } ${data.executing ? "animate-pulse-bg" : ""}`}
+                }`}
                 style={{ width: dimensions.width }}
             >
+                {data.executing && (
+                    <div
+                        className="border-beam-glow"
+                        style={
+                            { "--beam-color": "#ef4444" } as React.CSSProperties
+                        }
+                    />
+                )}
+
                 {/* Image Input Handle */}
                 <Handle
                     type="target"

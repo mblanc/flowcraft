@@ -173,9 +173,18 @@ export const VideoNode = memo(
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
-                } ${data.executing ? "animate-pulse-bg" : ""}`}
+                }`}
                 style={{ width: dimensions.width }}
             >
+                {data.executing && (
+                    <div
+                        className="border-beam-glow"
+                        style={
+                            { "--beam-color": "#ec4899" } as React.CSSProperties
+                        }
+                    />
+                )}
+
                 {/* Prompt Input Handle */}
                 <Handle
                     type="target"

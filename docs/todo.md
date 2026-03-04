@@ -1,5 +1,4 @@
-- Dark mode : canvas bg #171717 node color #262626, borders #404040
-- Node execution animation (Edges animation when generating)
+
 - Left sidebar redesign
 - UI node, parameters as capsules on nodes
 

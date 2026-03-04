@@ -199,6 +199,15 @@ export const TextNode = memo(
                 }`}
                 style={{ width: dimensions.width }}
             >
+                {"executing" in data && data.executing && (
+                    <div
+                        className="border-beam-glow"
+                        style={
+                            { "--beam-color": "#a855f7" } as React.CSSProperties
+                        }
+                    />
+                )}
+
                 <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-purple-500/10">
                         <FileText className="h-5 w-5 text-purple-400" />

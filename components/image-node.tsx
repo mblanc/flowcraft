@@ -279,9 +279,18 @@ export const ImageNode = memo(
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
-                } ${data.executing ? "animate-pulse-bg" : ""}`}
+                }`}
                 style={{ width: dimensions.width }}
             >
+                {data.executing && (
+                    <div
+                        className="border-beam-glow"
+                        style={
+                            { "--beam-color": "#f97316" } as React.CSSProperties
+                        }
+                    />
+                )}
+
                 {/* Prompt Input Handle */}
                 <Handle
                     type="target"

@@ -349,9 +349,18 @@ export const CustomWorkflowNode = memo(
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
-                } ${data.executing ? "animate-pulse-bg" : ""}`}
+                }`}
                 style={{ width: dimensions.width }}
             >
+                {data.executing && (
+                    <div
+                        className="border-beam-glow"
+                        style={
+                            { "--beam-color": "#3b82f6" } as React.CSSProperties
+                        }
+                    />
+                )}
+
                 <div className="border-border mb-2 flex items-center gap-3 border-b pb-2">
                     <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-blue-500/10">
                         <Box className="h-4 w-4 text-blue-400" />

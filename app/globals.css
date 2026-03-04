@@ -227,20 +227,41 @@
     height: 16px !important;
 }
 
-/* Added pulsing background animation for executing image nodes */
-@keyframes pulse-bg {
-    0%,
-    100% {
-        background-color: var(--card);
+/* Rolling border glow animation for executing nodes */
+@keyframes rotate-beam {
+    from {
+        --angle: 0deg;
     }
 
-    50% {
-        background-color: var(--accent);
+    to {
+        --angle: 360deg;
     }
 }
 
-.animate-pulse-bg {
-    animation: pulse-bg 2s ease-in-out infinite;
+@property --angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
+.border-beam-glow {
+    position: absolute;
+    inset: -4px;
+    border-radius: calc(var(--radius) + 4px);
+    padding: 4px;
+    background: conic-gradient(
+        from var(--angle),
+        transparent 60%,
+        var(--beam-color, var(--primary)) 100%
+    );
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    animation: rotate-beam 2.5s linear infinite;
+    pointer-events: none;
+    z-index: 10;
+    filter: drop-shadow(0 0 8px var(--beam-color, var(--primary)));
 }
 
 /* Port type handle colors */

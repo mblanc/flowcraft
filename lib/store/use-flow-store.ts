@@ -117,18 +117,29 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
     updateNodeData: (nodeId, data) => {
         const { nodes, selectedNode } = get();
-        const updatedNodes = nodes.map((node) =>
-            node.id === nodeId
-                ? { ...node, data: { ...node.data, ...data } as NodeData }
-                : node,
-        ) as Node<NodeData>[];
+
+        // Automatically deselect if execution starts
+        const isExecuting = data.executing === true;
+
+        const updatedNodes = nodes.map((node) => {
+            if (node.id === nodeId) {
+                return {
+                    ...node,
+                    selected: isExecuting ? false : node.selected,
+                    data: { ...node.data, ...data } as NodeData,
+                };
+            }
+            return node;
+        }) as Node<NodeData>[];
 
         const updatedSelectedNode =
             selectedNode?.id === nodeId
-                ? {
-                      ...selectedNode,
-                      data: { ...selectedNode.data, ...data } as NodeData,
-                  }
+                ? isExecuting
+                    ? null
+                    : {
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...data } as NodeData,
+                      }
                 : selectedNode;
 
         set({ nodes: updatedNodes, selectedNode: updatedSelectedNode });
