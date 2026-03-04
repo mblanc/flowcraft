@@ -10,7 +10,6 @@ import {
     type Node,
     type Edge,
     type ReactFlowInstance,
-    type Connection,
     Background,
     BackgroundVariant,
     SelectionMode,
@@ -35,6 +34,7 @@ import {
     CustomNodePort,
     FileData,
 } from "@/lib/types";
+import { FloatingNodePalette } from "./floating-node-palette";
 import {
     getSourcePortType,
     getTargetPortType,
@@ -42,12 +42,6 @@ import {
 } from "@/lib/node-registry";
 import { isTypeCompatible } from "@/lib/utils";
 import { Button } from "./ui/button";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "./ui/tooltip";
 import {
     Bot,
     FileText,
@@ -60,8 +54,6 @@ import {
     LogIn,
     LogOut,
     Box,
-    ChevronDown,
-    ChevronRight,
     MousePointer2,
     Hand,
 } from "lucide-react";
@@ -235,7 +227,6 @@ export function FlowCanvas() {
     const [mode, setMode] = useState<"selection" | "hand">("hand");
 
     const [customNodes, setCustomNodes] = useState<CustomNodeItem[]>([]);
-    const [customNodesExpanded, setCustomNodesExpanded] = useState(true);
     const isCustomNodeEditor = entityType === "custom-node";
 
     // Fetch custom nodes for the palette
@@ -256,10 +247,15 @@ export function FlowCanvas() {
             }
         };
         fetchCustomNodes();
-    }, [flowId]);
+    }, [flowId, entityType]);
 
     const isValidConnection = useCallback(
-        (connection: Connection | Edge) => {
+        (connection: {
+            source: string;
+            target: string;
+            sourceHandle?: string | null;
+            targetHandle?: string | null;
+        }) => {
             const sourceNode = nodes.find((n) => n.id === connection.source);
             const targetNode = nodes.find((n) => n.id === connection.target);
 
@@ -278,7 +274,6 @@ export function FlowCanvas() {
         },
         [nodes],
     );
-
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(
         null,
     );
@@ -850,110 +845,19 @@ export function FlowCanvas() {
         };
     });
 
-    const renderNodeButton = (
-        item: (typeof nativeItems)[number] | (typeof workflowIOItems)[number],
-    ) => (
-        <Tooltip key={item.type}>
-            <TooltipTrigger asChild>
-                <div
-                    onDragStart={(event) => onDragStart(event, item.type)}
-                    draggable
-                >
-                    <Button
-                        onClick={() => addNodeWithType(item.type as NodeType)}
-                        size="icon"
-                        variant="ghost"
-                        className={`h-10 w-10 cursor-grab active:cursor-grabbing ${item.color}`}
-                    >
-                        <item.icon className="h-5 w-5" />
-                    </Button>
-                </div>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-                <p>Add {item.label} Node</p>
-            </TooltipContent>
-        </Tooltip>
-    );
-
     return (
         <div className="relative flex h-full flex-1">
             {isEditable && (
-                <aside className="border-border bg-card z-10 flex w-14 flex-col items-center gap-2 overflow-y-auto border-r py-4">
-                    <TooltipProvider>
-                        {/* Native Nodes */}
-                        {nativeItems.map(renderNodeButton)}
-
-                        {/* Workflow I/O - only show in custom node editor */}
-                        {isCustomNodeEditor && (
-                            <>
-                                <div className="border-border my-2 w-8 border-t" />
-                                {workflowIOItems.map(renderNodeButton)}
-                            </>
-                        )}
-
-                        {/* Custom Nodes Section - only show in flow editor */}
-                        {!isCustomNodeEditor && customNodes.length > 0 && (
-                            <>
-                                <div className="border-border my-2 w-8 border-t" />
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            onClick={() =>
-                                                setCustomNodesExpanded(
-                                                    !customNodesExpanded,
-                                                )
-                                            }
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8 text-purple-500"
-                                        >
-                                            {customNodesExpanded ? (
-                                                <ChevronDown className="h-4 w-4" />
-                                            ) : (
-                                                <ChevronRight className="h-4 w-4" />
-                                            )}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="right">
-                                        <p>Custom Nodes</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                                {customNodesExpanded &&
-                                    customNodes.map((customNode) => (
-                                        <Tooltip key={customNode.id}>
-                                            <TooltipTrigger asChild>
-                                                <div
-                                                    onDragStart={(event) =>
-                                                        onCustomNodeDragStart(
-                                                            event,
-                                                            customNode,
-                                                        )
-                                                    }
-                                                    draggable
-                                                >
-                                                    <Button
-                                                        onClick={() =>
-                                                            handleAddCustomNode(
-                                                                customNode,
-                                                            )
-                                                        }
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-10 w-10 cursor-grab text-purple-500 hover:bg-purple-50 hover:text-purple-600 active:cursor-grabbing dark:hover:bg-purple-950/20"
-                                                    >
-                                                        <Box className="h-5 w-5" />
-                                                    </Button>
-                                                </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="right">
-                                                <p>{customNode.name}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    ))}
-                            </>
-                        )}
-                    </TooltipProvider>
-                </aside>
+                <FloatingNodePalette
+                    nativeItems={nativeItems}
+                    workflowIOItems={workflowIOItems}
+                    customNodes={customNodes}
+                    isCustomNodeEditor={isCustomNodeEditor}
+                    addNodeWithType={addNodeWithType}
+                    onDragStart={onDragStart}
+                    onCustomNodeDragStart={onCustomNodeDragStart}
+                    handleAddCustomNode={handleAddCustomNode}
+                />
             )}
 
             <div
