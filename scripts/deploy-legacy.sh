@@ -6,10 +6,13 @@ REGION="us-central1"
 SERVICE="flowcraft"
 IMAGE_URI="us-central1-docker.pkg.dev/$PROJECT_ID/vertexai/$SERVICE:v1"
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
+
 # 1. Build the container image using Cloud Build
 # Using a config file for caching support.
 echo "Building container image..."
-gcloud builds submit --config cloudbuild.yaml --substitutions _IMAGE_NAME=$IMAGE_URI .
+gcloud builds submit --config "$SCRIPT_DIR/cloudbuild.yaml" --substitutions _IMAGE_NAME=$IMAGE_URI "$PROJECT_ROOT"
 
 # 2. Deploy to Cloud Run
 echo "Deploying to Cloud Run..."

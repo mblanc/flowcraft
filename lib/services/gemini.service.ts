@@ -9,7 +9,6 @@ import {
     Image as GeminiImage,
     GenerateContentConfig,
     Tool,
-    SearchTypes,
 } from "@google/genai";
 import logger from "@/app/logger";
 import { config } from "../config";
@@ -65,14 +64,17 @@ export interface UpscaleImageOptions {
 }
 
 export class GeminiService {
-    private ai: GoogleGenAI;
+    private _ai: GoogleGenAI | null = null;
 
-    constructor() {
-        this.ai = new GoogleGenAI({
-            vertexai: true,
-            project: config.PROJECT_ID,
-            location: config.LOCATION,
-        });
+    private get ai(): GoogleGenAI {
+        if (!this._ai) {
+            this._ai = new GoogleGenAI({
+                vertexai: true,
+                project: config.PROJECT_ID as string,
+                location: config.LOCATION as string,
+            });
+        }
+        return this._ai;
     }
 
     async generateText(options: GenerateTextOptions): Promise<string> {
@@ -213,7 +215,7 @@ export class GeminiService {
         };
 
         if (groundingGoogleSearch || groundingImageSearch) {
-            const searchTypes: SearchTypes = {};
+            const searchTypes: Record<string, any> = {};
             if (groundingGoogleSearch) searchTypes.webSearch = {};
             if (groundingImageSearch) searchTypes.imageSearch = {};
 
