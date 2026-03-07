@@ -18,11 +18,16 @@ import {
 import { Button } from "./ui/button";
 
 export function Sidebar() {
+    const isConfigSidebarOpen = useFlowStore(
+        (state) => state.isConfigSidebarOpen,
+    );
+    const setIsConfigSidebarOpen = useFlowStore(
+        (state) => state.setIsConfigSidebarOpen,
+    );
     const selectedNode = useFlowStore((state) => state.selectedNode);
-    const selectNode = useFlowStore((state) => state.selectNode);
 
-    // Hide sidebar entirely when no node is selected
-    if (!selectedNode) {
+    // Hide sidebar entirely when no node is selected or if it's not explicitly open
+    if (!selectedNode || !isConfigSidebarOpen) {
         return null;
     }
 
@@ -110,7 +115,7 @@ export function Sidebar() {
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0"
-                    onClick={() => selectNode(null)}
+                    onClick={() => setIsConfigSidebarOpen(false)}
                 >
                     <X className="h-4 w-4" />
                 </Button>

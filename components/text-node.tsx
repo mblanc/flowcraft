@@ -5,12 +5,27 @@ import type React from "react";
 import { memo, useState, useEffect, useRef } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { TextData } from "@/lib/types";
-import { FileText } from "lucide-react";
+import {
+    FileText,
+    Play,
+    ChevronDown,
+    FastForward,
+    Loader2,
+    Settings,
+} from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { Textarea } from "./ui/textarea";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useCallback } from "react";
 
 export const TextNode = memo(
     ({ data, selected, id }: NodeProps<Node<TextData>>) => {
+        const selectNode = useFlowStore((state) => state.selectNode);
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const [localText, setLocalText] = useState(data.text);
         const [prevDataText, setPrevDataText] = useState(data.text);
@@ -21,6 +36,8 @@ export const TextNode = memo(
         const [prevDataWidth, setPrevDataWidth] = useState(data.width);
         const [prevDataHeight, setPrevDataHeight] = useState(data.height);
         const [isResizing, setIsResizing] = useState(false);
+        const { executeNode, runFromNode } = useFlowExecution();
+        const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const nodeRef = useRef<HTMLDivElement>(null);
         const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
@@ -137,6 +154,24 @@ export const TextNode = memo(
             e.stopPropagation();
         };
 
+        const handleExecute = useCallback(
+            (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                executeNode(id);
+            },
+            [executeNode, id],
+        );
+
+        const handleRunFromHere = useCallback(
+            (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                runFromNode(id);
+            },
+            [runFromNode, id],
+        );
+
         const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
             e.preventDefault();
             e.stopPropagation();
@@ -208,15 +243,91 @@ export const TextNode = memo(
                     />
                 )}
 
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-purple-500/10">
                         <FileText className="h-5 w-5 text-purple-400" />
                     </div>
 
                     <div className="min-w-0 flex-1 text-left">
-                        <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                            {data.name}
-                        </h3>
+                        <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
+                                {data.name}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                selectNode(id);
+                                                useFlowStore
+                                                    .getState()
+                                                    .setIsConfigSidebarOpen(
+                                                        true,
+                                                    );
+                                            }}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full text-purple-400 transition-colors hover:bg-purple-500/20"
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Settings</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <button
+                                    onClick={handleExecute}
+                                    disabled={
+                                        "executing" in data && data.executing
+                                    }
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-purple-400 transition-colors hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    title="Execute Node"
+                                >
+                                    {"executing" in data && data.executing ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Play
+                                            className="h-4 w-4"
+                                            fill="currentColor"
+                                        />
+                                    )}
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() =>
+                                            setIsRunMenuOpen(!isRunMenuOpen)
+                                        }
+                                        disabled={
+                                            "executing" in data &&
+                                            data.executing
+                                        }
+                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-purple-400 transition-colors hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-purple-500/20" : ""}`}
+                                    >
+                                        <ChevronDown
+                                            className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                    {isRunMenuOpen && (
+                                        <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
+                                            <button
+                                                onClick={(e) => {
+                                                    handleRunFromHere(e);
+                                                    setIsRunMenuOpen(false);
+                                                }}
+                                                disabled={
+                                                    "executing" in data &&
+                                                    data.executing
+                                                }
+                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-purple-400 transition-colors hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <FastForward className="h-3 w-3" />
+                                                Run from here
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                         <div
                             onWheel={(e) => {
                                 e.stopPropagation();

@@ -5,14 +5,39 @@ import type React from "react";
 import { memo, useRef, useEffect, useState, useCallback } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { VideoData } from "@/lib/types";
-import { Video, Play, ChevronDown, FastForward } from "lucide-react";
+import {
+    Video,
+    Play,
+    ChevronDown,
+    FastForward,
+    Loader2,
+    Settings,
+    Volume2,
+    VolumeX,
+} from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
+import { MODELS } from "@/lib/constants";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import logger from "@/app/logger";
 
 export const VideoNode = memo(
     ({ data, selected, id }: NodeProps<Node<VideoData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const selectNode = useFlowStore((state) => state.selectNode);
         const { executeNode, runFromNode } = useFlowExecution();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const [localPrompt, setLocalPrompt] = useState(data.prompt);
@@ -233,15 +258,83 @@ export const VideoNode = memo(
                     Image(s)
                 </div>
 
-                <div className="mb-3 flex items-start gap-3">
+                <div className="mb-3 flex items-center gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-pink-500/10">
                         <Video className="h-5 w-5 text-pink-400" />
                     </div>
 
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                            {data.name}
-                        </h3>
+                        <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
+                                {data.name}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                selectNode(id);
+                                                useFlowStore
+                                                    .getState()
+                                                    .setIsConfigSidebarOpen(
+                                                        true,
+                                                    );
+                                            }}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full text-pink-400 transition-colors hover:bg-pink-500/20"
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Settings</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <button
+                                    onClick={handleExecute}
+                                    disabled={data.executing}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-pink-400 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    title="Execute Node"
+                                >
+                                    {data.executing ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Play
+                                            className="h-4 w-4"
+                                            fill="currentColor"
+                                        />
+                                    )}
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() =>
+                                            setIsRunMenuOpen(!isRunMenuOpen)
+                                        }
+                                        disabled={data.executing}
+                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-pink-400 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-pink-500/20" : ""}`}
+                                    >
+                                        <ChevronDown
+                                            className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                    {isRunMenuOpen && (
+                                        <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
+                                            <button
+                                                onClick={(e) => {
+                                                    handleRunFromHere(e);
+                                                    setIsRunMenuOpen(false);
+                                                }}
+                                                disabled={data.executing}
+                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-pink-400 transition-colors hover:bg-pink-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <FastForward className="h-3 w-3" />
+                                                Run from here
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                         <textarea
                             ref={textareaRef}
                             value={localPrompt}
@@ -251,14 +344,6 @@ export const VideoNode = memo(
                             className="text-muted-foreground focus:text-foreground nodrag mb-2 w-full resize-none overflow-hidden border-none bg-transparent text-xs break-words transition-colors outline-none"
                             rows={1}
                         />
-                        <div className="text-muted-foreground text-xs">
-                            Video {data.videoUrl && "(Generated)"}
-                            {data.executing && (
-                                <span className="ml-2 text-pink-400">
-                                    Generating...
-                                </span>
-                            )}
-                        </div>
                         {data.error && (
                             <div className="text-destructive mt-2 text-xs font-medium">
                                 Error: {data.error}
@@ -281,39 +366,186 @@ export const VideoNode = memo(
                     </div>
                 )}
 
-                <div className="mt-3 flex w-full flex-col gap-1">
-                    <div className="flex w-full">
-                        <button
-                            onClick={handleExecute}
-                            disabled={data.executing}
-                            className="flex flex-1 items-center justify-center gap-2 rounded-l-md border-r border-pink-500/20 bg-pink-500/10 px-3 py-2 text-xs font-medium text-pink-400 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <Play className="h-3 w-3" />
-                            Execute Node
-                        </button>
-                        <button
-                            onClick={() => setIsRunMenuOpen(!isRunMenuOpen)}
-                            disabled={data.executing}
-                            className={`flex items-center justify-center rounded-r-md bg-pink-500/10 px-2 py-2 text-pink-400 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-pink-500/20" : ""}`}
-                        >
-                            <ChevronDown
-                                className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
-                            />
-                        </button>
-                    </div>
-                    {isRunMenuOpen && (
-                        <button
-                            onClick={(e) => {
-                                handleRunFromHere(e);
-                                setIsRunMenuOpen(false);
-                            }}
-                            disabled={data.executing}
-                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-pink-500/20 bg-pink-500/10 px-3 py-2 text-xs font-medium text-pink-400 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <FastForward className="h-3 w-3" />
-                            Run from here
-                        </button>
-                    )}
+                <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={data.model}
+                                        onValueChange={(value) =>
+                                            updateNodeData(id, {
+                                                model: value as VideoData["model"],
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Model" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.VIDEO
+                                                        .VEO_3_1_FAST_PREVIEW
+                                                }
+                                            >
+                                                Veo 3.1 Fast
+                                            </SelectItem>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.VIDEO
+                                                        .VEO_3_1_PRO_PREVIEW
+                                                }
+                                            >
+                                                Veo 3.1 Pro
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Model</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={data.aspectRatio}
+                                        onValueChange={(value) =>
+                                            updateNodeData(id, {
+                                                aspectRatio:
+                                                    value as VideoData["aspectRatio"],
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Ratio" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="16:9">
+                                                16:9
+                                            </SelectItem>
+                                            <SelectItem value="9:16">
+                                                9:16
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Aspect Ratio</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={data.resolution}
+                                        onValueChange={(value) =>
+                                            updateNodeData(id, {
+                                                resolution:
+                                                    value as VideoData["resolution"],
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Res" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="720p">
+                                                720p
+                                            </SelectItem>
+                                            <SelectItem value="1080p">
+                                                1080p
+                                            </SelectItem>
+                                            <SelectItem value="4k">
+                                                4k
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Resolution</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={String(data.duration)}
+                                        onValueChange={(value) =>
+                                            updateNodeData(id, {
+                                                duration: Number(
+                                                    value,
+                                                ) as VideoData["duration"],
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Duration" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="4">
+                                                4s
+                                            </SelectItem>
+                                            <SelectItem value="6">
+                                                6s
+                                            </SelectItem>
+                                            <SelectItem value="8">
+                                                8s
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Duration</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div
+                                    className={`flex h-7 items-center gap-1.5 rounded-full px-1.5 py-1 transition-colors ${data.generateAudio ? "bg-pink-500/10 text-pink-400" : "bg-muted/30 text-muted-foreground opacity-50"}`}
+                                >
+                                    {data.generateAudio ? (
+                                        <Volume2 className="h-3 w-3" />
+                                    ) : (
+                                        <VolumeX className="h-3 w-3" />
+                                    )}
+                                    <Switch
+                                        className="scale-75"
+                                        checked={data.generateAudio}
+                                        onCheckedChange={(checked) =>
+                                            updateNodeData(id, {
+                                                generateAudio: checked,
+                                            })
+                                        }
+                                    />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Generate Audio</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
 
                 {/* Resize handle */}

@@ -2,15 +2,31 @@
 
 import type React from "react";
 
-import { memo, useRef, useState, useEffect } from "react";
+import { memo, useRef, useState, useEffect, useCallback } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { FileData } from "@/lib/types";
-import { FileUp, ImageIcon, Video, FileText } from "lucide-react";
+import {
+    FileUp,
+    Play,
+    ChevronDown,
+    FastForward,
+    Loader2,
+    Settings,
+    ImageIcon,
+    Video,
+    FileText,
+} from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import Image from "next/image";
 import { MediaViewer } from "@/components/media-viewer";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import logger from "@/app/logger";
 import dynamic from "next/dynamic";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 
 const PdfPreview = dynamic(
     () => import("./pdf-preview").then((mod) => mod.PdfPreview),
@@ -21,12 +37,15 @@ const PdfPreview = dynamic(
 
 export const FileNode = memo(
     ({ data, selected, id }: NodeProps<Node<FileData>>) => {
+        const selectNode = useFlowStore((state) => state.selectNode);
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const { executeNode, runFromNode } = useFlowExecution();
         const fileInputRef = useRef<HTMLInputElement>(null);
         const [asyncSignedUrl, setAsyncSignedUrl] = useState<
             string | undefined
         >(undefined);
         const [isMediaOpen, setIsMediaOpen] = useState(false);
+        const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const [prevGcsUri, setPrevGcsUri] = useState(data.gcsUri);
         const [prevFileUrl, setPrevFileUrl] = useState(data.fileUrl);
 
@@ -117,6 +136,24 @@ export const FileNode = memo(
             fileInputRef.current?.click();
         };
 
+        const handleExecute = useCallback(
+            (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                executeNode(id);
+            },
+            [executeNode, id],
+        );
+
+        const handleRunFromHere = useCallback(
+            (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                runFromNode(id);
+            },
+            [runFromNode, id],
+        );
+
         return (
             <div
                 className={`bg-card min-w-[220px] rounded-lg border-2 p-4 shadow-lg transition-all ${
@@ -125,15 +162,91 @@ export const FileNode = memo(
                         : "border-border"
                 }`}
             >
-                <div className="mb-3 flex items-start gap-3">
+                <div className="mb-3 flex items-center gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-cyan-500/10">
                         <FileUp className="h-5 w-5 text-cyan-400" />
                     </div>
 
                     <div className="min-w-0 flex-1 text-left">
-                        <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                            {data.name}
-                        </h3>
+                        <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-foreground truncate text-sm font-semibold">
+                                {data.name}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                selectNode(id);
+                                                useFlowStore
+                                                    .getState()
+                                                    .setIsConfigSidebarOpen(
+                                                        true,
+                                                    );
+                                            }}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full text-cyan-400 transition-colors hover:bg-cyan-500/20"
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Settings</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <button
+                                    onClick={handleExecute}
+                                    disabled={
+                                        "executing" in data && data.executing
+                                    }
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-cyan-400 transition-colors hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    title="Execute Node"
+                                >
+                                    {"executing" in data && data.executing ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Play
+                                            className="h-4 w-4"
+                                            fill="currentColor"
+                                        />
+                                    )}
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() =>
+                                            setIsRunMenuOpen(!isRunMenuOpen)
+                                        }
+                                        disabled={
+                                            "executing" in data &&
+                                            data.executing
+                                        }
+                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-cyan-400 transition-colors hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-cyan-500/20" : ""}`}
+                                    >
+                                        <ChevronDown
+                                            className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                    {isRunMenuOpen && (
+                                        <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
+                                            <button
+                                                onClick={(e) => {
+                                                    handleRunFromHere(e);
+                                                    setIsRunMenuOpen(false);
+                                                }}
+                                                disabled={
+                                                    "executing" in data &&
+                                                    data.executing
+                                                }
+                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-cyan-400 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <FastForward className="h-3 w-3" />
+                                                Run from here
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                         <div className="text-muted-foreground text-xs">
                             {data.fileName ? (
                                 <span className="flex items-center gap-1">

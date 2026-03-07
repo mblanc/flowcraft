@@ -29,6 +29,7 @@ export interface FlowState {
     sharedWith: { email: string; role: "view" | "edit" }[];
     isTemplate: boolean;
     ownerId: string | null;
+    isConfigSidebarOpen: boolean;
 
     // Actions
     setNodes: (nodes: Node<NodeData>[]) => void;
@@ -46,6 +47,7 @@ export interface FlowState {
         sharedWith?: { email: string; role: "view" | "edit" }[];
         isTemplate?: boolean;
     }) => void;
+    setIsConfigSidebarOpen: (isOpen: boolean) => void;
 
     // Node Mutations
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
@@ -86,6 +88,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     sharedWith: [],
     isTemplate: false,
     ownerId: null,
+    isConfigSidebarOpen: false,
 
     setNodes: (nodes) => set({ nodes: migrateNodes(nodes) }),
     setEdges: (edges) => set({ edges }),
@@ -114,6 +117,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     setFlowName: (flowName) => set({ flowName }),
     setEntityType: (entityType) => set({ entityType }),
     setSharing: (data) => set({ ...data }),
+    setIsConfigSidebarOpen: (isConfigSidebarOpen) =>
+        set({ isConfigSidebarOpen }),
 
     updateNodeData: (nodeId, data) => {
         const { nodes, selectedNode } = get();

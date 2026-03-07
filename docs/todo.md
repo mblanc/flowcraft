@@ -40,6 +40,12 @@ NTA
 - Logic Nodes : branch, merge
 - Lyria/Chirp/Gemini 2.5 TTS
 
+- VFX: opentimeline.io
+
 # Custom Nodes
 
 Sharing
+
+# Compete
+
+https://studio.morphic.com/

@@ -6,16 +6,96 @@ import { memo, useRef, useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ImageData } from "@/lib/types";
-import { ImageIcon, Play, ChevronDown, FastForward } from "lucide-react";
+import {
+    ImageIcon,
+    Play,
+    ChevronDown,
+    FastForward,
+    Loader2,
+    Globe,
+    Search,
+    Settings,
+} from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
+import { MODELS } from "@/lib/constants";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { MediaViewer } from "@/components/media-viewer";
 import logger from "@/app/logger";
 
+const IMAGE_MODEL_CONFIGS = {
+    [MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE]: {
+        ratios: [
+            "1:1",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        resolutions: ["1K"],
+        grounding: { google: true, image: false },
+    },
+    [MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW]: {
+        ratios: [
+            "1:1",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        resolutions: ["1K", "2K", "4K"],
+        grounding: { google: true, image: false },
+    },
+    [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW]: {
+        ratios: [
+            "1:1",
+            "1:4",
+            "1:8",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        resolutions: ["512", "1K", "2K", "4K"],
+        grounding: { google: true, image: true },
+    },
+} as const;
+
 export const ImageNode = memo(
     ({ data, selected, id }: NodeProps<Node<ImageData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const selectNode = useFlowStore((state) => state.selectNode);
         const { executeNode, runFromNode } = useFlowExecution();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const nodeRef = useRef<HTMLDivElement>(null);
@@ -215,6 +295,42 @@ export const ImageNode = memo(
             updateNodeData(id, { prompt: localPrompt });
         };
 
+        const handleModelChange = (value: string) => {
+            const newModel = value as keyof typeof IMAGE_MODEL_CONFIGS;
+            const config = IMAGE_MODEL_CONFIGS[newModel];
+            const updates: Partial<ImageData> = { model: newModel };
+
+            // Reset ratio if not supported
+            if (
+                !(config.ratios as readonly string[]).includes(data.aspectRatio)
+            ) {
+                updates.aspectRatio = config
+                    .ratios[0] as ImageData["aspectRatio"];
+            }
+
+            // Reset resolution if not supported
+            if (
+                !(config.resolutions as readonly string[]).includes(
+                    data.resolution,
+                )
+            ) {
+                updates.resolution = config
+                    .resolutions[0] as ImageData["resolution"];
+            }
+
+            // Reset grounding if not supported
+            if (!config.grounding.google) updates.groundingGoogleSearch = false;
+            if (!config.grounding.image) updates.groundingImageSearch = false;
+
+            updateNodeData(id, updates);
+        };
+
+        const currentModelConfig =
+            IMAGE_MODEL_CONFIGS[
+                data.model as keyof typeof IMAGE_MODEL_CONFIGS
+            ] ||
+            IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW];
+
         const handleWheel = (e: React.WheelEvent<HTMLTextAreaElement>) => {
             // Stop propagation to prevent canvas zoom when scrolling text
             e.stopPropagation();
@@ -315,15 +431,83 @@ export const ImageNode = memo(
                     Image(s)
                 </div>
 
-                <div className="mb-3 flex items-start gap-3">
+                <div className="mb-3 flex items-center gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-orange-500/10">
                         <ImageIcon className="h-5 w-5 text-orange-400" />
                     </div>
 
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                            {data.name}
-                        </h3>
+                        <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
+                                {data.name}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                selectNode(id);
+                                                useFlowStore
+                                                    .getState()
+                                                    .setIsConfigSidebarOpen(
+                                                        true,
+                                                    );
+                                            }}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full text-orange-400 transition-colors hover:bg-orange-500/20"
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Settings</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <button
+                                    onClick={handleExecute}
+                                    disabled={data.executing}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    title="Execute Node"
+                                >
+                                    {data.executing ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Play
+                                            className="h-4 w-4"
+                                            fill="currentColor"
+                                        />
+                                    )}
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() =>
+                                            setIsRunMenuOpen(!isRunMenuOpen)
+                                        }
+                                        disabled={data.executing}
+                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-orange-500/20" : ""}`}
+                                    >
+                                        <ChevronDown
+                                            className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                    {isRunMenuOpen && (
+                                        <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
+                                            <button
+                                                onClick={(e) => {
+                                                    handleRunFromHere(e);
+                                                    setIsRunMenuOpen(false);
+                                                }}
+                                                disabled={data.executing}
+                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <FastForward className="h-3 w-3" />
+                                                Run from here
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                         <div
                             onWheel={(e) => {
                                 e.stopPropagation();
@@ -342,16 +526,6 @@ export const ImageNode = memo(
                                 style={{ minHeight: "1.5em", maxHeight: 200 }}
                                 rows={1}
                             />
-                        </div>
-                        <div className="text-muted-foreground text-xs">
-                            Image{" "}
-                            {data.images.length > 0 &&
-                                `(${data.images.length})`}
-                            {data.executing && (
-                                <span className="ml-2 text-orange-400">
-                                    Generating...
-                                </span>
-                            )}
                         </div>
                         {data.error && (
                             <div className="text-destructive mt-2 text-xs font-medium">
@@ -395,39 +569,181 @@ export const ImageNode = memo(
                     </>
                 )}
 
-                <div className="mt-3 flex w-full flex-col gap-1">
-                    <div className="flex w-full">
-                        <button
-                            onClick={handleExecute}
-                            disabled={data.executing}
-                            className="flex flex-1 items-center justify-center gap-2 rounded-l-md border-r border-orange-500/20 bg-orange-500/10 px-3 py-2 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <Play className="h-3 w-3" />
-                            Execute Node
-                        </button>
-                        <button
-                            onClick={() => setIsRunMenuOpen(!isRunMenuOpen)}
-                            disabled={data.executing}
-                            className={`flex items-center justify-center rounded-r-md bg-orange-500/10 px-2 py-2 text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-orange-500/20" : ""}`}
-                        >
-                            <ChevronDown
-                                className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
-                            />
-                        </button>
-                    </div>
-                    {isRunMenuOpen && (
-                        <button
-                            onClick={(e) => {
-                                handleRunFromHere(e);
-                                setIsRunMenuOpen(false);
-                            }}
-                            disabled={data.executing}
-                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-orange-500/20 bg-orange-500/10 px-3 py-2 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <FastForward className="h-3 w-3" />
-                            Run from here
-                        </button>
-                    )}
+                <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={data.model}
+                                        onValueChange={handleModelChange}
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Model" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.IMAGE
+                                                        .GEMINI_2_5_FLASH_IMAGE
+                                                }
+                                            >
+                                                Nano Banana
+                                            </SelectItem>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.IMAGE
+                                                        .GEMINI_3_PRO_IMAGE_PREVIEW
+                                                }
+                                            >
+                                                Nano Banana Pro
+                                            </SelectItem>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.IMAGE
+                                                        .GEMINI_3_1_FLASH_IMAGE_PREVIEW
+                                                }
+                                            >
+                                                Nano Banana 2
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Model</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={data.aspectRatio}
+                                        onValueChange={(value) =>
+                                            updateNodeData(id, {
+                                                aspectRatio:
+                                                    value as ImageData["aspectRatio"],
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Ratio" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {currentModelConfig.ratios.map(
+                                                (ratio) => (
+                                                    <SelectItem
+                                                        key={ratio}
+                                                        value={ratio}
+                                                    >
+                                                        {ratio}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Aspect Ratio</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={data.resolution}
+                                        onValueChange={(value) =>
+                                            updateNodeData(id, {
+                                                resolution:
+                                                    value as ImageData["resolution"],
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Res" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {currentModelConfig.resolutions.map(
+                                                (res) => (
+                                                    <SelectItem
+                                                        key={res}
+                                                        value={res}
+                                                    >
+                                                        {res}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Resolution</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div
+                                    className={`flex h-7 items-center gap-1.5 rounded-full py-1 transition-colors ${data.groundingGoogleSearch ? "bg-blue-500/10 text-blue-400" : "bg-muted/30 text-muted-foreground opacity-50"}`}
+                                >
+                                    <Globe className="h-3 w-3" />
+                                    <Switch
+                                        disabled={
+                                            !currentModelConfig.grounding.google
+                                        }
+                                        className="scale-75"
+                                        checked={data.groundingGoogleSearch}
+                                        onCheckedChange={(checked) =>
+                                            updateNodeData(id, {
+                                                groundingGoogleSearch: checked,
+                                            })
+                                        }
+                                    />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Google Search Grounding</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div
+                                    className={`flex h-7 items-center gap-1.5 rounded-full py-1 transition-colors ${data.groundingImageSearch ? "bg-green-500/10 text-green-400" : "bg-muted/30 text-muted-foreground opacity-50"}`}
+                                >
+                                    <Search className="h-3 w-3" />
+                                    <Switch
+                                        disabled={
+                                            !currentModelConfig.grounding.image
+                                        }
+                                        className="scale-75"
+                                        checked={data.groundingImageSearch}
+                                        onCheckedChange={(checked) =>
+                                            updateNodeData(id, {
+                                                groundingImageSearch: checked,
+                                            })
+                                        }
+                                    />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Image Search Grounding</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
 
                 {/* Resize handle */}

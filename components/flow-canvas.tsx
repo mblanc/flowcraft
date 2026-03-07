@@ -89,6 +89,7 @@ import {
     type OnConnectEnd,
     type OnConnectStart,
 } from "@xyflow/react";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { createNode } from "@/lib/node-factory";
 import { v4 as uuidv4 } from "uuid";
 
@@ -441,6 +442,7 @@ export function FlowCanvas() {
 
     const onPaneClick = useCallback(() => {
         selectNode(null);
+        useFlowStore.getState().setIsConfigSidebarOpen(false);
     }, [selectNode]);
 
     const onDragStart = (event: React.DragEvent, nodeType: string) => {
@@ -871,193 +873,215 @@ export function FlowCanvas() {
                             className="h-full w-full"
                             onContextMenu={handleContextMenu}
                         >
-                            <ReactFlow
-                                nodes={nodes}
-                                edges={highlightedEdges}
-                                onNodesChange={onNodesChange}
-                                onEdgesChange={onEdgesChange}
-                                onConnect={isEditable ? onConnect : undefined}
-                                onConnectStart={
-                                    isEditable ? onConnectStart : undefined
-                                }
-                                onConnectEnd={
-                                    isEditable ? onConnectEnd : undefined
-                                }
-                                onNodeClick={onNodeClick}
-                                onEdgeClick={onEdgeClick}
-                                onPaneClick={onPaneClick}
-                                panOnDrag={mode === "hand" ? true : [2]}
-                                selectionOnDrag={mode === "selection"}
-                                selectionMode={SelectionMode.Partial}
-                                panOnScroll={true}
-                                onInit={setRfInstance}
-                                nodeTypes={nodeTypes}
-                                nodesDraggable={isEditable}
-                                nodesConnectable={isEditable}
-                                elementsSelectable={true}
-                                isValidConnection={isValidConnection}
-                                proOptions={{ hideAttribution: true }}
-                                defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
-                                minZoom={0.1}
-                                maxZoom={2}
-                                className="react-flow"
-                            >
-                                <Background
-                                    color={
-                                        resolvedTheme === "dark"
-                                            ? "#ffffff"
-                                            : "#000000"
+                            <TooltipProvider>
+                                <ReactFlow
+                                    nodes={nodes}
+                                    edges={highlightedEdges}
+                                    onNodesChange={onNodesChange}
+                                    onEdgesChange={onEdgesChange}
+                                    onConnect={
+                                        isEditable ? onConnect : undefined
                                     }
-                                    variant={BackgroundVariant.Dots}
-                                />
-                                <Controls>
-                                    <ControlButton
-                                        onClick={() => setMode("selection")}
-                                        className={
-                                            mode === "selection"
-                                                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                                                : ""
-                                        }
-                                        title="Selection Mode"
-                                    >
-                                        <MousePointer2 className="h-4 w-4" />
-                                    </ControlButton>
-                                    <ControlButton
-                                        onClick={() => setMode("hand")}
-                                        className={
-                                            mode === "hand"
-                                                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                                                : ""
-                                        }
-                                        title="Hand Mode"
-                                    >
-                                        <Hand className="h-4 w-4" />
-                                    </ControlButton>
-                                </Controls>
-                                <Panel
-                                    position="top-right"
-                                    className="bg-card border-border flex gap-2 rounded-lg border p-2"
+                                    onConnectStart={
+                                        isEditable ? onConnectStart : undefined
+                                    }
+                                    onConnectEnd={
+                                        isEditable ? onConnectEnd : undefined
+                                    }
+                                    onNodeClick={onNodeClick}
+                                    onEdgeClick={onEdgeClick}
+                                    onPaneClick={onPaneClick}
+                                    panOnDrag={mode === "hand" ? true : [2]}
+                                    selectionOnDrag={mode === "selection"}
+                                    selectionMode={SelectionMode.Partial}
+                                    panOnScroll={true}
+                                    onInit={setRfInstance}
+                                    nodeTypes={nodeTypes}
+                                    nodesDraggable={isEditable}
+                                    nodesConnectable={isEditable}
+                                    elementsSelectable={true}
+                                    isValidConnection={isValidConnection}
+                                    proOptions={{ hideAttribution: true }}
+                                    defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
+                                    minZoom={0.1}
+                                    maxZoom={2}
+                                    className="react-flow"
                                 >
-                                    <Button
-                                        onClick={runFlow}
-                                        disabled={isRunning}
-                                        size="sm"
-                                        className="bg-green-500 text-white hover:bg-green-600"
+                                    <Background
+                                        color={
+                                            resolvedTheme === "dark"
+                                                ? "#ffffff"
+                                                : "#000000"
+                                        }
+                                        variant={BackgroundVariant.Dots}
+                                    />
+                                    <Controls>
+                                        <ControlButton
+                                            onClick={() => setMode("selection")}
+                                            className={
+                                                mode === "selection"
+                                                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                                    : ""
+                                            }
+                                            title="Selection Mode"
+                                        >
+                                            <MousePointer2 className="h-4 w-4" />
+                                        </ControlButton>
+                                        <ControlButton
+                                            onClick={() => setMode("hand")}
+                                            className={
+                                                mode === "hand"
+                                                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                                    : ""
+                                            }
+                                            title="Hand Mode"
+                                        >
+                                            <Hand className="h-4 w-4" />
+                                        </ControlButton>
+                                    </Controls>
+                                    <Panel
+                                        position="top-right"
+                                        className="bg-card border-border flex gap-2 rounded-lg border p-2"
                                     >
-                                        <Play className="mr-2 h-4 w-4" />
-                                        {isRunning ? "Running..." : "Run Flow"}
-                                    </Button>
-                                    {nodes.some((n) => n.selected) && (
                                         <Button
-                                            onClick={runSelectedNodes}
+                                            onClick={runFlow}
                                             disabled={isRunning}
                                             size="sm"
-                                            variant="outline"
-                                            className="border-green-500 text-green-500 hover:bg-green-50 dark:hover:bg-green-950/20"
+                                            className="bg-green-500 text-white hover:bg-green-600"
                                         >
                                             <Play className="mr-2 h-4 w-4" />
-                                            Run Selected
+                                            {isRunning
+                                                ? "Running..."
+                                                : "Run Flow"}
                                         </Button>
-                                    )}
-                                </Panel>
+                                        {nodes.some((n) => n.selected) && (
+                                            <Button
+                                                onClick={runSelectedNodes}
+                                                disabled={isRunning}
+                                                size="sm"
+                                                variant="outline"
+                                                className="border-green-500 text-green-500 hover:bg-green-50 dark:hover:bg-green-950/20"
+                                            >
+                                                <Play className="mr-2 h-4 w-4" />
+                                                Run Selected
+                                            </Button>
+                                        )}
+                                    </Panel>
 
-                                {dropdownVisualPosition && dropdownPosition && (
-                                    <div
-                                        style={{
-                                            position: "fixed",
-                                            left: dropdownVisualPosition.x,
-                                            top: dropdownVisualPosition.y,
-                                            zIndex: 1000,
-                                            pointerEvents: "none",
-                                        }}
-                                    >
-                                        <div style={{ pointerEvents: "auto" }}>
-                                            <DropdownMenu
-                                                open={dropdownOpen}
-                                                onOpenChange={(open) => {
-                                                    setDropdownOpen(open);
-                                                    if (!open) {
-                                                        clearConnectionParams();
-                                                    }
+                                    {dropdownVisualPosition &&
+                                        dropdownPosition && (
+                                            <div
+                                                style={{
+                                                    position: "fixed",
+                                                    left: dropdownVisualPosition.x,
+                                                    top: dropdownVisualPosition.y,
+                                                    zIndex: 1000,
+                                                    pointerEvents: "none",
                                                 }}
                                             >
-                                                <DropdownMenuTrigger asChild>
-                                                    <div className="h-0 w-0" />
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent
-                                                    className="w-56"
-                                                    align="start"
-                                                    sideOffset={0}
+                                                <div
+                                                    style={{
+                                                        pointerEvents: "auto",
+                                                    }}
                                                 >
-                                                    <DropdownMenuLabel>
-                                                        Connect to Node
-                                                    </DropdownMenuLabel>
-                                                    <DropdownMenuSeparator />
-                                                    {compatibleNodes.native.map(
-                                                        (item) => (
-                                                            <DropdownMenuItem
-                                                                key={item.type}
-                                                                onClick={() =>
-                                                                    handleSelectDropdownNode(
-                                                                        item.type as NodeType,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <item.icon className="mr-2 h-4 w-4" />
-                                                                <span>
-                                                                    {item.label}
-                                                                </span>
-                                                            </DropdownMenuItem>
-                                                        ),
-                                                    )}
-
-                                                    {compatibleNodes.custom
-                                                        .length > 0 && (
-                                                        <>
+                                                    <DropdownMenu
+                                                        open={dropdownOpen}
+                                                        onOpenChange={(
+                                                            open,
+                                                        ) => {
+                                                            setDropdownOpen(
+                                                                open,
+                                                            );
+                                                            if (!open) {
+                                                                clearConnectionParams();
+                                                            }
+                                                        }}
+                                                    >
+                                                        <DropdownMenuTrigger
+                                                            asChild
+                                                        >
+                                                            <div className="h-0 w-0" />
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent
+                                                            className="w-56"
+                                                            align="start"
+                                                            sideOffset={0}
+                                                        >
+                                                            <DropdownMenuLabel>
+                                                                Connect to Node
+                                                            </DropdownMenuLabel>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuSub>
-                                                                <DropdownMenuSubTrigger>
-                                                                    <Box className="mr-2 h-4 w-4" />
-                                                                    <span>
-                                                                        Custom
-                                                                        Nodes
-                                                                    </span>
-                                                                </DropdownMenuSubTrigger>
-                                                                <DropdownMenuSubContent className="w-48">
-                                                                    {compatibleNodes.custom.map(
-                                                                        (
-                                                                            node,
-                                                                        ) => (
-                                                                            <DropdownMenuItem
-                                                                                key={
-                                                                                    node.id
-                                                                                }
-                                                                                onClick={() =>
-                                                                                    handleSelectDropdownNode(
-                                                                                        "custom-workflow",
-                                                                                        node,
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                <Box className="mr-2 h-4 w-4" />
-                                                                                <span>
-                                                                                    {
-                                                                                        node.name
-                                                                                    }
-                                                                                </span>
-                                                                            </DropdownMenuItem>
-                                                                        ),
-                                                                    )}
-                                                                </DropdownMenuSubContent>
-                                                            </DropdownMenuSub>
-                                                        </>
-                                                    )}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </div>
-                                )}
-                            </ReactFlow>
+                                                            {compatibleNodes.native.map(
+                                                                (item) => (
+                                                                    <DropdownMenuItem
+                                                                        key={
+                                                                            item.type
+                                                                        }
+                                                                        onClick={() =>
+                                                                            handleSelectDropdownNode(
+                                                                                item.type as NodeType,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <item.icon className="mr-2 h-4 w-4" />
+                                                                        <span>
+                                                                            {
+                                                                                item.label
+                                                                            }
+                                                                        </span>
+                                                                    </DropdownMenuItem>
+                                                                ),
+                                                            )}
+
+                                                            {compatibleNodes
+                                                                .custom.length >
+                                                                0 && (
+                                                                <>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuSub>
+                                                                        <DropdownMenuSubTrigger>
+                                                                            <Box className="mr-2 h-4 w-4" />
+                                                                            <span>
+                                                                                Custom
+                                                                                Nodes
+                                                                            </span>
+                                                                        </DropdownMenuSubTrigger>
+                                                                        <DropdownMenuSubContent className="w-48">
+                                                                            {compatibleNodes.custom.map(
+                                                                                (
+                                                                                    node,
+                                                                                ) => (
+                                                                                    <DropdownMenuItem
+                                                                                        key={
+                                                                                            node.id
+                                                                                        }
+                                                                                        onClick={() =>
+                                                                                            handleSelectDropdownNode(
+                                                                                                "custom-workflow",
+                                                                                                node,
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <Box className="mr-2 h-4 w-4" />
+                                                                                        <span>
+                                                                                            {
+                                                                                                node.name
+                                                                                            }
+                                                                                        </span>
+                                                                                    </DropdownMenuItem>
+                                                                                ),
+                                                                            )}
+                                                                        </DropdownMenuSubContent>
+                                                                    </DropdownMenuSub>
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            </div>
+                                        )}
+                                </ReactFlow>
+                            </TooltipProvider>
                         </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="w-48">

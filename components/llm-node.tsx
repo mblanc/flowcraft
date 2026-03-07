@@ -5,9 +5,30 @@ import type React from "react";
 import { memo, useRef, useEffect, useState, useCallback } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { LLMData } from "@/lib/types";
-import { Bot, Play, ChevronDown, FastForward } from "lucide-react";
+import {
+    Bot,
+    Play,
+    ChevronDown,
+    FastForward,
+    Loader2,
+    Settings,
+} from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
+import { MODELS } from "@/lib/constants";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const DEFAULT_WIDTH = 220;
 const MIN_WIDTH = 180;
@@ -15,6 +36,7 @@ const MIN_HEIGHT = 150;
 
 export const LLMNode = memo(
     ({ data, selected, id }: NodeProps<Node<LLMData>>) => {
+        const selectNode = useFlowStore((state) => state.selectNode);
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const { executeNode, runFromNode } = useFlowExecution();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -179,19 +201,82 @@ export const LLMNode = memo(
                     File(s)
                 </div>
 
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                     <div className="bg-primary/10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md">
                         <Bot className="text-primary h-5 w-5" />
                     </div>
 
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                            {data.name}
-                        </h3>
-                        <div className="mb-1 flex items-center gap-2">
-                            <span className="font-mono text-xs text-blue-400">
-                                {data.model}
-                            </span>
+                        <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-foreground truncate text-sm font-semibold">
+                                {data.name}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                selectNode(id);
+                                                useFlowStore
+                                                    .getState()
+                                                    .setIsConfigSidebarOpen(
+                                                        true,
+                                                    );
+                                            }}
+                                            className="hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Settings</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <button
+                                    onClick={handleExecute}
+                                    disabled={data.executing}
+                                    className="hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                                    title="Execute Node"
+                                >
+                                    {data.executing ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Play
+                                            className="h-4 w-4"
+                                            fill="currentColor"
+                                        />
+                                    )}
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() =>
+                                            setIsRunMenuOpen(!isRunMenuOpen)
+                                        }
+                                        disabled={data.executing}
+                                        className={`hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-primary/20" : ""}`}
+                                    >
+                                        <ChevronDown
+                                            className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                    {isRunMenuOpen && (
+                                        <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
+                                            <button
+                                                onClick={(e) => {
+                                                    handleRunFromHere(e);
+                                                    setIsRunMenuOpen(false);
+                                                }}
+                                                disabled={data.executing}
+                                                className="hover:bg-primary/10 text-primary flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <FastForward className="h-3 w-3" />
+                                                Run from here
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                         <textarea
                             ref={textareaRef}
@@ -207,11 +292,6 @@ export const LLMNode = memo(
                                     : undefined
                             }
                         />
-                        {data.executing && (
-                            <div className="text-primary mt-2 text-xs">
-                                Generating...
-                            </div>
-                        )}
                         {data.error && (
                             <div className="text-destructive mt-2 text-xs font-medium">
                                 Error: {data.error}
@@ -238,39 +318,71 @@ export const LLMNode = memo(
                     </div>
                 )}
 
-                <div className="mt-3 flex w-full flex-col gap-1">
-                    <div className="flex w-full">
-                        <button
-                            onClick={handleExecute}
-                            disabled={data.executing}
-                            className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/20 flex flex-1 items-center justify-center gap-2 rounded-l-md border-r px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <Play className="h-3 w-3" />
-                            Execute Node
-                        </button>
-                        <button
-                            onClick={() => setIsRunMenuOpen(!isRunMenuOpen)}
-                            disabled={data.executing}
-                            className={`bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center rounded-r-md px-2 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-primary/20" : ""}`}
-                        >
-                            <ChevronDown
-                                className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
-                            />
-                        </button>
-                    </div>
-                    {isRunMenuOpen && (
-                        <button
-                            onClick={(e) => {
-                                handleRunFromHere(e);
-                                setIsRunMenuOpen(false);
-                            }}
-                            disabled={data.executing}
-                            className="bg-primary/10 hover:bg-primary/20 text-primary focus:text-primary border-primary/20 flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <FastForward className="h-3 w-3" />
-                            Run from here
-                        </button>
-                    )}
+                <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={data.model}
+                                        onValueChange={(value) =>
+                                            updateNodeData(id, { model: value })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Model" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.TEXT
+                                                        .GEMINI_3_PRO_PREVIEW
+                                                }
+                                            >
+                                                Gemini 3 Pro Preview
+                                            </SelectItem>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.TEXT
+                                                        .GEMINI_3_FLASH_PREVIEW
+                                                }
+                                            >
+                                                Gemini 3 Flash Preview
+                                            </SelectItem>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.TEXT.GEMINI_2_5_PRO
+                                                }
+                                            >
+                                                Gemini 2.5 Pro
+                                            </SelectItem>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.TEXT.GEMINI_2_5_FLASH
+                                                }
+                                            >
+                                                Gemini 2.5 Flash
+                                            </SelectItem>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.TEXT
+                                                        .GEMINI_2_5_FLASH_LITE
+                                                }
+                                            >
+                                                Gemini 2.5 Flash Lite
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Model</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
 
                 <Handle

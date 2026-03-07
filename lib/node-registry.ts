@@ -415,9 +415,9 @@ registerNode<VideoData, NodeInputs>({
     type: "video",
     inputs: {
         "prompt-input": "text",
-        "image-input": "image",
         "first-frame-input": "image",
         "last-frame-input": "image",
+        "image-input": "image",
     },
     outputs: {
         "result-output": "video",

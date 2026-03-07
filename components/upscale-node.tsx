@@ -6,15 +6,36 @@ import { memo, useRef, useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { UpscaleData } from "@/lib/types";
-import { ZoomIn, Play, ChevronDown, FastForward } from "lucide-react";
+import {
+    ZoomIn,
+    Play,
+    ChevronDown,
+    FastForward,
+    Loader2,
+    Settings,
+} from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { MediaViewer } from "@/components/media-viewer";
 import logger from "@/app/logger";
 
 export const UpscaleNode = memo(
     ({ data, selected, id }: NodeProps<Node<UpscaleData>>) => {
+        const selectNode = useFlowStore((state) => state.selectNode);
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const { executeNode, runFromNode } = useFlowExecution();
         const nodeRef = useRef<HTMLDivElement>(null);
@@ -89,14 +110,6 @@ export const UpscaleNode = memo(
             },
             [runFromNode, id],
         );
-
-        const handleUpscaleFactorChange = (
-            e: React.ChangeEvent<HTMLSelectElement>,
-        ) => {
-            updateNodeData(id, {
-                upscaleFactor: e.target.value as "x2" | "x3" | "x4",
-            });
-        };
 
         const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
             e.preventDefault();
@@ -181,28 +194,82 @@ export const UpscaleNode = memo(
                     Image
                 </div>
 
-                <div className="mb-3 flex items-start gap-3">
+                <div className="mb-3 flex items-center gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-red-500/10">
                         <ZoomIn className="h-5 w-5 text-red-400" />
                     </div>
 
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                            {data.name}
-                        </h3>
-                        <div className="mb-2">
-                            <label className="text-muted-foreground mb-1 block text-xs">
-                                Upscale Factor
-                            </label>
-                            <select
-                                value={data.upscaleFactor}
-                                onChange={handleUpscaleFactorChange}
-                                className="bg-background border-border text-foreground focus:ring-primary nodrag w-full rounded border px-2 py-1 text-xs focus:ring-2 focus:outline-none"
-                            >
-                                <option value="x2">2x</option>
-                                <option value="x3">3x</option>
-                                <option value="x4">4x</option>
-                            </select>
+                        <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
+                                {data.name}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                selectNode(id);
+                                                useFlowStore
+                                                    .getState()
+                                                    .setIsConfigSidebarOpen(
+                                                        true,
+                                                    );
+                                            }}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full text-red-400 transition-colors hover:bg-red-500/20"
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Settings</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <button
+                                    onClick={handleExecute}
+                                    disabled={data.executing}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-red-400 transition-colors hover:bg-red-500/20"
+                                    title="Execute Node"
+                                >
+                                    {data.executing ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Play
+                                            className="h-4 w-4"
+                                            fill="currentColor"
+                                        />
+                                    )}
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() =>
+                                            setIsRunMenuOpen(!isRunMenuOpen)
+                                        }
+                                        disabled={data.executing}
+                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-red-500/20" : ""}`}
+                                    >
+                                        <ChevronDown
+                                            className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                    {isRunMenuOpen && (
+                                        <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
+                                            <button
+                                                onClick={(e) => {
+                                                    handleRunFromHere(e);
+                                                    setIsRunMenuOpen(false);
+                                                }}
+                                                disabled={data.executing}
+                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <FastForward className="h-3 w-3" />
+                                                Run from here
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                         <div className="text-muted-foreground text-xs">
                             {data.image ? "Upscaled Image" : "No image"}
@@ -252,39 +319,47 @@ export const UpscaleNode = memo(
                     </>
                 )}
 
-                <div className="mt-3 flex w-full flex-col gap-1">
-                    <div className="flex w-full">
-                        <button
-                            onClick={handleExecute}
-                            disabled={data.executing}
-                            className="flex flex-1 items-center justify-center gap-2 rounded-l-md border-r border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <Play className="h-3 w-3" />
-                            Execute Node
-                        </button>
-                        <button
-                            onClick={() => setIsRunMenuOpen(!isRunMenuOpen)}
-                            disabled={data.executing}
-                            className={`flex items-center justify-center rounded-r-md bg-red-500/10 px-2 py-2 text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-red-500/20" : ""}`}
-                        >
-                            <ChevronDown
-                                className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
-                            />
-                        </button>
-                    </div>
-                    {isRunMenuOpen && (
-                        <button
-                            onClick={(e) => {
-                                handleRunFromHere(e);
-                                setIsRunMenuOpen(false);
-                            }}
-                            disabled={data.executing}
-                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <FastForward className="h-3 w-3" />
-                            Run from here
-                        </button>
-                    )}
+                <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={data.upscaleFactor}
+                                        onValueChange={(value) =>
+                                            updateNodeData(id, {
+                                                upscaleFactor: value as
+                                                    | "x2"
+                                                    | "x3"
+                                                    | "x4",
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Scale" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="x2">
+                                                2x
+                                            </SelectItem>
+                                            <SelectItem value="x3">
+                                                3x
+                                            </SelectItem>
+                                            <SelectItem value="x4">
+                                                4x
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Upscale Factor</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
 
                 {/* Resize handle */}

@@ -215,7 +215,7 @@ export class GeminiService {
         };
 
         if (groundingGoogleSearch || groundingImageSearch) {
-            const searchTypes: Record<string, any> = {};
+            const searchTypes: Record<string, Record<string, unknown>> = {};
             if (groundingGoogleSearch) searchTypes.webSearch = {};
             if (groundingImageSearch) searchTypes.imageSearch = {};
 

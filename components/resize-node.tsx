@@ -1,11 +1,18 @@
 "use client";
 
 import type React from "react";
-import { memo, useRef, useEffect, useState } from "react";
+import { memo, useRef, useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ResizeData } from "@/lib/types";
-import { Play, Scaling } from "lucide-react";
+import {
+    Play,
+    Scaling,
+    ChevronDown,
+    FastForward,
+    Loader2,
+    Settings,
+} from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import {
@@ -15,15 +22,23 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { MediaViewer } from "@/components/media-viewer";
 import logger from "@/app/logger";
 
 export const ResizeNode = memo(
     ({ data, selected, id }: NodeProps<Node<ResizeData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
-        const { executeNode } = useFlowExecution();
+        const selectNode = useFlowStore((state) => state.selectNode);
+        const { executeNode, runFromNode } = useFlowExecution();
         const nodeRef = useRef<HTMLDivElement>(null);
         const [isImageOpen, setIsImageOpen] = useState(false);
+        const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const [dimensions, setDimensions] = useState({
             width: data.width || 400,
             height: data.height || 600,
@@ -89,6 +104,15 @@ export const ResizeNode = memo(
         const handleAspectRatioChange = (value: "16:9" | "9:16") => {
             updateNodeData(id, { aspectRatio: value });
         };
+
+        const handleRunFromHere = useCallback(
+            (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                runFromNode(id);
+            },
+            [runFromNode, id],
+        );
 
         const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
             e.preventDefault();
@@ -173,32 +197,82 @@ export const ResizeNode = memo(
                     Input Image
                 </div>
 
-                <div className="mb-3 flex items-start gap-3">
+                <div className="mb-3 flex items-center gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-blue-500/10">
                         <Scaling className="h-5 w-5 text-blue-400" />
                     </div>
 
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                            {data.name}
-                        </h3>
-                        <div className="nodrag">
-                            <Select
-                                value={data.aspectRatio}
-                                onValueChange={handleAspectRatioChange}
-                            >
-                                <SelectTrigger className="h-8 w-full text-xs">
-                                    <SelectValue placeholder="Select Aspect Ratio" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="16:9">
-                                        16:9 (1920x1080)
-                                    </SelectItem>
-                                    <SelectItem value="9:16">
-                                        9:16 (1080x1920)
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
+                                {data.name}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                selectNode(id);
+                                                useFlowStore
+                                                    .getState()
+                                                    .setIsConfigSidebarOpen(
+                                                        true,
+                                                    );
+                                            }}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full text-blue-400 transition-colors hover:bg-blue-500/20"
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Settings</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <button
+                                    onClick={handleExecute}
+                                    disabled={data.executing}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-blue-400 transition-colors hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    title="Execute Node"
+                                >
+                                    {data.executing ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Play
+                                            className="h-4 w-4"
+                                            fill="currentColor"
+                                        />
+                                    )}
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() =>
+                                            setIsRunMenuOpen(!isRunMenuOpen)
+                                        }
+                                        disabled={data.executing}
+                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-blue-400 transition-colors hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-blue-500/20" : ""}`}
+                                    >
+                                        <ChevronDown
+                                            className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                    {isRunMenuOpen && (
+                                        <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
+                                            <button
+                                                onClick={(e) => {
+                                                    handleRunFromHere(e);
+                                                    setIsRunMenuOpen(false);
+                                                }}
+                                                disabled={data.executing}
+                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <FastForward className="h-3 w-3" />
+                                                Run from here
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                         <div className="text-muted-foreground mt-1 text-xs">
                             {data.executing && (
@@ -247,14 +321,38 @@ export const ResizeNode = memo(
                     </>
                 )}
 
-                <button
-                    onClick={handleExecute}
-                    disabled={data.executing}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <Play className="h-3 w-3" />
-                    Resize
-                </button>
+                <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-fit">
+                                    <Select
+                                        value={data.aspectRatio}
+                                        onValueChange={handleAspectRatioChange}
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Size" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="16:9">
+                                                16:9 (1920x1080)
+                                            </SelectItem>
+                                            <SelectItem value="9:16">
+                                                9:16 (1080x1920)
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Aspect Ratio</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
 
                 {/* Resize handle */}
                 <div
