@@ -2,31 +2,16 @@
 
 import type React from "react";
 
-import { memo, useRef, useState, useEffect, useCallback } from "react";
+import { memo, useRef, useState, useEffect } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { FileData } from "@/lib/types";
-import {
-    FileUp,
-    Play,
-    ChevronDown,
-    FastForward,
-    Loader2,
-    Settings,
-    ImageIcon,
-    Video,
-    FileText,
-} from "lucide-react";
+import { FileUp, ImageIcon, Video, FileText } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { MediaViewer } from "@/components/media-viewer";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import logger from "@/app/logger";
 import dynamic from "next/dynamic";
-import { useFlowExecution } from "@/hooks/use-flow-execution";
 
 const PdfPreview = dynamic(
     () => import("./pdf-preview").then((mod) => mod.PdfPreview),
@@ -37,17 +22,32 @@ const PdfPreview = dynamic(
 
 export const FileNode = memo(
     ({ data, selected, id }: NodeProps<Node<FileData>>) => {
-        const selectNode = useFlowStore((state) => state.selectNode);
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
-        const { executeNode, runFromNode } = useFlowExecution();
         const fileInputRef = useRef<HTMLInputElement>(null);
         const [asyncSignedUrl, setAsyncSignedUrl] = useState<
             string | undefined
         >(undefined);
         const [isMediaOpen, setIsMediaOpen] = useState(false);
-        const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const [prevGcsUri, setPrevGcsUri] = useState(data.gcsUri);
         const [prevFileUrl, setPrevFileUrl] = useState(data.fileUrl);
+
+        const [dimensions, setDimensions] = useState({
+            width: data.width || 220,
+            height: data.height || 300,
+        });
+        const [prevDataWidth, setPrevDataWidth] = useState(data.width);
+        const [prevDataHeight, setPrevDataHeight] = useState(data.height);
+        const [isResizing, setIsResizing] = useState(false);
+        const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
+
+        if (data.width !== prevDataWidth || data.height !== prevDataHeight) {
+            setPrevDataWidth(data.width);
+            setPrevDataHeight(data.height);
+            setDimensions({
+                width: data.width || 220,
+                height: data.height || 300,
+            });
+        }
 
         if (data.gcsUri !== prevGcsUri || data.fileUrl !== prevFileUrl) {
             setPrevGcsUri(data.gcsUri);
@@ -56,6 +56,58 @@ export const FileNode = memo(
                 setAsyncSignedUrl(undefined);
             }
         }
+
+        const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsResizing(true);
+            resizeStartRef.current = {
+                x: e.clientX,
+                y: e.clientY,
+                width: dimensions.width,
+                height: dimensions.height,
+            };
+        };
+
+        useEffect(() => {
+            if (!isResizing) return;
+
+            const handleMouseMove = (e: MouseEvent) => {
+                const deltaX = e.clientX - resizeStartRef.current.x;
+                const deltaY = e.clientY - resizeStartRef.current.y;
+                const newWidth = Math.max(
+                    220,
+                    resizeStartRef.current.width + deltaX,
+                );
+                const newHeight = Math.max(
+                    300,
+                    resizeStartRef.current.height + deltaY,
+                );
+                setDimensions({ width: newWidth, height: newHeight });
+            };
+
+            const handleMouseUp = () => {
+                setIsResizing(false);
+                updateNodeData(id, {
+                    width: dimensions.width,
+                    height: dimensions.height,
+                });
+            };
+
+            document.addEventListener("mousemove", handleMouseMove);
+            document.addEventListener("mouseup", handleMouseUp);
+
+            return () => {
+                document.removeEventListener("mousemove", handleMouseMove);
+                document.removeEventListener("mouseup", handleMouseUp);
+            };
+        }, [
+            isResizing,
+            id,
+            updateNodeData,
+            dimensions.width,
+            dimensions.height,
+        ]);
 
         const signedUrl =
             (data.gcsUri?.startsWith("gs://")
@@ -94,10 +146,10 @@ export const FileNode = memo(
             const fileType = file.type.startsWith("image/")
                 ? "image"
                 : file.type.startsWith("video/")
-                  ? "video"
-                  : file.type === "application/pdf"
-                    ? "pdf"
-                    : null;
+                    ? "video"
+                    : file.type === "application/pdf"
+                        ? "pdf"
+                        : null;
 
             if (!fileType) {
                 alert("Please upload an image, video, or PDF file");
@@ -136,31 +188,15 @@ export const FileNode = memo(
             fileInputRef.current?.click();
         };
 
-        const handleExecute = useCallback(
-            (e: React.MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                executeNode(id);
-            },
-            [executeNode, id],
-        );
-
-        const handleRunFromHere = useCallback(
-            (e: React.MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                runFromNode(id);
-            },
-            [runFromNode, id],
-        );
-
         return (
             <div
-                className={`bg-card min-w-[220px] rounded-lg border-2 p-4 shadow-lg transition-all ${
+                className={cn(
+                    "bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all",
                     selected
                         ? "border-primary shadow-primary/20"
-                        : "border-border"
-                }`}
+                        : "border-border",
+                )}
+                style={{ width: dimensions.width }}
             >
                 <div className="mb-3 flex items-center gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-cyan-500/10">
@@ -173,78 +209,7 @@ export const FileNode = memo(
                                 {data.name}
                             </h3>
                             <div className="flex items-center gap-1">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                selectNode(id);
-                                                useFlowStore
-                                                    .getState()
-                                                    .setIsConfigSidebarOpen(
-                                                        true,
-                                                    );
-                                            }}
-                                            className="flex h-8 w-8 items-center justify-center rounded-full text-cyan-400 transition-colors hover:bg-cyan-500/20"
-                                        >
-                                            <Settings className="h-4 w-4" />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Settings</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                                <button
-                                    onClick={handleExecute}
-                                    disabled={
-                                        "executing" in data && data.executing
-                                    }
-                                    className="flex h-8 w-8 items-center justify-center rounded-md text-cyan-400 transition-colors hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                    title="Execute Node"
-                                >
-                                    {"executing" in data && data.executing ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Play
-                                            className="h-4 w-4"
-                                            fill="currentColor"
-                                        />
-                                    )}
-                                </button>
-                                <div className="relative">
-                                    <button
-                                        onClick={() =>
-                                            setIsRunMenuOpen(!isRunMenuOpen)
-                                        }
-                                        disabled={
-                                            "executing" in data &&
-                                            data.executing
-                                        }
-                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-cyan-400 transition-colors hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-cyan-500/20" : ""}`}
-                                    >
-                                        <ChevronDown
-                                            className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
-                                        />
-                                    </button>
-                                    {isRunMenuOpen && (
-                                        <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
-                                            <button
-                                                onClick={(e) => {
-                                                    handleRunFromHere(e);
-                                                    setIsRunMenuOpen(false);
-                                                }}
-                                                disabled={
-                                                    "executing" in data &&
-                                                    data.executing
-                                                }
-                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-cyan-400 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-                                            >
-                                                <FastForward className="h-3 w-3" />
-                                                Run from here
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+                                {/* No action buttons */}
                             </div>
                         </div>
                         <div className="text-muted-foreground text-xs">
@@ -257,7 +222,6 @@ export const FileNode = memo(
                                     ) : data.fileType === "pdf" ? (
                                         <FileText className="h-3 w-3" />
                                     ) : null}
-                                    {data.fileName}
                                 </span>
                             ) : (
                                 "No file uploaded"
@@ -268,7 +232,10 @@ export const FileNode = memo(
 
                 {signedUrl && (
                     <>
-                        <div className="border-border mt-3 overflow-hidden rounded-md border">
+                        <div
+                            className="border-border mt-3 overflow-hidden rounded-md border"
+                            style={{ maxHeight: dimensions.height - 150 }}
+                        >
                             {data.fileType === "image" ? (
                                 <div
                                     className="cursor-pointer transition-opacity hover:opacity-90"
@@ -277,9 +244,12 @@ export const FileNode = memo(
                                     <Image
                                         src={signedUrl}
                                         alt={data.fileName || "File"}
-                                        width={200}
-                                        height={150}
-                                        className="h-auto max-h-[300px] w-full object-contain"
+                                        width={dimensions.width - 32}
+                                        height={dimensions.height - 150}
+                                        className="h-auto w-full object-contain"
+                                        style={{
+                                            maxHeight: dimensions.height - 150,
+                                        }}
                                         onContextMenu={(e) =>
                                             e.stopPropagation()
                                         }
@@ -290,7 +260,10 @@ export const FileNode = memo(
                                     <video
                                         src={signedUrl}
                                         controls
-                                        className="h-auto max-h-[300px] w-full"
+                                        className="h-auto w-full"
+                                        style={{
+                                            maxHeight: dimensions.height - 150,
+                                        }}
                                         onContextMenu={(e) =>
                                             e.stopPropagation()
                                         }
@@ -305,24 +278,24 @@ export const FileNode = memo(
                             ) : data.fileType === "pdf" ? (
                                 <PdfPreview
                                     url={signedUrl}
-                                    className="h-auto max-h-[300px] min-h-[150px] w-full"
+                                    className="h-full w-full"
                                 />
                             ) : null}
                         </div>
                         {(data.fileType === "image" ||
                             data.fileType === "video") && (
-                            <MediaViewer
-                                isOpen={isMediaOpen}
-                                onOpenChange={setIsMediaOpen}
-                                url={signedUrl}
-                                alt={data.fileName || "File"}
-                                type={
-                                    data.fileType === "video"
-                                        ? "video"
-                                        : "image"
-                                }
-                            />
-                        )}
+                                <MediaViewer
+                                    isOpen={isMediaOpen}
+                                    onOpenChange={setIsMediaOpen}
+                                    url={signedUrl}
+                                    alt={data.fileName || "File"}
+                                    type={
+                                        data.fileType === "video"
+                                            ? "video"
+                                            : "image"
+                                    }
+                                />
+                            )}
                     </>
                 )}
 
@@ -347,6 +320,15 @@ export const FileNode = memo(
                     position={Position.Right}
                     className="!bg-cyan-500"
                 />
+
+                {/* Resize handle */}
+                <div
+                    className="nodrag absolute right-0 bottom-0 h-4 w-4 cursor-se-resize"
+                    onMouseDown={handleResizeStart}
+                    style={{ touchAction: "none" }}
+                >
+                    <div className="border-muted-foreground/30 absolute right-1 bottom-1 h-3 w-3 rounded-br border-r-2 border-b-2" />
+                </div>
             </div>
         );
     },

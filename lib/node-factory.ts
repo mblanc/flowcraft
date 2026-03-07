@@ -93,6 +93,8 @@ export function createNode(
                     fileType: null,
                     fileUrl: "",
                     fileName: "",
+                    width: 220,
+                    height: 300,
                 } as FileData,
             };
         case "upscale":

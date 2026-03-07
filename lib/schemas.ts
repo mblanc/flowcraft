@@ -106,6 +106,8 @@ export const FileDataSchema = BaseNodeDataSchema.extend({
     fileUrl: z.string(),
     fileName: z.string(),
     gcsUri: z.string().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
 });
 
 export const UpscaleDataSchema = BaseNodeDataSchema.extend({

@@ -340,8 +340,9 @@ export const VideoNode = memo(
                             value={localPrompt}
                             onChange={handlePromptChange}
                             onBlur={handleBlur}
+                            onWheel={(e) => e.stopPropagation()}
                             placeholder="Enter prompt..."
-                            className="text-muted-foreground focus:text-foreground nodrag mb-2 w-full resize-none overflow-hidden border-none bg-transparent text-xs break-words transition-colors outline-none"
+                            className="nowheel nopan text-muted-foreground focus:text-foreground nodrag mb-2 w-full resize-none overflow-hidden border-none bg-transparent text-xs break-words transition-colors outline-none"
                             rows={1}
                         />
                         {data.error && (

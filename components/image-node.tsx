@@ -522,7 +522,7 @@ export const ImageNode = memo(
                                 onBlur={handleBlur}
                                 onWheel={handleWheel}
                                 placeholder="Enter prompt..."
-                                className="text-muted-foreground focus:text-foreground nodrag mb-2 w-full resize-none overflow-y-auto border-none bg-transparent text-xs transition-colors outline-none"
+                                className="nowheel nopan text-muted-foreground focus:text-foreground nodrag mb-2 w-full resize-none overflow-y-auto border-none bg-transparent text-xs transition-colors outline-none"
                                 style={{ minHeight: "1.5em", maxHeight: 200 }}
                                 rows={1}
                             />

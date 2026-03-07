@@ -5,27 +5,25 @@ import type React from "react";
 import { memo, useState, useEffect, useRef } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { TextData } from "@/lib/types";
-import {
-    FileText,
-    Play,
-    ChevronDown,
-    FastForward,
-    Loader2,
-    Settings,
-} from "lucide-react";
+import { FileText, Maximize2 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { useFlowExecution } from "@/hooks/use-flow-execution";
+import { cn } from "@/lib/utils";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Textarea } from "./ui/textarea";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useCallback } from "react";
 
 export const TextNode = memo(
     ({ data, selected, id }: NodeProps<Node<TextData>>) => {
-        const selectNode = useFlowStore((state) => state.selectNode);
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const [localText, setLocalText] = useState(data.text);
         const [prevDataText, setPrevDataText] = useState(data.text);
@@ -36,8 +34,7 @@ export const TextNode = memo(
         const [prevDataWidth, setPrevDataWidth] = useState(data.width);
         const [prevDataHeight, setPrevDataHeight] = useState(data.height);
         const [isResizing, setIsResizing] = useState(false);
-        const { executeNode, runFromNode } = useFlowExecution();
-        const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
+        const [isModalOpen, setIsModalOpen] = useState(false);
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const nodeRef = useRef<HTMLDivElement>(null);
         const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
@@ -154,24 +151,6 @@ export const TextNode = memo(
             e.stopPropagation();
         };
 
-        const handleExecute = useCallback(
-            (e: React.MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                executeNode(id);
-            },
-            [executeNode, id],
-        );
-
-        const handleRunFromHere = useCallback(
-            (e: React.MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                runFromNode(id);
-            },
-            [runFromNode, id],
-        );
-
         const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
             e.preventDefault();
             e.stopPropagation();
@@ -227,11 +206,12 @@ export const TextNode = memo(
         return (
             <div
                 ref={nodeRef}
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${
+                className={cn(
+                    "bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all",
                     selected
                         ? "border-primary shadow-primary/20"
-                        : "border-border"
-                }`}
+                        : "border-border",
+                )}
                 style={{ width: dimensions.width }}
             >
                 {"executing" in data && data.executing && (
@@ -254,78 +234,45 @@ export const TextNode = memo(
                                 {data.name}
                             </h3>
                             <div className="flex items-center gap-1">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                selectNode(id);
-                                                useFlowStore
-                                                    .getState()
-                                                    .setIsConfigSidebarOpen(
-                                                        true,
-                                                    );
-                                            }}
-                                            className="flex h-8 w-8 items-center justify-center rounded-full text-purple-400 transition-colors hover:bg-purple-500/20"
-                                        >
-                                            <Settings className="h-4 w-4" />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Settings</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                                <button
-                                    onClick={handleExecute}
-                                    disabled={
-                                        "executing" in data && data.executing
-                                    }
-                                    className="flex h-8 w-8 items-center justify-center rounded-md text-purple-400 transition-colors hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                    title="Execute Node"
+                                <Dialog
+                                    open={isModalOpen}
+                                    onOpenChange={setIsModalOpen}
                                 >
-                                    {"executing" in data && data.executing ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Play
-                                            className="h-4 w-4"
-                                            fill="currentColor"
-                                        />
-                                    )}
-                                </button>
-                                <div className="relative">
-                                    <button
-                                        onClick={() =>
-                                            setIsRunMenuOpen(!isRunMenuOpen)
-                                        }
-                                        disabled={
-                                            "executing" in data &&
-                                            data.executing
-                                        }
-                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-purple-400 transition-colors hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-purple-500/20" : ""}`}
-                                    >
-                                        <ChevronDown
-                                            className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
-                                        />
-                                    </button>
-                                    {isRunMenuOpen && (
-                                        <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
-                                            <button
-                                                onClick={(e) => {
-                                                    handleRunFromHere(e);
-                                                    setIsRunMenuOpen(false);
-                                                }}
-                                                disabled={
-                                                    "executing" in data &&
-                                                    data.executing
-                                                }
-                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-purple-400 transition-colors hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-                                            >
-                                                <FastForward className="h-3 w-3" />
-                                                Run from here
-                                            </button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <DialogTrigger asChild>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                    }}
+                                                    className="flex h-8 w-8 items-center justify-center rounded-full text-purple-400 transition-colors hover:bg-purple-500/20"
+                                                >
+                                                    <Maximize2 className="h-4 w-4" />
+                                                </button>
+                                            </DialogTrigger>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Expand text editor</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <DialogContent className="flex h-[90vh] max-w-[90vw] flex-col overflow-hidden p-0">
+                                        <DialogHeader className="border-b p-4">
+                                            <DialogTitle className="flex items-center gap-2">
+                                                <FileText className="h-5 w-5 text-purple-400" />
+                                                {data.name}
+                                            </DialogTitle>
+                                        </DialogHeader>
+                                        <div className="flex-1 overflow-hidden p-4">
+                                            <Textarea
+                                                value={localText}
+                                                onChange={handleTextChange}
+                                                onBlur={handleBlur}
+                                                placeholder="Enter text..."
+                                                className="nowheel nopan h-full w-full resize-none border-none bg-transparent p-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+                                            />
                                         </div>
-                                    )}
-                                </div>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         </div>
                         <div
@@ -342,7 +289,7 @@ export const TextNode = memo(
                                 onBlur={handleBlur}
                                 onWheel={handleWheel}
                                 placeholder="Enter text..."
-                                className="nodrag w-full resize-none overflow-y-auto border-none bg-transparent px-2 py-1 text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
+                                className="nowheel nopan nodrag w-full resize-none overflow-y-auto border-none bg-transparent px-2 py-1 text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
                                 style={{ height: dimensions.height - 80 }}
                             />
                         </div>
