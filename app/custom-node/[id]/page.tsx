@@ -34,6 +34,9 @@ function CustomNodeEditorContent() {
                         customNode.edges,
                         customNode.name,
                         "custom-node",
+                        {
+                            ownerId: customNode.userId,
+                        },
                     );
                     setLoading(false);
                 } else if (response.status === 404) {

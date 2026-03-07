@@ -73,31 +73,27 @@ export const LLMNode = memo(
         const [isResizing, setIsResizing] = useState(false);
         const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
-        // Sync dimensions with data using comparison pattern (avoids useEffect setState)
-        const [prevDimensions, setPrevDimensions] = useState({
-            width: data.width,
-            height: data.height,
-        });
-        if (
-            data.width !== prevDimensions.width ||
-            data.height !== prevDimensions.height
-        ) {
-            setPrevDimensions({ width: data.width, height: data.height });
+        // Keep local UI state aligned with external node data.
+        useEffect(() => {
             setDimensions({
                 width: data.width || DEFAULT_WIDTH,
                 height: data.height || undefined,
             });
-        }
+        }, [data.width, data.height]);
 
-        if (data.instructions !== prevDataInstructions) {
-            setPrevDataInstructions(data.instructions);
-            setLocalInstructions(data.instructions);
-        }
+        useEffect(() => {
+            if (data.instructions !== prevDataInstructions) {
+                setPrevDataInstructions(data.instructions);
+                setLocalInstructions(data.instructions);
+            }
+        }, [data.instructions, prevDataInstructions]);
 
-        if (data.output !== prevDataOutput) {
-            setPrevDataOutput(data.output || "");
-            setLocalOutput(data.output || "");
-        }
+        useEffect(() => {
+            if (data.output !== prevDataOutput) {
+                setPrevDataOutput(data.output || "");
+                setLocalOutput(data.output || "");
+            }
+        }, [data.output, prevDataOutput]);
 
         const handleInstructionsChange = (
             e: React.ChangeEvent<HTMLTextAreaElement>,

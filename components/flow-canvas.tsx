@@ -301,11 +301,13 @@ export function FlowCanvas() {
         connectionStartParamsRef.current = null;
     }, []);
 
-    const [prevFlowId, setPrevFlowId] = useState(flowId);
-    if (flowId !== prevFlowId) {
-        setPrevFlowId(flowId);
-        setHasFitted(false);
-    }
+    const prevFlowIdRef = useRef(flowId);
+    useEffect(() => {
+        if (flowId !== prevFlowIdRef.current) {
+            prevFlowIdRef.current = flowId;
+            setHasFitted(false);
+        }
+    }, [flowId]);
 
     // Fit view when nodes are loaded and we haven't fitted yet
     useEffect(() => {
