@@ -15,6 +15,7 @@ import {
     Settings,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { NodeTitle } from "@/components/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import {
     Select,
@@ -201,9 +202,13 @@ export const UpscaleNode = memo(
 
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                                {data.name}
-                            </h3>
+                            <NodeTitle
+                                name={data.name}
+                                onRename={(n) =>
+                                    updateNodeData(id, { name: n })
+                                }
+                                className="text-foreground mb-1"
+                            />
                             <div className="flex items-center gap-1">
                                 <Tooltip>
                                     <TooltipTrigger asChild>

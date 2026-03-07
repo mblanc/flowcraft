@@ -184,46 +184,89 @@ export const EdgeSchema = z.object({
 
 // --- API Schemas ---
 
-export const GenerateImageSchema = z.object({
-    prompt: z.string().min(1, "Prompt is required"),
-    images: z
-        .array(
-            z.object({
-                url: z.string(),
-                type: z.string(),
-            }),
-        )
-        .optional()
-        .default([]),
-    aspectRatio: ImageDataAspectRatioSchema.optional().default(
-        DEFAULTS.ASPECT_RATIO,
-    ),
-    model: ImageDataModelSchema.optional().default(
-        MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
-    ),
-    resolution: ImageDataResolutionSchema.optional().default(
-        DEFAULTS.IMAGE_RESOLUTION,
-    ),
-    groundingGoogleSearch: z.boolean().optional().default(false),
-    groundingImageSearch: z.boolean().optional().default(false),
-});
+export const ContentPartSchema = z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("text"), text: z.string() }),
+    z.object({
+        kind: z.literal("uri"),
+        uri: z.string(),
+        mimeType: z.string(),
+    }),
+    z.object({
+        kind: z.literal("base64"),
+        data: z.string(),
+        mimeType: z.string(),
+    }),
+]);
 
-export const GenerateTextSchema = z.object({
-    prompts: z.array(z.string()).min(1, "At least one prompt is required"),
-    files: z
-        .array(
-            z.object({
-                url: z.string(),
-                type: z.string(),
-            }),
-        )
-        .optional()
-        .default([]),
-    model: z.string().optional().default(MODELS.TEXT.GEMINI_3_FLASH_PREVIEW),
-    outputType: z.enum(["text", "json"]).optional().default("text"),
-    responseSchema: z.string().optional(),
-    strictMode: z.boolean().optional().default(false),
-});
+export const GenerateImageSchema = z
+    .object({
+        prompt: z.string().optional().default(""),
+        parts: z.array(ContentPartSchema).optional(),
+        images: z
+            .array(
+                z.object({
+                    url: z.string(),
+                    type: z.string(),
+                }),
+            )
+            .optional()
+            .default([]),
+        aspectRatio: ImageDataAspectRatioSchema.optional().default(
+            DEFAULTS.ASPECT_RATIO,
+        ),
+        model: ImageDataModelSchema.optional().default(
+            MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
+        ),
+        resolution: ImageDataResolutionSchema.optional().default(
+            DEFAULTS.IMAGE_RESOLUTION,
+        ),
+        groundingGoogleSearch: z.boolean().optional().default(false),
+        groundingImageSearch: z.boolean().optional().default(false),
+    })
+    .superRefine((data, ctx) => {
+        const hasParts = data.parts && data.parts.length > 0;
+        const hasPrompt = data.prompt && data.prompt.length > 0;
+        if (!hasParts && !hasPrompt) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Either prompt or parts must be provided",
+                path: ["prompt"],
+            });
+        }
+    });
+
+export const GenerateTextSchema = z
+    .object({
+        prompts: z.array(z.string()).optional().default([]),
+        parts: z.array(ContentPartSchema).optional(),
+        files: z
+            .array(
+                z.object({
+                    url: z.string(),
+                    type: z.string(),
+                }),
+            )
+            .optional()
+            .default([]),
+        model: z
+            .string()
+            .optional()
+            .default(MODELS.TEXT.GEMINI_3_FLASH_PREVIEW),
+        outputType: z.enum(["text", "json"]).optional().default("text"),
+        responseSchema: z.string().optional(),
+        strictMode: z.boolean().optional().default(false),
+    })
+    .superRefine((data, ctx) => {
+        const hasParts = data.parts && data.parts.length > 0;
+        const hasPrompts = data.prompts && data.prompts.length > 0;
+        if (!hasParts && !hasPrompts) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Either prompts or parts must be provided",
+                path: ["prompts"],
+            });
+        }
+    });
 
 export const GenerateVideoSchema = z.object({
     prompt: z.string().min(1, "Prompt is required"),

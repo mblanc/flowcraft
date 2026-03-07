@@ -21,7 +21,6 @@ export const POST = withAuth(async (req) => {
             );
         }
 
-        const { prompt } = result.data;
         const { data, mimeType } = await geminiService.generateImage(
             result.data,
         );
@@ -38,7 +37,6 @@ export const POST = withAuth(async (req) => {
 
         return NextResponse.json({
             imageUrl: imageGcsUri,
-            prompt,
         });
     } catch (error) {
         logger.error("[SERVER] Error generating image:", error);

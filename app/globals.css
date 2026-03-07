@@ -284,3 +284,20 @@
     background: #06b6d4 !important;
     /* cyan-500 */
 }
+
+/* Mention editor chip styles */
+.mention-editor .mention-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    border-radius: 9999px;
+    background-color: color-mix(in srgb, var(--primary) 15%, transparent);
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.4;
+    cursor: default;
+    user-select: none;
+    white-space: nowrap;
+    vertical-align: baseline;
+}

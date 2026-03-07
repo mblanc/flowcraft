@@ -13,6 +13,7 @@ import {
     WorkflowInputData,
     WorkflowOutputData,
     CustomWorkflowData,
+    NamedNodeInput,
 } from "./types";
 
 export interface ExecutionContext {
@@ -241,6 +242,76 @@ const getSourceValue = (data: NodeData | null): unknown => {
     return null;
 };
 
+/**
+ * Infers MIME type for a URL string using extension and source node metadata.
+ */
+function inferMimeType(
+    url: string,
+    sourceData: NodeData | null,
+): string {
+    const lower = url.toLowerCase();
+    if (lower.endsWith(".pdf")) return "application/pdf";
+    if (
+        lower.endsWith(".png") ||
+        lower.endsWith(".jpg") ||
+        lower.endsWith(".jpeg") ||
+        lower.endsWith(".webp")
+    )
+        return "image/png";
+    if (lower.endsWith(".mp4") || lower.endsWith(".mov")) return "video/mp4";
+
+    const meta = sourceData as Record<string, unknown> | null;
+    if (meta) {
+        if (meta.fileType === "pdf" || meta.portType === "pdf")
+            return "application/pdf";
+        if (
+            meta.fileType === "image" ||
+            meta.type === "image" ||
+            meta.portType === "image" ||
+            meta.type === "upscale" ||
+            meta.type === "resize"
+        )
+            return "image/png";
+        if (
+            meta.fileType === "video" ||
+            meta.type === "video" ||
+            meta.portType === "video"
+        )
+            return "video/mp4";
+    }
+
+    return "application/octet-stream";
+}
+
+/**
+ * Builds NamedNodeInput entries from an array of URL-like values and their source.
+ */
+function buildFileValues(
+    rawValues: unknown[],
+    sourceData: NodeData | null,
+): { url: string; type: string }[] {
+    const result: { url: string; type: string }[] = [];
+    for (const item of rawValues) {
+        if (typeof item === "string") {
+            result.push({
+                url: item,
+                type: inferMimeType(item, sourceData),
+            });
+        } else if (
+            typeof item === "object" &&
+            item !== null &&
+            (item as Record<string, unknown>).url
+        ) {
+            const obj = item as Record<string, unknown>;
+            result.push({
+                url: obj.url as string,
+                type: (obj.type as string) || "application/octet-stream",
+            });
+        }
+    }
+    return result;
+}
+
 // LLM Node
 registerNode<LLMData, NodeInputs>({
     type: "llm",
@@ -252,7 +323,24 @@ registerNode<LLMData, NodeInputs>({
         "": "text", // fallback, actual type handled by getSourcePortType
     },
     gatherInputs: (node, edges, getSourceData) => {
-        const inputs: NodeInputs = { files: [], prompts: [] };
+        const inputs: NodeInputs = { files: [], prompts: [], namedNodes: [] };
+        const namedNodesMap = new Map<string, NamedNodeInput>();
+
+        // Helper to get or create a NamedNodeInput for a source node
+        const getOrCreateNamed = (
+            nodeId: string,
+            sourceData: NodeData,
+        ): NamedNodeInput => {
+            if (!namedNodesMap.has(nodeId)) {
+                namedNodesMap.set(nodeId, {
+                    nodeId,
+                    name: sourceData.name,
+                    textValue: null,
+                    fileValues: [],
+                });
+            }
+            return namedNodesMap.get(nodeId)!;
+        };
 
         // Gather ALL prompt edges (multiple allowed)
         const promptEdges = edges.filter(
@@ -260,9 +348,12 @@ registerNode<LLMData, NodeInputs>({
         );
         for (const edge of promptEdges) {
             const sourceData = getSourceData(edge.source, edge.sourceHandle);
+            if (!sourceData) continue;
             const value = getSourceValue(sourceData);
             if (typeof value === "string") {
                 inputs.prompts?.push(value);
+                const named = getOrCreateNamed(edge.source, sourceData);
+                named.textValue = value;
             }
         }
 
@@ -276,70 +367,18 @@ registerNode<LLMData, NodeInputs>({
             const value = getSourceValue(sourceData);
             if (!value) continue;
 
-            // Handle both arrays (images) and single values (files, strings, etc.)
-            const values = Array.isArray(value) ? value : [value];
+            const rawValues = Array.isArray(value) ? value : [value];
+            const fileValues = buildFileValues(rawValues, sourceData);
 
-            for (const item of values) {
-                if (typeof item === "string") {
-                    let mimeType = "application/octet-stream";
-                    const lowerItem = item.toLowerCase();
-                    if (lowerItem.endsWith(".pdf"))
-                        mimeType = "application/pdf";
-                    else if (
-                        lowerItem.endsWith(".png") ||
-                        lowerItem.endsWith(".jpg") ||
-                        lowerItem.endsWith(".jpeg") ||
-                        lowerItem.endsWith(".webp")
-                    )
-                        mimeType = "image/png";
-                    else if (
-                        lowerItem.endsWith(".mp4") ||
-                        lowerItem.endsWith(".mov")
-                    )
-                        mimeType = "video/mp4";
-                    else {
-                        // For GCS URIs or files without extensions, use source metadata
-                        const srcMeta = sourceData as Record<string, unknown>;
-                        if (
-                            srcMeta.fileType === "pdf" ||
-                            srcMeta.portType === "pdf"
-                        )
-                            mimeType = "application/pdf";
-                        else if (
-                            srcMeta.fileType === "image" ||
-                            srcMeta.type === "image" ||
-                            srcMeta.portType === "image" ||
-                            srcMeta.type === "upscale" ||
-                            srcMeta.type === "resize"
-                        )
-                            mimeType = "image/png";
-                        else if (
-                            srcMeta.fileType === "video" ||
-                            srcMeta.type === "video" ||
-                            srcMeta.portType === "video"
-                        )
-                            mimeType = "video/mp4";
-                    }
-
-                    inputs.files?.push({
-                        url: item,
-                        type: mimeType,
-                    });
-                } else if (
-                    typeof item === "object" &&
-                    item !== null &&
-                    (item as Record<string, unknown>).url
-                ) {
-                    const itemObj = item as Record<string, unknown>;
-                    inputs.files?.push({
-                        url: itemObj.url as string,
-                        type:
-                            (itemObj.type as string) ||
-                            "application/octet-stream",
-                    });
-                }
+            for (const fv of fileValues) {
+                inputs.files?.push(fv);
             }
+
+            const named = getOrCreateNamed(edge.source, sourceData);
+            named.fileValues.push(...fileValues);
         }
+
+        inputs.namedNodes = Array.from(namedNodesMap.values());
         return inputs;
     },
     execute: async (node, inputs, context) => {
@@ -359,17 +398,45 @@ registerNode<ImageData, NodeInputs>({
         "result-output": "image",
     },
     gatherInputs: (node, edges, getSourceData) => {
-        const inputs: NodeInputs = { images: [] };
+        const inputs: NodeInputs = { images: [], namedNodes: [] };
+        const namedNodesMap = new Map<string, NamedNodeInput>();
 
-        const promptData = findInputByHandle(
-            node.id,
-            edges,
-            "prompt-input",
-            getSourceData,
+        const getOrCreateNamed = (
+            nodeId: string,
+            sourceData: NodeData,
+        ): NamedNodeInput => {
+            if (!namedNodesMap.has(nodeId)) {
+                namedNodesMap.set(nodeId, {
+                    nodeId,
+                    name: sourceData.name,
+                    textValue: null,
+                    fileValues: [],
+                });
+            }
+            return namedNodesMap.get(nodeId)!;
+        };
+
+        // Prompt edges (multiple text nodes allowed for @-references)
+        const promptEdges = edges.filter(
+            (e) => e.target === node.id && e.targetHandle === "prompt-input",
         );
-        const promptValue = getSourceValue(promptData);
-        if (typeof promptValue === "string") inputs.prompt = promptValue;
+        for (const promptEdge of promptEdges) {
+            const sourceData = getSourceData(
+                promptEdge.source,
+                promptEdge.sourceHandle,
+            );
+            const promptValue = getSourceValue(sourceData);
+            if (typeof promptValue === "string") {
+                // First value kept for the legacy inputs.prompt fallback
+                if (inputs.prompt === undefined) inputs.prompt = promptValue;
+                if (sourceData) {
+                    const named = getOrCreateNamed(promptEdge.source, sourceData);
+                    named.textValue = promptValue;
+                }
+            }
+        }
 
+        // Image edges (file/image)
         const imageEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "image-input",
         );
@@ -380,28 +447,18 @@ registerNode<ImageData, NodeInputs>({
             const value = getSourceValue(sourceData);
             if (!value) continue;
 
-            const values = Array.isArray(value) ? value : [value];
-            for (const item of values) {
-                if (typeof item === "string") {
-                    inputs.images?.push({
-                        url: item,
-                        type: item.toLowerCase().endsWith(".pdf")
-                            ? "application/pdf"
-                            : "image/png",
-                    });
-                } else if (
-                    typeof item === "object" &&
-                    item !== null &&
-                    (item as Record<string, unknown>).url
-                ) {
-                    const itemObj = item as Record<string, unknown>;
-                    inputs.images?.push({
-                        url: itemObj.url as string,
-                        type: (itemObj.type as string) || "image/png",
-                    });
-                }
+            const rawValues = Array.isArray(value) ? value : [value];
+            const fileValues = buildFileValues(rawValues, sourceData);
+
+            for (const fv of fileValues) {
+                inputs.images?.push(fv);
             }
+
+            const named = getOrCreateNamed(edge.source, sourceData);
+            named.fileValues.push(...fileValues);
         }
+
+        inputs.namedNodes = Array.from(namedNodesMap.values());
         return inputs;
     },
     execute: async (node, inputs, context) => {
@@ -423,16 +480,34 @@ registerNode<VideoData, NodeInputs>({
         "result-output": "video",
     },
     gatherInputs: (node, edges, getSourceData) => {
-        const inputs: NodeInputs = { images: [] };
+        const inputs: NodeInputs = { images: [], namedNodes: [] };
+        const namedNodesMap = new Map<string, NamedNodeInput>();
 
-        const promptData = findInputByHandle(
-            node.id,
-            edges,
-            "prompt-input",
-            getSourceData,
+        // Prompt edges — multiple text nodes allowed for @interpolation
+        const promptEdges = edges.filter(
+            (e) => e.target === node.id && e.targetHandle === "prompt-input",
         );
-        const promptValue = getSourceValue(promptData);
-        if (typeof promptValue === "string") inputs.prompt = promptValue;
+        for (const promptEdge of promptEdges) {
+            const promptData = getSourceData(
+                promptEdge.source,
+                promptEdge.sourceHandle,
+            );
+            const promptValue = getSourceValue(promptData);
+            if (typeof promptValue === "string") {
+                // First value kept for legacy inputs.prompt fallback
+                if (inputs.prompt === undefined) inputs.prompt = promptValue;
+                if (promptData) {
+                    if (!namedNodesMap.has(promptEdge.source)) {
+                        namedNodesMap.set(promptEdge.source, {
+                            nodeId: promptEdge.source,
+                            name: promptData.name,
+                            textValue: promptValue,
+                            fileValues: [],
+                        });
+                    }
+                }
+            }
+        }
 
         const firstFrameData = findInputByHandle(
             node.id,
@@ -505,6 +580,8 @@ registerNode<VideoData, NodeInputs>({
                 }
             }
         }
+
+        inputs.namedNodes = Array.from(namedNodesMap.values());
         return inputs;
     },
     execute: async (node, inputs, context) => {

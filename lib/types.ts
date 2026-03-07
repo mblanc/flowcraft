@@ -31,6 +31,18 @@ export type NodeType =
     | "workflow-output"
     | "custom-workflow";
 
+export type ContentPart =
+    | { kind: "text"; text: string }
+    | { kind: "uri"; uri: string; mimeType: string }
+    | { kind: "base64"; data: string; mimeType: string };
+
+export interface NamedNodeInput {
+    nodeId: string;
+    name: string;
+    textValue: string | null;
+    fileValues: { url: string; type: string }[];
+}
+
 export interface NodeInputs {
     prompt?: string;
     prompts?: string[];
@@ -39,6 +51,7 @@ export interface NodeInputs {
     firstFrame?: string;
     lastFrame?: string;
     image?: string;
+    namedNodes?: NamedNodeInput[];
     [key: string]: unknown;
 }
 

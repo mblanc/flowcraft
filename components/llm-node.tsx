@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useRef, useEffect, useState } from "react";
+import { memo, useRef, useEffect, useState, useMemo } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { LLMData } from "@/lib/types";
 import {
@@ -15,6 +15,7 @@ import {
     FastForward,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { NodeTitle } from "@/components/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { MODELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -41,9 +42,10 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { MentionEditor } from "@/components/mention-editor";
 
-const DEFAULT_WIDTH = 220;
-const MIN_WIDTH = 180;
+const DEFAULT_WIDTH = 400;
+const MIN_WIDTH = 340;
 const MIN_HEIGHT = 150;
 
 export const LLMNode = memo(
@@ -51,6 +53,25 @@ export const LLMNode = memo(
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const selectNode = useFlowStore((state) => state.selectNode);
         const { executeNode, runFromNode } = useFlowExecution();
+
+        // Subscribe to the raw arrays — Zustand only changes their reference on
+        // actual mutations, so these selectors are stable between renders.
+        const edges = useFlowStore((state) => state.edges);
+        const nodes = useFlowStore((state) => state.nodes);
+
+        // Derive connected source nodes for the @mention dropdown.
+        // useMemo ensures the derived array is only recomputed when edges/nodes
+        // actually change, preventing the infinite-loop from new-object-on-every-render.
+        const connectedNodes = useMemo(
+            () =>
+                edges
+                    .filter((e) => e.target === id)
+                    .map((e) => nodes.find((n) => n.id === e.source))
+                    .filter((n): n is NonNullable<typeof n> => n !== undefined)
+                    .map((n) => ({ id: n.id, name: n.data.name as string })),
+            [edges, nodes, id],
+        );
+
         const [localInstructions, setLocalInstructions] = useState(
             data.instructions,
         );
@@ -68,7 +89,7 @@ export const LLMNode = memo(
         // Resize state
         const [dimensions, setDimensions] = useState({
             width: data.width || DEFAULT_WIDTH,
-            height: data.height || undefined,
+            height: data.height || MIN_HEIGHT,
         });
         const [isResizing, setIsResizing] = useState(false);
         const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
@@ -77,7 +98,7 @@ export const LLMNode = memo(
         useEffect(() => {
             setDimensions({
                 width: data.width || DEFAULT_WIDTH,
-                height: data.height || undefined,
+                height: data.height || MIN_HEIGHT,
             });
         }, [data.width, data.height]);
 
@@ -95,10 +116,11 @@ export const LLMNode = memo(
             }
         }, [data.output, prevDataOutput]);
 
-        const handleInstructionsChange = (
-            e: React.ChangeEvent<HTMLTextAreaElement>,
-        ) => {
-            setLocalInstructions(e.target.value);
+        const handleInstructionsChange = (value: string) => {
+            setLocalInstructions(value);
+            // Keep the store in sync immediately so execution always has the
+            // latest instructions even if blur hasn't fired yet.
+            updateNodeData(id, { instructions: value });
         };
 
         const handleOutputChange = (
@@ -108,10 +130,8 @@ export const LLMNode = memo(
         };
 
         const handleBlur = () => {
-            updateNodeData(id, {
-                instructions: localInstructions,
-                output: localOutput,
-            });
+            // Flush output (instructions are already saved via handleInstructionsChange)
+            updateNodeData(id, { output: localOutput });
         };
 
         const handleExecute = (e: React.MouseEvent) => {
@@ -182,7 +202,7 @@ export const LLMNode = memo(
                 )}
                 style={{
                     width: dimensions.width,
-                    minHeight: dimensions.height || 180,
+                    height: dimensions.height,
                 }}
             >
                 {data.executing && (
@@ -226,9 +246,13 @@ export const LLMNode = memo(
 
                         <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-2">
-                                <h3 className="text-foreground truncate text-sm font-semibold">
-                                    {data.name}
-                                </h3>
+                                <NodeTitle
+                                    name={data.name}
+                                    onRename={(n) =>
+                                        updateNodeData(id, { name: n })
+                                    }
+                                    className="text-foreground mb-0"
+                                />
                                 <div className="flex items-center gap-2">
                                     <div className="flex items-center space-x-2">
                                         <Switch
@@ -278,7 +302,14 @@ export const LLMNode = memo(
                                             <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b p-4">
                                                 <DialogTitle className="flex items-center gap-2">
                                                     <Bot className="text-primary h-5 w-5" />
-                                                    {data.name}
+                                                    <NodeTitle
+                                                        name={data.name}
+                                                        onRename={(n) =>
+                                                            updateNodeData(id, {
+                                                                name: n,
+                                                            })
+                                                        }
+                                                    />
                                                 </DialogTitle>
                                                 <div className="flex items-center space-x-4 pr-8">
                                                     <div className="flex items-center space-x-2">
@@ -315,16 +346,13 @@ export const LLMNode = memo(
                                             </DialogHeader>
                                             <div className="flex flex-1 flex-col overflow-hidden p-4">
                                                 {viewMode === "instructions" ? (
-                                                    <Textarea
-                                                        value={
-                                                            localInstructions
-                                                        }
-                                                        onChange={
-                                                            handleInstructionsChange
-                                                        }
+                                                    <MentionEditor
+                                                        value={localInstructions}
+                                                        onChange={handleInstructionsChange}
                                                         onBlur={handleBlur}
+                                                        availableNodes={connectedNodes}
                                                         placeholder="Enter instructions..."
-                                                        className="nowheel nopan h-full w-full flex-1 resize-none border-none bg-transparent p-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+                                                        className="h-full w-full flex-1 text-base"
                                                     />
                                                 ) : (
                                                     <div className="flex min-h-0 flex-1 flex-col">
@@ -439,12 +467,13 @@ export const LLMNode = memo(
 
                     <div className="bg-muted/20 flex min-h-0 flex-1 flex-col rounded-md p-2">
                         {viewMode === "instructions" ? (
-                            <Textarea
+                            <MentionEditor
                                 value={localInstructions}
                                 onChange={handleInstructionsChange}
                                 onBlur={handleBlur}
+                                availableNodes={connectedNodes}
                                 placeholder="Enter instructions..."
-                                className="nowheel nopan nodrag h-full w-full flex-1 resize-none border-none bg-transparent p-0 text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
+                                className="nopan nodrag h-full w-full flex-1 text-xs"
                             />
                         ) : (
                             <div className="flex min-h-0 flex-1 flex-col">
