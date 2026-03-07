@@ -7,6 +7,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { TextData } from "@/lib/types";
 import { FileText, Maximize2 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { NodeTitle } from "@/components/node-title";
 import { cn } from "@/lib/utils";
 import {
     Dialog,
@@ -230,9 +231,13 @@ export const TextNode = memo(
 
                     <div className="min-w-0 flex-1 text-left">
                         <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                                {data.name}
-                            </h3>
+                            <NodeTitle
+                                name={data.name}
+                                onRename={(n) =>
+                                    updateNodeData(id, { name: n })
+                                }
+                                className="text-foreground mb-1"
+                            />
                             <div className="flex items-center gap-1">
                                 <Dialog
                                     open={isModalOpen}
@@ -259,7 +264,14 @@ export const TextNode = memo(
                                         <DialogHeader className="border-b p-4">
                                             <DialogTitle className="flex items-center gap-2">
                                                 <FileText className="h-5 w-5 text-purple-400" />
-                                                {data.name}
+                                                <NodeTitle
+                                                    name={data.name}
+                                                    onRename={(n) =>
+                                                        updateNodeData(id, {
+                                                            name: n,
+                                                        })
+                                                    }
+                                                />
                                             </DialogTitle>
                                         </DialogHeader>
                                         <div className="flex-1 overflow-hidden p-4">

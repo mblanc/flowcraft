@@ -18,6 +18,7 @@ import {
     ALL_SUPPORTED_MIME_TYPES,
     SupportedMimeType,
 } from "../constants";
+import type { ContentPart } from "../types";
 
 function isSupportedMimeType(mimeType: string): mimeType is SupportedMimeType {
     return (ALL_SUPPORTED_MIME_TYPES as readonly string[]).includes(mimeType);
@@ -27,8 +28,24 @@ async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Converts a serializable ContentPart to the Gemini SDK native Part type. */
+function contentPartToSdkPart(
+    part: ContentPart,
+): ReturnType<
+    | typeof createPartFromText
+    | typeof createPartFromUri
+    | typeof createPartFromBase64
+> {
+    if (part.kind === "text") return createPartFromText(part.text);
+    if (part.kind === "uri") return createPartFromUri(part.uri, part.mimeType);
+    if (part.kind === "base64")
+        return createPartFromBase64(part.data, part.mimeType);
+    throw new Error(`Unknown ContentPart kind`);
+}
+
 export interface GenerateTextOptions {
-    prompts: string[];
+    prompts?: string[];
+    parts?: ContentPart[];
     files?: Array<{ url: string; type: string }>;
     model?: string;
     outputType?: "text" | "json";
@@ -37,7 +54,8 @@ export interface GenerateTextOptions {
 }
 
 export interface GenerateImageOptions {
-    prompt: string;
+    prompt?: string;
+    parts?: ContentPart[];
     images?: Array<{ url: string; type: string }>;
     aspectRatio?: string;
     model?: string;
@@ -80,6 +98,7 @@ export class GeminiService {
     async generateText(options: GenerateTextOptions): Promise<string> {
         const {
             prompts,
+            parts,
             files,
             model,
             outputType,
@@ -92,33 +111,40 @@ export class GeminiService {
             `[GeminiService] Generating text with model: ${selectedModel}`,
         );
 
-        // Create a text part for each prompt
-        const contents: ContentListUnion = prompts.map((p) =>
-            createPartFromText(p),
-        );
+        let contents: ContentListUnion;
 
-        if (files && files.length > 0) {
-            for (const file of files) {
-                if (!isSupportedMimeType(file.type)) {
-                    logger.error(
-                        `[GeminiService] Unsupported file type: ${file.type} for file: ${file.url}`,
-                    );
-                    throw new Error(`Unsupported file type: ${file.type}`);
-                }
+        if (parts && parts.length > 0) {
+            // Structured ContentPart[] path (from composable prompt executor)
+            contents = parts.map(contentPartToSdkPart);
+        } else {
+            // Legacy flat-prompts path
+            contents = (prompts ?? []).map((p) => createPartFromText(p));
 
-                if (file.url.startsWith("gs://")) {
-                    contents.push(createPartFromUri(file.url, file.type));
-                } else if (file.url.startsWith("data:")) {
-                    const base64Match = file.url.match(
-                        /^data:([^;]+);base64,(.+)$/,
-                    );
-                    if (base64Match) {
-                        contents.push(
-                            createPartFromBase64(
-                                base64Match[2],
-                                base64Match[1],
-                            ),
+            if (files && files.length > 0) {
+                for (const file of files) {
+                    if (!isSupportedMimeType(file.type)) {
+                        logger.error(
+                            `[GeminiService] Unsupported file type: ${file.type} for file: ${file.url}`,
                         );
+                        throw new Error(`Unsupported file type: ${file.type}`);
+                    }
+
+                    if (file.url.startsWith("gs://")) {
+                        contents.push(
+                            createPartFromUri(file.url, file.type),
+                        );
+                    } else if (file.url.startsWith("data:")) {
+                        const base64Match = file.url.match(
+                            /^data:([^;]+);base64,(.+)$/,
+                        );
+                        if (base64Match) {
+                            contents.push(
+                                createPartFromBase64(
+                                    base64Match[2],
+                                    base64Match[1],
+                                ),
+                            );
+                        }
                     }
                 }
             }
@@ -175,6 +201,7 @@ export class GeminiService {
     ): Promise<{ data: string; mimeType: string }> {
         const {
             prompt,
+            parts,
             images = [],
             aspectRatio,
             model,
@@ -189,19 +216,25 @@ export class GeminiService {
             `[GeminiService] Generating image with model: ${selectedModel}`,
         );
 
-        const contents: ContentListUnion = [];
+        let contents: ContentListUnion;
 
-        for (const image of images) {
-            if (image.url.startsWith("data:")) {
-                const base64Data = image.url.split(",")[1];
-                const mimeType = image.url.split(";")[0].split(":")[1];
-                contents.push(createPartFromBase64(base64Data, mimeType));
-            } else if (image.url.startsWith("gs://")) {
-                contents.push(createPartFromUri(image.url, image.type));
+        if (parts && parts.length > 0) {
+            // Structured ContentPart[] path (from composable prompt executor)
+            contents = parts.map(contentPartToSdkPart);
+        } else {
+            // Legacy path: reference images first, then the prompt text
+            contents = [];
+            for (const image of images) {
+                if (image.url.startsWith("data:")) {
+                    const base64Data = image.url.split(",")[1];
+                    const mimeType = image.url.split(";")[0].split(":")[1];
+                    contents.push(createPartFromBase64(base64Data, mimeType));
+                } else if (image.url.startsWith("gs://")) {
+                    contents.push(createPartFromUri(image.url, image.type));
+                }
             }
+            contents.push(createPartFromText(prompt ?? ""));
         }
-
-        contents.push(createPartFromText(prompt));
 
         logger.info(
             `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,

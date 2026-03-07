@@ -159,6 +159,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         if (data) {
             node.data = { ...node.data, ...data } as NodeData;
         }
+        // Assign a unique incremental name (e.g. Image1, Image2)
+        const existingNames = new Set(get().nodes.map((n) => n.data.name));
+        const baseName = node.data.name;
+        let candidate = `${baseName}1`;
+        let counter = 1;
+        while (existingNames.has(candidate)) {
+            counter += 1;
+            candidate = `${baseName}${counter}`;
+        }
+        node.data = { ...node.data, name: candidate } as NodeData;
         set({ nodes: [...get().nodes, node] });
     },
 

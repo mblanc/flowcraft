@@ -15,6 +15,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Switch } from "./ui/switch";
+import { MentionEditor } from "./mention-editor";
 import {
     Select,
     SelectContent,
@@ -30,7 +31,7 @@ import {
 } from "./ui/collapsible";
 import { Plus, Trash2, Code, ChevronDown, List } from "lucide-react";
 import Image from "next/image";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import logger from "@/app/logger";
 
 function SchemaEditor({
@@ -197,6 +198,18 @@ function LLMConfig({ data, nodeId }: { data: LLMData; nodeId: string }) {
         (state: FlowState) => state.updateNodeData,
     );
 
+    const llmEdges = useFlowStore((state) => state.edges);
+    const llmNodes = useFlowStore((state) => state.nodes);
+    const connectedNodes = useMemo(
+        () =>
+            llmEdges
+                .filter((e) => e.target === nodeId)
+                .map((e) => llmNodes.find((n) => n.id === e.source))
+                .filter((n): n is NonNullable<typeof n> => n !== undefined)
+                .map((n) => ({ id: n.id, name: n.data.name as string })),
+        [llmEdges, llmNodes, nodeId],
+    );
+
     const syncResponseSchema = useCallback(
         (visualSchema: LLMData["visualSchema"]) => {
             if (!visualSchema || visualSchema.length === 0) {
@@ -292,17 +305,18 @@ function LLMConfig({ data, nodeId }: { data: LLMData; nodeId: string }) {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="instructions">Instructions</Label>
-                <Textarea
-                    id="instructions"
-                    value={data.instructions}
-                    onChange={(e) =>
-                        updateNodeData(nodeId, { instructions: e.target.value })
-                    }
-                    placeholder="System instructions for the LLM..."
-                    rows={6}
-                    className="font-mono text-xs"
-                />
+                <Label>Instructions</Label>
+                <div className="border-input bg-background focus-within:ring-ring rounded-md border px-3 py-2 text-xs focus-within:ring-1">
+                    <MentionEditor
+                        value={data.instructions}
+                        onChange={(value) =>
+                            updateNodeData(nodeId, { instructions: value })
+                        }
+                        availableNodes={connectedNodes}
+                        placeholder="System instructions for the LLM..."
+                        className="min-h-[7rem] font-mono"
+                    />
+                </div>
             </div>
 
             <div className="flex items-center justify-between">
@@ -499,6 +513,20 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
     const updateNodeData = useFlowStore(
         (state: FlowState) => state.updateNodeData,
     );
+
+    // All connected nodes (text + file) available for @-mention in the prompt
+    const imgEdges = useFlowStore((state) => state.edges);
+    const imgNodes = useFlowStore((state) => state.nodes);
+    const connectedNodes = useMemo(
+        () =>
+            imgEdges
+                .filter((e) => e.target === nodeId)
+                .map((e) => imgNodes.find((n) => n.id === e.source))
+                .filter((n): n is NonNullable<typeof n> => n !== undefined)
+                .map((n) => ({ id: n.id, name: n.data.name as string })),
+        [imgEdges, imgNodes, nodeId],
+    );
+
     const [signedImageUrls, setSignedImageUrls] = useState<string[]>([]);
 
     const currentModelConfig =
@@ -588,16 +616,18 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="prompt">Prompt</Label>
-                <Textarea
-                    id="prompt"
-                    value={data.prompt}
-                    onChange={(e) =>
-                        updateNodeData(nodeId, { prompt: e.target.value })
-                    }
-                    placeholder="Image generation prompt..."
-                    rows={4}
-                />
+                <Label>Prompt</Label>
+                <div className="border-input bg-background focus-within:ring-ring rounded-md border px-3 py-2 text-sm focus-within:ring-1">
+                    <MentionEditor
+                        value={data.prompt}
+                        onChange={(value) =>
+                            updateNodeData(nodeId, { prompt: value })
+                        }
+                        availableNodes={connectedNodes}
+                        placeholder="Image generation prompt..."
+                        className="min-h-[5rem]"
+                    />
+                </div>
             </div>
 
             <div className="space-y-2">
@@ -770,6 +800,24 @@ function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
     const updateNodeData = useFlowStore(
         (state: FlowState) => state.updateNodeData,
     );
+
+    // Only text-sourced connected nodes (Veo takes a string prompt)
+    const vidEdges = useFlowStore((state) => state.edges);
+    const vidNodes = useFlowStore((state) => state.nodes);
+    const connectedTextNodes = useMemo(
+        () =>
+            vidEdges
+                .filter(
+                    (e) =>
+                        e.target === nodeId &&
+                        e.targetHandle === "prompt-input",
+                )
+                .map((e) => vidNodes.find((n) => n.id === e.source))
+                .filter((n): n is NonNullable<typeof n> => n !== undefined)
+                .map((n) => ({ id: n.id, name: n.data.name as string })),
+        [vidEdges, vidNodes, nodeId],
+    );
+
     const [signedRefImageUrls, setSignedRefImageUrls] = useState<string[]>([]);
 
     useEffect(() => {
@@ -830,16 +878,18 @@ function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="prompt">Prompt</Label>
-                <Textarea
-                    id="prompt"
-                    value={data.prompt}
-                    onChange={(e) =>
-                        updateNodeData(nodeId, { prompt: e.target.value })
-                    }
-                    placeholder="Video generation prompt..."
-                    rows={4}
-                />
+                <Label>Prompt</Label>
+                <div className="border-input bg-background focus-within:ring-ring rounded-md border px-3 py-2 text-sm focus-within:ring-1">
+                    <MentionEditor
+                        value={data.prompt}
+                        onChange={(value) =>
+                            updateNodeData(nodeId, { prompt: value })
+                        }
+                        availableNodes={connectedTextNodes}
+                        placeholder="Video generation prompt..."
+                        className="min-h-[5rem]"
+                    />
+                </div>
             </div>
 
             <div className="space-y-2">

@@ -7,6 +7,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { FileData } from "@/lib/types";
 import { FileUp, ImageIcon, Video, FileText } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { NodeTitle } from "@/components/node-title";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { MediaViewer } from "@/components/media-viewer";
@@ -205,9 +206,13 @@ export const FileNode = memo(
 
                     <div className="min-w-0 flex-1 text-left">
                         <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-foreground truncate text-sm font-semibold">
-                                {data.name}
-                            </h3>
+                            <NodeTitle
+                                name={data.name}
+                                onRename={(n) =>
+                                    updateNodeData(id, { name: n })
+                                }
+                                className="text-foreground"
+                            />
                             <div className="flex items-center gap-1">
                                 {/* No action buttons */}
                             </div>
