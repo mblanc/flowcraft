@@ -297,9 +297,9 @@ export async function executeVideoNode(
     const rawPrompt = node.data.prompt || inputs.prompt || "";
     const nodeMap = new Map(namedNodes.map((n) => [n.nodeId, n]));
     MENTION_RE.lastIndex = 0;
-    const finalPrompt = rawPrompt.replace(MENTION_RE, (_, nodeId) => {
+    const finalPrompt = rawPrompt.replace(MENTION_RE, (match, nodeId) => {
         const named = nodeMap.get(nodeId);
-        return named?.textValue ?? "";
+        return named?.textValue ?? match;
     });
 
     if (!finalPrompt) {
