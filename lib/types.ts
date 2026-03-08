@@ -6,6 +6,7 @@ import {
     FileData as InferredFileData,
     UpscaleData as InferredUpscaleData,
     ResizeData as InferredResizeData,
+    ListData as InferredListData,
     WorkflowInputData as InferredWorkflowInputData,
     WorkflowOutputData as InferredWorkflowOutputData,
     CustomWorkflowData as InferredCustomWorkflowData,
@@ -27,6 +28,7 @@ export type NodeType =
     | "file"
     | "upscale"
     | "resize"
+    | "list"
     | "workflow-input"
     | "workflow-output"
     | "custom-workflow";
@@ -40,7 +42,9 @@ export interface NamedNodeInput {
     nodeId: string;
     name: string;
     textValue: string | null;
+    textValues?: string[];
     fileValues: { url: string; type: string }[];
+    fileValuesList?: { url: string; type: string }[][];
 }
 
 export interface NodeInputs {
@@ -62,6 +66,7 @@ export type VideoData = InferredVideoData;
 export type FileData = InferredFileData;
 export type UpscaleData = InferredUpscaleData;
 export type ResizeData = InferredResizeData;
+export type ListData = InferredListData;
 export type WorkflowInputData = InferredWorkflowInputData;
 export type WorkflowOutputData = InferredWorkflowOutputData;
 export type CustomWorkflowData = InferredCustomWorkflowData;
@@ -73,4 +78,6 @@ export interface BaseNodeData {
     executing?: boolean;
     generatedAt?: number;
     error?: string;
+    batchTotal?: number;
+    batchProgress?: number;
 }

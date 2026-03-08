@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/tooltip";
 import { MentionEditor } from "@/components/mention-editor";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
+import { BatchTextOutput } from "@/components/batch-text-output";
 
 const DEFAULT_WIDTH = 400;
 const MIN_WIDTH = 340;
@@ -70,6 +71,7 @@ export const LLMNode = memo(
         );
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
+        const [batchOutputIndex, setBatchOutputIndex] = useState(0);
 
         // Resize state
         const [dimensions, setDimensions] = useState({
@@ -199,6 +201,11 @@ export const LLMNode = memo(
                             } as React.CSSProperties
                         }
                     />
+                )}
+                {data.batchTotal && data.batchTotal > 0 && !data.executing && (
+                    <span className="absolute top-2 right-2 z-10 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        {data.batchTotal}x
+                    </span>
                 )}
 
                 <Handle
@@ -391,7 +398,11 @@ export const LLMNode = memo(
                                             className="hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                             title="Execute Node"
                                         >
-                                            {data.executing ? (
+                                            {data.executing && data.batchTotal ? (
+                                                <span className="text-[10px] font-medium tabular-nums">
+                                                    {data.batchProgress || 0}/{data.batchTotal}
+                                                </span>
+                                            ) : data.executing ? (
                                                 <Loader2 className="h-4 w-4 animate-spin" />
                                             ) : (
                                                 <Play
@@ -462,13 +473,22 @@ export const LLMNode = memo(
                             />
                         ) : (
                             <div className="flex min-h-0 flex-1 flex-col">
-                                <Textarea
-                                    value={localOutput}
-                                    onChange={handleOutputChange}
-                                    onBlur={handleBlur}
-                                    placeholder="No output yet."
-                                    className="nowheel nopan nodrag h-full w-full flex-1 resize-none border-none bg-transparent p-0 font-mono text-xs leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
-                                />
+                                {data.outputs && data.outputs.length > 1 ? (
+                                    <BatchTextOutput
+                                        outputs={data.outputs}
+                                        currentIndex={batchOutputIndex}
+                                        onIndexChange={setBatchOutputIndex}
+                                        className="h-full w-full flex-1"
+                                    />
+                                ) : (
+                                    <Textarea
+                                        value={localOutput}
+                                        onChange={handleOutputChange}
+                                        onBlur={handleBlur}
+                                        placeholder="No output yet."
+                                        className="nowheel nopan nodrag h-full w-full flex-1 resize-none border-none bg-transparent p-0 font-mono text-xs leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    />
+                                )}
                                 {data.error && (
                                     <div className="text-destructive mt-1 text-[10px] font-medium">
                                         Error: {data.error}

@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { MediaViewer } from "@/components/media-viewer";
+import { BatchMediaGallery } from "@/components/batch-media-gallery";
 import logger from "@/app/logger";
 
 const IMAGE_MODEL_CONFIGS = {
@@ -298,6 +299,12 @@ export const ImageNode = memo(
                     />
                 )}
 
+                {data.batchTotal && data.batchTotal > 0 && !data.executing && (
+                    <span className="absolute top-2 right-2 z-10 rounded-full bg-orange-500/20 px-2 py-0.5 text-[10px] font-bold text-orange-400">
+                        {data.batchTotal}x
+                    </span>
+                )}
+
                 {/* Prompt Input Handle */}
                 <Handle
                     type="target"
@@ -361,10 +368,14 @@ export const ImageNode = memo(
                                 <button
                                     onClick={handleExecute}
                                     disabled={data.executing}
-                                    className="flex h-8 w-8 items-center justify-center rounded-md text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-8 items-center justify-center gap-1 rounded-md px-1 text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                                     title="Execute Node"
                                 >
-                                    {data.executing ? (
+                                    {data.executing && data.batchTotal ? (
+                                        <span className="text-[10px] font-medium tabular-nums">
+                                            {data.batchProgress || 0}/{data.batchTotal}
+                                        </span>
+                                    ) : data.executing ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <Play
@@ -418,7 +429,14 @@ export const ImageNode = memo(
                     </div>
                 </div>
 
-                {data.images.length > 0 && displayUrl && (
+                {data.images.length > 1 ? (
+                    <BatchMediaGallery
+                        items={data.images}
+                        type="image"
+                        maxHeight={dimensions.height - 200}
+                        nodeWidth={dimensions.width}
+                    />
+                ) : data.images.length === 1 && displayUrl ? (
                     <>
                         <div
                             className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
@@ -436,9 +454,6 @@ export const ImageNode = memo(
                                 }}
                                 unoptimized={displayUrl.startsWith("data:")}
                                 onContextMenu={(e) => {
-                                    // Allow native context menu on thumbnail too if requested,
-                                    // but usually users want it on the full view.
-                                    // If we want it on thumbnail, we should stop propagation here too.
                                     e.stopPropagation();
                                 }}
                             />
@@ -450,7 +465,7 @@ export const ImageNode = memo(
                             alt={data.name}
                         />
                     </>
-                )}
+                ) : null}
 
                 <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
                     <TooltipProvider>

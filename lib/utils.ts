@@ -7,6 +7,14 @@ export function cn(...inputs: ClassValue[]) {
 
 export function isTypeCompatible(source: string, target: string): boolean {
     if (source === "any" || target === "any") return true;
+    if (source.startsWith("collection:")) {
+        const inner = source.slice("collection:".length);
+        return inner === target || target === "any";
+    }
+    if (target.startsWith("collection:")) {
+        const inner = target.slice("collection:".length);
+        return inner === source || source === "any";
+    }
     return source === target;
 }
 

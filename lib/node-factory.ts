@@ -9,6 +9,7 @@ import {
     type FileData,
     type UpscaleData,
     type ResizeData,
+    type ListData,
     type WorkflowInputData,
     type WorkflowOutputData,
     type CustomWorkflowData,
@@ -119,6 +120,18 @@ export function createNode(
                     name: "Resize",
                     aspectRatio: DEFAULTS.ASPECT_RATIO,
                 } as ResizeData,
+            };
+        case "list":
+            return {
+                id,
+                type: "list",
+                position,
+                data: {
+                    type: "list",
+                    name: "List",
+                    itemType: "text",
+                    items: [""],
+                } as ListData,
             };
         case "workflow-input":
             return {

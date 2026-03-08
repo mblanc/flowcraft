@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { X } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface MediaViewerProps {
@@ -11,6 +11,10 @@ interface MediaViewerProps {
     url: string;
     alt: string;
     type?: "image" | "video";
+    onPrev?: () => void;
+    onNext?: () => void;
+    currentIndex?: number;
+    totalCount?: number;
 }
 
 export function MediaViewer({
@@ -19,19 +23,29 @@ export function MediaViewer({
     url,
     alt,
     type = "image",
+    onPrev,
+    onNext,
+    currentIndex,
+    totalCount,
 }: MediaViewerProps) {
-    // We need to stop propagation on context menu to prevent React Flow's custom menu
-    // and allow the native browser menu (Save Image As, etc.)
     const handleContextMenu = (e: React.MouseEvent) => {
         e.stopPropagation();
     };
+
+    React.useEffect(() => {
+        if (!isOpen || (!onPrev && !onNext)) return;
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === "ArrowLeft") onPrev?.();
+            if (e.key === "ArrowRight") onNext?.();
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [isOpen, onPrev, onNext]);
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent
                 className="flex h-auto max-h-[95vh] w-auto max-w-[95vw] items-center justify-center overflow-visible border-none bg-transparent p-0 shadow-none focus:outline-none"
-                // Override the default close button behavior by hiding it via CSS or not using the default Close
-                // We will add our own close button
                 hideCloseButton
                 aria-description="Media Viewer"
             >
@@ -45,12 +59,39 @@ export function MediaViewer({
                         <X className="h-4 w-4" />
                     </button>
 
+                    {onPrev && (
+                        <button
+                            onClick={onPrev}
+                            className="bg-background/80 hover:bg-background border-border absolute top-1/2 -left-12 z-50 -translate-y-1/2 rounded-full border p-2 shadow-md transition-colors"
+                            aria-label="Previous"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </button>
+                    )}
+
+                    {onNext && (
+                        <button
+                            onClick={onNext}
+                            className="bg-background/80 hover:bg-background border-border absolute top-1/2 -right-12 z-50 -translate-y-1/2 rounded-full border p-2 shadow-md transition-colors"
+                            aria-label="Next"
+                        >
+                            <ChevronRight className="h-5 w-5" />
+                        </button>
+                    )}
+
+                    {totalCount !== undefined &&
+                        currentIndex !== undefined &&
+                        totalCount > 1 && (
+                            <div className="bg-background/80 border-border absolute -bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full border px-3 py-1 text-xs font-medium shadow-md">
+                                {currentIndex + 1} / {totalCount}
+                            </div>
+                        )}
+
                     {type === "image" ? (
                         <div
                             className="relative flex items-center justify-center"
                             onContextMenu={handleContextMenu}
                         >
-                            {/* Use a regular img tag for full flexibility or next/image with generic styling */}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={url}

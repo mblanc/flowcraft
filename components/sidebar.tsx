@@ -14,6 +14,7 @@ import {
     LogIn,
     LogOut,
     Box,
+    ListOrdered,
 } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -74,6 +75,12 @@ export function Sidebar() {
                     title: "Resize Configuration",
                     icon: Scaling,
                     color: "text-blue-400",
+                };
+            case "list":
+                return {
+                    title: "List Configuration",
+                    icon: ListOrdered,
+                    color: "text-teal-400",
                 };
             case "workflow-input":
                 return {

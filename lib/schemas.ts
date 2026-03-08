@@ -37,6 +37,8 @@ export const BaseNodeDataSchema = z.object({
     executing: z.boolean().optional(),
     generatedAt: z.number().optional(),
     error: z.string().optional(),
+    batchTotal: z.number().optional(),
+    batchProgress: z.number().optional(),
 });
 
 export const LLMDataSchema = BaseNodeDataSchema.extend({
@@ -44,6 +46,7 @@ export const LLMDataSchema = BaseNodeDataSchema.extend({
     model: z.string(),
     instructions: z.string(),
     output: z.string().optional(),
+    outputs: z.array(z.string()).optional(),
     outputType: z.enum(["text", "json"]).default("text"),
     responseSchema: z.string().optional(), // JSON string for now
     strictMode: z.boolean().default(false),
@@ -88,6 +91,7 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
     firstFrame: z.string().optional(),
     lastFrame: z.string().optional(),
     videoUrl: z.string().optional(),
+    videoUrls: z.array(z.string()).optional(),
     aspectRatio: AspectRatio169_916Schema,
     duration: z.union([z.literal(4), z.literal(6), z.literal(8)]),
     model: z.enum([
@@ -113,6 +117,7 @@ export const FileDataSchema = BaseNodeDataSchema.extend({
 export const UpscaleDataSchema = BaseNodeDataSchema.extend({
     type: z.literal("upscale"),
     image: z.string(),
+    images: z.array(z.string()).optional(),
     upscaleFactor: z.enum(["x2", "x3", "x4"]),
     width: z.number().optional(),
     height: z.number().optional(),
@@ -123,6 +128,7 @@ export const ResizeDataSchema = BaseNodeDataSchema.extend({
     image: z.string().optional(),
     aspectRatio: AspectRatio169_916Schema,
     output: z.string().optional(),
+    outputs: z.array(z.string()).optional(),
     width: z.number().optional(),
     height: z.number().optional(),
 });
@@ -139,6 +145,14 @@ export const WorkflowOutputDataSchema = BaseNodeDataSchema.extend({
     type: z.literal("workflow-output"),
     portName: z.string(),
     portType: z.enum(["text", "image", "video"]),
+});
+
+export const ListDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("list"),
+    itemType: z.enum(["text", "image"]),
+    items: z.array(z.string()),
+    width: z.number().optional(),
+    height: z.number().optional(),
 });
 
 export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({
@@ -159,6 +173,7 @@ export const NodeDataSchema = z.discriminatedUnion("type", [
     FileDataSchema,
     UpscaleDataSchema,
     ResizeDataSchema,
+    ListDataSchema,
     WorkflowInputDataSchema,
     WorkflowOutputDataSchema,
     CustomWorkflowDataSchema,
@@ -389,6 +404,7 @@ export type VideoData = z.infer<typeof VideoDataSchema>;
 export type FileData = z.infer<typeof FileDataSchema>;
 export type UpscaleData = z.infer<typeof UpscaleDataSchema>;
 export type ResizeData = z.infer<typeof ResizeDataSchema>;
+export type ListData = z.infer<typeof ListDataSchema>;
 export type WorkflowInputData = z.infer<typeof WorkflowInputDataSchema>;
 export type WorkflowOutputData = z.infer<typeof WorkflowOutputDataSchema>;
 export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;

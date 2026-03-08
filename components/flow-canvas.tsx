@@ -27,6 +27,7 @@ import { ResizeNode } from "./resize-node";
 import { WorkflowInputNode } from "./workflow-input-node";
 import { WorkflowOutputNode } from "./workflow-output-node";
 import { CustomWorkflowNode } from "./custom-workflow-node";
+import { ListNode } from "./list-node";
 import {
     NodeType,
     NodeData,
@@ -56,6 +57,7 @@ import {
     Box,
     MousePointer2,
     Hand,
+    ListOrdered,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
@@ -108,6 +110,7 @@ const nodeTypes = {
     file: FileNode,
     upscale: UpscaleNode,
     resize: ResizeNode,
+    list: ListNode,
     "workflow-input": WorkflowInputNode,
     "workflow-output": WorkflowOutputNode,
     "custom-workflow": CustomWorkflowNode,
@@ -121,6 +124,7 @@ const NODE_COLORS: Record<string, string> = {
     file: "#06b6d4", // cyan-500
     upscale: "#ef4444", // red-500
     resize: "#3b82f6", // blue-500
+    list: "#14b8a6", // teal-500
     "workflow-input": "#60a5fa", // blue-400
     "workflow-output": "#fb923c", // orange-400
     "custom-workflow": "#3b82f6", // blue-500
@@ -133,6 +137,12 @@ const nativeItems = [
         icon: FileText,
         color: "text-purple-500 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950/20",
         label: "Text",
+    },
+    {
+        type: "list",
+        icon: ListOrdered,
+        color: "text-teal-500 hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-teal-950/20",
+        label: "List",
     },
     {
         type: "file",
@@ -825,27 +835,45 @@ export function FlowCanvas() {
     };
 
     const highlightedEdges = edges.map((edge) => {
+        const sourceNode = nodes.find((n) => n.id === edge.source);
+
+        const isCollection =
+            sourceNode &&
+            getSourcePortType(
+                sourceNode as Node<NodeData>,
+                edge.sourceHandle,
+            ).startsWith("collection:");
+
         const isHighlighted =
             (selectedNode &&
                 (edge.source === selectedNode.id ||
                     edge.target === selectedNode.id)) ||
             edge.selected;
 
-        if (!isHighlighted) return edge;
+        const baseStyle: Record<string, unknown> = { ...edge.style };
 
-        const sourceNode = nodes.find((n) => n.id === edge.source);
-        const color = sourceNode
-            ? NODE_COLORS[sourceNode.data.type]
-            : "#3b82f6"; // Default blue if source not found
+        if (isCollection) {
+            baseStyle.strokeWidth = 8;
+            baseStyle.strokeDasharray = "8 4";
+            if (sourceNode) {
+                baseStyle.stroke = NODE_COLORS[sourceNode.data.type] || "#3b82f6";
+            }
+        }
+
+        if (!isHighlighted && !isCollection) return edge;
+
+        if (isHighlighted) {
+            const color = sourceNode
+                ? NODE_COLORS[sourceNode.data.type]
+                : "#3b82f6";
+            baseStyle.stroke = color;
+            baseStyle.strokeWidth = isCollection ? 10 : 6;
+        }
 
         return {
             ...edge,
-            animated: true,
-            style: {
-                ...edge.style,
-                stroke: color,
-                strokeWidth: 6,
-            },
+            animated: isHighlighted,
+            style: baseStyle,
         };
     });
 
