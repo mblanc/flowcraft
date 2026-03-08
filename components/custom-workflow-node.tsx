@@ -5,6 +5,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Box, Play } from "lucide-react";
 import { CustomWorkflowData } from "@/lib/types";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { NodeTitle } from "@/components/node-title";
 import { toast } from "sonner";
 import Image from "next/image";
 import logger from "@/app/logger";
@@ -366,9 +367,13 @@ export const CustomWorkflowNode = memo(
                         <Box className="h-4 w-4 text-blue-400" />
                     </div>
                     <div className="min-w-0 flex-1 text-left">
-                        <h3 className="text-foreground truncate text-sm font-semibold">
-                            {data.name}
-                        </h3>
+                        <NodeTitle
+                            name={data.name}
+                            onRename={(n) =>
+                                updateNodeData(id, { name: n })
+                            }
+                            className="text-foreground"
+                        />
                     </div>
                 </div>
 

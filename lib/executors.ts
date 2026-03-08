@@ -5,40 +5,165 @@ import {
     UpscaleData,
     VideoData,
     ResizeData,
+    ContentPart,
+    NamedNodeInput,
 } from "./types";
 import { Node } from "@xyflow/react";
 import { ExecutionContext } from "./node-registry";
 import { withRetry } from "./retry";
 
+const MENTION_RE = /@\[([^\]]+)\]/g;
+
+/**
+ * Parses a string containing `@[nodeId]` tokens and returns a `ContentPart[]`
+ * array with media parts interleaved at their exact positions.
+ *
+ * Text @-references are substituted inline into the surrounding text buffer so
+ * that `"A story about @[id1] and @[id2]"` with two text nodes produces a
+ * single `{ kind: "text", text: "A story about a cat and a duck" }` part
+ * rather than four separate parts.
+ *
+ * File/media @-references flush the accumulated text buffer and insert the
+ * appropriate URI or base64 Part at their exact position, enabling true
+ * multimodal interleaving.
+ *
+ * IDs that are successfully resolved are added to `referencedIds`.
+ */
+function resolveInlineMentions(
+    text: string,
+    namedNodes: NamedNodeInput[],
+    referencedIds: Set<string>,
+): ContentPart[] {
+    const nodeMap = new Map(namedNodes.map((n) => [n.nodeId, n]));
+    const parts: ContentPart[] = [];
+    let currentText = "";
+    let lastIndex = 0;
+
+    MENTION_RE.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = MENTION_RE.exec(text)) !== null) {
+        // Accumulate plain text before this token
+        currentText += text.slice(lastIndex, match.index);
+
+        const nodeId = match[1];
+        const named = nodeMap.get(nodeId);
+
+        if (named) {
+            referencedIds.add(nodeId);
+            if (named.fileValues.length > 0) {
+                // Media reference — flush accumulated text, then add file parts
+                if (currentText) {
+                    parts.push({ kind: "text", text: currentText });
+                    currentText = "";
+                }
+                for (const fv of named.fileValues) {
+                    if (fv.url.startsWith("gs://")) {
+                        parts.push({
+                            kind: "uri",
+                            uri: fv.url,
+                            mimeType: fv.type,
+                        });
+                    } else if (fv.url.startsWith("data:")) {
+                        const m = fv.url.match(/^data:([^;]+);base64,(.+)$/);
+                        if (m)
+                            parts.push({
+                                kind: "base64",
+                                data: m[2],
+                                mimeType: m[1],
+                            });
+                    }
+                }
+            } else if (named.textValue !== null) {
+                // Text reference — merge inline into the current text buffer
+                currentText += named.textValue;
+            }
+        } else {
+            // Unknown nodeId — keep the raw token as plain text
+            currentText += match[0];
+        }
+
+        lastIndex = match.index + match[0].length;
+    }
+
+    // Flush any remaining text
+    currentText += text.slice(lastIndex);
+    if (currentText) parts.push({ kind: "text", text: currentText });
+
+    return parts;
+}
+
+/**
+ * Appends Mode-1 (non-@-referenced) node values to the parts array.
+ * All unreferenced text values are merged into a single text part; file
+ * values are appended individually after.
+ */
+function appendUnreferencedNodes(
+    parts: ContentPart[],
+    namedNodes: NamedNodeInput[],
+    referencedIds: Set<string>,
+): void {
+    const textSegments: string[] = [];
+    for (const n of namedNodes) {
+        if (referencedIds.has(n.nodeId)) continue;
+        if (n.textValue !== null) textSegments.push(n.textValue);
+    }
+    if (textSegments.length > 0) {
+        parts.push({ kind: "text", text: textSegments.join("\n\n") });
+    }
+    for (const n of namedNodes) {
+        if (referencedIds.has(n.nodeId)) continue;
+        for (const fv of n.fileValues) {
+            if (fv.url.startsWith("gs://")) {
+                parts.push({ kind: "uri", uri: fv.url, mimeType: fv.type });
+            } else if (fv.url.startsWith("data:")) {
+                const m = fv.url.match(/^data:([^;]+);base64,(.+)$/);
+                if (m)
+                    parts.push({
+                        kind: "base64",
+                        data: m[2],
+                        mimeType: m[1],
+                    });
+            }
+        }
+    }
+}
+
 export async function executeLLMNode(
     node: Node<LLMData>,
-    inputs: { prompts?: string[]; files?: { url: string; type: string }[] },
+    inputs: {
+        prompts?: string[];
+        files?: { url: string; type: string }[];
+        namedNodes?: NamedNodeInput[];
+    },
     context?: ExecutionContext,
 ): Promise<Partial<LLMData>> {
-    const { prompts = [], files } = inputs;
+    const { namedNodes = [] } = inputs;
     const fetcher = context?.fetch || fetch;
+    const referencedIds = new Set<string>();
 
-    // Build final prompts array: instructions first, then all connected prompts
-    const finalPrompts: string[] = [];
-    if (node.data.instructions) {
-        finalPrompts.push(node.data.instructions);
-    }
-    finalPrompts.push(...prompts);
+    // Build ContentPart[] from instructions with inline @[nodeId] resolution
+    const parts = resolveInlineMentions(
+        node.data.instructions,
+        namedNodes,
+        referencedIds,
+    );
 
-    if (finalPrompts.length === 0) {
+    // Mode 1: append non-@-referenced connected nodes
+    appendUnreferencedNodes(parts, namedNodes, referencedIds);
+
+    if (parts.length === 0) {
         throw new Error("No prompt available for LLM node");
     }
 
     logger.info(
-        `[Executor] Generating text with prompts: ${JSON.stringify(finalPrompts)}`,
+        `[Executor] Generating text with ${parts.length} content parts`,
     );
 
     const response = await fetcher("/api/generate-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            prompts: finalPrompts,
-            files: files || [],
+            parts,
             model: node.data.model,
             outputType: node.data.outputType,
             responseSchema: node.data.responseSchema,
@@ -61,29 +186,44 @@ export async function executeLLMNode(
 
 export async function executeImageNode(
     node: Node<ImageData>,
-    inputs: { prompt?: string; images?: { url: string; type: string }[] },
+    inputs: {
+        prompt?: string;
+        images?: { url: string; type: string }[];
+        namedNodes?: NamedNodeInput[];
+    },
     context?: ExecutionContext,
 ): Promise<Partial<ImageData>> {
-    const { prompt, images } = inputs;
-    const finalPrompt = prompt || node.data.prompt;
+    const { namedNodes = [] } = inputs;
     const fetcher = context?.fetch || fetch;
+    const referencedIds = new Set<string>();
 
-    if (!finalPrompt) {
+    // Use the node's own prompt field (which may contain @[nodeId] tokens)
+    // plus any connected prompt-input text, resolving mentions inline.
+    const promptSource = node.data.prompt || inputs.prompt || "";
+    const parts = resolveInlineMentions(promptSource, namedNodes, referencedIds);
+
+    // Mode 1: append non-@-referenced connected nodes
+    appendUnreferencedNodes(parts, namedNodes, referencedIds);
+
+    if (parts.length === 0) {
         throw new Error("No prompt available for image node");
     }
 
-    logger.info(`[Executor] Generating image with prompt: ${finalPrompt}`);
+    logger.info(
+        `[Executor] Generating image with ${parts.length} content parts`,
+    );
 
     const generateFn = async () => {
         const response = await fetcher("/api/generate-image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                prompt: finalPrompt,
-                images: images || [],
+                parts,
                 aspectRatio: node.data.aspectRatio,
                 model: node.data.model,
                 resolution: node.data.resolution,
+                groundingGoogleSearch: node.data.groundingGoogleSearch,
+                groundingImageSearch: node.data.groundingImageSearch,
             }),
         });
 
@@ -94,7 +234,6 @@ export async function executeImageNode(
             throw error;
         }
 
-        // On success, clear any preceding retry errors
         context?.onNodeUpdate?.(node.id, { error: undefined });
         return response.json();
     };
@@ -147,12 +286,21 @@ export async function executeVideoNode(
         firstFrame?: string;
         lastFrame?: string;
         images?: { url: string; type: string }[];
+        namedNodes?: NamedNodeInput[];
     },
     context?: ExecutionContext,
 ): Promise<Partial<VideoData>> {
-    const { prompt, firstFrame, lastFrame, images } = inputs;
-    const finalPrompt = prompt || node.data.prompt;
+    const { firstFrame, lastFrame, images, namedNodes = [] } = inputs;
     const fetcher = context?.fetch || fetch;
+
+    // For video, @[nodeId] tokens in the prompt are text-only interpolation.
+    const rawPrompt = node.data.prompt || inputs.prompt || "";
+    const nodeMap = new Map(namedNodes.map((n) => [n.nodeId, n]));
+    MENTION_RE.lastIndex = 0;
+    const finalPrompt = rawPrompt.replace(MENTION_RE, (match, nodeId) => {
+        const named = nodeMap.get(nodeId);
+        return named?.textValue ?? match;
+    });
 
     if (!finalPrompt) {
         throw new Error("No prompt available for video node");

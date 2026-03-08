@@ -16,7 +16,10 @@ import {
     VolumeX,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { NodeTitle } from "@/components/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
+import { MentionEditor } from "@/components/mention-editor";
+import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
 import { MODELS } from "@/lib/constants";
 import {
     Select,
@@ -39,9 +42,10 @@ export const VideoNode = memo(
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const selectNode = useFlowStore((state) => state.selectNode);
         const { executeNode, runFromNode } = useFlowExecution();
-        const textareaRef = useRef<HTMLTextAreaElement>(null);
         const [localPrompt, setLocalPrompt] = useState(data.prompt);
         const [prevDataPrompt, setPrevDataPrompt] = useState(data.prompt);
+
+        const connectedTextNodes = useConnectedSourceNodes(id, "prompt-input");
         const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const [playbackUrlAsync, setPlaybackUrlAsync] = useState<
             string | undefined
@@ -81,14 +85,6 @@ export const VideoNode = memo(
                 setPlaybackUrlAsync(undefined);
             }
         }
-
-        useEffect(() => {
-            if (textareaRef.current) {
-                textareaRef.current.style.height = "auto";
-                textareaRef.current.style.height =
-                    textareaRef.current.scrollHeight + "px";
-            }
-        }, [localPrompt]);
 
         useEffect(() => {
             const fetchSignedUrl = async (gcsUri: string) => {
@@ -182,14 +178,9 @@ export const VideoNode = memo(
             [runFromNode, id],
         );
 
-        const handlePromptChange = (
-            e: React.ChangeEvent<HTMLTextAreaElement>,
-        ) => {
-            setLocalPrompt(e.target.value);
-        };
-
-        const handleBlur = () => {
-            updateNodeData(id, { prompt: localPrompt });
+        const handlePromptChange = (value: string) => {
+            setLocalPrompt(value);
+            updateNodeData(id, { prompt: value });
         };
 
         return (
@@ -265,9 +256,13 @@ export const VideoNode = memo(
 
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-foreground mb-1 truncate text-sm font-semibold">
-                                {data.name}
-                            </h3>
+                            <NodeTitle
+                                name={data.name}
+                                onRename={(n) =>
+                                    updateNodeData(id, { name: n })
+                                }
+                                className="text-foreground mb-1"
+                            />
                             <div className="flex items-center gap-1">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
@@ -335,15 +330,12 @@ export const VideoNode = memo(
                                 </div>
                             </div>
                         </div>
-                        <textarea
-                            ref={textareaRef}
+                        <MentionEditor
                             value={localPrompt}
                             onChange={handlePromptChange}
-                            onBlur={handleBlur}
-                            onWheel={(e) => e.stopPropagation()}
+                            availableNodes={connectedTextNodes}
                             placeholder="Enter prompt..."
-                            className="nowheel nopan text-muted-foreground focus:text-foreground nodrag mb-2 w-full resize-none overflow-hidden border-none bg-transparent text-xs break-words transition-colors outline-none"
-                            rows={1}
+                            className="nowheel nopan nodrag text-muted-foreground mb-2 w-full text-xs"
                         />
                         {data.error && (
                             <div className="text-destructive mt-2 text-xs font-medium">

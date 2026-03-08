@@ -1,6 +1,3 @@
-- UI node, parameters as capsules on nodes
-
-- Prompts with variable
 - Lists
 - app mode
 
