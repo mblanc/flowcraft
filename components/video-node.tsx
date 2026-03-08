@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { memo, useRef, useEffect, useState, useCallback } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { VideoData } from "@/lib/types";
 import {
@@ -19,6 +19,7 @@ import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { MentionEditor } from "@/components/mention-editor";
+import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
 import { MODELS } from "@/lib/constants";
 import {
     Select,
@@ -44,22 +45,7 @@ export const VideoNode = memo(
         const [localPrompt, setLocalPrompt] = useState(data.prompt);
         const [prevDataPrompt, setPrevDataPrompt] = useState(data.prompt);
 
-        // Only text-connected nodes available for @-mention (Veo takes a string prompt)
-        const edges = useFlowStore((state) => state.edges);
-        const nodes = useFlowStore((state) => state.nodes);
-        const connectedTextNodes = useMemo(
-            () =>
-                edges
-                    .filter(
-                        (e) =>
-                            e.target === id &&
-                            e.targetHandle === "prompt-input",
-                    )
-                    .map((e) => nodes.find((n) => n.id === e.source))
-                    .filter((n): n is NonNullable<typeof n> => n !== undefined)
-                    .map((n) => ({ id: n.id, name: n.data.name as string })),
-            [edges, nodes, id],
-        );
+        const connectedTextNodes = useConnectedSourceNodes(id, "prompt-input");
         const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const [playbackUrlAsync, setPlaybackUrlAsync] = useState<
             string | undefined

@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { memo, useRef, useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ImageData } from "@/lib/types";
@@ -20,6 +20,7 @@ import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { MentionEditor } from "@/components/mention-editor";
+import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
 import { MODELS } from "@/lib/constants";
 import {
     Select,
@@ -103,18 +104,7 @@ export const ImageNode = memo(
         const [localPrompt, setLocalPrompt] = useState(data.prompt);
         const [prevDataPrompt, setPrevDataPrompt] = useState(data.prompt);
 
-        // All connected source nodes (text + image) available for @-mention
-        const edges = useFlowStore((state) => state.edges);
-        const nodes = useFlowStore((state) => state.nodes);
-        const connectedNodes = useMemo(
-            () =>
-                edges
-                    .filter((e) => e.target === id)
-                    .map((e) => nodes.find((n) => n.id === e.source))
-                    .filter((n): n is NonNullable<typeof n> => n !== undefined)
-                    .map((n) => ({ id: n.id, name: n.data.name as string })),
-            [edges, nodes, id],
-        );
+        const connectedNodes = useConnectedSourceNodes(id);
         const [isImageOpen, setIsImageOpen] = useState(false);
         const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const [dimensions, setDimensions] = useState({

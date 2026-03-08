@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useRef, useEffect, useState, useMemo } from "react";
+import { memo, useRef, useEffect, useState } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { LLMData } from "@/lib/types";
 import {
@@ -43,6 +43,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { MentionEditor } from "@/components/mention-editor";
+import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
 
 const DEFAULT_WIDTH = 400;
 const MIN_WIDTH = 340;
@@ -54,23 +55,7 @@ export const LLMNode = memo(
         const selectNode = useFlowStore((state) => state.selectNode);
         const { executeNode, runFromNode } = useFlowExecution();
 
-        // Subscribe to the raw arrays — Zustand only changes their reference on
-        // actual mutations, so these selectors are stable between renders.
-        const edges = useFlowStore((state) => state.edges);
-        const nodes = useFlowStore((state) => state.nodes);
-
-        // Derive connected source nodes for the @mention dropdown.
-        // useMemo ensures the derived array is only recomputed when edges/nodes
-        // actually change, preventing the infinite-loop from new-object-on-every-render.
-        const connectedNodes = useMemo(
-            () =>
-                edges
-                    .filter((e) => e.target === id)
-                    .map((e) => nodes.find((n) => n.id === e.source))
-                    .filter((n): n is NonNullable<typeof n> => n !== undefined)
-                    .map((n) => ({ id: n.id, name: n.data.name as string })),
-            [edges, nodes, id],
-        );
+        const connectedNodes = useConnectedSourceNodes(id);
 
         const [localInstructions, setLocalInstructions] = useState(
             data.instructions,

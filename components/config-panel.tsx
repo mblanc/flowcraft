@@ -31,8 +31,9 @@ import {
 } from "./ui/collapsible";
 import { Plus, Trash2, Code, ChevronDown, List } from "lucide-react";
 import Image from "next/image";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import logger from "@/app/logger";
+import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
 
 function SchemaEditor({
     visualSchema,
@@ -198,17 +199,7 @@ function LLMConfig({ data, nodeId }: { data: LLMData; nodeId: string }) {
         (state: FlowState) => state.updateNodeData,
     );
 
-    const llmEdges = useFlowStore((state) => state.edges);
-    const llmNodes = useFlowStore((state) => state.nodes);
-    const connectedNodes = useMemo(
-        () =>
-            llmEdges
-                .filter((e) => e.target === nodeId)
-                .map((e) => llmNodes.find((n) => n.id === e.source))
-                .filter((n): n is NonNullable<typeof n> => n !== undefined)
-                .map((n) => ({ id: n.id, name: n.data.name as string })),
-        [llmEdges, llmNodes, nodeId],
-    );
+    const connectedNodes = useConnectedSourceNodes(nodeId);
 
     const syncResponseSchema = useCallback(
         (visualSchema: LLMData["visualSchema"]) => {
@@ -514,18 +505,7 @@ function ImageConfig({ data, nodeId }: { data: ImageData; nodeId: string }) {
         (state: FlowState) => state.updateNodeData,
     );
 
-    // All connected nodes (text + file) available for @-mention in the prompt
-    const imgEdges = useFlowStore((state) => state.edges);
-    const imgNodes = useFlowStore((state) => state.nodes);
-    const connectedNodes = useMemo(
-        () =>
-            imgEdges
-                .filter((e) => e.target === nodeId)
-                .map((e) => imgNodes.find((n) => n.id === e.source))
-                .filter((n): n is NonNullable<typeof n> => n !== undefined)
-                .map((n) => ({ id: n.id, name: n.data.name as string })),
-        [imgEdges, imgNodes, nodeId],
-    );
+    const connectedNodes = useConnectedSourceNodes(nodeId);
 
     const [signedImageUrls, setSignedImageUrls] = useState<string[]>([]);
 
@@ -801,22 +781,7 @@ function VideoConfig({ data, nodeId }: { data: VideoData; nodeId: string }) {
         (state: FlowState) => state.updateNodeData,
     );
 
-    // Only text-sourced connected nodes (Veo takes a string prompt)
-    const vidEdges = useFlowStore((state) => state.edges);
-    const vidNodes = useFlowStore((state) => state.nodes);
-    const connectedTextNodes = useMemo(
-        () =>
-            vidEdges
-                .filter(
-                    (e) =>
-                        e.target === nodeId &&
-                        e.targetHandle === "prompt-input",
-                )
-                .map((e) => vidNodes.find((n) => n.id === e.source))
-                .filter((n): n is NonNullable<typeof n> => n !== undefined)
-                .map((n) => ({ id: n.id, name: n.data.name as string })),
-        [vidEdges, vidNodes, nodeId],
-    );
+    const connectedTextNodes = useConnectedSourceNodes(nodeId, "prompt-input");
 
     const [signedRefImageUrls, setSignedRefImageUrls] = useState<string[]>([]);
 
