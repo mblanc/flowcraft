@@ -369,9 +369,7 @@ export const CustomWorkflowNode = memo(
                     <div className="min-w-0 flex-1 text-left">
                         <NodeTitle
                             name={data.name}
-                            onRename={(n) =>
-                                updateNodeData(id, { name: n })
-                            }
+                            onRename={(n) => updateNodeData(id, { name: n })}
                             className="text-foreground"
                         />
                     </div>

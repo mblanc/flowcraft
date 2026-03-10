@@ -24,9 +24,7 @@ export const BatchMediaGallery = memo(
         useEffect(() => {
             for (const url of items) {
                 if (url.startsWith("gs://") && !signedUrls.has(url)) {
-                    fetch(
-                        `/api/signed-url?gcsUri=${encodeURIComponent(url)}`,
-                    )
+                    fetch(`/api/signed-url?gcsUri=${encodeURIComponent(url)}`)
                         .then((res) => res.json())
                         .then((result) => {
                             if (result.signedUrl) {
@@ -113,7 +111,7 @@ export const BatchMediaGallery = memo(
                                             muted
                                         />
                                     )}
-                                    <span className="bg-background/70 absolute right-0.5 bottom-0.5 rounded px-1 text-[9px] font-mono">
+                                    <span className="bg-background/70 absolute right-0.5 bottom-0.5 rounded px-1 font-mono text-[9px]">
                                         {index + 1}
                                     </span>
                                 </div>

@@ -82,26 +82,15 @@ export const LLMNode = memo(
         const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
         // Keep local UI state aligned with external node data.
-        useEffect(() => {
-            setDimensions({
-                width: data.width || DEFAULT_WIDTH,
-                height: data.height || MIN_HEIGHT,
-            });
-        }, [data.width, data.height]);
+        if (data.instructions !== prevDataInstructions) {
+            setPrevDataInstructions(data.instructions);
+            setLocalInstructions(data.instructions);
+        }
 
-        useEffect(() => {
-            if (data.instructions !== prevDataInstructions) {
-                setPrevDataInstructions(data.instructions);
-                setLocalInstructions(data.instructions);
-            }
-        }, [data.instructions, prevDataInstructions]);
-
-        useEffect(() => {
-            if (data.output !== prevDataOutput) {
-                setPrevDataOutput(data.output || "");
-                setLocalOutput(data.output || "");
-            }
-        }, [data.output, prevDataOutput]);
+        if (data.output !== prevDataOutput) {
+            setPrevDataOutput(data.output || "");
+            setLocalOutput(data.output || "");
+        }
 
         const handleInstructionsChange = (value: string) => {
             setLocalInstructions(value);
@@ -188,8 +177,8 @@ export const LLMNode = memo(
                         : "border-border",
                 )}
                 style={{
-                    width: dimensions.width,
-                    height: dimensions.height,
+                    width: data.width || DEFAULT_WIDTH,
+                    height: data.height || MIN_HEIGHT,
                 }}
             >
                 {data.executing && (
@@ -203,7 +192,7 @@ export const LLMNode = memo(
                     />
                 )}
                 {data.batchTotal && data.batchTotal > 0 && !data.executing && (
-                    <span className="absolute top-2 right-2 z-10 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    <span className="bg-primary/20 text-primary absolute top-2 right-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-bold">
                         {data.batchTotal}x
                     </span>
                 )}
@@ -339,10 +328,16 @@ export const LLMNode = memo(
                                             <div className="flex flex-1 flex-col overflow-hidden p-4">
                                                 {viewMode === "instructions" ? (
                                                     <MentionEditor
-                                                        value={localInstructions}
-                                                        onChange={handleInstructionsChange}
+                                                        value={
+                                                            localInstructions
+                                                        }
+                                                        onChange={
+                                                            handleInstructionsChange
+                                                        }
                                                         onBlur={handleBlur}
-                                                        availableNodes={connectedNodes}
+                                                        availableNodes={
+                                                            connectedNodes
+                                                        }
                                                         placeholder="Enter instructions..."
                                                         className="h-full w-full flex-1 text-base"
                                                     />
@@ -398,9 +393,11 @@ export const LLMNode = memo(
                                             className="hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                             title="Execute Node"
                                         >
-                                            {data.executing && data.batchTotal ? (
+                                            {data.executing &&
+                                            data.batchTotal ? (
                                                 <span className="text-[10px] font-medium tabular-nums">
-                                                    {data.batchProgress || 0}/{data.batchTotal}
+                                                    {data.batchProgress || 0}/
+                                                    {data.batchTotal}
                                                 </span>
                                             ) : data.executing ? (
                                                 <Loader2 className="h-4 w-4 animate-spin" />

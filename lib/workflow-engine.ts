@@ -49,24 +49,22 @@ function sliceBatchInputs(
     const sliced = { ...inputs };
 
     if (inputs.namedNodes) {
-        sliced.namedNodes = inputs.namedNodes.map(
-            (nn): NamedNodeInput => {
-                const copy: NamedNodeInput = { ...nn };
-                if (nn.textValues) {
-                    copy.textValue = nn.textValues[index] ?? nn.textValues[0];
-                    copy.textValues = undefined;
+        sliced.namedNodes = inputs.namedNodes.map((nn): NamedNodeInput => {
+            const copy: NamedNodeInput = { ...nn };
+            if (nn.textValues) {
+                copy.textValue = nn.textValues[index] ?? nn.textValues[0];
+                copy.textValues = undefined;
+            }
+            if (nn.fileValuesList) {
+                copy.fileValues =
+                    nn.fileValuesList[index] ?? nn.fileValuesList[0];
+                copy.fileValuesList = undefined;
+                if (copy.fileValues.length > 0) {
+                    sliced.image = copy.fileValues[0].url;
                 }
-                if (nn.fileValuesList) {
-                    copy.fileValues =
-                        nn.fileValuesList[index] ?? nn.fileValuesList[0];
-                    copy.fileValuesList = undefined;
-                    if (copy.fileValues.length > 0) {
-                        sliced.image = copy.fileValues[0].url;
-                    }
-                }
-                return copy;
-            },
-        );
+            }
+            return copy;
+        });
     }
 
     return sliced;
@@ -88,8 +86,7 @@ function mergeResults(
         }
         case "llm": {
             const allOutputs = results.map(
-                (r) =>
-                    ((r as Record<string, unknown>).output as string) || "",
+                (r) => ((r as Record<string, unknown>).output as string) || "",
             );
             return {
                 output: allOutputs[0],
@@ -108,8 +105,7 @@ function mergeResults(
         }
         case "upscale": {
             const allImages = results.map(
-                (r) =>
-                    ((r as Record<string, unknown>).image as string) || "",
+                (r) => ((r as Record<string, unknown>).image as string) || "",
             );
             return {
                 image: allImages[0],
@@ -118,8 +114,7 @@ function mergeResults(
         }
         case "resize": {
             const allOutputs = results.map(
-                (r) =>
-                    ((r as Record<string, unknown>).output as string) || "",
+                (r) => ((r as Record<string, unknown>).output as string) || "",
             );
             return {
                 output: allOutputs[0],
@@ -295,7 +290,12 @@ export class WorkflowEngine {
                     };
                     await Promise.all(
                         Array.from(
-                            { length: Math.min(BATCH_CONCURRENCY, batchPlan.batchSize) },
+                            {
+                                length: Math.min(
+                                    BATCH_CONCURRENCY,
+                                    batchPlan.batchSize,
+                                ),
+                            },
                             runNext,
                         ),
                     );

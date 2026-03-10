@@ -147,10 +147,10 @@ export const FileNode = memo(
             const fileType = file.type.startsWith("image/")
                 ? "image"
                 : file.type.startsWith("video/")
-                    ? "video"
-                    : file.type === "application/pdf"
-                        ? "pdf"
-                        : null;
+                  ? "video"
+                  : file.type === "application/pdf"
+                    ? "pdf"
+                    : null;
 
             if (!fileType) {
                 alert("Please upload an image, video, or PDF file");
@@ -289,18 +289,18 @@ export const FileNode = memo(
                         </div>
                         {(data.fileType === "image" ||
                             data.fileType === "video") && (
-                                <MediaViewer
-                                    isOpen={isMediaOpen}
-                                    onOpenChange={setIsMediaOpen}
-                                    url={signedUrl}
-                                    alt={data.fileName || "File"}
-                                    type={
-                                        data.fileType === "video"
-                                            ? "video"
-                                            : "image"
-                                    }
-                                />
-                            )}
+                            <MediaViewer
+                                isOpen={isMediaOpen}
+                                onOpenChange={setIsMediaOpen}
+                                url={signedUrl}
+                                alt={data.fileName || "File"}
+                                type={
+                                    data.fileType === "video"
+                                        ? "video"
+                                        : "image"
+                                }
+                            />
+                        )}
                     </>
                 )}
 

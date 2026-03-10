@@ -212,14 +212,14 @@ const getSourceValue = (data: NodeData | null): unknown => {
     }
 
     const isBatch = !!(
-        unwrappedData.batchTotal &&
-        (unwrappedData.batchTotal as number) > 0
+        unwrappedData.batchTotal && (unwrappedData.batchTotal as number) > 0
     );
 
     if (unwrappedData.type === "text") return (unwrappedData as TextData).text;
     if (unwrappedData.type === "llm") {
         const llm = unwrappedData as unknown as LLMData;
-        if (isBatch && llm.outputs && llm.outputs.length > 1) return llm.outputs;
+        if (isBatch && llm.outputs && llm.outputs.length > 1)
+            return llm.outputs;
         return llm.output;
     }
     if (unwrappedData.type === "image")
@@ -240,8 +240,7 @@ const getSourceValue = (data: NodeData | null): unknown => {
         if (isBatch && rs.outputs && rs.outputs.length > 1) return rs.outputs;
         return rs.output;
     }
-    if (unwrappedData.type === "list")
-        return (unwrappedData as ListData).items;
+    if (unwrappedData.type === "list") return (unwrappedData as ListData).items;
     if (unwrappedData.type === "file")
         return (unwrappedData as FileData).gcsUri;
 
@@ -275,10 +274,7 @@ const getSourceValue = (data: NodeData | null): unknown => {
 /**
  * Infers MIME type for a URL string using extension and source node metadata.
  */
-function inferMimeType(
-    url: string,
-    sourceData: NodeData | null,
-): string {
+function inferMimeType(url: string, sourceData: NodeData | null): string {
     const lower = url.toLowerCase();
     if (lower.endsWith(".pdf")) return "application/pdf";
     if (
@@ -405,8 +401,7 @@ registerNode<LLMData, NodeInputs>({
                 named.fileValuesList = (value as string[]).map((url) => [
                     { url, type: inferMimeType(url, sourceData) },
                 ]);
-                named.fileValues =
-                    named.fileValuesList[0] || [];
+                named.fileValues = named.fileValuesList[0] || [];
             } else {
                 const rawValues = Array.isArray(value) ? value : [value];
                 const fileValues = buildFileValues(rawValues, sourceData);
@@ -468,10 +463,7 @@ registerNode<ImageData, NodeInputs>({
             );
             const promptValue = getSourceValue(sourceData);
 
-            if (
-                Array.isArray(promptValue) &&
-                isCollectionSource(sourceData)
-            ) {
+            if (Array.isArray(promptValue) && isCollectionSource(sourceData)) {
                 const named = getOrCreateNamed(promptEdge.source, sourceData!);
                 named.textValues = promptValue as string[];
                 named.textValue = (promptValue as string[])[0] ?? null;
@@ -551,10 +543,7 @@ registerNode<VideoData, NodeInputs>({
             );
             const promptValue = getSourceValue(promptData);
 
-            if (
-                Array.isArray(promptValue) &&
-                isCollectionSource(promptData)
-            ) {
+            if (Array.isArray(promptValue) && isCollectionSource(promptData)) {
                 if (!namedNodesMap.has(promptEdge.source)) {
                     namedNodesMap.set(promptEdge.source, {
                         nodeId: promptEdge.source,

@@ -6,7 +6,6 @@
 - Video Concatenate
 - Extract Frame
 
-
 - Image Editor
     - Resizing (https://sharp.pixelplumbing.com/api-resize/)
     - Technical change

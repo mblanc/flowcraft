@@ -311,13 +311,11 @@ export function FlowCanvas() {
         connectionStartParamsRef.current = null;
     }, []);
 
-    const prevFlowIdRef = useRef(flowId);
-    useEffect(() => {
-        if (flowId !== prevFlowIdRef.current) {
-            prevFlowIdRef.current = flowId;
-            setHasFitted(false);
-        }
-    }, [flowId]);
+    const [prevFlowId, setPrevFlowId] = useState(flowId);
+    if (flowId !== prevFlowId) {
+        setPrevFlowId(flowId);
+        setHasFitted(false);
+    }
 
     // Fit view when nodes are loaded and we haven't fitted yet
     useEffect(() => {
@@ -418,17 +416,26 @@ export function FlowCanvas() {
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (
-                event.target instanceof HTMLInputElement ||
-                event.target instanceof HTMLTextAreaElement
-            ) {
-                return;
-            }
+            const target = event.target as HTMLElement;
+            const isEditable =
+                target instanceof HTMLInputElement ||
+                target instanceof HTMLTextAreaElement ||
+                target?.isContentEditable;
 
             if ((event.ctrlKey || event.metaKey) && event.key === "c") {
+                // Skip node copy if focus is in an input/contentEditable OR if text is selected
+                if (isEditable) return;
+
+                const selection = window.getSelection();
+                if (selection && selection.toString().length > 0) {
+                    return;
+                }
+
                 copyNodes();
             }
             if ((event.ctrlKey || event.metaKey) && event.key === "v") {
+                // Skip node paste if focus is in an input/contentEditable
+                if (isEditable) return;
                 pasteNodes();
             }
         };
@@ -856,7 +863,8 @@ export function FlowCanvas() {
             baseStyle.strokeWidth = 8;
             baseStyle.strokeDasharray = "8 4";
             if (sourceNode) {
-                baseStyle.stroke = NODE_COLORS[sourceNode.data.type] || "#3b82f6";
+                baseStyle.stroke =
+                    NODE_COLORS[sourceNode.data.type] || "#3b82f6";
             }
         }
 

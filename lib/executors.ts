@@ -200,7 +200,11 @@ export async function executeImageNode(
     // Use the node's own prompt field (which may contain @[nodeId] tokens)
     // plus any connected prompt-input text, resolving mentions inline.
     const promptSource = node.data.prompt || inputs.prompt || "";
-    const parts = resolveInlineMentions(promptSource, namedNodes, referencedIds);
+    const parts = resolveInlineMentions(
+        promptSource,
+        namedNodes,
+        referencedIds,
+    );
 
     // Mode 1: append non-@-referenced connected nodes
     appendUnreferencedNodes(parts, namedNodes, referencedIds);

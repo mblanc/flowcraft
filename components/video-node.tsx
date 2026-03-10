@@ -299,7 +299,8 @@ export const VideoNode = memo(
                                 >
                                     {data.executing && data.batchTotal ? (
                                         <span className="text-[10px] font-medium tabular-nums">
-                                            {data.batchProgress || 0}/{data.batchTotal}
+                                            {data.batchProgress || 0}/
+                                            {data.batchTotal}
                                         </span>
                                     ) : data.executing ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />

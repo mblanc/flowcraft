@@ -149,7 +149,6 @@ export const ImageNode = memo(
             (imageSource?.startsWith("gs://") ? asyncSignedUrl : imageSource) ||
             "/placeholder.svg";
 
-
         useEffect(() => {
             if (imageSource && imageSource.startsWith("gs://")) {
                 fetch(
@@ -334,7 +333,7 @@ export const ImageNode = memo(
                         <ImageIcon className="h-5 w-5 text-orange-400" />
                     </div>
 
-                        <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                             <NodeTitle
                                 name={data.name}
@@ -373,7 +372,8 @@ export const ImageNode = memo(
                                 >
                                     {data.executing && data.batchTotal ? (
                                         <span className="text-[10px] font-medium tabular-nums">
-                                            {data.batchProgress || 0}/{data.batchTotal}
+                                            {data.batchProgress || 0}/
+                                            {data.batchTotal}
                                         </span>
                                     ) : data.executing ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />

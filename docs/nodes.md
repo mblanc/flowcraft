@@ -162,16 +162,16 @@ Tier prioritization
 Best at trimming to MVP while preserving scalability
 
 2️⃣ Structural Differences
-Area	Gemini	Claude	GPT
-Typed wires	❌	✅ (strong emphasis)	✅
-Frame data model	❌	✅ core primitive	✅
-Iterator architecture	Moderate	Very detailed	Clear but simplified
-Prompt object system	Light	Moderate	Strong
-Evaluation system	Strong	Very strong	Strong
-Image transforms	Minimal	Very exhaustive	Moderate
-Output/export	Basic	Very exhaustive	Moderate
-Enterprise/meta layer	Light	Very deep	Deep
-AI Agent concept	❌	❌	✅
+Area Gemini Claude GPT
+Typed wires ❌ ✅ (strong emphasis) ✅
+Frame data model ❌ ✅ core primitive ✅
+Iterator architecture Moderate Very detailed Clear but simplified
+Prompt object system Light Moderate Strong
+Evaluation system Strong Very strong Strong
+Image transforms Minimal Very exhaustive Moderate
+Output/export Basic Very exhaustive Moderate
+Enterprise/meta layer Light Very deep Deep
+AI Agent concept ❌ ❌ ✅
 3️⃣ Unique Concepts Introduced by Each
 🟢 Gemini Unique Emphasis
 
@@ -586,7 +586,7 @@ You’ve compiled a fantastic cross-section of architectural reasoning here. Loo
 Here is a breakdown of the differences, followed by the ultimate combined master list.
 
 How the Three Lists Differ
-Philosophical Approach: * The First List (Gemini) is highly product-focused. It builds a linear roadmap from a Minimum Viable Product (MVP) up to enterprise features, focusing heavily on what nodes the user interacts with first.
+Philosophical Approach: \* The First List (Gemini) is highly product-focused. It builds a linear roadmap from a Minimum Viable Product (MVP) up to enterprise features, focusing heavily on what nodes the user interacts with first.
 
 The Second List (Claude) is deeply architecture-focused. It refuses to build features until foundational data structures like "Typed Wires," "Frames" (metadata bundles), and "Streams" are defined. It also goes much deeper into export pipelines (S3, Slack) and mathematical generation (Linspace, Chunk).
 
@@ -604,7 +604,7 @@ The Exhaustive Master Reference List
 By combining the strengths of all three, we get a complete architectural blueprint. I have organized this by functional category rather than chronological phases so you can use it as a master reference.
 
 1. Foundational Architecture & System Concepts
-These are not nodes, but the underlying rules the system must follow.
+   These are not nodes, but the underlying rules the system must follow.
 
 Typed Wires: Strict data typing for connections (String, Number, Image, Boolean, Collection<T>, Frame). Mismatches fail at wiring, not runtime.
 
@@ -617,14 +617,14 @@ Dirty Flagging / Partial Execution: The system only re-runs nodes whose inputs h
 Variable Scoping: Allows global variables to pass into subgraphs without explicit rewiring.
 
 2. Primitive Inputs & Data Structures
-Primitive Nodes: String (Text), Number (Slider/Int), Boolean (Toggle), and Seed Nodes.
+   Primitive Nodes: String (Text), Number (Slider/Int), Boolean (Toggle), and Seed Nodes.
 
 Collection Nodes: String Collection (manual, paste, CSV) and Image Collection (drag-drop, folder import, URL fetch).
 
 Structured Variable Object: Groups related variables together (e.g., a "Character" object containing Hair Color, Eye Color, and Style).
 
 3. Combinatorics & The Iteration Engine
-The Iterator / Combinator Node: The heart of the batch engine. Handles ZIP (A1+B1) and CARTESIAN (A1+B1, A1+B2) math to create batch queues. Emits a stream of Frames.
+   The Iterator / Combinator Node: The heart of the batch engine. Handles ZIP (A1+B1) and CARTESIAN (A1+B1, A1+B2) math to create batch queues. Emits a stream of Frames.
 
 Enumerate Node: Generates a numeric range (from, to, step) for sweeping parameters like CFG or denoise.
 
@@ -637,7 +637,7 @@ Chunk Node: Splits large collections into smaller batches to manage API rate lim
 Limit / Sampler Node: Caps a collection at N items (First N, Last N, or Random N).
 
 4. Prompt Intelligence & Engineering
-Prompt Template Node: The text editor accepting {{variables}}.
+   Prompt Template Node: The text editor accepting {{variables}}.
 
 Prompt Compiler: Injects Iterator variables into the Template and prepares the final string.
 
@@ -652,7 +652,7 @@ Style Reference Node: Wraps a named style/artist into a reusable prompt fragment
 Token Counter Node: Warns if a compiled prompt exceeds the AI model's context window.
 
 5. Core Generation Engines
-Image Generator Node: Base text-to-image interface (e.g., Stable Diffusion, Midjourney, Flux).
+   Image Generator Node: Base text-to-image interface (e.g., Stable Diffusion, Midjourney, Flux).
 
 Image-to-Image Node: Img2Img generation with configurable denoise strength.
 
@@ -663,7 +663,7 @@ Multi-Model Runner: Runs the same Frame through multiple AI models simultaneousl
 Style Anchor Node (IP-Adapter): Forces visual style onto a batch using a reference image and mathematical conditioning rather than text.
 
 6. Control Flow, Routing & Logic
-Conditional Switch (If/Else): Routes data based on rules (e.g., "If Aspect Ratio > 1, send to Landscape pipeline").
+   Conditional Switch (If/Else): Routes data based on rules (e.g., "If Aspect Ratio > 1, send to Landscape pipeline").
 
 Filter Node: Passes only items in a Collection that meet a specific condition.
 
@@ -676,7 +676,7 @@ Try / Fallback Node: Runs a primary node; if the API fails, it automatically run
 Rate Limiter Node: Throttles execution (requests-per-minute) to prevent API bans.
 
 7. Automated Evaluation & QA (Self-Correcting Pipeline)
-VLM QA Evaluator: An LLM-based judge that answers specific questions (e.g., "Is there a red car in this image?").
+   VLM QA Evaluator: An LLM-based judge that answers specific questions (e.g., "Is there a red car in this image?").
 
 Aesthetic Scorer: Assigns a mathematical quality score (0.0 to 1.0) to every generation.
 
@@ -691,7 +691,7 @@ NSFW Detector: Flags or filters policy violations.
 Face Detection Node: Checks for face presence, count, and bounding boxes.
 
 8. Image Transformation & Prep
-Resize / Crop Node: Fit, fill, center, or focal-point-aware cropping.
+   Resize / Crop Node: Fit, fill, center, or focal-point-aware cropping.
 
 Mask Node: Manual or auto-generated (SAM) masks for inpainting.
 
@@ -708,7 +708,7 @@ ControlNet Prep Nodes: Depth Map Extractor, Edge Detector, and Pose Extractor.
 Upscaler Node: AI upscaling with scale factor selection.
 
 9. Human-in-the-Loop & Curation
-Halt / Approval Gate: Stops a batch after a set number (e.g., the first 3 images) to ask the user, "Is this correct?" before spending compute on the rest.
+   Halt / Approval Gate: Stops a batch after a set number (e.g., the first 3 images) to ask the user, "Is this correct?" before spending compute on the rest.
 
 Gallery Picker: Pauses execution to show a grid; the user selects their favorites, which become a new Collection for the next stage.
 
@@ -717,7 +717,7 @@ A/B Ranker: Presents pairs of outputs for manual 1-on-1 preference ranking.
 Label Node: Allows users to tag outputs (Good/Bad/Review) for downstream filtering.
 
 10. Output, Export & Metadata
-Single Result / Comparison Viewer: Renders single images or side-by-side diffs with sliders.
+    Single Result / Comparison Viewer: Renders single images or side-by-side diffs with sliders.
 
 Grid Viewer / Collector: Reconstructs batches into an X/Y grid, automatically labeling axes using Frame metadata.
 
@@ -730,7 +730,7 @@ Cloud & Notification Nodes: S3 / Google Drive Upload, Slack / Email Notify, Head
 PDF / ZIP Export: Packages collections for client presentations or mass download.
 
 11. Workflow Reusability (Meta-Nodes)
-Group Node / Subgraph (Macro): Collapses a group of nodes into a single, reusable custom node.
+    Group Node / Subgraph (Macro): Collapses a group of nodes into a single, reusable custom node.
 
 Parameter Expose Node: Pushes an internal node parameter to the outer interface of a Subgraph.
 
@@ -741,7 +741,7 @@ App Mode / Form Node: Strips away the node graph UI entirely, leaving only expos
 Cache Node: Saves the result of an expensive node so it doesn't re-run unless its specific inputs change.
 
 12. Enterprise & Scaling (The "Pro" Features)
-Cost & Time Estimator: Calculates total generations, API costs, and estimated time before the user hits Run.
+    Cost & Time Estimator: Calculates total generations, API costs, and estimated time before the user hits Run.
 
 Execution Log Node: Records every generation event with timestamps for auditability.
 

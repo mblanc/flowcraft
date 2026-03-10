@@ -228,8 +228,11 @@ export const ListNode = memo(
                     style={{ maxHeight: dimensions.height - 140 }}
                 >
                     {localItems.map((item, index) => (
-                        <div key={index} className="group flex items-start gap-1">
-                            <span className="text-muted-foreground mt-1.5 w-5 flex-shrink-0 text-right text-[10px] font-mono">
+                        <div
+                            key={index}
+                            className="group flex items-start gap-1"
+                        >
+                            <span className="text-muted-foreground mt-1.5 w-5 flex-shrink-0 text-right font-mono text-[10px]">
                                 {index + 1}.
                             </span>
                             <Textarea
@@ -249,7 +252,7 @@ export const ListNode = memo(
                             <button
                                 onClick={() => handleRemoveItem(index)}
                                 className={cn(
-                                    "mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-red-400 opacity-0 transition-opacity hover:bg-red-500/10 group-hover:opacity-100",
+                                    "mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-red-400 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-500/10",
                                     localItems.length <= 1 &&
                                         "pointer-events-none",
                                 )}

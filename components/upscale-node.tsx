@@ -245,7 +245,8 @@ export const UpscaleNode = memo(
                                 >
                                     {data.executing && data.batchTotal ? (
                                         <span className="text-[10px] font-medium tabular-nums">
-                                            {data.batchProgress || 0}/{data.batchTotal}
+                                            {data.batchProgress || 0}/
+                                            {data.batchTotal}
                                         </span>
                                     ) : data.executing ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -327,7 +328,9 @@ export const UpscaleNode = memo(
                                     width={dimensions.width - 32}
                                     height={dimensions.height - 200}
                                     className="h-auto w-full object-contain"
-                                    style={{ maxHeight: dimensions.height - 200 }}
+                                    style={{
+                                        maxHeight: dimensions.height - 200,
+                                    }}
                                     unoptimized={displayUrl.startsWith("data:")}
                                     onContextMenu={(e) => {
                                         e.stopPropagation();
