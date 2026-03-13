@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef, useMemo } from "react";
 import {
     ReactFlow,
     Controls,
@@ -830,9 +830,10 @@ export function FlowCanvas() {
         clearConnectionParams();
     };
 
-    const compatibleNodes = connectionStartParams
-        ? getCompatibleNodes(connectionStartParams)
-        : { native: [], custom: [] };
+    const compatibleNodes = useMemo(() => {
+        if (!connectionStartParams) return { native: [], custom: [] };
+        return getCompatibleNodes(connectionStartParams);
+    }, [connectionStartParams, getCompatibleNodes]);
 
     const handleAddCustomNode = (customNode: CustomNodeItem) => {
         addNodeWithType("custom-workflow", undefined, {
@@ -841,49 +842,51 @@ export function FlowCanvas() {
         } as Partial<CustomWorkflowData>);
     };
 
-    const highlightedEdges = edges.map((edge) => {
-        const sourceNode = nodes.find((n) => n.id === edge.source);
+    const highlightedEdges = useMemo(() => {
+        return edges.map((edge) => {
+            const sourceNode = nodes.find((n) => n.id === edge.source);
 
-        const isCollection =
-            sourceNode &&
-            getSourcePortType(
-                sourceNode as Node<NodeData>,
-                edge.sourceHandle,
-            ).startsWith("collection:");
+            const isCollection =
+                sourceNode &&
+                getSourcePortType(
+                    sourceNode as Node<NodeData>,
+                    edge.sourceHandle,
+                ).startsWith("collection:");
 
-        const isHighlighted =
-            (selectedNode &&
-                (edge.source === selectedNode.id ||
-                    edge.target === selectedNode.id)) ||
-            edge.selected;
+            const isHighlighted =
+                (selectedNode &&
+                    (edge.source === selectedNode.id ||
+                        edge.target === selectedNode.id)) ||
+                edge.selected;
 
-        const baseStyle: Record<string, unknown> = { ...edge.style };
+            const baseStyle: Record<string, unknown> = { ...edge.style };
 
-        if (isCollection) {
-            baseStyle.strokeWidth = 8;
-            baseStyle.strokeDasharray = "8 4";
-            if (sourceNode) {
-                baseStyle.stroke =
-                    NODE_COLORS[sourceNode.data.type] || "#3b82f6";
+            if (isCollection) {
+                baseStyle.strokeWidth = 8;
+                baseStyle.strokeDasharray = "8 4";
+                if (sourceNode) {
+                    baseStyle.stroke =
+                        NODE_COLORS[sourceNode.data.type] || "#3b82f6";
+                }
             }
-        }
 
-        if (!isHighlighted && !isCollection) return edge;
+            if (!isHighlighted && !isCollection) return edge;
 
-        if (isHighlighted) {
-            const color = sourceNode
-                ? NODE_COLORS[sourceNode.data.type]
-                : "#3b82f6";
-            baseStyle.stroke = color;
-            baseStyle.strokeWidth = isCollection ? 10 : 6;
-        }
+            if (isHighlighted) {
+                const color = sourceNode
+                    ? NODE_COLORS[sourceNode.data.type]
+                    : "#3b82f6";
+                baseStyle.stroke = color;
+                baseStyle.strokeWidth = isCollection ? 10 : 6;
+            }
 
-        return {
-            ...edge,
-            animated: isHighlighted,
-            style: baseStyle,
-        };
-    });
+            return {
+                ...edge,
+                animated: isHighlighted,
+                style: baseStyle,
+            };
+        });
+    }, [edges, nodes, selectedNode]);
 
     return (
         <div className="relative flex h-full flex-1">
@@ -1050,7 +1053,9 @@ export function FlowCanvas() {
                                                             </DropdownMenuLabel>
                                                             <DropdownMenuSeparator />
                                                             {compatibleNodes.native.map(
-                                                                (item) => (
+                                                                (
+                                                                    item: (typeof nativeItems)[number],
+                                                                ) => (
                                                                     <DropdownMenuItem
                                                                         key={
                                                                             item.type
@@ -1087,7 +1092,7 @@ export function FlowCanvas() {
                                                                         <DropdownMenuSubContent className="w-48">
                                                                             {compatibleNodes.custom.map(
                                                                                 (
-                                                                                    node,
+                                                                                    node: CustomNodeItem,
                                                                                 ) => (
                                                                                     <DropdownMenuItem
                                                                                         key={

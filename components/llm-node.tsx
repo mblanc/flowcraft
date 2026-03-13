@@ -79,17 +79,28 @@ export const LLMNode = memo(
             height: data.height || MIN_HEIGHT,
         });
         const [isResizing, setIsResizing] = useState(false);
+        const [prevDataWidth, setPrevDataWidth] = useState(data.width);
+        const [prevDataHeight, setPrevDataHeight] = useState(data.height);
         const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
         // Keep local UI state aligned with external node data.
-        if (data.instructions !== prevDataInstructions) {
-            setPrevDataInstructions(data.instructions);
-            setLocalInstructions(data.instructions);
+        if ((data.instructions || "") !== prevDataInstructions) {
+            setPrevDataInstructions(data.instructions || "");
+            setLocalInstructions(data.instructions || "");
         }
 
-        if (data.output !== prevDataOutput) {
+        if ((data.output || "") !== prevDataOutput) {
             setPrevDataOutput(data.output || "");
             setLocalOutput(data.output || "");
+        }
+
+        if (data.width !== prevDataWidth || data.height !== prevDataHeight) {
+            setPrevDataWidth(data.width);
+            setPrevDataHeight(data.height);
+            setDimensions({
+                width: data.width || DEFAULT_WIDTH,
+                height: data.height || MIN_HEIGHT,
+            });
         }
 
         const handleInstructionsChange = (value: string) => {

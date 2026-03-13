@@ -796,12 +796,13 @@ describe("WorkflowEngine Nested Subflows", () => {
         expect(llmCall).toBeDefined();
         const llmBody = JSON.parse(llmCall![1].body);
 
-        // The files array should contain the image from the sub-workflow
-        expect(llmBody.files).toBeDefined();
-        expect(llmBody.files.length).toBeGreaterThan(0);
-        expect(llmBody.files).toContainEqual({
-            url: "gs://bucket/cat-image.png",
-            type: "image/png",
+        // The parts array should contain the image from the sub-workflow
+        expect(llmBody.parts).toBeDefined();
+        expect(llmBody.parts.length).toBeGreaterThan(0);
+        expect(llmBody.parts).toContainEqual({
+            kind: "uri",
+            uri: "gs://bucket/cat-image.png",
+            mimeType: "image/png",
         });
     });
 
@@ -942,11 +943,12 @@ describe("WorkflowEngine Nested Subflows", () => {
         );
         expect(llmCall).toBeDefined();
         const llmBody = JSON.parse(llmCall![1].body);
-        expect(llmBody.files).toBeDefined();
-        expect(llmBody.files.length).toBeGreaterThan(0);
-        expect(llmBody.files).toContainEqual({
-            url: "gs://bucket/dog-image.png",
-            type: "image/png",
+        expect(llmBody.parts).toBeDefined();
+        expect(llmBody.parts.length).toBeGreaterThan(0);
+        expect(llmBody.parts).toContainEqual({
+            kind: "uri",
+            uri: "gs://bucket/dog-image.png",
+            mimeType: "image/png",
         });
     });
 
@@ -1054,11 +1056,12 @@ describe("WorkflowEngine Nested Subflows", () => {
         const llmBody = JSON.parse(llmCall![1].body);
 
         // The LLM should have received the previously generated image
-        expect(llmBody.files).toBeDefined();
-        expect(llmBody.files.length).toBeGreaterThan(0);
-        expect(llmBody.files).toContainEqual({
-            url: "gs://bucket/previously-generated-cat.png",
-            type: "image/png",
+        expect(llmBody.parts).toBeDefined();
+        expect(llmBody.parts.length).toBeGreaterThan(0);
+        expect(llmBody.parts).toContainEqual({
+            kind: "uri",
+            uri: "gs://bucket/previously-generated-cat.png",
+            mimeType: "image/png",
         });
 
         // Verify that generate-image was NOT called (we didn't re-run the subflow)
