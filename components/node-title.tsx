@@ -21,16 +21,20 @@ export function NodeTitle({ name, onRename, className }: NodeTitleProps) {
     const [draft, setDraft] = useState(name);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Keep draft in sync when name is updated externally
-    useEffect(() => {
+    const [prevName, setPrevName] = useState(name);
+    if (name !== prevName) {
+        setPrevName(name);
         if (!editing) setDraft(name);
-    }, [name, editing]);
+    }
 
-    const startEditing = useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-        setDraft(name);
-        setEditing(true);
-    }, [name]);
+    const startEditing = useCallback(
+        (e: React.MouseEvent) => {
+            e.stopPropagation();
+            setDraft(name);
+            setEditing(true);
+        },
+        [name],
+    );
 
     const commit = useCallback(() => {
         const trimmed = draft.trim();
@@ -72,7 +76,7 @@ export function NodeTitle({ name, onRename, className }: NodeTitleProps) {
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 className={cn(
-                    "nodrag nopan w-full truncate border-none bg-transparent text-sm font-semibold outline-none ring-0",
+                    "nodrag nopan w-full truncate border-none bg-transparent text-sm font-semibold ring-0 outline-none",
                     "border-b border-current",
                     className,
                 )}

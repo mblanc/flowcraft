@@ -35,6 +35,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { BatchMediaGallery } from "@/components/batch-media-gallery";
 import logger from "@/app/logger";
 
 export const VideoNode = memo(
@@ -185,7 +186,7 @@ export const VideoNode = memo(
 
         return (
             <div
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${
+                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color] ${
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
@@ -199,6 +200,11 @@ export const VideoNode = memo(
                             { "--beam-color": "#ec4899" } as React.CSSProperties
                         }
                     />
+                )}
+                {data.batchTotal && data.batchTotal > 0 && !data.executing && (
+                    <span className="absolute top-2 right-2 z-10 rounded-full bg-pink-500/20 px-2 py-0.5 text-[10px] font-bold text-pink-400">
+                        {data.batchTotal}x
+                    </span>
                 )}
 
                 {/* Prompt Input Handle */}
@@ -291,7 +297,12 @@ export const VideoNode = memo(
                                     className="flex h-8 w-8 items-center justify-center rounded-md text-pink-400 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                                     title="Execute Node"
                                 >
-                                    {data.executing ? (
+                                    {data.executing && data.batchTotal ? (
+                                        <span className="text-[10px] font-medium tabular-nums">
+                                            {data.batchProgress || 0}/
+                                            {data.batchTotal}
+                                        </span>
+                                    ) : data.executing ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <Play
@@ -345,7 +356,14 @@ export const VideoNode = memo(
                     </div>
                 </div>
 
-                {data.videoUrl && (
+                {data.videoUrls && data.videoUrls.length > 1 ? (
+                    <BatchMediaGallery
+                        items={data.videoUrls}
+                        type="video"
+                        maxHeight={dimensions.height - 200}
+                        nodeWidth={dimensions.width}
+                    />
+                ) : data.videoUrl ? (
                     <div
                         className="border-border mt-3 overflow-hidden rounded-md border"
                         style={{ maxHeight: dimensions.height - 200 }}
@@ -357,7 +375,7 @@ export const VideoNode = memo(
                             style={{ maxHeight: dimensions.height - 200 }}
                         />
                     </div>
-                )}
+                ) : null}
 
                 <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
                     <TooltipProvider>
@@ -557,6 +575,13 @@ export const VideoNode = memo(
                     id="result-output"
                 />
             </div>
+        );
+    },
+    (prevProps, nextProps) => {
+        return (
+            prevProps.id === nextProps.id &&
+            prevProps.selected === nextProps.selected &&
+            prevProps.data === nextProps.data
         );
     },
 );

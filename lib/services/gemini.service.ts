@@ -130,9 +130,7 @@ export class GeminiService {
                     }
 
                     if (file.url.startsWith("gs://")) {
-                        contents.push(
-                            createPartFromUri(file.url, file.type),
-                        );
+                        contents.push(createPartFromUri(file.url, file.type));
                     } else if (file.url.startsWith("data:")) {
                         const base64Match = file.url.match(
                             /^data:([^;]+);base64,(.+)$/,

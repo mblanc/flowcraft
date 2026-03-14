@@ -25,10 +25,7 @@ interface MentionEditorProps {
 }
 
 const escapeHtml = (s: string) =>
-    s
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /** Converts stored `@[nodeId]` string → display HTML with mention chips. */
 function valueToHtml(value: string, nodes: MentionNode[]): string {
@@ -253,7 +250,13 @@ export function MentionEditor({
                 closeMention();
             }
         },
-        [mentionQuery, filteredNodes, selectedIndex, insertMention, closeMention],
+        [
+            mentionQuery,
+            filteredNodes,
+            selectedIndex,
+            insertMention,
+            closeMention,
+        ],
     );
 
     const handleBlur = useCallback(() => {
@@ -275,7 +278,7 @@ export function MentionEditor({
             onWheel={(e) => e.stopPropagation()}
         >
             {isEmpty && placeholder && (
-                <div className="text-muted-foreground pointer-events-none absolute top-0 left-0 select-none text-xs">
+                <div className="text-muted-foreground pointer-events-none absolute top-0 left-0 text-xs select-none">
                     {placeholder}
                 </div>
             )}
@@ -291,7 +294,7 @@ export function MentionEditor({
                     isComposingRef.current = false;
                     handleInput();
                 }}
-                className="mention-editor h-full w-full overflow-y-auto whitespace-pre-wrap break-words outline-none"
+                className="mention-editor h-full w-full overflow-y-auto break-words whitespace-pre-wrap outline-none"
                 role="textbox"
                 aria-multiline="true"
             />

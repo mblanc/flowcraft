@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { MediaViewer } from "@/components/media-viewer";
+import { BatchMediaGallery } from "@/components/batch-media-gallery";
 import logger from "@/app/logger";
 
 export const UpscaleNode = memo(
@@ -167,7 +168,7 @@ export const UpscaleNode = memo(
         return (
             <div
                 ref={nodeRef}
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${
+                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color] ${
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
@@ -181,6 +182,11 @@ export const UpscaleNode = memo(
                             { "--beam-color": "#ef4444" } as React.CSSProperties
                         }
                     />
+                )}
+                {data.batchTotal && data.batchTotal > 0 && !data.executing && (
+                    <span className="absolute top-2 right-2 z-10 rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-400">
+                        {data.batchTotal}x
+                    </span>
                 )}
 
                 {/* Image Input Handle */}
@@ -237,7 +243,12 @@ export const UpscaleNode = memo(
                                     className="flex h-8 w-8 items-center justify-center rounded-md text-red-400 transition-colors hover:bg-red-500/20"
                                     title="Execute Node"
                                 >
-                                    {data.executing ? (
+                                    {data.executing && data.batchTotal ? (
+                                        <span className="text-[10px] font-medium tabular-nums">
+                                            {data.batchProgress || 0}/
+                                            {data.batchTotal}
+                                        </span>
+                                    ) : data.executing ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <Play
@@ -292,36 +303,48 @@ export const UpscaleNode = memo(
                     </div>
                 </div>
 
-                {data.image && displayUrl && (
-                    <>
-                        <div
-                            className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
-                            style={{
-                                maxHeight: dimensions.height - 200,
-                                position: "relative",
-                            }}
-                            onClick={() => setIsImageOpen(true)}
-                        >
-                            <Image
-                                src={displayUrl}
-                                alt={data.name}
-                                width={dimensions.width - 32}
-                                height={dimensions.height - 200}
-                                className="h-auto w-full object-contain"
-                                style={{ maxHeight: dimensions.height - 200 }}
-                                unoptimized={displayUrl.startsWith("data:")}
-                                onContextMenu={(e) => {
-                                    e.stopPropagation();
+                {data.images && data.images.length > 1 ? (
+                    <BatchMediaGallery
+                        items={data.images}
+                        type="image"
+                        maxHeight={dimensions.height - 200}
+                        nodeWidth={dimensions.width}
+                    />
+                ) : (
+                    data.image &&
+                    displayUrl && (
+                        <>
+                            <div
+                                className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
+                                style={{
+                                    maxHeight: dimensions.height - 200,
+                                    position: "relative",
                                 }}
+                                onClick={() => setIsImageOpen(true)}
+                            >
+                                <Image
+                                    src={displayUrl}
+                                    alt={data.name}
+                                    width={dimensions.width - 32}
+                                    height={dimensions.height - 200}
+                                    className="h-auto w-full object-contain"
+                                    style={{
+                                        maxHeight: dimensions.height - 200,
+                                    }}
+                                    unoptimized={displayUrl.startsWith("data:")}
+                                    onContextMenu={(e) => {
+                                        e.stopPropagation();
+                                    }}
+                                />
+                            </div>
+                            <MediaViewer
+                                isOpen={isImageOpen}
+                                onOpenChange={setIsImageOpen}
+                                url={displayUrl}
+                                alt={data.name}
                             />
-                        </div>
-                        <MediaViewer
-                            isOpen={isImageOpen}
-                            onOpenChange={setIsImageOpen}
-                            url={displayUrl}
-                            alt={data.name}
-                        />
-                    </>
+                        </>
+                    )
                 )}
 
                 <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
@@ -383,6 +406,13 @@ export const UpscaleNode = memo(
                     id="result-output"
                 />
             </div>
+        );
+    },
+    (prevProps, nextProps) => {
+        return (
+            prevProps.id === nextProps.id &&
+            prevProps.selected === nextProps.selected &&
+            prevProps.data === nextProps.data
         );
     },
 );

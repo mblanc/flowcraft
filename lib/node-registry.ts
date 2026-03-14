@@ -10,6 +10,7 @@ import {
     FileData,
     UpscaleData,
     ResizeData,
+    ListData,
     WorkflowInputData,
     WorkflowOutputData,
     CustomWorkflowData,
@@ -60,21 +61,23 @@ export function getSourcePortType(
     node: Node<NodeData>,
     handleId?: string | null,
 ): string {
+    if (node.data.type === "list") {
+        return `collection:${(node.data as ListData).itemType}`;
+    }
     if (node.data.type === "workflow-input") {
         return (node.data as WorkflowInputData).portType;
     }
     if (node.data.type === "custom-workflow") {
-        // Find the sub-workflow output node that matches this handleId
-        // In the UI we set the handleId to the original node ID of the Workflow Output node
-        // But since we don't have the sub-workflow data here synchronously,
-        // we might need to rely on the node.data.interface cache if we implement one.
-        // For now, let's assume handles are typed and we might need to store types in data.
         return (
             (node.data as CustomWorkflowData).outputs?.[handleId || ""] || "any"
         );
     }
     if (node.data.type === "llm") {
-        return "text";
+        const baseType = "text";
+        if (node.data.batchTotal && node.data.batchTotal > 0) {
+            return `collection:${baseType}`;
+        }
+        return baseType;
     }
     if (node.data.type === "file") {
         return (node.data as FileData).fileType || "any";
@@ -83,12 +86,18 @@ export function getSourcePortType(
     const outputs = def?.outputs || {};
     const normalizedHandleId = handleId === null ? "" : handleId || "";
 
-    // If handleId is empty and there's only one output, use it (common for legacy/tests)
+    let baseType: string;
     if (normalizedHandleId === "" && Object.keys(outputs).length === 1) {
-        return Object.values(outputs)[0];
+        baseType = Object.values(outputs)[0];
+    } else {
+        baseType = outputs[normalizedHandleId] || "any";
     }
 
-    return outputs[normalizedHandleId] || "any";
+    if (node.data.batchTotal && node.data.batchTotal > 0) {
+        return `collection:${baseType}`;
+    }
+
+    return baseType;
 }
 
 export function getTargetPortType(
@@ -131,11 +140,20 @@ const findInputByHandle = (
     return getSourceData(edge.source, edge.sourceHandle);
 };
 
+/**
+ * Returns true when the source node produced a collection (either a List node
+ * or any node that ran in batch mode).  Downstream gatherInputs uses this to
+ * populate textValues / fileValuesList so the unfold engine can iterate.
+ */
+function isCollectionSource(sourceData: NodeData | null): boolean {
+    if (!sourceData) return false;
+    if (sourceData.type === "list") return true;
+    return !!(sourceData.batchTotal && sourceData.batchTotal > 0);
+}
+
 const getSourceValue = (data: NodeData | null): unknown => {
     if (!data) return null;
 
-    // Robust unwrapping of nested workflow output data wrapper { value: ... }
-    // Handles multiple levels of wrapping if they occur
     let unwrappedData: Record<string, unknown> = data as Record<
         string,
         unknown
@@ -148,7 +166,6 @@ const getSourceValue = (data: NodeData | null): unknown => {
         unwrappedData = unwrappedData.value as Record<string, unknown>;
     }
 
-    // If it's still a workflow output node, unwrap its value
     if (
         unwrappedData.type === "workflow-output" &&
         unwrappedData.value !== undefined
@@ -160,17 +177,9 @@ const getSourceValue = (data: NodeData | null): unknown => {
         const inputData = unwrappedData as unknown as WorkflowInputData;
         let value: unknown = null;
 
-        // When data from another node (e.g., file node) is passed to a workflow-input,
-        // we need to check for various field names that could contain the actual value.
-        // File nodes use: fileUrl, gcsUri
-        // Image nodes use: images, image
-        // Video nodes use: videoUrl
-        // Text/LLM nodes use: text, output
-
         if (inputData.portType === "text") {
             value = unwrappedData.text || unwrappedData.output;
         } else if (inputData.portType === "image") {
-            // Check for image data from various sources
             value =
                 unwrappedData.images ||
                 unwrappedData.image ||
@@ -202,16 +211,36 @@ const getSourceValue = (data: NodeData | null): unknown => {
         return finalValue;
     }
 
+    const isBatch = !!(
+        unwrappedData.batchTotal && (unwrappedData.batchTotal as number) > 0
+    );
+
     if (unwrappedData.type === "text") return (unwrappedData as TextData).text;
-    if (unwrappedData.type === "llm") return (unwrappedData as LLMData).output;
+    if (unwrappedData.type === "llm") {
+        const llm = unwrappedData as unknown as LLMData;
+        if (isBatch && llm.outputs && llm.outputs.length > 1)
+            return llm.outputs;
+        return llm.output;
+    }
     if (unwrappedData.type === "image")
         return (unwrappedData as ImageData).images;
-    if (unwrappedData.type === "video")
-        return (unwrappedData as VideoData).videoUrl;
-    if (unwrappedData.type === "upscale")
-        return (unwrappedData as UpscaleData).image;
-    if (unwrappedData.type === "resize")
-        return (unwrappedData as ResizeData).output;
+    if (unwrappedData.type === "video") {
+        const vid = unwrappedData as unknown as VideoData;
+        if (isBatch && vid.videoUrls && vid.videoUrls.length > 1)
+            return vid.videoUrls;
+        return vid.videoUrl;
+    }
+    if (unwrappedData.type === "upscale") {
+        const up = unwrappedData as unknown as UpscaleData;
+        if (isBatch && up.images && up.images.length > 1) return up.images;
+        return up.image;
+    }
+    if (unwrappedData.type === "resize") {
+        const rs = unwrappedData as unknown as ResizeData;
+        if (isBatch && rs.outputs && rs.outputs.length > 1) return rs.outputs;
+        return rs.output;
+    }
+    if (unwrappedData.type === "list") return (unwrappedData as ListData).items;
     if (unwrappedData.type === "file")
         return (unwrappedData as FileData).gcsUri;
 
@@ -245,10 +274,7 @@ const getSourceValue = (data: NodeData | null): unknown => {
 /**
  * Infers MIME type for a URL string using extension and source node metadata.
  */
-function inferMimeType(
-    url: string,
-    sourceData: NodeData | null,
-): string {
+function inferMimeType(url: string, sourceData: NodeData | null): string {
     const lower = url.toLowerCase();
     if (lower.endsWith(".pdf")) return "application/pdf";
     if (
@@ -320,13 +346,12 @@ registerNode<LLMData, NodeInputs>({
         "file-input": "any",
     },
     outputs: {
-        "": "text", // fallback, actual type handled by getSourcePortType
+        "": "text",
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { files: [], prompts: [], namedNodes: [] };
         const namedNodesMap = new Map<string, NamedNodeInput>();
 
-        // Helper to get or create a NamedNodeInput for a source node
         const getOrCreateNamed = (
             nodeId: string,
             sourceData: NodeData,
@@ -342,7 +367,6 @@ registerNode<LLMData, NodeInputs>({
             return namedNodesMap.get(nodeId)!;
         };
 
-        // Gather ALL prompt edges (multiple allowed)
         const promptEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "prompts-input",
         );
@@ -350,7 +374,12 @@ registerNode<LLMData, NodeInputs>({
             const sourceData = getSourceData(edge.source, edge.sourceHandle);
             if (!sourceData) continue;
             const value = getSourceValue(sourceData);
-            if (typeof value === "string") {
+
+            if (Array.isArray(value) && isCollectionSource(sourceData)) {
+                const named = getOrCreateNamed(edge.source, sourceData);
+                named.textValues = value as string[];
+                named.textValue = (value as string[])[0] ?? null;
+            } else if (typeof value === "string") {
                 inputs.prompts?.push(value);
                 const named = getOrCreateNamed(edge.source, sourceData);
                 named.textValue = value;
@@ -367,15 +396,23 @@ registerNode<LLMData, NodeInputs>({
             const value = getSourceValue(sourceData);
             if (!value) continue;
 
-            const rawValues = Array.isArray(value) ? value : [value];
-            const fileValues = buildFileValues(rawValues, sourceData);
+            if (Array.isArray(value) && isCollectionSource(sourceData)) {
+                const named = getOrCreateNamed(edge.source, sourceData);
+                named.fileValuesList = (value as string[]).map((url) => [
+                    { url, type: inferMimeType(url, sourceData) },
+                ]);
+                named.fileValues = named.fileValuesList[0] || [];
+            } else {
+                const rawValues = Array.isArray(value) ? value : [value];
+                const fileValues = buildFileValues(rawValues, sourceData);
 
-            for (const fv of fileValues) {
-                inputs.files?.push(fv);
+                for (const fv of fileValues) {
+                    inputs.files?.push(fv);
+                }
+
+                const named = getOrCreateNamed(edge.source, sourceData);
+                named.fileValues.push(...fileValues);
             }
-
-            const named = getOrCreateNamed(edge.source, sourceData);
-            named.fileValues.push(...fileValues);
         }
 
         inputs.namedNodes = Array.from(namedNodesMap.values());
@@ -416,7 +453,6 @@ registerNode<ImageData, NodeInputs>({
             return namedNodesMap.get(nodeId)!;
         };
 
-        // Prompt edges (multiple text nodes allowed for @-references)
         const promptEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "prompt-input",
         );
@@ -426,17 +462,23 @@ registerNode<ImageData, NodeInputs>({
                 promptEdge.sourceHandle,
             );
             const promptValue = getSourceValue(sourceData);
-            if (typeof promptValue === "string") {
-                // First value kept for the legacy inputs.prompt fallback
+
+            if (Array.isArray(promptValue) && isCollectionSource(sourceData)) {
+                const named = getOrCreateNamed(promptEdge.source, sourceData!);
+                named.textValues = promptValue as string[];
+                named.textValue = (promptValue as string[])[0] ?? null;
+            } else if (typeof promptValue === "string") {
                 if (inputs.prompt === undefined) inputs.prompt = promptValue;
                 if (sourceData) {
-                    const named = getOrCreateNamed(promptEdge.source, sourceData);
+                    const named = getOrCreateNamed(
+                        promptEdge.source,
+                        sourceData,
+                    );
                     named.textValue = promptValue;
                 }
             }
         }
 
-        // Image edges (file/image)
         const imageEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "image-input",
         );
@@ -447,15 +489,23 @@ registerNode<ImageData, NodeInputs>({
             const value = getSourceValue(sourceData);
             if (!value) continue;
 
-            const rawValues = Array.isArray(value) ? value : [value];
-            const fileValues = buildFileValues(rawValues, sourceData);
+            if (Array.isArray(value) && isCollectionSource(sourceData)) {
+                const named = getOrCreateNamed(edge.source, sourceData);
+                named.fileValuesList = (value as string[]).map((url) => [
+                    { url, type: inferMimeType(url, sourceData) },
+                ]);
+                named.fileValues = named.fileValuesList[0] || [];
+            } else {
+                const rawValues = Array.isArray(value) ? value : [value];
+                const fileValues = buildFileValues(rawValues, sourceData);
 
-            for (const fv of fileValues) {
-                inputs.images?.push(fv);
+                for (const fv of fileValues) {
+                    inputs.images?.push(fv);
+                }
+
+                const named = getOrCreateNamed(edge.source, sourceData);
+                named.fileValues.push(...fileValues);
             }
-
-            const named = getOrCreateNamed(edge.source, sourceData);
-            named.fileValues.push(...fileValues);
         }
 
         inputs.namedNodes = Array.from(namedNodesMap.values());
@@ -483,7 +533,6 @@ registerNode<VideoData, NodeInputs>({
         const inputs: NodeInputs = { images: [], namedNodes: [] };
         const namedNodesMap = new Map<string, NamedNodeInput>();
 
-        // Prompt edges — multiple text nodes allowed for @interpolation
         const promptEdges = edges.filter(
             (e) => e.target === node.id && e.targetHandle === "prompt-input",
         );
@@ -493,8 +542,18 @@ registerNode<VideoData, NodeInputs>({
                 promptEdge.sourceHandle,
             );
             const promptValue = getSourceValue(promptData);
-            if (typeof promptValue === "string") {
-                // First value kept for legacy inputs.prompt fallback
+
+            if (Array.isArray(promptValue) && isCollectionSource(promptData)) {
+                if (!namedNodesMap.has(promptEdge.source)) {
+                    namedNodesMap.set(promptEdge.source, {
+                        nodeId: promptEdge.source,
+                        name: promptData!.name,
+                        textValue: (promptValue as string[])[0] ?? null,
+                        textValues: promptValue as string[],
+                        fileValues: [],
+                    });
+                }
+            } else if (typeof promptValue === "string") {
                 if (inputs.prompt === undefined) inputs.prompt = promptValue;
                 if (promptData) {
                     if (!namedNodesMap.has(promptEdge.source)) {
@@ -600,15 +659,30 @@ registerNode<UpscaleData, NodeInputs>({
         "result-output": "image",
     },
     gatherInputs: (node, edges, getSourceData) => {
-        const inputs: NodeInputs = {};
-        const imageData = findInputByHandle(
-            node.id,
-            edges,
-            "image-input",
-            getSourceData,
+        const inputs: NodeInputs = { namedNodes: [] };
+        const edge = edges.find(
+            (e) => e.target === node.id && e.targetHandle === "image-input",
         );
-        const value = getSourceValue(imageData);
-        if (value) {
+        if (!edge) return inputs;
+        const sourceData = getSourceData(edge.source, edge.sourceHandle);
+        const value = getSourceValue(sourceData);
+        if (!value) return inputs;
+
+        if (Array.isArray(value) && isCollectionSource(sourceData)) {
+            const named: NamedNodeInput = {
+                nodeId: edge.source,
+                name: sourceData!.name,
+                textValue: null,
+                fileValues: [],
+                fileValuesList: (value as string[]).map((url) => [
+                    { url, type: inferMimeType(url, sourceData) },
+                ]),
+            };
+            named.fileValues = named.fileValuesList![0] || [];
+            inputs.namedNodes!.push(named);
+            const first = (value as string[])[0];
+            if (first) inputs.image = first;
+        } else {
             const val = Array.isArray(value) ? value[0] : value;
             if (typeof val === "string") inputs.image = val;
             else if (
@@ -636,15 +710,30 @@ registerNode<ResizeData, NodeInputs>({
         "result-output": "image",
     },
     gatherInputs: (node, edges, getSourceData) => {
-        const inputs: NodeInputs = {};
-        const imageData = findInputByHandle(
-            node.id,
-            edges,
-            "image-input",
-            getSourceData,
+        const inputs: NodeInputs = { namedNodes: [] };
+        const edge = edges.find(
+            (e) => e.target === node.id && e.targetHandle === "image-input",
         );
-        const value = getSourceValue(imageData);
-        if (value) {
+        if (!edge) return inputs;
+        const sourceData = getSourceData(edge.source, edge.sourceHandle);
+        const value = getSourceValue(sourceData);
+        if (!value) return inputs;
+
+        if (Array.isArray(value) && isCollectionSource(sourceData)) {
+            const named: NamedNodeInput = {
+                nodeId: edge.source,
+                name: sourceData!.name,
+                textValue: null,
+                fileValues: [],
+                fileValuesList: (value as string[]).map((url) => [
+                    { url, type: inferMimeType(url, sourceData) },
+                ]),
+            };
+            named.fileValues = named.fileValuesList![0] || [];
+            inputs.namedNodes!.push(named);
+            const first = (value as string[])[0];
+            if (first) inputs.image = first;
+        } else {
             const val = Array.isArray(value) ? value[0] : value;
             if (typeof val === "string") inputs.image = val;
             else if (
@@ -703,6 +792,14 @@ registerNode<CustomWorkflowData, NodeInputs>({
         // Recursive execution handled in WorkflowEngine
         return {};
     },
+});
+
+// List Node
+registerNode<ListData, NodeInputs>({
+    type: "list",
+    outputs: { "list-output": "collection:text" },
+    gatherInputs: () => ({}),
+    execute: async () => ({}),
 });
 
 // Text Node

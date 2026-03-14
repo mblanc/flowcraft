@@ -77,7 +77,17 @@ describe("LLMNode Refactoring", () => {
             } as LLMData,
         } as Node<LLMData>;
 
-        const mockInputs = { prompts: ["test prompt"] };
+        const mockInputs = {
+            prompts: ["test prompt"],
+            namedNodes: [
+                {
+                    nodeId: "source-1",
+                    name: "Source",
+                    textValue: "test prompt",
+                    fileValues: [],
+                },
+            ],
+        };
 
         // Mock fetch
         const mockFetch = vi.fn().mockResolvedValue({
@@ -116,6 +126,20 @@ describe("LLMNode Refactoring", () => {
 
         const mockInputs = {
             prompts: ["a cat sat on the mat", "something broke"],
+            namedNodes: [
+                {
+                    nodeId: "source-1",
+                    name: "Source 1",
+                    textValue: "a cat sat on the mat",
+                    fileValues: [],
+                },
+                {
+                    nodeId: "source-2",
+                    name: "Source 2",
+                    textValue: "something broke",
+                    fileValues: [],
+                },
+            ],
         };
 
         // Mock fetch
@@ -128,13 +152,15 @@ describe("LLMNode Refactoring", () => {
             fetch: mockFetch as unknown as typeof fetch,
         });
 
-        // Check that the request body contains prompts array with instructions first
+        // Check that the request body contains parts array with instructions first
         const callArgs = mockFetch.mock.calls[0];
         const requestBody = JSON.parse(callArgs[1].body);
-        expect(requestBody.prompts).toEqual([
-            "combine stories",
-            "a cat sat on the mat",
-            "something broke",
+        expect(requestBody.parts).toEqual([
+            { kind: "text", text: "combine stories" },
+            {
+                kind: "text",
+                text: "a cat sat on the mat\n\nsomething broke",
+            },
         ]);
     });
 
@@ -164,7 +190,9 @@ describe("LLMNode Refactoring", () => {
 
         const callArgs = mockFetch.mock.calls[0];
         const requestBody = JSON.parse(callArgs[1].body);
-        expect(requestBody.prompts).toEqual(["Hello world"]);
+        expect(requestBody.parts).toEqual([
+            { kind: "text", text: "Hello world" },
+        ]);
     });
 
     it("executeLLMNode should throw error when no instructions and no prompts", async () => {

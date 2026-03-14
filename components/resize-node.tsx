@@ -30,6 +30,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { MediaViewer } from "@/components/media-viewer";
+import { BatchMediaGallery } from "@/components/batch-media-gallery";
 import logger from "@/app/logger";
 
 export const ResizeNode = memo(
@@ -170,7 +171,7 @@ export const ResizeNode = memo(
         return (
             <div
                 ref={nodeRef}
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${
+                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color] ${
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
@@ -184,6 +185,11 @@ export const ResizeNode = memo(
                             { "--beam-color": "#3b82f6" } as React.CSSProperties
                         }
                     />
+                )}
+                {data.batchTotal && data.batchTotal > 0 && !data.executing && (
+                    <span className="absolute top-2 right-2 z-10 rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-400">
+                        {data.batchTotal}x
+                    </span>
                 )}
 
                 {/* Image Input Handle */}
@@ -240,7 +246,12 @@ export const ResizeNode = memo(
                                     className="flex h-8 w-8 items-center justify-center rounded-md text-blue-400 transition-colors hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                                     title="Execute Node"
                                 >
-                                    {data.executing ? (
+                                    {data.executing && data.batchTotal ? (
+                                        <span className="text-[10px] font-medium tabular-nums">
+                                            {data.batchProgress || 0}/
+                                            {data.batchTotal}
+                                        </span>
+                                    ) : data.executing ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <Play
@@ -294,36 +305,47 @@ export const ResizeNode = memo(
                     </div>
                 </div>
 
-                {outputSignedUrl && (
-                    <>
-                        <div
-                            className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
-                            style={{
-                                maxHeight: dimensions.height - 150,
-                                position: "relative",
-                            }}
-                            onClick={() => setIsImageOpen(true)}
-                        >
-                            <Image
-                                src={outputSignedUrl}
+                {data.outputs && data.outputs.length > 1 ? (
+                    <BatchMediaGallery
+                        items={data.outputs}
+                        type="image"
+                        maxHeight={dimensions.height - 150}
+                        nodeWidth={dimensions.width}
+                    />
+                ) : (
+                    outputSignedUrl && (
+                        <>
+                            <div
+                                className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
+                                style={{
+                                    maxHeight: dimensions.height - 150,
+                                    position: "relative",
+                                }}
+                                onClick={() => setIsImageOpen(true)}
+                            >
+                                <Image
+                                    src={outputSignedUrl}
+                                    alt="Resized output"
+                                    width={dimensions.width - 32}
+                                    height={dimensions.height - 150}
+                                    className="h-auto w-full object-contain"
+                                    style={{
+                                        maxHeight: dimensions.height - 150,
+                                    }}
+                                    unoptimized={outputSignedUrl.startsWith(
+                                        "data:",
+                                    )}
+                                    onContextMenu={(e) => e.stopPropagation()}
+                                />
+                            </div>
+                            <MediaViewer
+                                isOpen={isImageOpen}
+                                onOpenChange={setIsImageOpen}
+                                url={outputSignedUrl}
                                 alt="Resized output"
-                                width={dimensions.width - 32}
-                                height={dimensions.height - 150}
-                                className="h-auto w-full object-contain"
-                                style={{ maxHeight: dimensions.height - 150 }}
-                                unoptimized={outputSignedUrl.startsWith(
-                                    "data:",
-                                )}
-                                onContextMenu={(e) => e.stopPropagation()}
                             />
-                        </div>
-                        <MediaViewer
-                            isOpen={isImageOpen}
-                            onOpenChange={setIsImageOpen}
-                            url={outputSignedUrl}
-                            alt="Resized output"
-                        />
-                    </>
+                        </>
+                    )
                 )}
 
                 <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
@@ -375,6 +397,13 @@ export const ResizeNode = memo(
                     id="result-output"
                 />
             </div>
+        );
+    },
+    (prevProps, nextProps) => {
+        return (
+            prevProps.id === nextProps.id &&
+            prevProps.selected === nextProps.selected &&
+            prevProps.data === nextProps.data
         );
     },
 );

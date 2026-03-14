@@ -98,7 +98,7 @@ describe("LLM Multimodal Integration", () => {
         expect(mockFetch).toHaveBeenCalledWith(
             "/api/generate-text",
             expect.objectContaining({
-                body: expect.stringContaining('"url":"gs://bucket/test.pdf"'),
+                body: expect.stringContaining('"uri":"gs://bucket/test.pdf"'),
             }),
         );
 
@@ -170,7 +170,7 @@ describe("LLM Multimodal Integration", () => {
         expect(mockFetch).toHaveBeenCalledWith(
             "/api/generate-text",
             expect.objectContaining({
-                body: expect.stringContaining('"url":"gs://bucket/video.mp4"'),
+                body: expect.stringContaining('"uri":"gs://bucket/video.mp4"'),
             }),
         );
 
@@ -272,13 +272,13 @@ describe("LLM Multimodal Integration", () => {
         expect(mockFetch).toHaveBeenCalledWith(
             "/api/generate-text",
             expect.objectContaining({
-                body: expect.stringContaining('"url":"gs://pdf"'),
+                body: expect.stringContaining('"uri":"gs://pdf"'),
             }),
         );
         expect(mockFetch).toHaveBeenCalledWith(
             "/api/generate-text",
             expect.objectContaining({
-                body: expect.stringContaining('"url":"gs://vid"'),
+                body: expect.stringContaining('"uri":"gs://vid"'),
             }),
         );
     });

@@ -1,7 +1,130 @@
 import logger from "@/app/logger";
 import { Edge, Node } from "@xyflow/react";
-import { NodeData, NodeInputs, CustomWorkflowData } from "./types";
+import {
+    NodeData,
+    NodeInputs,
+    CustomWorkflowData,
+    NamedNodeInput,
+} from "./types";
 import { getNodeDefinition, ExecutionContext } from "./node-registry";
+
+// --- Batch / Unfold helpers ---
+
+interface BatchPlan {
+    level: 0 | 1 | 2;
+    batchSize: number;
+    collectionKeys: string[];
+}
+
+function detectBatchPlan(inputs: NodeInputs): BatchPlan {
+    const collectionKeys: string[] = [];
+    const lengths: number[] = [];
+
+    const namedNodes = inputs.namedNodes || [];
+    for (const nn of namedNodes) {
+        if (nn.textValues && nn.textValues.length > 0) {
+            collectionKeys.push(`namedNode:text:${nn.nodeId}`);
+            lengths.push(nn.textValues.length);
+        }
+        if (nn.fileValuesList && nn.fileValuesList.length > 0) {
+            collectionKeys.push(`namedNode:file:${nn.nodeId}`);
+            lengths.push(nn.fileValuesList.length);
+        }
+    }
+
+    if (collectionKeys.length === 0) {
+        return { level: 0, batchSize: 1, collectionKeys: [] };
+    }
+
+    const batchSize = Math.min(...lengths);
+    const level = collectionKeys.length === 1 ? 1 : 2;
+    return { level: level as 1 | 2, batchSize, collectionKeys };
+}
+
+function sliceBatchInputs(
+    inputs: NodeInputs,
+    _plan: BatchPlan,
+    index: number,
+): NodeInputs {
+    const sliced = { ...inputs };
+
+    if (inputs.namedNodes) {
+        sliced.namedNodes = inputs.namedNodes.map((nn): NamedNodeInput => {
+            const copy: NamedNodeInput = { ...nn };
+            if (nn.textValues) {
+                copy.textValue = nn.textValues[index] ?? nn.textValues[0];
+                copy.textValues = undefined;
+            }
+            if (nn.fileValuesList) {
+                copy.fileValues =
+                    nn.fileValuesList[index] ?? nn.fileValuesList[0];
+                copy.fileValuesList = undefined;
+                if (copy.fileValues.length > 0) {
+                    sliced.image = copy.fileValues[0].url;
+                }
+            }
+            return copy;
+        });
+    }
+
+    return sliced;
+}
+
+function mergeResults(
+    results: Partial<NodeData>[],
+    nodeType: string,
+): Partial<NodeData> {
+    if (results.length === 0) return {};
+
+    switch (nodeType) {
+        case "image": {
+            const allImages = results.flatMap(
+                (r) =>
+                    ((r as Record<string, unknown>).images as string[]) || [],
+            );
+            return { images: allImages } as Partial<NodeData>;
+        }
+        case "llm": {
+            const allOutputs = results.map(
+                (r) => ((r as Record<string, unknown>).output as string) || "",
+            );
+            return {
+                output: allOutputs[0],
+                outputs: allOutputs,
+            } as Partial<NodeData>;
+        }
+        case "video": {
+            const allUrls = results.map(
+                (r) =>
+                    ((r as Record<string, unknown>).videoUrl as string) || "",
+            );
+            return {
+                videoUrl: allUrls[0],
+                videoUrls: allUrls,
+            } as Partial<NodeData>;
+        }
+        case "upscale": {
+            const allImages = results.map(
+                (r) => ((r as Record<string, unknown>).image as string) || "",
+            );
+            return {
+                image: allImages[0],
+                images: allImages,
+            } as Partial<NodeData>;
+        }
+        case "resize": {
+            const allOutputs = results.map(
+                (r) => ((r as Record<string, unknown>).output as string) || "",
+            );
+            return {
+                output: allOutputs[0],
+                outputs: allOutputs,
+            } as Partial<NodeData>;
+        }
+        default:
+            return results[0];
+    }
+}
 
 export class WorkflowEngine {
     private nodesMap: Map<string, Node<NodeData>>;
@@ -108,6 +231,8 @@ export class WorkflowEngine {
             this.onNodeUpdate(nodeId, {
                 executing: true,
                 error: undefined,
+                batchTotal: undefined,
+                batchProgress: undefined,
             } as Partial<NodeData>);
 
             const inputs = this.gatherInputs(node);
@@ -116,20 +241,80 @@ export class WorkflowEngine {
             if (node.data.type === "custom-workflow") {
                 result = await this.executeSubWorkflow(node, inputs);
             } else if (node.data.type === "workflow-input") {
-                // Workflow input nodes should return their current data as result
-                // so it's available for downstream nodes in executionResults
                 result = { ...node.data };
             } else {
-                result = await definition.execute(node, inputs, {
-                    ...this.context,
-                    onNodeUpdate: this.onNodeUpdate,
-                });
+                const batchPlan = detectBatchPlan(inputs);
+
+                if (batchPlan.level > 0) {
+                    this.onNodeUpdate(nodeId, {
+                        executing: true,
+                        batchTotal: batchPlan.batchSize,
+                        batchProgress: 0,
+                    } as Partial<NodeData>);
+
+                    logger.info(
+                        `[WorkflowEngine] Batch execution: ${node.data.type} node "${node.data.name}" running ${batchPlan.batchSize} iterations`,
+                    );
+
+                    const BATCH_CONCURRENCY = 3;
+                    let completedCount = 0;
+                    const batchResults: Partial<NodeData>[] = new Array(
+                        batchPlan.batchSize,
+                    );
+                    const indices = Array.from(
+                        { length: batchPlan.batchSize },
+                        (_, i) => i,
+                    );
+                    const runNext = async (): Promise<void> => {
+                        const i = indices.shift();
+                        if (i === undefined) return;
+                        const singleInputs = sliceBatchInputs(
+                            inputs,
+                            batchPlan,
+                            i,
+                        );
+                        const singleResult = await definition.execute(
+                            node,
+                            singleInputs,
+                            {
+                                ...this.context,
+                                onNodeUpdate: this.onNodeUpdate,
+                            },
+                        );
+                        batchResults[i] = singleResult;
+                        completedCount++;
+                        this.onNodeUpdate(nodeId, {
+                            batchProgress: completedCount,
+                        } as Partial<NodeData>);
+                        return runNext();
+                    };
+                    await Promise.all(
+                        Array.from(
+                            {
+                                length: Math.min(
+                                    BATCH_CONCURRENCY,
+                                    batchPlan.batchSize,
+                                ),
+                            },
+                            runNext,
+                        ),
+                    );
+
+                    result = {
+                        ...mergeResults(batchResults, node.data.type),
+                        batchTotal: batchPlan.batchSize,
+                    } as Partial<NodeData>;
+                } else {
+                    result = await definition.execute(node, inputs, {
+                        ...this.context,
+                        onNodeUpdate: this.onNodeUpdate,
+                    });
+                    (result as Record<string, unknown>).batchTotal = undefined;
+                }
             }
 
-            // Store result for dependent nodes
             this.executionResults.set(nodeId, result);
 
-            // Update node with result
             this.onNodeUpdate(nodeId, {
                 ...result,
                 executing: false,
@@ -137,7 +322,6 @@ export class WorkflowEngine {
                 error: undefined,
             } as Partial<NodeData>);
 
-            // Update internal map state for next levels
             const updatedNode: Node<NodeData> = {
                 ...node,
                 data: { ...node.data, ...result } as NodeData,
@@ -151,7 +335,7 @@ export class WorkflowEngine {
                 executing: false,
                 error: errorMessage,
             } as Partial<NodeData>);
-            throw error; // Re-throw to handle in the run loop if needed
+            throw error;
         }
     }
 

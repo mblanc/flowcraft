@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/tooltip";
 import { MentionEditor } from "@/components/mention-editor";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
+import { BatchTextOutput } from "@/components/batch-text-output";
 
 const DEFAULT_WIDTH = 400;
 const MIN_WIDTH = 340;
@@ -70,6 +71,7 @@ export const LLMNode = memo(
         );
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
+        const [batchOutputIndex, setBatchOutputIndex] = useState(0);
 
         // Resize state
         const [dimensions, setDimensions] = useState({
@@ -77,29 +79,29 @@ export const LLMNode = memo(
             height: data.height || MIN_HEIGHT,
         });
         const [isResizing, setIsResizing] = useState(false);
+        const [prevDataWidth, setPrevDataWidth] = useState(data.width);
+        const [prevDataHeight, setPrevDataHeight] = useState(data.height);
         const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
         // Keep local UI state aligned with external node data.
-        useEffect(() => {
+        if ((data.instructions || "") !== prevDataInstructions) {
+            setPrevDataInstructions(data.instructions || "");
+            setLocalInstructions(data.instructions || "");
+        }
+
+        if ((data.output || "") !== prevDataOutput) {
+            setPrevDataOutput(data.output || "");
+            setLocalOutput(data.output || "");
+        }
+
+        if (data.width !== prevDataWidth || data.height !== prevDataHeight) {
+            setPrevDataWidth(data.width);
+            setPrevDataHeight(data.height);
             setDimensions({
                 width: data.width || DEFAULT_WIDTH,
                 height: data.height || MIN_HEIGHT,
             });
-        }, [data.width, data.height]);
-
-        useEffect(() => {
-            if (data.instructions !== prevDataInstructions) {
-                setPrevDataInstructions(data.instructions);
-                setLocalInstructions(data.instructions);
-            }
-        }, [data.instructions, prevDataInstructions]);
-
-        useEffect(() => {
-            if (data.output !== prevDataOutput) {
-                setPrevDataOutput(data.output || "");
-                setLocalOutput(data.output || "");
-            }
-        }, [data.output, prevDataOutput]);
+        }
 
         const handleInstructionsChange = (value: string) => {
             setLocalInstructions(value);
@@ -180,14 +182,14 @@ export const LLMNode = memo(
         return (
             <div
                 className={cn(
-                    "bg-card relative flex flex-col rounded-lg border-2 p-4 shadow-lg transition-all",
+                    "bg-card relative flex flex-col rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color]",
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border",
                 )}
                 style={{
-                    width: dimensions.width,
-                    height: dimensions.height,
+                    width: data.width || DEFAULT_WIDTH,
+                    height: data.height || MIN_HEIGHT,
                 }}
             >
                 {data.executing && (
@@ -199,6 +201,11 @@ export const LLMNode = memo(
                             } as React.CSSProperties
                         }
                     />
+                )}
+                {data.batchTotal && data.batchTotal > 0 && !data.executing && (
+                    <span className="bg-primary/20 text-primary absolute top-2 right-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-bold">
+                        {data.batchTotal}x
+                    </span>
                 )}
 
                 <Handle
@@ -332,10 +339,16 @@ export const LLMNode = memo(
                                             <div className="flex flex-1 flex-col overflow-hidden p-4">
                                                 {viewMode === "instructions" ? (
                                                     <MentionEditor
-                                                        value={localInstructions}
-                                                        onChange={handleInstructionsChange}
+                                                        value={
+                                                            localInstructions
+                                                        }
+                                                        onChange={
+                                                            handleInstructionsChange
+                                                        }
                                                         onBlur={handleBlur}
-                                                        availableNodes={connectedNodes}
+                                                        availableNodes={
+                                                            connectedNodes
+                                                        }
                                                         placeholder="Enter instructions..."
                                                         className="h-full w-full flex-1 text-base"
                                                     />
@@ -391,7 +404,13 @@ export const LLMNode = memo(
                                             className="hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                             title="Execute Node"
                                         >
-                                            {data.executing ? (
+                                            {data.executing &&
+                                            data.batchTotal ? (
+                                                <span className="text-[10px] font-medium tabular-nums">
+                                                    {data.batchProgress || 0}/
+                                                    {data.batchTotal}
+                                                </span>
+                                            ) : data.executing ? (
                                                 <Loader2 className="h-4 w-4 animate-spin" />
                                             ) : (
                                                 <Play
@@ -462,13 +481,22 @@ export const LLMNode = memo(
                             />
                         ) : (
                             <div className="flex min-h-0 flex-1 flex-col">
-                                <Textarea
-                                    value={localOutput}
-                                    onChange={handleOutputChange}
-                                    onBlur={handleBlur}
-                                    placeholder="No output yet."
-                                    className="nowheel nopan nodrag h-full w-full flex-1 resize-none border-none bg-transparent p-0 font-mono text-xs leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
-                                />
+                                {data.outputs && data.outputs.length > 1 ? (
+                                    <BatchTextOutput
+                                        outputs={data.outputs}
+                                        currentIndex={batchOutputIndex}
+                                        onIndexChange={setBatchOutputIndex}
+                                        className="h-full w-full flex-1"
+                                    />
+                                ) : (
+                                    <Textarea
+                                        value={localOutput}
+                                        onChange={handleOutputChange}
+                                        onBlur={handleBlur}
+                                        placeholder="No output yet."
+                                        className="nowheel nopan nodrag h-full w-full flex-1 resize-none border-none bg-transparent p-0 font-mono text-xs leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    />
+                                )}
                                 {data.error && (
                                     <div className="text-destructive mt-1 text-[10px] font-medium">
                                         Error: {data.error}
@@ -561,6 +589,13 @@ export const LLMNode = memo(
                     <div className="border-muted-foreground/30 absolute right-1 bottom-1 h-3 w-3 rounded-br border-r-2 border-b-2" />
                 </div>
             </div>
+        );
+    },
+    (prevProps, nextProps) => {
+        return (
+            prevProps.id === nextProps.id &&
+            prevProps.selected === nextProps.selected &&
+            prevProps.data === nextProps.data
         );
     },
 );
