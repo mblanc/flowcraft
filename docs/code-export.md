@@ -5,6 +5,7 @@ This document outlines the design and implementation plan for the "Export to Cod
 ## Goals
 
 Allow users to export their visual flows into native, executable code snippets in **Python** and **TypeScript (Node.js)**. These snippets should:
+
 - Call Gemini/Vertex AI directly (no dependence on FlowCraft backend).
 - Support parallel execution where possible (async).
 - Be easy to copy-paste into a notebook, script, or existing application.
@@ -15,7 +16,7 @@ Allow users to export their visual flows into native, executable code snippets i
 
 ### 1. General Principles
 
-- **Native SDKs**: 
+- **Native SDKs**:
     - Python: `google-genai`
     - TypeScript: `@google/genai`
 - **Topological Sorting**: The exporter will use the same dependency resolution logic as the `WorkflowEngine` to determine the execution order.
@@ -27,6 +28,7 @@ Allow users to export their visual flows into native, executable code snippets i
 Python exports will follow a class-based structure to encapsulate the workflow logic.
 
 #### Dependencies
+
 ```python
 # pip install google-genai asyncio
 import asyncio
@@ -34,6 +36,7 @@ from google import genai
 ```
 
 #### Template Structure
+
 ```python
 # --- CONFIGURATION (User to fill) ---
 PROJECT_ID = "YOUR_PROJECT_ID"
@@ -72,12 +75,14 @@ class FlowCraftWorkflow:
 TypeScript exports will be designed for Node.js environments.
 
 #### Dependencies
+
 ```typescript
 // npm install @google/genai
 import { GoogleGenAI } from "@google/genai";
 ```
 
 #### Template Structure
+
 ```typescript
 // --- CONFIGURATION (User to fill) ---
 const PROJECT_ID = "YOUR_PROJECT_ID";
@@ -95,21 +100,21 @@ export class FlowWorkflow {
 
     async run() {
         const modelId = "gemini-2.0-flash";
-        
+
         // Parallel execution for independent nodes
         const [res1, res2] = await Promise.all([
             this.executeNode1(modelId),
             this.executeNode2(modelId)
         ]);
-        
+
         this.results['node1'] = res1;
         this.results['node2'] = res2;
-        
+
         // Next level
         const res3 = await this.executeNode3(modelId, this.results['node1']);
         return res3;
     }
-    
+
     private async executeNode1(modelId: string) {
         const response = await client.models.generateContent({
             model: modelId,
@@ -126,13 +131,13 @@ export class FlowWorkflow {
 
 ### Mapping Logic
 
-| Flow Element | Code Mapping |
-| :--- | :--- |
-| **Node** | Method in the class (e.g., `execute_node_[id]`) |
-| **Edge** | Value passing between methods |
-| **LLM Node** | `generate_content` call |
-| **Image/Video** | Respective Imagen/Veo API calls or Gemini multimodal calls |
-| **Sub-workflow** | Nested class call or flatterned methods |
+| Flow Element     | Code Mapping                                               |
+| :--------------- | :--------------------------------------------------------- |
+| **Node**         | Method in the class (e.g., `execute_node_[id]`)            |
+| **Edge**         | Value passing between methods                              |
+| **LLM Node**     | `generate_content` call                                    |
+| **Image/Video**  | Respective Imagen/Veo API calls or Gemini multimodal calls |
+| **Sub-workflow** | Nested class call or flatterned methods                    |
 
 ### Handling Mentions (`@[nodeId]`)
 
