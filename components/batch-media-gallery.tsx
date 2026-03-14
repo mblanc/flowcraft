@@ -22,25 +22,41 @@ export const BatchMediaGallery = memo(
         );
 
         useEffect(() => {
-            for (const url of items) {
-                if (url.startsWith("gs://") && !signedUrls.has(url)) {
-                    fetch(`/api/signed-url?gcsUri=${encodeURIComponent(url)}`)
-                        .then((res) => res.json())
-                        .then((result) => {
-                            if (result.signedUrl) {
-                                setSignedUrls((prev) => {
-                                    const next = new Map(prev);
-                                    next.set(url, result.signedUrl);
-                                    return next;
-                                });
+            const urlsToFetch = items.filter(
+                (url) => url.startsWith("gs://") && !signedUrls.has(url),
+            );
+
+            if (urlsToFetch.length === 0) return;
+
+            const fetchSignedUrls = async () => {
+                try {
+                    const results = await Promise.all(
+                        urlsToFetch.map(async (url) => {
+                            const res = await fetch(
+                                `/api/signed-url?gcsUri=${encodeURIComponent(url)}`,
+                            );
+                            const data = await res.json();
+                            return { url, signedUrl: data.signedUrl };
+                        }),
+                    );
+
+                    setSignedUrls((prev) => {
+                        const next = new Map(prev);
+                        results.forEach((res) => {
+                            if (res.signedUrl) {
+                                next.set(res.url, res.signedUrl);
                             }
-                        })
-                        .catch((err) =>
-                            logger.error("Error fetching signed URL:", err),
-                        );
+                        });
+                        return next;
+                    });
+                } catch (err) {
+                    logger.error("Error fetching signed URLs:", err);
                 }
-            }
-        }, [items, signedUrls]);
+            };
+
+            fetchSignedUrls();
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [items]);
 
         const getDisplayUrl = (url: string) => {
             if (url.startsWith("gs://")) {

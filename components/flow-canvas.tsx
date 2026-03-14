@@ -314,7 +314,7 @@ export function FlowCanvas() {
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(
         null,
     );
-    const [hasFitted, setHasFitted] = useState(false);
+    const [fittedFlowId, setFittedFlowId] = useState<string | null>(null);
     const [menuPosition, setMenuPosition] = useState<{
         x: number;
         y: number;
@@ -337,21 +337,20 @@ export function FlowCanvas() {
         connectionStartParamsRef.current = null;
     }, []);
 
-    const [prevFlowId, setPrevFlowId] = useState(flowId);
-    if (flowId !== prevFlowId) {
-        setPrevFlowId(flowId);
-        setHasFitted(false);
-    }
-
-    // Fit view when nodes are loaded and we haven't fitted yet
+    // Fit view when nodes are loaded and we haven't fitted yet for this flow
     useEffect(() => {
-        if (rfInstance && nodes.length > 0 && !hasFitted && flowId) {
+        if (
+            rfInstance &&
+            nodes.length > 0 &&
+            fittedFlowId !== flowId &&
+            flowId
+        ) {
             window.requestAnimationFrame(() => {
                 rfInstance.fitView({ padding: 0.2 });
-                setHasFitted(true);
+                setFittedFlowId(flowId);
             });
         }
-    }, [rfInstance, nodes.length, hasFitted, flowId]);
+    }, [rfInstance, nodes.length, fittedFlowId, flowId]);
 
     const copyNodes = useCallback(() => {
         if (!rfInstance) return;
