@@ -192,7 +192,7 @@ export const FileNode = memo(
         return (
             <div
                 className={cn(
-                    "bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all",
+                    "bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color]",
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border",
@@ -335,6 +335,13 @@ export const FileNode = memo(
                     <div className="border-muted-foreground/30 absolute right-1 bottom-1 h-3 w-3 rounded-br border-r-2 border-b-2" />
                 </div>
             </div>
+        );
+    },
+    (prevProps, nextProps) => {
+        return (
+            prevProps.id === nextProps.id &&
+            prevProps.selected === nextProps.selected &&
+            prevProps.data === nextProps.data
         );
     },
 );

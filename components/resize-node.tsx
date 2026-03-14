@@ -171,7 +171,7 @@ export const ResizeNode = memo(
         return (
             <div
                 ref={nodeRef}
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-all ${
+                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color] ${
                     selected
                         ? "border-primary shadow-primary/20"
                         : "border-border"
@@ -397,6 +397,13 @@ export const ResizeNode = memo(
                     id="result-output"
                 />
             </div>
+        );
+    },
+    (prevProps, nextProps) => {
+        return (
+            prevProps.id === nextProps.id &&
+            prevProps.selected === nextProps.selected &&
+            prevProps.data === nextProps.data
         );
     },
 );

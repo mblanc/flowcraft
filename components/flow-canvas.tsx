@@ -61,6 +61,7 @@ import {
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
+import { useShallow } from "zustand/react/shallow";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { useTheme } from "next-themes";
 import logger from "@/app/logger";
@@ -207,25 +208,50 @@ export function FlowCanvas() {
     const onEdgesChange = useFlowStore(
         (state: FlowState) => state.onEdgesChange,
     );
-    const onConnect = useFlowStore((state: FlowState) => state.onConnect);
-    const selectNode = useFlowStore((state: FlowState) => state.selectNode);
-    const selectedNode = useFlowStore((state: FlowState) => state.selectedNode);
-    const flowId = useFlowStore((state: FlowState) => state.flowId);
-    const entityType = useFlowStore((state: FlowState) => state.entityType);
-    const addNodeWithType = useFlowStore(
-        (state: FlowState) => state.addNodeWithType,
-    );
-    const addNode = useFlowStore((state: FlowState) => state.addNode);
-    const updateNodeData = useFlowStore(
-        (state: FlowState) => state.updateNodeData,
+    const {
+        onConnect,
+        selectNode,
+        selectedNode,
+        flowId,
+        entityType,
+        addNodeWithType,
+        addNode,
+        updateNodeData,
+        isRunning,
+        ownerId,
+        sharedWith,
+    } = useFlowStore(
+        useShallow((state: FlowState) => ({
+            onConnect: state.onConnect,
+            selectNode: state.selectNode,
+            selectedNode: state.selectedNode,
+            flowId: state.flowId,
+            entityType: state.entityType,
+            addNodeWithType: state.addNodeWithType,
+            addNode: state.addNode,
+            updateNodeData: state.updateNodeData,
+            isRunning: state.isRunning,
+            ownerId: state.ownerId,
+            sharedWith: state.sharedWith,
+        })),
     );
     const { runFlow, runSelectedNodes } = useFlowExecution();
-    const isRunning = useFlowStore((state: FlowState) => state.isRunning);
     const { resolvedTheme } = useTheme();
-
     const { data: session } = useSession();
-    const ownerId = useFlowStore((state: FlowState) => state.ownerId);
-    const sharedWith = useFlowStore((state: FlowState) => state.sharedWith);
+
+    // Stable mapping of node data for edge highlighting
+    // This prevents highlightedEdges from recalculating on every drag frame (position updates)
+    // because we use shallow comparison on a map that only contains data references.
+    const nodeDataMap = useFlowStore(
+        useShallow((state: FlowState) => {
+            const map: Record<string, NodeData> = {};
+            state.nodes.forEach((n) => {
+                map[n.id] = n.data;
+            });
+            return map;
+        }),
+    );
+
     const isOwner =
         !!session?.user?.id && !!ownerId && session.user.id === ownerId;
     const isEditor =
@@ -267,23 +293,23 @@ export function FlowCanvas() {
             sourceHandle?: string | null;
             targetHandle?: string | null;
         }) => {
-            const sourceNode = nodes.find((n) => n.id === connection.source);
-            const targetNode = nodes.find((n) => n.id === connection.target);
+            const sourceNodeData = nodeDataMap[connection.source];
+            const targetNodeData = nodeDataMap[connection.target];
 
-            if (!sourceNode || !targetNode) return false;
+            if (!sourceNodeData || !targetNodeData) return false;
 
             const sourceType = getSourcePortType(
-                sourceNode as Node<NodeData>,
+                { data: sourceNodeData } as Node<NodeData>,
                 connection.sourceHandle,
             );
             const targetType = getTargetPortType(
-                targetNode as Node<NodeData>,
+                { data: targetNodeData } as Node<NodeData>,
                 connection.targetHandle,
             );
 
             return isTypeCompatible(sourceType, targetType);
         },
-        [nodes],
+        [nodeDataMap],
     );
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(
         null,
@@ -633,61 +659,61 @@ export function FlowCanvas() {
         [rfInstance, clearConnectionParams],
     );
 
-    const getCompatibleNodes = (
-        params: OnConnectStartParams,
-    ): {
-        native: (typeof nativeItems)[number][];
-        custom: CustomNodeItem[];
-    } => {
-        const sourceNode = nodes.find((n) => n.id === params.nodeId);
-        if (!sourceNode) return { native: [], custom: [] };
+    const getCompatibleNodes = useCallback(
+        (
+            params: OnConnectStartParams,
+        ): {
+            native: (typeof nativeItems)[number][];
+            custom: CustomNodeItem[];
+        } => {
+            if (!params.nodeId) return { native: [], custom: [] };
+            const sourceNodeData = nodeDataMap[params.nodeId];
+            if (!sourceNodeData) return { native: [], custom: [] };
 
-        const portType =
-            params.handleType === "source"
-                ? getSourcePortType(
-                      sourceNode as Node<NodeData>,
-                      params.handleId,
-                  )
-                : getTargetPortType(
-                      sourceNode as Node<NodeData>,
-                      params.handleId,
-                  );
+            const mockNode = { data: sourceNodeData } as Node<NodeData>;
 
-        // Filter native nodes
-        const filteredNative = nativeItems.filter((item) => {
-            const def = getNodeDefinition(item.type as NodeType);
-            if (!def) return false;
+            const portType =
+                params.handleType === "source"
+                    ? getSourcePortType(mockNode, params.handleId)
+                    : getTargetPortType(mockNode, params.handleId);
 
-            if (params.handleType === "source") {
-                // If we drag from an output, the target must have a compatible input
-                return Object.values(def.inputs || {}).some((targetType) =>
-                    isTypeCompatible(portType, targetType),
-                );
-            } else {
-                // If we drag from an input, the source must have a compatible output
-                return Object.values(def.outputs || {}).some((sourceType) =>
-                    isTypeCompatible(sourceType, portType),
-                );
-            }
-        });
+            // Filter native nodes
+            const filteredNative = nativeItems.filter((item) => {
+                const def = getNodeDefinition(item.type as NodeType);
+                if (!def) return false;
 
-        // For custom nodes, filter based on their input/output types
-        const filteredCustom = customNodes.filter((item) => {
-            if (params.handleType === "source") {
-                // Dragging from an output -> target must have a compatible input
-                return (item.inputs || []).some((input) =>
-                    isTypeCompatible(portType, input.type),
-                );
-            } else {
-                // Dragging from an input -> source must have a compatible output
-                return (item.outputs || []).some((output) =>
-                    isTypeCompatible(output.type, portType),
-                );
-            }
-        });
+                if (params.handleType === "source") {
+                    // If we drag from an output, the target must have a compatible input
+                    return Object.values(def.inputs || {}).some((targetType) =>
+                        isTypeCompatible(portType, targetType),
+                    );
+                } else {
+                    // If we drag from an input, the source must have a compatible output
+                    return Object.values(def.outputs || {}).some((sourceType) =>
+                        isTypeCompatible(sourceType, portType),
+                    );
+                }
+            });
 
-        return { native: filteredNative, custom: filteredCustom };
-    };
+            // For custom nodes, filter based on their input/output types
+            const filteredCustom = customNodes.filter((item) => {
+                if (params.handleType === "source") {
+                    // Dragging from an output -> target must have a compatible input
+                    return (item.inputs || []).some((input) =>
+                        isTypeCompatible(portType, input.type),
+                    );
+                } else {
+                    // Dragging from an input -> source must have a compatible output
+                    return (item.outputs || []).some((output) =>
+                        isTypeCompatible(output.type, portType),
+                    );
+                }
+            });
+
+            return { native: filteredNative, custom: filteredCustom };
+        },
+        [nodeDataMap, customNodes],
+    );
 
     const handleSelectDropdownNode = (
         type: NodeType,
@@ -724,18 +750,17 @@ export function FlowCanvas() {
         useFlowStore.getState().addNode(newNode);
 
         // 3. Find compatible handle on the new node
-        const sourceNode = nodes.find(
-            (n) => n.id === connectionStartParams.nodeId,
-        );
-        if (sourceNode) {
+        if (!connectionStartParams.nodeId) return;
+        const sourceNodeData = nodeDataMap[connectionStartParams.nodeId];
+        if (sourceNodeData) {
             const sourcePortType =
                 connectionStartParams.handleType === "source"
                     ? getSourcePortType(
-                          sourceNode as Node<NodeData>,
+                          { data: sourceNodeData } as Node<NodeData>,
                           connectionStartParams.handleId,
                       )
                     : getTargetPortType(
-                          sourceNode as Node<NodeData>,
+                          { data: sourceNodeData } as Node<NodeData>,
                           connectionStartParams.handleId,
                       );
 
@@ -802,12 +827,12 @@ export function FlowCanvas() {
             }
 
             // 4. Create internal edge in store
-            if (targetHandle !== null) {
+            if (targetHandle !== null && connectionStartParams.nodeId) {
                 const newEdge: Edge = {
                     id: uuidv4(),
                     source:
                         connectionStartParams.handleType === "source"
-                            ? sourceNode.id
+                            ? connectionStartParams.nodeId
                             : newNode.id,
                     sourceHandle:
                         connectionStartParams.handleType === "source"
@@ -816,7 +841,7 @@ export function FlowCanvas() {
                     target:
                         connectionStartParams.handleType === "source"
                             ? newNode.id
-                            : sourceNode.id,
+                            : connectionStartParams.nodeId,
                     targetHandle:
                         connectionStartParams.handleType === "source"
                             ? targetHandle
@@ -843,41 +868,41 @@ export function FlowCanvas() {
     };
 
     const highlightedEdges = useMemo(() => {
+        const selectedId = selectedNode?.id;
+
         return edges.map((edge) => {
-            const sourceNode = nodes.find((n) => n.id === edge.source);
-
-            const isCollection =
-                sourceNode &&
-                getSourcePortType(
-                    sourceNode as Node<NodeData>,
-                    edge.sourceHandle,
-                ).startsWith("collection:");
-
             const isHighlighted =
-                (selectedNode &&
-                    (edge.source === selectedNode.id ||
-                        edge.target === selectedNode.id)) ||
+                selectedId === edge.source ||
+                selectedId === edge.target ||
                 edge.selected;
 
-            const baseStyle: Record<string, unknown> = { ...edge.style };
+            const sourceNodeData = nodeDataMap[edge.source];
+            if (!sourceNodeData) return edge;
 
-            if (isCollection) {
-                baseStyle.strokeWidth = 8;
-                baseStyle.strokeDasharray = "8 4";
-                if (sourceNode) {
-                    baseStyle.stroke =
-                        NODE_COLORS[sourceNode.data.type] || "#3b82f6";
-                }
-            }
+            // Mock a node object for getSourcePortType safely since it only needs data and handles
+            const mockNode = { data: sourceNodeData } as Node<NodeData>;
+
+            const isCollection = getSourcePortType(
+                mockNode,
+                edge.sourceHandle,
+            ).startsWith("collection:");
 
             if (!isHighlighted && !isCollection) return edge;
 
-            if (isHighlighted) {
-                const color = sourceNode
-                    ? NODE_COLORS[sourceNode.data.type]
+            const baseStyle: Record<string, unknown> = { ...edge.style };
+            const sourceNodeType = sourceNodeData.type;
+
+            if (isCollection) {
+                baseStyle.strokeWidth = isHighlighted ? 10 : 8;
+                baseStyle.strokeDasharray = "8 4";
+                if (sourceNodeType) {
+                    baseStyle.stroke = NODE_COLORS[sourceNodeType] || "#3b82f6";
+                }
+            } else if (isHighlighted) {
+                baseStyle.stroke = sourceNodeType
+                    ? NODE_COLORS[sourceNodeType]
                     : "#3b82f6";
-                baseStyle.stroke = color;
-                baseStyle.strokeWidth = isCollection ? 10 : 6;
+                baseStyle.strokeWidth = 6;
             }
 
             return {
@@ -886,7 +911,47 @@ export function FlowCanvas() {
                 style: baseStyle,
             };
         });
-    }, [edges, nodes, selectedNode]);
+    }, [edges, nodeDataMap, selectedNode?.id]);
+
+    const flowBackground = useMemo(
+        () => (
+            <Background
+                color={resolvedTheme === "dark" ? "#ffffff" : "#000000"}
+                variant={BackgroundVariant.Dots}
+            />
+        ),
+        [resolvedTheme],
+    );
+
+    const flowControls = useMemo(
+        () => (
+            <Controls>
+                <ControlButton
+                    onClick={() => setMode("selection")}
+                    className={
+                        mode === "selection"
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : ""
+                    }
+                    title="Selection Mode"
+                >
+                    <MousePointer2 className="h-4 w-4" />
+                </ControlButton>
+                <ControlButton
+                    onClick={() => setMode("hand")}
+                    className={
+                        mode === "hand"
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : ""
+                    }
+                    title="Hand Mode"
+                >
+                    <Hand className="h-4 w-4" />
+                </ControlButton>
+            </Controls>
+        ),
+        [mode],
+    );
 
     return (
         <div className="relative flex h-full flex-1">
@@ -946,40 +1011,11 @@ export function FlowCanvas() {
                                     defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
                                     minZoom={0.1}
                                     maxZoom={2}
+                                    onlyRenderVisibleElements={true}
                                     className="react-flow"
                                 >
-                                    <Background
-                                        color={
-                                            resolvedTheme === "dark"
-                                                ? "#ffffff"
-                                                : "#000000"
-                                        }
-                                        variant={BackgroundVariant.Dots}
-                                    />
-                                    <Controls>
-                                        <ControlButton
-                                            onClick={() => setMode("selection")}
-                                            className={
-                                                mode === "selection"
-                                                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                                                    : ""
-                                            }
-                                            title="Selection Mode"
-                                        >
-                                            <MousePointer2 className="h-4 w-4" />
-                                        </ControlButton>
-                                        <ControlButton
-                                            onClick={() => setMode("hand")}
-                                            className={
-                                                mode === "hand"
-                                                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                                                    : ""
-                                            }
-                                            title="Hand Mode"
-                                        >
-                                            <Hand className="h-4 w-4" />
-                                        </ControlButton>
-                                    </Controls>
+                                    {flowBackground}
+                                    {flowControls}
                                     <Panel
                                         position="top-right"
                                         className="bg-card border-border flex gap-2 rounded-lg border p-2"

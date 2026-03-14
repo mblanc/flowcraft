@@ -108,6 +108,13 @@ export const WorkflowInputNode = memo(
             </div>
         );
     },
+    (prevProps, nextProps) => {
+        return (
+            prevProps.id === nextProps.id &&
+            prevProps.selected === nextProps.selected &&
+            prevProps.data === nextProps.data
+        );
+    },
 );
 
 WorkflowInputNode.displayName = "WorkflowInputNode";
