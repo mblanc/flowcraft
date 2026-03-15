@@ -27,13 +27,7 @@ import { useCallback } from "react";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
 import { SchemaEditor } from "./schema-editor";
 
-export function LLMConfig({
-    data,
-    nodeId,
-}: {
-    data: LLMData;
-    nodeId: string;
-}) {
+export function LLMConfig({ data, nodeId }: { data: LLMData; nodeId: string }) {
     const updateNodeData = useFlowStore(
         (state: FlowState) => state.updateNodeData,
     );

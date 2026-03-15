@@ -62,10 +62,7 @@ export function FlowContextMenu({
     return (
         <ContextMenu>
             <ContextMenuTrigger asChild disabled={!isEditable}>
-                <div
-                    className="h-full w-full"
-                    onContextMenu={onContextMenu}
-                >
+                <div className="h-full w-full" onContextMenu={onContextMenu}>
                     {children}
                 </div>
             </ContextMenuTrigger>

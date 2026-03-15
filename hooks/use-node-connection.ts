@@ -7,11 +7,7 @@ import type {
     OnConnectStart,
     OnConnectEnd,
 } from "@xyflow/react";
-import type {
-    NodeType,
-    NodeData,
-    CustomWorkflowData,
-} from "@/lib/types";
+import type { NodeType, NodeData, CustomWorkflowData } from "@/lib/types";
 import {
     getSourcePortType,
     getTargetPortType,
@@ -172,9 +168,7 @@ export function useNodeConnection(
                               connectionStartParams.handleId,
                           );
 
-                const newDef = getNodeDefinition(
-                    newNode.data.type as NodeType,
-                );
+                const newDef = getNodeDefinition(newNode.data.type as NodeType);
                 let targetHandle: string | null = null;
 
                 if (connectionStartParams.handleType === "source") {
@@ -245,9 +239,7 @@ export function useNodeConnection(
                                 ? targetHandle
                                 : connectionStartParams.handleId,
                     };
-                    useFlowStore
-                        .getState()
-                        .setEdges([...edges, newEdge]);
+                    useFlowStore.getState().setEdges([...edges, newEdge]);
                 }
             }
 

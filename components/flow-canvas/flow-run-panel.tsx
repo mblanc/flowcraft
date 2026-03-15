@@ -1,6 +1,5 @@
 "use client";
 
-import type { Node } from "@xyflow/react";
 import { Panel } from "@xyflow/react";
 import { Button } from "../ui/button";
 import { Play } from "lucide-react";

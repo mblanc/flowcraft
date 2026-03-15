@@ -12,6 +12,7 @@ import {
     CustomWorkflowData as InferredCustomWorkflowData,
     NodeData as InferredNodeData,
 } from "./schemas";
+import { Edge, Node } from "@xyflow/react";
 
 // Re-export Firestore document types
 export type {
@@ -80,4 +81,27 @@ export interface BaseNodeData {
     error?: string;
     batchTotal?: number;
     batchProgress?: number;
+}
+
+export interface ExecutionContext {
+    onNodeUpdate?: (nodeId: string, data: Partial<NodeData>) => void;
+    fetch?: typeof fetch;
+}
+
+export type NodeExecutor<T extends NodeData = NodeData, I = NodeInputs> = (
+    node: Node<T>,
+    inputs: I,
+    context?: ExecutionContext,
+) => Promise<Partial<T>>;
+
+export interface NodeDefinition<T extends NodeData = NodeData, I = NodeInputs> {
+    type: T["type"];
+    inputs?: Record<string, string>;
+    outputs?: Record<string, string>;
+    gatherInputs: (
+        node: Node<T>,
+        edges: Edge[],
+        getSourceData: (id: string, handle?: string | null) => NodeData | null,
+    ) => I;
+    execute: NodeExecutor<T, I>;
 }
