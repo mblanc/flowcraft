@@ -14,20 +14,29 @@ export class FlowService {
 
     private transformDoc(
         doc: DocumentSnapshot | QueryDocumentSnapshot,
-    ): Record<string, unknown> {
+    ): FlowDocument {
         const data = doc.data();
         return {
             id: doc.id,
-            ...data,
+            userId: data?.userId as string,
+            name: data?.name as string,
+            nodes: (data?.nodes ?? []) as FlowDocument["nodes"],
+            edges: (data?.edges ?? []) as FlowDocument["edges"],
+            thumbnail: data?.thumbnail as string | undefined,
+            visibility: (data?.visibility ??
+                "private") as FlowDocument["visibility"],
+            sharedWith: data?.sharedWith as FlowDocument["sharedWith"],
+            sharedWithEmails: data?.sharedWithEmails as string[] | undefined,
+            isTemplate: data?.isTemplate as boolean | undefined,
             createdAt:
                 (data?.createdAt as { toDate?: () => Date })
                     ?.toDate?.()
-                    ?.toISOString() || data?.createdAt,
+                    ?.toISOString() ?? String(data?.createdAt ?? ""),
             updatedAt:
                 (data?.updatedAt as { toDate?: () => Date })
                     ?.toDate?.()
-                    ?.toISOString() || data?.updatedAt,
-        } as Record<string, unknown>;
+                    ?.toISOString() ?? String(data?.updatedAt ?? ""),
+        };
     }
 
     async listFlows(userId: string, userEmail?: string, tab: string = "my") {
@@ -70,7 +79,7 @@ export class FlowService {
             throw new Error("Flow not found");
         }
 
-        const flowData = this.transformDoc(flowDoc) as unknown as FlowDocument;
+        const flowData = this.transformDoc(flowDoc);
 
         const isOwner = flowData.userId === userId;
         const isShared =
@@ -135,7 +144,7 @@ export class FlowService {
             throw new Error("Flow not found");
         }
 
-        const currentData = flowDoc.data() as unknown as FlowDocument;
+        const currentData = this.transformDoc(flowDoc);
         const isOwner = currentData.userId === userId;
         const isEditor =
             userEmail &&
@@ -226,8 +235,8 @@ export class FlowService {
 
         const cloneData: FlowCreateRequest = {
             name: `Copy of ${originalFlow.name}`,
-            nodes: originalFlow.nodes as FlowCreateRequest["nodes"],
-            edges: originalFlow.edges as FlowCreateRequest["edges"],
+            nodes: originalFlow.nodes,
+            edges: originalFlow.edges,
         };
 
         return this.createFlow(userId, cloneData);

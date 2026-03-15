@@ -1,4 +1,4 @@
-import { Edge, Node } from "@xyflow/react";
+import { Node } from "@xyflow/react";
 import {
     NodeData,
     NodeType,
@@ -17,15 +17,13 @@ import { allNodeDefinitions } from "./nodes";
 // Re-export registry interfaces so existing imports continue to work
 export type { ExecutionContext, NodeExecutor, NodeDefinition };
 
-const registry = new Map<NodeType, NodeDefinition<NodeData, NodeInputs>>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const registry = new Map<NodeType, NodeDefinition<any, any>>();
 
 export function registerNode<T extends NodeData, I extends NodeInputs>(
     definition: NodeDefinition<T, I>,
 ) {
-    registry.set(
-        definition.type,
-        definition as unknown as NodeDefinition<NodeData, NodeInputs>,
-    );
+    registry.set(definition.type, definition);
 }
 
 export function getNodeDefinition<T extends NodeData>(
@@ -104,6 +102,3 @@ export function getTargetPortType(
 
     return inputs[normalizedHandleId] || "any";
 }
-
-// Suppress unused import warning — Edge is used in NodeDefinition's gatherInputs signature
-void (null as unknown as Edge);

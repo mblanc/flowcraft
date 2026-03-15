@@ -11,7 +11,9 @@ import {
     WorkflowOutputData as InferredWorkflowOutputData,
     CustomWorkflowData as InferredCustomWorkflowData,
     NodeData as InferredNodeData,
+    BaseNodeDataSchema,
 } from "./schemas";
+import { z } from "zod";
 import { Edge, Node } from "@xyflow/react";
 
 // Re-export Firestore document types
@@ -73,15 +75,9 @@ export type WorkflowOutputData = InferredWorkflowOutputData;
 export type CustomWorkflowData = InferredCustomWorkflowData;
 export type NodeData = InferredNodeData;
 
-export interface BaseNodeData {
+export type BaseNodeData = z.infer<typeof BaseNodeDataSchema> & {
     type: NodeType;
-    name: string;
-    executing?: boolean;
-    generatedAt?: number;
-    error?: string;
-    batchTotal?: number;
-    batchProgress?: number;
-}
+};
 
 export interface ExecutionContext {
     onNodeUpdate?: (nodeId: string, data: Partial<NodeData>) => void;
