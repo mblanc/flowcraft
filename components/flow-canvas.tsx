@@ -15,16 +15,9 @@ import {
 } from "@xyflow/react";
 import { useSession } from "next-auth/react";
 import "@xyflow/react/dist/style.css";
-import {
-    type NodeType,
-    type NodeData,
-    type CustomWorkflowData,
-} from "@/lib/types";
+import { type NodeData, type CustomWorkflowData } from "@/lib/types";
 import { FloatingNodePalette } from "./floating-node-palette";
-import {
-    getSourcePortType,
-    getTargetPortType,
-} from "@/lib/node-registry";
+import { getSourcePortType, getTargetPortType } from "@/lib/node-registry";
 import { isTypeCompatible } from "@/lib/utils";
 import { MousePointer2, Hand } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
@@ -349,15 +342,11 @@ export function FlowCanvas() {
                             edges={highlightedEdges}
                             onNodesChange={onNodesChange}
                             onEdgesChange={onEdgesChange}
-                            onConnect={
-                                isEditable ? onConnect : undefined
-                            }
+                            onConnect={isEditable ? onConnect : undefined}
                             onConnectStart={
                                 isEditable ? onConnectStart : undefined
                             }
-                            onConnectEnd={
-                                isEditable ? onConnectEnd : undefined
-                            }
+                            onConnectEnd={isEditable ? onConnectEnd : undefined}
                             onNodeClick={onNodeClick}
                             onEdgeClick={onEdgeClick}
                             onPaneClick={onPaneClick}
@@ -382,24 +371,18 @@ export function FlowCanvas() {
                             {flowControls}
                             <FlowRunPanel
                                 isRunning={isRunning}
-                                hasSelectedNodes={nodes.some(
-                                    (n) => n.selected,
-                                )}
+                                hasSelectedNodes={nodes.some((n) => n.selected)}
                                 onRunFlow={runFlow}
                                 onRunSelectedNodes={runSelectedNodes}
                             />
 
                             <NodeConnectionDropdown
                                 dropdownOpen={dropdownOpen}
-                                dropdownVisualPosition={
-                                    dropdownVisualPosition
-                                }
+                                dropdownVisualPosition={dropdownVisualPosition}
                                 dropdownPosition={dropdownPosition}
                                 compatibleNodes={compatibleNodes}
                                 onOpenChange={setDropdownOpen}
-                                onClearConnectionParams={
-                                    clearConnectionParams
-                                }
+                                onClearConnectionParams={clearConnectionParams}
                                 onSelectNode={handleSelectDropdownNode}
                             />
                         </ReactFlow>
