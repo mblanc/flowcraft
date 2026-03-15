@@ -2,13 +2,11 @@
 
 import type React from "react";
 
-import { useCallback, useState, useEffect, useRef, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import {
     ReactFlow,
     Controls,
-    Panel,
     type Node,
-    type Edge,
     type ReactFlowInstance,
     Background,
     BackgroundVariant,
@@ -17,187 +15,39 @@ import {
 } from "@xyflow/react";
 import { useSession } from "next-auth/react";
 import "@xyflow/react/dist/style.css";
-import { LLMNode } from "./llm-node";
-import { TextNode } from "./text-node";
-import { ImageNode } from "./image-node";
-import { VideoNode } from "./video-node";
-import { FileNode } from "./file-node";
-import { UpscaleNode } from "./upscale-node";
-import { ResizeNode } from "./resize-node";
-import { WorkflowInputNode } from "./workflow-input-node";
-import { WorkflowOutputNode } from "./workflow-output-node";
-import { CustomWorkflowNode } from "./custom-workflow-node";
-import { ListNode } from "./list-node";
 import {
-    NodeType,
-    NodeData,
-    CustomWorkflowData,
-    CustomNodePort,
-    FileData,
+    type NodeType,
+    type NodeData,
+    type CustomWorkflowData,
 } from "@/lib/types";
 import { FloatingNodePalette } from "./floating-node-palette";
 import {
     getSourcePortType,
     getTargetPortType,
-    getNodeDefinition,
 } from "@/lib/node-registry";
 import { isTypeCompatible } from "@/lib/utils";
-import { Button } from "./ui/button";
-import {
-    Bot,
-    FileText,
-    ImageIcon,
-    Video,
-    Play,
-    FileUp,
-    ZoomIn,
-    Scaling,
-    LogIn,
-    LogOut,
-    Box,
-    MousePointer2,
-    Hand,
-    ListOrdered,
-} from "lucide-react";
+import { MousePointer2, Hand } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
 import { useShallow } from "zustand/react/shallow";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { useTheme } from "next-themes";
 import logger from "@/app/logger";
-import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuLabel,
-    ContextMenuSeparator,
-    ContextMenuSub,
-    ContextMenuSubContent,
-    ContextMenuSubTrigger,
-    ContextMenuTrigger,
-} from "./ui/context-menu";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import {
-    type OnConnectStartParams,
-    type OnConnectEnd,
-    type OnConnectStart,
-} from "@xyflow/react";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { createNode } from "@/lib/node-factory";
-import { v4 as uuidv4 } from "uuid";
 
-interface CustomNodeItem {
-    id: string;
-    name: string;
-    inputs: CustomNodePort[];
-    outputs: CustomNodePort[];
-}
-
-const nodeTypes = {
-    llm: LLMNode,
-    text: TextNode,
-    image: ImageNode,
-    video: VideoNode,
-    file: FileNode,
-    upscale: UpscaleNode,
-    resize: ResizeNode,
-    list: ListNode,
-    "workflow-input": WorkflowInputNode,
-    "workflow-output": WorkflowOutputNode,
-    "custom-workflow": CustomWorkflowNode,
-};
-
-const NODE_COLORS: Record<string, string> = {
-    llm: "oklch(0.65 0.25 252)",
-    text: "#a855f7", // purple-500
-    image: "#f97316", // orange-500
-    video: "#ec4899", // pink-500
-    file: "#06b6d4", // cyan-500
-    upscale: "#ef4444", // red-500
-    resize: "#3b82f6", // blue-500
-    list: "#14b8a6", // teal-500
-    "workflow-input": "#60a5fa", // blue-400
-    "workflow-output": "#fb923c", // orange-400
-    "custom-workflow": "#3b82f6", // blue-500
-};
-
-// Native node items - always available
-const nativeItems = [
-    {
-        type: "text",
-        icon: FileText,
-        color: "text-purple-500 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950/20",
-        label: "Text",
-    },
-    {
-        type: "list",
-        icon: ListOrdered,
-        color: "text-teal-500 hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-teal-950/20",
-        label: "List",
-    },
-    {
-        type: "file",
-        icon: FileUp,
-        color: "text-cyan-500 hover:bg-cyan-50 hover:text-cyan-600 dark:hover:bg-cyan-950/20",
-        label: "File",
-    },
-    {
-        type: "llm",
-        icon: Bot,
-        color: "text-primary hover:text-primary/80 hover:bg-primary/10",
-        label: "LLM",
-    },
-    {
-        type: "image",
-        icon: ImageIcon,
-        color: "text-orange-500 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-950/20",
-        label: "Image",
-    },
-    {
-        type: "video",
-        icon: Video,
-        color: "text-pink-500 hover:bg-pink-50 hover:text-pink-600 dark:hover:bg-pink-950/20",
-        label: "Video",
-    },
-    {
-        type: "upscale",
-        icon: ZoomIn,
-        color: "text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20",
-        label: "Upscale",
-    },
-    {
-        type: "resize",
-        icon: Scaling,
-        color: "text-blue-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/20",
-        label: "Resize",
-    },
-] as const;
-
-// Workflow I/O items - only in custom node editor
-const workflowIOItems = [
-    {
-        type: "workflow-input",
-        icon: LogIn,
-        color: "text-blue-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/20",
-        label: "Input",
-    },
-    {
-        type: "workflow-output",
-        icon: LogOut,
-        color: "text-orange-500 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-950/20",
-        label: "Output",
-    },
-] as const;
+import {
+    nodeTypes,
+    NODE_COLORS,
+    nativeItems,
+    workflowIOItems,
+    type CustomNodeItem,
+} from "./flow-canvas/flow-constants";
+import { FlowContextMenu } from "./flow-canvas/flow-context-menu";
+import { NodeConnectionDropdown } from "./flow-canvas/node-connection-dropdown";
+import { FlowRunPanel } from "./flow-canvas/flow-run-panel";
+import { useFlowShortcuts } from "@/hooks/use-flow-shortcuts";
+import { useFlowDragDrop } from "@/hooks/use-flow-drag-drop";
+import { useNodeConnection } from "@/hooks/use-node-connection";
 
 export function FlowCanvas() {
     const nodes = useFlowStore((state: FlowState) => state.nodes);
@@ -215,8 +65,6 @@ export function FlowCanvas() {
         flowId,
         entityType,
         addNodeWithType,
-        addNode,
-        updateNodeData,
         isRunning,
         ownerId,
         sharedWith,
@@ -228,8 +76,6 @@ export function FlowCanvas() {
             flowId: state.flowId,
             entityType: state.entityType,
             addNodeWithType: state.addNodeWithType,
-            addNode: state.addNode,
-            updateNodeData: state.updateNodeData,
             isRunning: state.isRunning,
             ownerId: state.ownerId,
             sharedWith: state.sharedWith,
@@ -239,9 +85,6 @@ export function FlowCanvas() {
     const { resolvedTheme } = useTheme();
     const { data: session } = useSession();
 
-    // Stable mapping of node data for edge highlighting
-    // This prevents highlightedEdges from recalculating on every drag frame (position updates)
-    // because we use shallow comparison on a map that only contains data references.
     const nodeDataMap = useFlowStore(
         useShallow((state: FlowState) => {
             const map: Record<string, NodeData> = {};
@@ -266,14 +109,12 @@ export function FlowCanvas() {
     const [customNodes, setCustomNodes] = useState<CustomNodeItem[]>([]);
     const isCustomNodeEditor = entityType === "custom-node";
 
-    // Fetch custom nodes for the palette
     useEffect(() => {
         const fetchCustomNodes = async () => {
             try {
                 const response = await fetch("/api/custom-nodes");
                 if (response.ok) {
                     const data = await response.json();
-                    // Filter out the current custom node if we're editing one
                     const filtered = (data.customNodes || []).filter(
                         (node: CustomNodeItem) => node.id !== flowId,
                     );
@@ -311,6 +152,7 @@ export function FlowCanvas() {
         },
         [nodeDataMap],
     );
+
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(
         null,
     );
@@ -319,25 +161,23 @@ export function FlowCanvas() {
         x: number;
         y: number;
     } | null>(null);
-    const [connectionStartParams, setConnectionStartParams] =
-        useState<OnConnectStartParams | null>(null);
-    const connectionStartParamsRef = useRef<OnConnectStartParams | null>(null);
-    const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [dropdownPosition, setDropdownPosition] = useState<{
-        x: number;
-        y: number;
-    } | null>(null);
-    const [dropdownVisualPosition, setDropdownVisualPosition] = useState<{
-        x: number;
-        y: number;
-    } | null>(null);
 
-    const clearConnectionParams = useCallback(() => {
-        setConnectionStartParams(null);
-        connectionStartParamsRef.current = null;
-    }, []);
+    // Extracted hooks
+    useFlowShortcuts(rfInstance);
+    const { onDragStart, onCustomNodeDragStart, onDragOver, onDrop } =
+        useFlowDragDrop(rfInstance);
+    const {
+        dropdownOpen,
+        setDropdownOpen,
+        dropdownPosition,
+        dropdownVisualPosition,
+        clearConnectionParams,
+        onConnectStart,
+        onConnectEnd,
+        compatibleNodes,
+        handleSelectDropdownNode,
+    } = useNodeConnection(rfInstance, nodeDataMap, edges, customNodes);
 
-    // Fit view when nodes are loaded and we haven't fitted yet for this flow
     useEffect(() => {
         if (
             rfInstance &&
@@ -351,122 +191,6 @@ export function FlowCanvas() {
             });
         }
     }, [rfInstance, nodes.length, fittedFlowId, flowId]);
-
-    const copyNodes = useCallback(() => {
-        if (!rfInstance) return;
-        const selectedNodes = rfInstance.getNodes().filter((n) => n.selected);
-        const selectedEdges = rfInstance.getEdges().filter((e) => e.selected);
-        if (selectedNodes.length > 0) {
-            const copyData = { nodes: selectedNodes, edges: selectedEdges };
-            localStorage.setItem(
-                "flowcraft-copy-buffer",
-                JSON.stringify(copyData),
-            );
-        }
-    }, [rfInstance]);
-
-    const pasteNodes = useCallback(() => {
-        const copyDataStr = localStorage.getItem("flowcraft-copy-buffer");
-        if (copyDataStr && rfInstance) {
-            try {
-                const { nodes: copiedNodes, edges: copiedEdges } =
-                    JSON.parse(copyDataStr);
-                const idMap: Record<string, string> = {};
-
-                // Offset for pasted nodes
-                const offset = { x: 50, y: 50 };
-
-                const newNodes = (copiedNodes as Node<NodeData>[]).map(
-                    (node: Node<NodeData>) => {
-                        const newId = uuidv4();
-                        idMap[node.id] = newId;
-                        return {
-                            ...node,
-                            id: newId,
-                            position: {
-                                x: node.position.x + offset.x,
-                                y: node.position.y + offset.y,
-                            },
-                            selected: true,
-                        } as Node<NodeData>;
-                    },
-                );
-
-                const newEdges = (copiedEdges || [])
-                    .map((edge: Edge) => ({
-                        ...edge,
-                        id: uuidv4(),
-                        source: idMap[edge.source] || edge.source,
-                        target: idMap[edge.target] || edge.target,
-                        selected: true,
-                    }))
-                    .filter(
-                        (edge: Edge) =>
-                            idMap[edge.source] && idMap[edge.target],
-                    );
-
-                // Deselect current nodes
-                onNodesChange(
-                    nodes.map((n) => ({
-                        id: n.id,
-                        type: "select",
-                        selected: false,
-                    })),
-                );
-                onEdgesChange(
-                    edges.map((e) => ({
-                        id: e.id,
-                        type: "select",
-                        selected: false,
-                    })),
-                );
-
-                // Add new nodes and edges
-                newNodes.forEach((node: Node<NodeData>) =>
-                    useFlowStore.getState().addNode(node),
-                );
-                if (newEdges.length > 0) {
-                    useFlowStore
-                        .getState()
-                        .setEdges([
-                            ...useFlowStore.getState().edges,
-                            ...newEdges,
-                        ]);
-                }
-            } catch (error) {
-                logger.error("Error pasting nodes:", error);
-            }
-        }
-    }, [rfInstance, onNodesChange, onEdgesChange, nodes, edges]);
-
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            const target = event.target as HTMLElement;
-            const isEditable =
-                target instanceof HTMLInputElement ||
-                target instanceof HTMLTextAreaElement ||
-                target?.isContentEditable;
-
-            if ((event.ctrlKey || event.metaKey) && event.key === "c") {
-                // Skip node copy if focus is in an input/contentEditable OR if text is selected
-                if (isEditable) return;
-
-                const selection = window.getSelection();
-                if (selection && selection.toString().length > 0) {
-                    return;
-                }
-
-                copyNodes();
-            }
-            if ((event.ctrlKey || event.metaKey) && event.key === "v") {
-                // Skip node paste if focus is in an input/contentEditable
-                if (isEditable) return;
-                pasteNodes();
-            }
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [copyNodes, pasteNodes]);
 
     const onNodeClick = useCallback(
         (_: React.MouseEvent, node: Node) => {
@@ -489,121 +213,6 @@ export function FlowCanvas() {
         useFlowStore.getState().setIsConfigSidebarOpen(false);
     }, [selectNode]);
 
-    const onDragStart = (event: React.DragEvent, nodeType: string) => {
-        event.dataTransfer.setData("application/reactflow", nodeType);
-        event.dataTransfer.effectAllowed = "move";
-    };
-
-    const onCustomNodeDragStart = (
-        event: React.DragEvent,
-        customNode: CustomNodeItem,
-    ) => {
-        event.dataTransfer.setData("application/reactflow", "custom-workflow");
-        event.dataTransfer.setData(
-            "application/custom-node",
-            JSON.stringify(customNode),
-        );
-        event.dataTransfer.effectAllowed = "move";
-    };
-
-    const onDragOver = useCallback((event: React.DragEvent) => {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "move";
-    }, []);
-
-    const onDrop = useCallback(
-        (event: React.DragEvent) => {
-            event.preventDefault();
-
-            if (!rfInstance) {
-                return;
-            }
-
-            const position = rfInstance.screenToFlowPosition({
-                x: event.clientX,
-                y: event.clientY,
-            });
-
-            // Handle native file drops
-            if (
-                event.dataTransfer.files &&
-                event.dataTransfer.files.length > 0
-            ) {
-                const file = event.dataTransfer.files[0];
-                const fileType = file.type.startsWith("image/")
-                    ? "image"
-                    : file.type.startsWith("video/")
-                      ? "video"
-                      : file.type === "application/pdf"
-                        ? "pdf"
-                        : null;
-
-                if (fileType) {
-                    const newNode = createNode("file", position);
-                    newNode.data = {
-                        ...newNode.data,
-                        fileName: file.name,
-                        fileType,
-                    } as FileData;
-                    addNode(newNode);
-
-                    const formData = new FormData();
-                    formData.append("file", file);
-
-                    fetch("/api/upload-file", {
-                        method: "POST",
-                        body: formData,
-                    })
-                        .then((res) => {
-                            if (!res.ok) throw new Error("Upload failed");
-                            return res.json();
-                        })
-                        .then((data) => {
-                            updateNodeData(newNode.id, {
-                                fileUrl: data.signedUrl,
-                                gcsUri: data.gcsUri,
-                            });
-                        })
-                        .catch((error) => {
-                            logger.error("Drop upload error:", error);
-                        });
-                    return;
-                }
-            }
-
-            const type = event.dataTransfer.getData(
-                "application/reactflow",
-            ) as NodeType;
-
-            // check if the dropped element is valid
-            if (typeof type === "undefined" || !type) {
-                return;
-            }
-
-            // Check if this is a custom node drop
-            const customNodeData = event.dataTransfer.getData(
-                "application/custom-node",
-            );
-            if (customNodeData) {
-                try {
-                    const customNode = JSON.parse(
-                        customNodeData,
-                    ) as CustomNodeItem;
-                    addNodeWithType("custom-workflow", position, {
-                        subWorkflowId: customNode.id,
-                        name: customNode.name,
-                    } as Partial<CustomWorkflowData>);
-                    return;
-                } catch {
-                    // Fall through to regular node creation
-                }
-            }
-
-            addNodeWithType(type, position);
-        },
-        [rfInstance, addNodeWithType, addNode, updateNodeData],
-    );
-
     const handleContextMenu = (event: React.MouseEvent) => {
         if (!rfInstance) return;
         const position = rfInstance.screenToFlowPosition({
@@ -612,252 +221,6 @@ export function FlowCanvas() {
         });
         setMenuPosition(position);
     };
-
-    const handleContextMenuAddNode = (type: NodeType) => {
-        if (!menuPosition) return;
-        addNodeWithType(type, menuPosition);
-        setMenuPosition(null);
-    };
-
-    const handleContextMenuAddCustomNode = (customNode: CustomNodeItem) => {
-        if (!menuPosition) return;
-        addNodeWithType("custom-workflow", menuPosition, {
-            subWorkflowId: customNode.id,
-            name: customNode.name,
-        } as Partial<CustomWorkflowData>);
-        setMenuPosition(null);
-    };
-
-    const onConnectStart: OnConnectStart = useCallback((_event, params) => {
-        setConnectionStartParams(params);
-        connectionStartParamsRef.current = params;
-    }, []);
-
-    const onConnectEnd: OnConnectEnd = useCallback(
-        (event, connectionState) => {
-            if (
-                !connectionState.isValid &&
-                connectionStartParamsRef.current &&
-                rfInstance
-            ) {
-                const { clientX, clientY } =
-                    "clientX" in event ? event : event.touches[0];
-
-                const position = rfInstance.screenToFlowPosition({
-                    x: clientX,
-                    y: clientY,
-                });
-
-                setDropdownPosition(position);
-                setDropdownVisualPosition({ x: clientX, y: clientY });
-                setDropdownOpen(true);
-            } else if (connectionState.isValid) {
-                clearConnectionParams();
-            }
-        },
-        [rfInstance, clearConnectionParams],
-    );
-
-    const getCompatibleNodes = useCallback(
-        (
-            params: OnConnectStartParams,
-        ): {
-            native: (typeof nativeItems)[number][];
-            custom: CustomNodeItem[];
-        } => {
-            if (!params.nodeId) return { native: [], custom: [] };
-            const sourceNodeData = nodeDataMap[params.nodeId];
-            if (!sourceNodeData) return { native: [], custom: [] };
-
-            const mockNode = { data: sourceNodeData } as Node<NodeData>;
-
-            const portType =
-                params.handleType === "source"
-                    ? getSourcePortType(mockNode, params.handleId)
-                    : getTargetPortType(mockNode, params.handleId);
-
-            // Filter native nodes
-            const filteredNative = nativeItems.filter((item) => {
-                const def = getNodeDefinition(item.type as NodeType);
-                if (!def) return false;
-
-                if (params.handleType === "source") {
-                    // If we drag from an output, the target must have a compatible input
-                    return Object.values(def.inputs || {}).some((targetType) =>
-                        isTypeCompatible(portType, targetType),
-                    );
-                } else {
-                    // If we drag from an input, the source must have a compatible output
-                    return Object.values(def.outputs || {}).some((sourceType) =>
-                        isTypeCompatible(sourceType, portType),
-                    );
-                }
-            });
-
-            // For custom nodes, filter based on their input/output types
-            const filteredCustom = customNodes.filter((item) => {
-                if (params.handleType === "source") {
-                    // Dragging from an output -> target must have a compatible input
-                    return (item.inputs || []).some((input) =>
-                        isTypeCompatible(portType, input.type),
-                    );
-                } else {
-                    // Dragging from an input -> source must have a compatible output
-                    return (item.outputs || []).some((output) =>
-                        isTypeCompatible(output.type, portType),
-                    );
-                }
-            });
-
-            return { native: filteredNative, custom: filteredCustom };
-        },
-        [nodeDataMap, customNodes],
-    );
-
-    const handleSelectDropdownNode = (
-        type: NodeType,
-        customNode?: CustomNodeItem,
-    ) => {
-        if (!dropdownPosition || !connectionStartParams || !rfInstance) return;
-
-        // 1. Create the new node
-        const newNode = createNode(
-            customNode ? "custom-workflow" : type,
-            dropdownPosition,
-        );
-        if (customNode) {
-            // Convert CustomNodePort[] to Record<string, string> for the data object
-            const inputsRecord: Record<string, string> = {};
-            customNode.inputs?.forEach((p) => {
-                inputsRecord[p.id] = p.type;
-            });
-            const outputsRecord: Record<string, string> = {};
-            customNode.outputs?.forEach((p) => {
-                outputsRecord[p.id] = p.type;
-            });
-
-            newNode.data = {
-                ...newNode.data,
-                subWorkflowId: customNode.id,
-                name: customNode.name,
-                inputs: inputsRecord,
-                outputs: outputsRecord,
-            } as CustomWorkflowData;
-        }
-
-        // 2. Add node to store
-        useFlowStore.getState().addNode(newNode);
-
-        // 3. Find compatible handle on the new node
-        if (!connectionStartParams.nodeId) return;
-        const sourceNodeData = nodeDataMap[connectionStartParams.nodeId];
-        if (sourceNodeData) {
-            const sourcePortType =
-                connectionStartParams.handleType === "source"
-                    ? getSourcePortType(
-                          { data: sourceNodeData } as Node<NodeData>,
-                          connectionStartParams.handleId,
-                      )
-                    : getTargetPortType(
-                          { data: sourceNodeData } as Node<NodeData>,
-                          connectionStartParams.handleId,
-                      );
-
-            const newDef = getNodeDefinition(newNode.data.type as NodeType);
-            let targetHandle: string | null = null;
-
-            if (connectionStartParams.handleType === "source") {
-                // Dragging from source (output) -> looking for a target (input)
-                if (newNode.data.type === "custom-workflow") {
-                    // For custom nodes, find the first compatible input handle
-                    const cwData = newNode.data as CustomWorkflowData;
-                    const inputs = Object.entries(cwData.inputs || {});
-                    // 1. Try exact match first
-                    targetHandle =
-                        inputs.find(
-                            ([, type]) => type === sourcePortType,
-                        )?.[0] ||
-                        // 2. Fall back to compatible match
-                        inputs.find(([, type]) =>
-                            isTypeCompatible(sourcePortType, type),
-                        )?.[0] ||
-                        null;
-                } else if (newDef?.inputs) {
-                    const inputs = Object.entries(newDef.inputs);
-                    // 1. Try exact match first
-                    targetHandle =
-                        inputs.find(
-                            ([, type]) => type === sourcePortType,
-                        )?.[0] ||
-                        // 2. Fall back to compatible match
-                        inputs.find(([, type]) =>
-                            isTypeCompatible(sourcePortType, type),
-                        )?.[0] ||
-                        null;
-                }
-            } else {
-                // Dragging from target (input) -> looking for a source (output)
-                if (newNode.data.type === "custom-workflow") {
-                    const cwData = newNode.data as CustomWorkflowData;
-                    const outputs = Object.entries(cwData.outputs || {});
-                    // 1. Try exact match first
-                    targetHandle =
-                        outputs.find(
-                            ([, type]) => type === sourcePortType,
-                        )?.[0] ||
-                        // 2. Fall back to compatible match
-                        outputs.find(([, type]) =>
-                            isTypeCompatible(type, sourcePortType),
-                        )?.[0] ||
-                        null;
-                } else if (newDef?.outputs) {
-                    const outputs = Object.entries(newDef.outputs);
-                    // 1. Try exact match first
-                    targetHandle =
-                        outputs.find(
-                            ([, type]) => type === sourcePortType,
-                        )?.[0] ||
-                        // 2. Fall back to compatible match
-                        outputs.find(([, type]) =>
-                            isTypeCompatible(type, sourcePortType),
-                        )?.[0] ||
-                        null;
-                }
-            }
-
-            // 4. Create internal edge in store
-            if (targetHandle !== null && connectionStartParams.nodeId) {
-                const newEdge: Edge = {
-                    id: uuidv4(),
-                    source:
-                        connectionStartParams.handleType === "source"
-                            ? connectionStartParams.nodeId
-                            : newNode.id,
-                    sourceHandle:
-                        connectionStartParams.handleType === "source"
-                            ? connectionStartParams.handleId
-                            : targetHandle,
-                    target:
-                        connectionStartParams.handleType === "source"
-                            ? newNode.id
-                            : connectionStartParams.nodeId,
-                    targetHandle:
-                        connectionStartParams.handleType === "source"
-                            ? targetHandle
-                            : connectionStartParams.handleId,
-                };
-                useFlowStore.getState().setEdges([...edges, newEdge]);
-            }
-        }
-
-        setDropdownOpen(false);
-        clearConnectionParams();
-    };
-
-    const compatibleNodes = useMemo(() => {
-        if (!connectionStartParams) return { native: [], custom: [] };
-        return getCompatibleNodes(connectionStartParams);
-    }, [connectionStartParams, getCompatibleNodes]);
 
     const handleAddCustomNode = (customNode: CustomNodeItem) => {
         addNodeWithType("custom-workflow", undefined, {
@@ -878,7 +241,6 @@ export function FlowCanvas() {
             const sourceNodeData = nodeDataMap[edge.source];
             if (!sourceNodeData) return edge;
 
-            // Mock a node object for getSourcePortType safely since it only needs data and handles
             const mockNode = { data: sourceNodeData } as Node<NodeData>;
 
             const isCollection = getSourcePortType(
@@ -972,260 +334,77 @@ export function FlowCanvas() {
                 onDrop={onDrop}
                 onDragOver={onDragOver}
             >
-                <ContextMenu>
-                    <ContextMenuTrigger asChild disabled={!isEditable}>
-                        <div
-                            className="h-full w-full"
-                            onContextMenu={handleContextMenu}
+                <FlowContextMenu
+                    isEditable={isEditable}
+                    isCustomNodeEditor={isCustomNodeEditor}
+                    customNodes={customNodes}
+                    onContextMenu={handleContextMenu}
+                    menuPosition={menuPosition}
+                    addNodeWithType={addNodeWithType}
+                    onMenuPositionClear={() => setMenuPosition(null)}
+                >
+                    <TooltipProvider>
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={highlightedEdges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            onConnect={
+                                isEditable ? onConnect : undefined
+                            }
+                            onConnectStart={
+                                isEditable ? onConnectStart : undefined
+                            }
+                            onConnectEnd={
+                                isEditable ? onConnectEnd : undefined
+                            }
+                            onNodeClick={onNodeClick}
+                            onEdgeClick={onEdgeClick}
+                            onPaneClick={onPaneClick}
+                            panOnDrag={mode === "hand" ? true : [2]}
+                            selectionOnDrag={mode === "selection"}
+                            selectionMode={SelectionMode.Partial}
+                            panOnScroll={true}
+                            onInit={setRfInstance}
+                            nodeTypes={nodeTypes}
+                            nodesDraggable={isEditable}
+                            nodesConnectable={isEditable}
+                            elementsSelectable={true}
+                            isValidConnection={isValidConnection}
+                            proOptions={{ hideAttribution: true }}
+                            defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
+                            minZoom={0.1}
+                            maxZoom={2}
+                            onlyRenderVisibleElements={true}
+                            className="react-flow"
                         >
-                            <TooltipProvider>
-                                <ReactFlow
-                                    nodes={nodes}
-                                    edges={highlightedEdges}
-                                    onNodesChange={onNodesChange}
-                                    onEdgesChange={onEdgesChange}
-                                    onConnect={
-                                        isEditable ? onConnect : undefined
-                                    }
-                                    onConnectStart={
-                                        isEditable ? onConnectStart : undefined
-                                    }
-                                    onConnectEnd={
-                                        isEditable ? onConnectEnd : undefined
-                                    }
-                                    onNodeClick={onNodeClick}
-                                    onEdgeClick={onEdgeClick}
-                                    onPaneClick={onPaneClick}
-                                    panOnDrag={mode === "hand" ? true : [2]}
-                                    selectionOnDrag={mode === "selection"}
-                                    selectionMode={SelectionMode.Partial}
-                                    panOnScroll={true}
-                                    onInit={setRfInstance}
-                                    nodeTypes={nodeTypes}
-                                    nodesDraggable={isEditable}
-                                    nodesConnectable={isEditable}
-                                    elementsSelectable={true}
-                                    isValidConnection={isValidConnection}
-                                    proOptions={{ hideAttribution: true }}
-                                    defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
-                                    minZoom={0.1}
-                                    maxZoom={2}
-                                    onlyRenderVisibleElements={true}
-                                    className="react-flow"
-                                >
-                                    {flowBackground}
-                                    {flowControls}
-                                    <Panel
-                                        position="top-right"
-                                        className="bg-card border-border flex gap-2 rounded-lg border p-2"
-                                    >
-                                        <Button
-                                            onClick={runFlow}
-                                            disabled={isRunning}
-                                            size="sm"
-                                            className="bg-green-500 text-white hover:bg-green-600"
-                                        >
-                                            <Play className="mr-2 h-4 w-4" />
-                                            {isRunning
-                                                ? "Running..."
-                                                : "Run Flow"}
-                                        </Button>
-                                        {nodes.some((n) => n.selected) && (
-                                            <Button
-                                                onClick={runSelectedNodes}
-                                                disabled={isRunning}
-                                                size="sm"
-                                                variant="outline"
-                                                className="border-green-500 text-green-500 hover:bg-green-50 dark:hover:bg-green-950/20"
-                                            >
-                                                <Play className="mr-2 h-4 w-4" />
-                                                Run Selected
-                                            </Button>
-                                        )}
-                                    </Panel>
+                            {flowBackground}
+                            {flowControls}
+                            <FlowRunPanel
+                                isRunning={isRunning}
+                                hasSelectedNodes={nodes.some(
+                                    (n) => n.selected,
+                                )}
+                                onRunFlow={runFlow}
+                                onRunSelectedNodes={runSelectedNodes}
+                            />
 
-                                    {dropdownVisualPosition &&
-                                        dropdownPosition && (
-                                            <div
-                                                style={{
-                                                    position: "fixed",
-                                                    left: dropdownVisualPosition.x,
-                                                    top: dropdownVisualPosition.y,
-                                                    zIndex: 1000,
-                                                    pointerEvents: "none",
-                                                }}
-                                            >
-                                                <div
-                                                    style={{
-                                                        pointerEvents: "auto",
-                                                    }}
-                                                >
-                                                    <DropdownMenu
-                                                        open={dropdownOpen}
-                                                        onOpenChange={(
-                                                            open,
-                                                        ) => {
-                                                            setDropdownOpen(
-                                                                open,
-                                                            );
-                                                            if (!open) {
-                                                                clearConnectionParams();
-                                                            }
-                                                        }}
-                                                    >
-                                                        <DropdownMenuTrigger
-                                                            asChild
-                                                        >
-                                                            <div className="h-0 w-0" />
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent
-                                                            className="w-56"
-                                                            align="start"
-                                                            sideOffset={0}
-                                                        >
-                                                            <DropdownMenuLabel>
-                                                                Connect to Node
-                                                            </DropdownMenuLabel>
-                                                            <DropdownMenuSeparator />
-                                                            {compatibleNodes.native.map(
-                                                                (
-                                                                    item: (typeof nativeItems)[number],
-                                                                ) => (
-                                                                    <DropdownMenuItem
-                                                                        key={
-                                                                            item.type
-                                                                        }
-                                                                        onClick={() =>
-                                                                            handleSelectDropdownNode(
-                                                                                item.type as NodeType,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <item.icon className="mr-2 h-4 w-4" />
-                                                                        <span>
-                                                                            {
-                                                                                item.label
-                                                                            }
-                                                                        </span>
-                                                                    </DropdownMenuItem>
-                                                                ),
-                                                            )}
-
-                                                            {compatibleNodes
-                                                                .custom.length >
-                                                                0 && (
-                                                                <>
-                                                                    <DropdownMenuSeparator />
-                                                                    <DropdownMenuSub>
-                                                                        <DropdownMenuSubTrigger>
-                                                                            <Box className="mr-2 h-4 w-4" />
-                                                                            <span>
-                                                                                Custom
-                                                                                Nodes
-                                                                            </span>
-                                                                        </DropdownMenuSubTrigger>
-                                                                        <DropdownMenuSubContent className="w-48">
-                                                                            {compatibleNodes.custom.map(
-                                                                                (
-                                                                                    node: CustomNodeItem,
-                                                                                ) => (
-                                                                                    <DropdownMenuItem
-                                                                                        key={
-                                                                                            node.id
-                                                                                        }
-                                                                                        onClick={() =>
-                                                                                            handleSelectDropdownNode(
-                                                                                                "custom-workflow",
-                                                                                                node,
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        <Box className="mr-2 h-4 w-4" />
-                                                                                        <span>
-                                                                                            {
-                                                                                                node.name
-                                                                                            }
-                                                                                        </span>
-                                                                                    </DropdownMenuItem>
-                                                                                ),
-                                                                            )}
-                                                                        </DropdownMenuSubContent>
-                                                                    </DropdownMenuSub>
-                                                                </>
-                                                            )}
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-                                            </div>
-                                        )}
-                                </ReactFlow>
-                            </TooltipProvider>
-                        </div>
-                    </ContextMenuTrigger>
-                    <ContextMenuContent className="w-48">
-                        <ContextMenuLabel>Add Node</ContextMenuLabel>
-                        <ContextMenuSeparator />
-                        {nativeItems.map((item) => (
-                            <ContextMenuItem
-                                key={item.type}
-                                onClick={() =>
-                                    handleContextMenuAddNode(
-                                        item.type as NodeType,
-                                    )
+                            <NodeConnectionDropdown
+                                dropdownOpen={dropdownOpen}
+                                dropdownVisualPosition={
+                                    dropdownVisualPosition
                                 }
-                            >
-                                <item.icon className="mr-2 h-4 w-4" />
-                                <span>{item.label}</span>
-                            </ContextMenuItem>
-                        ))}
-
-                        {isCustomNodeEditor && (
-                            <>
-                                <ContextMenuSeparator />
-                                {workflowIOItems.map((item) => (
-                                    <ContextMenuItem
-                                        key={item.type}
-                                        onClick={() =>
-                                            handleContextMenuAddNode(
-                                                item.type as NodeType,
-                                            )
-                                        }
-                                    >
-                                        <item.icon className="mr-2 h-4 w-4" />
-                                        <span>{item.label}</span>
-                                    </ContextMenuItem>
-                                ))}
-                            </>
-                        )}
-
-                        {!isCustomNodeEditor && customNodes.length > 0 && (
-                            <>
-                                <ContextMenuSeparator />
-                                <ContextMenuSub>
-                                    <ContextMenuSubTrigger>
-                                        <Box className="mr-2 h-4 w-4" />
-                                        <span>Custom Nodes</span>
-                                    </ContextMenuSubTrigger>
-                                    <ContextMenuSubContent className="w-48">
-                                        {customNodes.map((node) => (
-                                            <ContextMenuItem
-                                                key={node.id}
-                                                onClick={() =>
-                                                    handleContextMenuAddCustomNode(
-                                                        node,
-                                                    )
-                                                }
-                                            >
-                                                <Box className="mr-2 h-4 w-4" />
-                                                <span>{node.name}</span>
-                                            </ContextMenuItem>
-                                        ))}
-                                    </ContextMenuSubContent>
-                                </ContextMenuSub>
-                            </>
-                        )}
-                    </ContextMenuContent>
-                </ContextMenu>
+                                dropdownPosition={dropdownPosition}
+                                compatibleNodes={compatibleNodes}
+                                onOpenChange={setDropdownOpen}
+                                onClearConnectionParams={
+                                    clearConnectionParams
+                                }
+                                onSelectNode={handleSelectDropdownNode}
+                            />
+                        </ReactFlow>
+                    </TooltipProvider>
+                </FlowContextMenu>
             </div>
         </div>
     );

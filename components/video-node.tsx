@@ -39,6 +39,7 @@ import { BatchMediaGallery } from "@/components/batch-media-gallery";
 import { useNodeResize } from "@/hooks/use-node-resize";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { useSyncedState } from "@/hooks/use-synced-state";
+import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 
 export const VideoNode = memo(
     ({ data, selected, id }: NodeProps<Node<VideoData>>) => {
@@ -457,14 +458,7 @@ export const VideoNode = memo(
                     </TooltipProvider>
                 </div>
 
-                {/* Resize handle */}
-                <div
-                    className="nodrag absolute right-0 bottom-0 h-4 w-4 cursor-se-resize"
-                    onMouseDown={handleResizeStart}
-                    style={{ touchAction: "none" }}
-                >
-                    <div className="border-muted-foreground/30 absolute right-1 bottom-1 h-3 w-3 rounded-br border-r-2 border-b-2" />
-                </div>
+                <NodeResizeHandle onResizeStart={handleResizeStart} />
 
                 <Handle
                     type="source"
