@@ -3,6 +3,8 @@
 import type React from "react";
 
 import { memo, useState, useEffect, useRef, useCallback } from "react";
+import { useNodeResize } from "@/hooks/use-node-resize";
+import { useSyncedState } from "@/hooks/use-synced-state";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ListData } from "@/lib/types";
 import {
@@ -29,19 +31,21 @@ import { MediaViewer } from "@/components/media-viewer";
 export const ListNode = memo(
     ({ data, selected, id }: NodeProps<Node<ListData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
-        const [localItems, setLocalItems] = useState<string[]>(data.items);
-        const [prevDataItems, setPrevDataItems] = useState<string[]>(
+        const [localItems, setLocalItems] = useSyncedState<string[]>(
             data.items,
         );
-        const [dimensions, setDimensions] = useState({
-            width: data.width || 320,
-            height: data.height || 300,
-        });
-        const [prevDataWidth, setPrevDataWidth] = useState(data.width);
-        const [prevDataHeight, setPrevDataHeight] = useState(data.height);
-        const [isResizing, setIsResizing] = useState(false);
+        const { dimensions, handleResizeStart } = useNodeResize(
+            id,
+            data.width,
+            data.height,
+            {
+                defaultWidth: 320,
+                defaultHeight: 300,
+                minWidth: 220,
+                minHeight: 200,
+            },
+        );
         const nodeRef = useRef<HTMLDivElement>(null);
-        const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
         const [signedUrls, setSignedUrls] = useState<Record<string, string>>(
             {},
@@ -51,20 +55,6 @@ export const ListNode = memo(
         const [mediaIndex, setMediaIndex] = useState(0);
         const fileInputRef = useRef<HTMLInputElement>(null);
         const uploadIndexRef = useRef<number | null>(null);
-
-        if (data.items !== prevDataItems) {
-            setPrevDataItems(data.items);
-            setLocalItems(data.items);
-        }
-
-        if (data.width !== prevDataWidth || data.height !== prevDataHeight) {
-            setPrevDataWidth(data.width);
-            setPrevDataHeight(data.height);
-            setDimensions({
-                width: data.width || 320,
-                height: data.height || 300,
-            });
-        }
 
         useEffect(() => {
             if (data.itemType !== "image") return;
@@ -208,58 +198,6 @@ export const ListNode = memo(
                 uploadIndexRef.current = null;
             }
         };
-
-        const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsResizing(true);
-            resizeStartRef.current = {
-                x: e.clientX,
-                y: e.clientY,
-                width: dimensions.width,
-                height: dimensions.height,
-            };
-        };
-
-        useEffect(() => {
-            if (!isResizing) return;
-
-            const handleMouseMove = (e: MouseEvent) => {
-                const deltaX = e.clientX - resizeStartRef.current.x;
-                const deltaY = e.clientY - resizeStartRef.current.y;
-                const newWidth = Math.max(
-                    220,
-                    resizeStartRef.current.width + deltaX,
-                );
-                const newHeight = Math.max(
-                    200,
-                    resizeStartRef.current.height + deltaY,
-                );
-                setDimensions({ width: newWidth, height: newHeight });
-            };
-
-            const handleMouseUp = () => {
-                setIsResizing(false);
-                updateNodeData(id, {
-                    width: dimensions.width,
-                    height: dimensions.height,
-                });
-            };
-
-            document.addEventListener("mousemove", handleMouseMove);
-            document.addEventListener("mouseup", handleMouseUp);
-
-            return () => {
-                document.removeEventListener("mousemove", handleMouseMove);
-                document.removeEventListener("mouseup", handleMouseUp);
-            };
-        }, [
-            isResizing,
-            id,
-            updateNodeData,
-            dimensions.width,
-            dimensions.height,
-        ]);
 
         return (
             <div

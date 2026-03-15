@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useRef, useEffect, useState, useCallback } from "react";
+import { memo, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ImageData } from "@/lib/types";
@@ -39,7 +39,9 @@ import {
 
 import { MediaViewer } from "@/components/media-viewer";
 import { BatchMediaGallery } from "@/components/batch-media-gallery";
-import logger from "@/app/logger";
+import { useNodeResize } from "@/hooks/use-node-resize";
+import { useSignedUrl } from "@/hooks/use-signed-url";
+import { useSyncedState } from "@/hooks/use-synced-state";
 
 const IMAGE_MODEL_CONFIGS = {
     [MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE]: {
@@ -102,75 +104,27 @@ export const ImageNode = memo(
         const selectNode = useFlowStore((state) => state.selectNode);
         const { executeNode, runFromNode } = useFlowExecution();
         const nodeRef = useRef<HTMLDivElement>(null);
-        const [localPrompt, setLocalPrompt] = useState(data.prompt);
-        const [prevDataPrompt, setPrevDataPrompt] = useState(data.prompt);
+        const [localPrompt, setLocalPrompt] = useSyncedState(data.prompt);
 
         const connectedNodes = useConnectedSourceNodes(id);
         const [isImageOpen, setIsImageOpen] = useState(false);
         const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
-        const [dimensions, setDimensions] = useState({
-            width: data.width || 400,
-            height: data.height || 600,
-        });
-        const [prevDataWidth, setPrevDataWidth] = useState(data.width);
-        const [prevDataHeight, setPrevDataHeight] = useState(data.height);
-        const [isResizing, setIsResizing] = useState(false);
-        const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
-        const [asyncSignedUrl, setAsyncSignedUrl] = useState<
-            string | undefined
-        >(undefined);
-
-        if (data.prompt !== prevDataPrompt) {
-            setPrevDataPrompt(data.prompt);
-            setLocalPrompt(data.prompt);
-        }
-
-        if (data.width !== prevDataWidth || data.height !== prevDataHeight) {
-            setPrevDataWidth(data.width);
-            setPrevDataHeight(data.height);
-            setDimensions({
-                width: data.width || 400,
-                height: data.height || 600,
-            });
-        }
+        const { dimensions, handleResizeStart } = useNodeResize(
+            id,
+            data.width,
+            data.height,
+            {
+                defaultWidth: 400,
+                defaultHeight: 600,
+                minWidth: 220,
+                minHeight: 300,
+            },
+        );
 
         const imageSource =
             data.images && data.images.length > 0 ? data.images[0] : undefined;
-        const [prevImageSource, setPrevImageSource] = useState(imageSource);
-
-        if (imageSource !== prevImageSource) {
-            setPrevImageSource(imageSource);
-            if (!imageSource?.startsWith("gs://")) {
-                setAsyncSignedUrl(undefined);
-            }
-        }
-
-        const displayUrl =
-            (imageSource?.startsWith("gs://") ? asyncSignedUrl : imageSource) ||
-            "/placeholder.svg";
-
-        useEffect(() => {
-            if (imageSource && imageSource.startsWith("gs://")) {
-                fetch(
-                    `/api/signed-url?gcsUri=${encodeURIComponent(imageSource)}`,
-                )
-                    .then((res) => res.json())
-                    .then((result) => {
-                        if (result.signedUrl) {
-                            setAsyncSignedUrl(result.signedUrl);
-                        } else {
-                            logger.error(
-                                `Failed to get signed URL: ${result.error}`,
-                            );
-                            setAsyncSignedUrl(undefined);
-                        }
-                    })
-                    .catch((error) => {
-                        logger.error("Error fetching signed URL:", error);
-                        setAsyncSignedUrl(undefined);
-                    });
-            }
-        }, [imageSource]);
+        const { displayUrl: rawDisplayUrl } = useSignedUrl(imageSource);
+        const displayUrl = rawDisplayUrl || "/placeholder.svg";
 
         const handleExecute = (e: React.MouseEvent) => {
             e.stopPropagation();
@@ -226,58 +180,6 @@ export const ImageNode = memo(
                 data.model as keyof typeof IMAGE_MODEL_CONFIGS
             ] ||
             IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW];
-
-        const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsResizing(true);
-            resizeStartRef.current = {
-                x: e.clientX,
-                y: e.clientY,
-                width: dimensions.width,
-                height: dimensions.height,
-            };
-        };
-
-        useEffect(() => {
-            if (!isResizing) return;
-
-            const handleMouseMove = (e: MouseEvent) => {
-                const deltaX = e.clientX - resizeStartRef.current.x;
-                const deltaY = e.clientY - resizeStartRef.current.y;
-                const newWidth = Math.max(
-                    220,
-                    resizeStartRef.current.width + deltaX,
-                );
-                const newHeight = Math.max(
-                    300,
-                    resizeStartRef.current.height + deltaY,
-                );
-                setDimensions({ width: newWidth, height: newHeight });
-            };
-
-            const handleMouseUp = () => {
-                setIsResizing(false);
-                updateNodeData(id, {
-                    width: dimensions.width,
-                    height: dimensions.height,
-                });
-            };
-
-            document.addEventListener("mousemove", handleMouseMove);
-            document.addEventListener("mouseup", handleMouseUp);
-
-            return () => {
-                document.removeEventListener("mousemove", handleMouseMove);
-                document.removeEventListener("mouseup", handleMouseUp);
-            };
-        }, [
-            isResizing,
-            id,
-            updateNodeData,
-            dimensions.width,
-            dimensions.height,
-        ]);
 
         return (
             <div
