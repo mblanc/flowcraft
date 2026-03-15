@@ -364,7 +364,7 @@ export function FlowCanvas() {
                             defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
                             minZoom={0.1}
                             maxZoom={2}
-                            onlyRenderVisibleElements={true}
+                            onlyRenderVisibleElements={false}
                             className="react-flow"
                         >
                             {flowBackground}
