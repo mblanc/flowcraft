@@ -47,6 +47,7 @@ import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
 import { BatchTextOutput } from "@/components/batch-text-output";
 import { useNodeResize } from "@/hooks/use-node-resize";
 import { useSyncedState } from "@/hooks/use-synced-state";
+import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 
 const DEFAULT_WIDTH = 400;
 const DEFAULT_HEIGHT = 300;
@@ -515,14 +516,7 @@ export const LLMNode = memo(
                     className="!bg-primary"
                 />
 
-                {/* Resize handle */}
-                <div
-                    className="nodrag absolute right-0 bottom-0 h-4 w-4 cursor-se-resize"
-                    onMouseDown={handleResizeStart}
-                    style={{ touchAction: "none" }}
-                >
-                    <div className="border-muted-foreground/30 absolute right-1 bottom-1 h-3 w-3 rounded-br border-r-2 border-b-2" />
-                </div>
+                <NodeResizeHandle onResizeStart={handleResizeStart} />
             </div>
         );
     },

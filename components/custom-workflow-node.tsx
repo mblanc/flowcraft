@@ -12,6 +12,7 @@ import Image from "next/image";
 import logger from "@/app/logger";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { shallowEqual } from "@/lib/utils";
+import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 
 function SubWorkflowOutputPreview({
     type,
@@ -426,14 +427,7 @@ export const CustomWorkflowNode = memo(
                         : "Execute Workflow"}
                 </button>
 
-                {/* Resize handle */}
-                <div
-                    className="nodrag absolute right-0 bottom-0 h-4 w-4 cursor-se-resize"
-                    onMouseDown={handleResizeStart}
-                    style={{ touchAction: "none" }}
-                >
-                    <div className="border-muted-foreground/30 absolute right-1 bottom-1 h-3 w-3 rounded-br border-r-2 border-b-2" />
-                </div>
+                <NodeResizeHandle onResizeStart={handleResizeStart} />
             </div>
         );
     },

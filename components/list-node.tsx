@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import logger from "@/app/logger";
 import { MediaViewer } from "@/components/media-viewer";
+import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 
 export const ListNode = memo(
     ({ data, selected, id }: NodeProps<Node<ListData>>) => {
@@ -460,14 +461,7 @@ export const ListNode = memo(
                     />
                 )}
 
-                {/* Resize handle */}
-                <div
-                    className="nodrag absolute right-0 bottom-0 h-4 w-4 cursor-se-resize"
-                    onMouseDown={handleResizeStart}
-                    style={{ touchAction: "none" }}
-                >
-                    <div className="border-muted-foreground/30 absolute right-1 bottom-1 h-3 w-3 rounded-br border-r-2 border-b-2" />
-                </div>
+                <NodeResizeHandle onResizeStart={handleResizeStart} />
 
                 <Handle
                     type="source"
