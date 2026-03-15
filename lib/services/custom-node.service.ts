@@ -6,6 +6,8 @@ import {
 import {
     CustomNodeCreateRequest,
     CustomNodeUpdateRequest,
+    PersistedNode,
+    PersistedEdge,
 } from "@/lib/schemas";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
@@ -41,8 +43,8 @@ export class CustomNodeService {
             id: doc.id,
             userId: data?.userId as string,
             name: data?.name as string,
-            nodes: data?.nodes as unknown[],
-            edges: data?.edges as unknown[],
+            nodes: (data?.nodes ?? []) as PersistedNode[],
+            edges: (data?.edges ?? []) as PersistedEdge[],
             thumbnail: data?.thumbnail as string | undefined,
             inputs: data?.inputs as CustomNodePort[],
             outputs: data?.outputs as CustomNodePort[],

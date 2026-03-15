@@ -1,5 +1,6 @@
 import { Firestore } from "@google-cloud/firestore";
 import { config } from "./config";
+import type { PersistedNode, PersistedEdge } from "./schemas";
 
 // Initialize Firestore client
 let firestore: Firestore | null = null;
@@ -22,11 +23,13 @@ export interface FlowDocument {
     id: string;
     userId: string;
     name: string;
-    nodes: unknown[];
-    edges: unknown[];
+    nodes: PersistedNode[];
+    edges: PersistedEdge[];
     thumbnail?: string;
-    createdAt: Date;
-    updatedAt: Date;
+    /** ISO 8601 string — Firestore Timestamps are serialized to strings by transformDoc */
+    createdAt: string;
+    /** ISO 8601 string — Firestore Timestamps are serialized to strings by transformDoc */
+    updatedAt: string;
     visibility: "private" | "public" | "restricted";
     sharedWith?: { email: string; role: "view" | "edit" }[];
     sharedWithEmails?: string[];
@@ -43,8 +46,8 @@ export interface CustomNodeDocument {
     id: string;
     userId: string;
     name: string;
-    nodes: unknown[];
-    edges: unknown[];
+    nodes: PersistedNode[];
+    edges: PersistedEdge[];
     thumbnail?: string;
     inputs: CustomNodePort[];
     outputs: CustomNodePort[];

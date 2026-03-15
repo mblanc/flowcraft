@@ -138,7 +138,9 @@ export const WorkflowInputDataSchema = BaseNodeDataSchema.extend({
     portName: z.string(),
     portType: z.enum(["text", "image", "video"]),
     portRequired: z.boolean().default(true),
-    portDefaultValue: z.any().optional(),
+    portDefaultValue: z
+        .union([z.string(), z.number(), z.boolean(), z.null()])
+        .optional(),
 });
 
 export const WorkflowOutputDataSchema = BaseNodeDataSchema.extend({
@@ -162,7 +164,7 @@ export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({
     outputs: z.record(z.string(), z.string()).optional(),
     width: z.number().optional(),
     height: z.number().optional(),
-    results: z.record(z.string(), z.record(z.string(), z.any())).optional(),
+    results: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
 });
 
 export const NodeDataSchema = z.discriminatedUnion("type", [
@@ -396,6 +398,9 @@ export type FlowCreateRequest = z.infer<typeof FlowCreateSchema>;
 export type FlowUpdateRequest = z.infer<typeof FlowUpdateSchema>;
 export type CustomNodeCreateRequest = z.infer<typeof CustomNodeCreateSchema>;
 export type CustomNodeUpdateRequest = z.infer<typeof CustomNodeUpdateSchema>;
+
+export type PersistedNode = z.infer<typeof NodeSchema>;
+export type PersistedEdge = z.infer<typeof EdgeSchema>;
 
 export type LLMData = z.infer<typeof LLMDataSchema>;
 export type TextData = z.infer<typeof TextDataSchema>;

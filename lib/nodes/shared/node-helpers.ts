@@ -1,11 +1,5 @@
 import { Edge } from "@xyflow/react";
-import {
-    NodeData,
-    NodeType,
-    NamedNodeInput,
-    WorkflowInputData,
-    WorkflowOutputData,
-} from "../../types";
+import { NodeData, NodeType, NamedNodeInput } from "../../types";
 
 // --- Collection detection ---
 
@@ -50,11 +44,7 @@ type ValueStrategy = (
 const VALUE_STRATEGIES: Partial<Record<NodeType, ValueStrategy>> = {
     text: (data) => data.text,
     llm: (data, isBatch) => {
-        if (
-            isBatch &&
-            Array.isArray(data.outputs) &&
-            (data.outputs as unknown[]).length > 1
-        ) {
+        if (isBatch && Array.isArray(data.outputs) && data.outputs.length > 1) {
             return data.outputs;
         }
         return data.output;
@@ -64,28 +54,20 @@ const VALUE_STRATEGIES: Partial<Record<NodeType, ValueStrategy>> = {
         if (
             isBatch &&
             Array.isArray(data.videoUrls) &&
-            (data.videoUrls as unknown[]).length > 1
+            data.videoUrls.length > 1
         ) {
             return data.videoUrls;
         }
         return data.videoUrl;
     },
     upscale: (data, isBatch) => {
-        if (
-            isBatch &&
-            Array.isArray(data.images) &&
-            (data.images as unknown[]).length > 1
-        ) {
+        if (isBatch && Array.isArray(data.images) && data.images.length > 1) {
             return data.images;
         }
         return data.image;
     },
     resize: (data, isBatch) => {
-        if (
-            isBatch &&
-            Array.isArray(data.outputs) &&
-            (data.outputs as unknown[]).length > 1
-        ) {
+        if (isBatch && Array.isArray(data.outputs) && data.outputs.length > 1) {
             return data.outputs;
         }
         return data.output;
@@ -117,23 +99,23 @@ export const getSourceValue = (data: NodeData | null): unknown => {
     }
 
     if (unwrappedData.type === "workflow-input") {
-        const inputData = unwrappedData as unknown as WorkflowInputData;
+        const portType = unwrappedData.portType;
         let value: unknown = null;
 
-        if (inputData.portType === "text") {
+        if (portType === "text") {
             value = unwrappedData.text || unwrappedData.output;
-        } else if (inputData.portType === "image") {
+        } else if (portType === "image") {
             value =
                 unwrappedData.images ||
                 unwrappedData.image ||
                 unwrappedData.gcsUri ||
                 unwrappedData.fileUrl;
-        } else if (inputData.portType === "video") {
+        } else if (portType === "video") {
             value =
                 unwrappedData.videoUrl ||
                 unwrappedData.gcsUri ||
                 unwrappedData.fileUrl;
-        } else if (inputData.portType === "any") {
+        } else if (portType === "any") {
             value =
                 unwrappedData.image ||
                 unwrappedData.videoUrl ||
@@ -148,7 +130,7 @@ export const getSourceValue = (data: NodeData | null): unknown => {
 
         return value !== undefined && value !== null
             ? value
-            : inputData.portDefaultValue;
+            : unwrappedData.portDefaultValue;
     }
 
     const isBatch = !!(
@@ -288,6 +270,3 @@ export function createNamedNodesTracker() {
 
     return { getOrCreate, values };
 }
-
-// Suppress unused import warning — WorkflowOutputData is referenced via type casting
-void (null as unknown as WorkflowOutputData);
