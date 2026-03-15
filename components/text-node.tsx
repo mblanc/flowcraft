@@ -3,6 +3,8 @@
 import type React from "react";
 
 import { memo, useState, useEffect, useRef } from "react";
+import { useNodeResize } from "@/hooks/use-node-resize";
+import { useSyncedState } from "@/hooks/use-synced-state";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { TextData } from "@/lib/types";
 import { FileText, Maximize2 } from "lucide-react";
@@ -26,33 +28,21 @@ import {
 export const TextNode = memo(
     ({ data, selected, id }: NodeProps<Node<TextData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
-        const [localText, setLocalText] = useState(data.text);
-        const [prevDataText, setPrevDataText] = useState(data.text);
-        const [dimensions, setDimensions] = useState({
-            width: data.width || 300,
-            height: data.height || 150,
-        });
-        const [prevDataWidth, setPrevDataWidth] = useState(data.width);
-        const [prevDataHeight, setPrevDataHeight] = useState(data.height);
-        const [isResizing, setIsResizing] = useState(false);
+        const [localText, setLocalText] = useSyncedState(data.text);
+        const { dimensions, handleResizeStart } = useNodeResize(
+            id,
+            data.width,
+            data.height,
+            {
+                defaultWidth: 300,
+                defaultHeight: 150,
+                minWidth: 220,
+                minHeight: 100,
+            },
+        );
         const [isModalOpen, setIsModalOpen] = useState(false);
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const nodeRef = useRef<HTMLDivElement>(null);
-        const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
-
-        if (data.text !== prevDataText) {
-            setPrevDataText(data.text);
-            setLocalText(data.text);
-        }
-
-        if (data.width !== prevDataWidth || data.height !== prevDataHeight) {
-            setPrevDataWidth(data.width);
-            setPrevDataHeight(data.height);
-            setDimensions({
-                width: data.width || 300,
-                height: data.height || 150,
-            });
-        }
 
         // Prevent canvas zoom when scrolling inside textarea (works for mouse wheel and touchpad)
         useEffect(() => {
@@ -151,58 +141,6 @@ export const TextNode = memo(
             // Stop propagation to prevent canvas zoom when scrolling text
             e.stopPropagation();
         };
-
-        const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsResizing(true);
-            resizeStartRef.current = {
-                x: e.clientX,
-                y: e.clientY,
-                width: dimensions.width,
-                height: dimensions.height,
-            };
-        };
-
-        useEffect(() => {
-            if (!isResizing) return;
-
-            const handleMouseMove = (e: MouseEvent) => {
-                const deltaX = e.clientX - resizeStartRef.current.x;
-                const deltaY = e.clientY - resizeStartRef.current.y;
-                const newWidth = Math.max(
-                    220,
-                    resizeStartRef.current.width + deltaX,
-                );
-                const newHeight = Math.max(
-                    100,
-                    resizeStartRef.current.height + deltaY,
-                );
-                setDimensions({ width: newWidth, height: newHeight });
-            };
-
-            const handleMouseUp = () => {
-                setIsResizing(false);
-                updateNodeData(id, {
-                    width: dimensions.width,
-                    height: dimensions.height,
-                });
-            };
-
-            document.addEventListener("mousemove", handleMouseMove);
-            document.addEventListener("mouseup", handleMouseUp);
-
-            return () => {
-                document.removeEventListener("mousemove", handleMouseMove);
-                document.removeEventListener("mouseup", handleMouseUp);
-            };
-        }, [
-            isResizing,
-            id,
-            updateNodeData,
-            dimensions.width,
-            dimensions.height,
-        ]);
 
         return (
             <div

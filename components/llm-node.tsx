@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useRef, useEffect, useState } from "react";
+import { memo, useState } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { LLMData } from "@/lib/types";
 import {
@@ -45,8 +45,11 @@ import {
 import { MentionEditor } from "@/components/mention-editor";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
 import { BatchTextOutput } from "@/components/batch-text-output";
+import { useNodeResize } from "@/hooks/use-node-resize";
+import { useSyncedState } from "@/hooks/use-synced-state";
 
 const DEFAULT_WIDTH = 400;
+const DEFAULT_HEIGHT = 300;
 const MIN_WIDTH = 340;
 const MIN_HEIGHT = 150;
 
@@ -58,14 +61,10 @@ export const LLMNode = memo(
 
         const connectedNodes = useConnectedSourceNodes(id);
 
-        const [localInstructions, setLocalInstructions] = useState(
-            data.instructions,
+        const [localInstructions, setLocalInstructions] = useSyncedState(
+            data.instructions || "",
         );
-        const [prevDataInstructions, setPrevDataInstructions] = useState(
-            data.instructions,
-        );
-        const [localOutput, setLocalOutput] = useState(data.output || "");
-        const [prevDataOutput, setPrevDataOutput] = useState(data.output || "");
+        const [localOutput, setLocalOutput] = useSyncedState(data.output || "");
         const [viewMode, setViewMode] = useState<"instructions" | "output">(
             "instructions",
         );
@@ -73,35 +72,18 @@ export const LLMNode = memo(
         const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const [batchOutputIndex, setBatchOutputIndex] = useState(0);
 
-        // Resize state
-        const [dimensions, setDimensions] = useState({
-            width: data.width || DEFAULT_WIDTH,
-            height: data.height || MIN_HEIGHT,
-        });
-        const [isResizing, setIsResizing] = useState(false);
-        const [prevDataWidth, setPrevDataWidth] = useState(data.width);
-        const [prevDataHeight, setPrevDataHeight] = useState(data.height);
-        const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
-
-        // Keep local UI state aligned with external node data.
-        if ((data.instructions || "") !== prevDataInstructions) {
-            setPrevDataInstructions(data.instructions || "");
-            setLocalInstructions(data.instructions || "");
-        }
-
-        if ((data.output || "") !== prevDataOutput) {
-            setPrevDataOutput(data.output || "");
-            setLocalOutput(data.output || "");
-        }
-
-        if (data.width !== prevDataWidth || data.height !== prevDataHeight) {
-            setPrevDataWidth(data.width);
-            setPrevDataHeight(data.height);
-            setDimensions({
-                width: data.width || DEFAULT_WIDTH,
-                height: data.height || MIN_HEIGHT,
-            });
-        }
+        const { dimensions, handleResizeStart } = useNodeResize(
+            id,
+            data.width,
+            data.height,
+            {
+                defaultWidth: DEFAULT_WIDTH,
+                defaultHeight: DEFAULT_HEIGHT,
+                minWidth: MIN_WIDTH,
+                minHeight: MIN_HEIGHT,
+                useElementHeight: true,
+            },
+        );
 
         const handleInstructionsChange = (value: string) => {
             setLocalInstructions(value);
@@ -132,53 +114,6 @@ export const LLMNode = memo(
             runFromNode(id);
         };
 
-        const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsResizing(true);
-            const nodeElement = e.currentTarget.parentElement;
-            resizeStartRef.current = {
-                x: e.clientX,
-                y: e.clientY,
-                width: dimensions.width,
-                height: nodeElement?.offsetHeight || MIN_HEIGHT,
-            };
-        };
-
-        useEffect(() => {
-            if (!isResizing) return;
-
-            const handleMouseMove = (e: MouseEvent) => {
-                const deltaX = e.clientX - resizeStartRef.current.x;
-                const deltaY = e.clientY - resizeStartRef.current.y;
-                setDimensions({
-                    width: Math.max(
-                        MIN_WIDTH,
-                        resizeStartRef.current.width + deltaX,
-                    ),
-                    height: Math.max(
-                        MIN_HEIGHT,
-                        resizeStartRef.current.height + deltaY,
-                    ),
-                });
-            };
-
-            const handleMouseUp = () => {
-                setIsResizing(false);
-                updateNodeData(id, {
-                    width: dimensions.width,
-                    height: dimensions.height,
-                });
-            };
-
-            document.addEventListener("mousemove", handleMouseMove);
-            document.addEventListener("mouseup", handleMouseUp);
-            return () => {
-                document.removeEventListener("mousemove", handleMouseMove);
-                document.removeEventListener("mouseup", handleMouseUp);
-            };
-        }, [isResizing, id, updateNodeData, dimensions]);
-
         return (
             <div
                 className={cn(
@@ -188,8 +123,8 @@ export const LLMNode = memo(
                         : "border-border",
                 )}
                 style={{
-                    width: data.width || DEFAULT_WIDTH,
-                    height: data.height || MIN_HEIGHT,
+                    width: dimensions.width,
+                    height: dimensions.height,
                 }}
             >
                 {data.executing && (
