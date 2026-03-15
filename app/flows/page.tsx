@@ -19,6 +19,7 @@ import { UserProfile } from "@/components/user-profile";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Image from "next/image";
 import logger from "@/app/logger";
+import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-url-cache";
 
 interface Flow {
     id: string;
@@ -72,20 +73,15 @@ export default function FlowsList() {
 
         if (thumbnail.startsWith("gs://")) {
             try {
-                const urlResponse = await fetch(
-                    `/api/signed-url?gcsUri=${encodeURIComponent(thumbnail)}`,
-                );
-                const urlData = await urlResponse.json();
-                if (urlData.signedUrl) {
-                    return [id, urlData.signedUrl];
-                }
+                const signedUrl = await fetchAndCacheSignedUrl(thumbnail);
+                if (signedUrl) return [id, signedUrl];
             } catch (error) {
                 logger.error("Error fetching signed URL for thumbnail:", error);
             }
-        } else {
-            return [id, thumbnail];
+            return null;
         }
-        return null;
+
+        return [id, thumbnail];
     };
 
     const fetchData = useCallback(async () => {

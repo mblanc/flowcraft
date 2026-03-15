@@ -5,6 +5,10 @@ import Image from "next/image";
 import { MediaViewer } from "@/components/media-viewer";
 import { cn } from "@/lib/utils";
 import logger from "@/app/logger";
+import {
+    getCachedSignedUrl,
+    fetchAndCacheSignedUrl,
+} from "@/lib/cache/signed-url-cache";
 
 interface BatchMediaGalleryProps {
     items: string[];
@@ -17,8 +21,20 @@ export const BatchMediaGallery = memo(
     ({ items, type, maxHeight, nodeWidth }: BatchMediaGalleryProps) => {
         const [selectedIndex, setSelectedIndex] = useState(0);
         const [isViewerOpen, setIsViewerOpen] = useState(false);
+
+        // Initialise synchronously from the module-level cache so remounting
+        // nodes never show placeholder images or trigger redundant fetches.
         const [signedUrls, setSignedUrls] = useState<Map<string, string>>(
-            new Map(),
+            () => {
+                const map = new Map<string, string>();
+                items.forEach((url) => {
+                    if (url.startsWith("gs://")) {
+                        const cached = getCachedSignedUrl(url);
+                        if (cached) map.set(url, cached);
+                    }
+                });
+                return map;
+            },
         );
 
         useEffect(() => {
@@ -28,33 +44,26 @@ export const BatchMediaGallery = memo(
 
             if (urlsToFetch.length === 0) return;
 
-            const fetchSignedUrls = async () => {
-                try {
-                    const results = await Promise.all(
-                        urlsToFetch.map(async (url) => {
-                            const res = await fetch(
-                                `/api/signed-url?gcsUri=${encodeURIComponent(url)}`,
-                            );
-                            const data = await res.json();
-                            return { url, signedUrl: data.signedUrl };
-                        }),
-                    );
-
+            Promise.all(
+                urlsToFetch.map((url) =>
+                    fetchAndCacheSignedUrl(url).then((signedUrl) => ({
+                        url,
+                        signedUrl,
+                    })),
+                ),
+            )
+                .then((results) => {
                     setSignedUrls((prev) => {
                         const next = new Map(prev);
-                        results.forEach((res) => {
-                            if (res.signedUrl) {
-                                next.set(res.url, res.signedUrl);
-                            }
+                        results.forEach(({ url, signedUrl }) => {
+                            if (signedUrl) next.set(url, signedUrl);
                         });
                         return next;
                     });
-                } catch (err) {
+                })
+                .catch((err) => {
                     logger.error("Error fetching signed URLs:", err);
-                }
-            };
-
-            fetchSignedUrls();
+                });
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [items]);
 
