@@ -290,15 +290,36 @@ export const LLMNode = memo(
                                                     />
                                                 ) : (
                                                     <div className="flex min-h-0 flex-1 flex-col">
-                                                        <Textarea
-                                                            value={localOutput}
-                                                            onChange={
-                                                                handleOutputChange
-                                                            }
-                                                            onBlur={handleBlur}
-                                                            placeholder="No output yet."
-                                                            className="nowheel nopan h-full w-full flex-1 resize-none border-none bg-transparent p-0 font-mono text-base focus-visible:ring-0 focus-visible:ring-offset-0"
-                                                        />
+                                                        {data.outputs &&
+                                                        data.outputs.length >
+                                                            1 ? (
+                                                            <BatchTextOutput
+                                                                outputs={
+                                                                    data.outputs
+                                                                }
+                                                                currentIndex={
+                                                                    batchOutputIndex
+                                                                }
+                                                                onIndexChange={
+                                                                    setBatchOutputIndex
+                                                                }
+                                                                className="h-full w-full flex-1"
+                                                            />
+                                                        ) : (
+                                                            <Textarea
+                                                                value={
+                                                                    localOutput
+                                                                }
+                                                                onChange={
+                                                                    handleOutputChange
+                                                                }
+                                                                onBlur={
+                                                                    handleBlur
+                                                                }
+                                                                placeholder="No output yet."
+                                                                className="nowheel nopan h-full w-full flex-1 resize-none border-none bg-transparent p-0 font-mono text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+                                                            />
+                                                        )}
                                                         {data.error && (
                                                             <div className="bg-destructive/10 text-destructive mt-2 rounded-md p-2 text-sm">
                                                                 Error:{" "}
