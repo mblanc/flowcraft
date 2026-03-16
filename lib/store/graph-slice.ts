@@ -2,17 +2,13 @@
 
 import {
     type Node,
-    type Edge,
-    type Connection,
     addEdge,
     applyNodeChanges,
     applyEdgeChanges,
-    type NodeChange,
-    type EdgeChange,
 } from "@xyflow/react";
 import type { StateCreator } from "zustand";
 import { createNode } from "@/lib/node-factory";
-import type { NodeData, NodeType } from "@/lib/types";
+import type { NodeData } from "@/lib/types";
 import { migrateNodes } from "@/lib/migration";
 import type { FlowState, GraphSlice } from "./types";
 

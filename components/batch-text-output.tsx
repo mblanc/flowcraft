@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface BatchTextOutputProps {
     outputs: string[];
@@ -33,7 +34,7 @@ export const BatchTextOutput = memo(
         };
 
         return (
-            <div className={className}>
+            <div className={cn("flex flex-col", className)}>
                 <div className="flex items-center justify-between px-1 py-1">
                     <button
                         onClick={handlePrev}
@@ -54,8 +55,7 @@ export const BatchTextOutput = memo(
                 <Textarea
                     value={outputs[currentIndex] || ""}
                     readOnly
-                    className="nowheel nopan nodrag w-full resize-none border-none bg-transparent px-2 py-1 font-mono text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
-                    style={{ height: maxHeight }}
+                    className="nowheel nopan nodrag w-full flex-1 resize-none border-none bg-transparent px-2 py-1 font-mono text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
             </div>
         );
