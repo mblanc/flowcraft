@@ -52,6 +52,7 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
     sharedWith: [],
     isTemplate: false,
     ownerId: null,
+    lastModified: 0,
 
     setNodes: (nodes) => {
         const migrated = migrateNodes(nodes);
@@ -60,10 +61,11 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             nodes: migrated,
             nodesById,
             selectedNode: deriveSelectedNode(nodesById, get().selectedNodeId),
+            lastModified: Date.now(),
         });
     },
 
-    setEdges: (edges) => set({ edges }),
+    setEdges: (edges) => set({ edges, lastModified: Date.now() }),
 
     onNodesChange: (changes) => {
         const updatedNodes = applyNodeChanges(
@@ -75,21 +77,28 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             nodes: updatedNodes,
             nodesById,
             selectedNode: deriveSelectedNode(nodesById, get().selectedNodeId),
+            lastModified: Date.now(),
         });
     },
 
     onEdgesChange: (changes) => {
-        set({ edges: applyEdgeChanges(changes, get().edges) });
+        set({
+            edges: applyEdgeChanges(changes, get().edges),
+            lastModified: Date.now(),
+        });
     },
 
     onConnect: (connection) => {
-        set({ edges: addEdge(connection, get().edges) });
+        set({
+            edges: addEdge(connection, get().edges),
+            lastModified: Date.now(),
+        });
     },
 
     setFlowId: (flowId) => set({ flowId }),
-    setFlowName: (flowName) => set({ flowName }),
+    setFlowName: (flowName) => set({ flowName, lastModified: Date.now() }),
     setEntityType: (entityType) => set({ entityType }),
-    setSharing: (data) => set({ ...data }),
+    setSharing: (data) => set({ ...data, lastModified: Date.now() }),
 
     updateNodeData: (nodeId, data) => {
         const { nodes, nodesById, selectedNodeId } = get();
@@ -117,13 +126,14 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             nodesById: newNodesById,
             selectedNodeId: newSelectedNodeId,
             selectedNode: deriveSelectedNode(newNodesById, newSelectedNodeId),
+            lastModified: Date.now(),
         });
     },
 
     addNode: (node) => {
         const updatedNodes = [...get().nodes, node];
         const nodesById = { ...get().nodesById, [node.id]: node };
-        set({ nodes: updatedNodes, nodesById });
+        set({ nodes: updatedNodes, nodesById, lastModified: Date.now() });
     },
 
     addNodeWithType: (type, position, data) => {
@@ -144,7 +154,7 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
 
         const updatedNodes = [...get().nodes, node];
         const nodesById = { ...get().nodesById, [node.id]: node };
-        set({ nodes: updatedNodes, nodesById });
+        set({ nodes: updatedNodes, nodesById, lastModified: Date.now() });
     },
 
     selectNode: (nodeId) => {
@@ -159,16 +169,40 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             nodesById,
             selectedNodeId: nodeId,
             selectedNode: deriveSelectedNode(nodesById, nodeId),
+            lastModified: Date.now(),
         });
     },
 
     removeEdges: (edgeIds) => {
         set({
             edges: get().edges.filter((edge) => !edgeIds.includes(edge.id)),
+            lastModified: Date.now(),
         });
     },
 
-    loadFlow: (id, nodes, edges, name, entityType = "flow", sharing) => {
+    loadFlow: (
+        id,
+        nodes,
+        edges,
+        name,
+        entityType = "flow",
+        sharing,
+        remoteUpdatedAt?: string,
+    ) => {
+        const { flowId, lastModified } = get();
+
+        // RECONCILIATION: If we are reloading the same flow and we have a local
+        // version that is newer than the remote version, do not overwrite.
+        if (flowId === id && remoteUpdatedAt) {
+            const remoteTimestamp = new Date(remoteUpdatedAt).getTime();
+            if (lastModified > remoteTimestamp) {
+                console.warn(
+                    `[FlowStore] Preserve local draft for flow ${id} (Local: ${new Date(lastModified).toISOString()}, Remote: ${remoteUpdatedAt})`,
+                );
+                return;
+            }
+        }
+
         const migrated = migrateNodes(nodes);
         const nodesById = buildNodesById(migrated);
         set({
@@ -184,6 +218,9 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             sharedWith: sharing?.sharedWith ?? [],
             isTemplate: sharing?.isTemplate ?? false,
             ownerId: sharing?.ownerId ?? null,
+            lastModified: remoteUpdatedAt
+                ? new Date(remoteUpdatedAt).getTime()
+                : Date.now(),
         });
     },
 });

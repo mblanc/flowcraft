@@ -9,6 +9,7 @@ import {
     Image as GeminiImage,
     GenerateContentConfig,
     Tool,
+    ThinkingLevel,
 } from "@google/genai";
 import logger from "@/app/logger";
 import { config } from "../config";
@@ -243,6 +244,9 @@ export class GeminiService {
                 aspectRatio: aspectRatio as string,
                 imageSize: resolution as string,
             },
+            thinkingConfig: {
+                thinkingLevel: ThinkingLevel.LOW,
+            },
         };
 
         if (groundingGoogleSearch || groundingImageSearch) {
@@ -286,6 +290,13 @@ export class GeminiService {
         );
 
         if (!imagePart?.inlineData) {
+            logger.error(
+                `[GeminiService] No image data in response: ${JSON.stringify(
+                    response,
+                    null,
+                    2,
+                )}`,
+            );
             throw new Error("No image data in response");
         }
 

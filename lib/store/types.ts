@@ -24,6 +24,7 @@ export type SharingData = {
  * every action that mutates them. This slice is persisted to Firestore.
  */
 export interface GraphSlice {
+    lastModified: number;
     // --- Core graph data ---
     nodes: Node<NodeData>[];
     /**
@@ -88,6 +89,7 @@ export interface GraphSlice {
             isTemplate?: boolean;
             ownerId?: string;
         },
+        remoteUpdatedAt?: string,
     ) => void;
 }
 
