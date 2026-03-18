@@ -1,14 +1,34 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { ImageData, UpscaleData, ResizeData, VideoData } from "@/lib/types";
+import type { FlowState } from "@/lib/store/use-flow-store";
+import { ImageData, UpscaleData, ResizeData, VideoData, NodeData } from "@/lib/types";
 import logger from "@/app/logger";
+import { useSession } from "next-auth/react";
 
 export function useFlowPersistence() {
     const setNodes = useFlowStore((state) => state.setNodes);
     const setEdges = useFlowStore((state) => state.setEdges);
     const setFlowName = useFlowStore((state) => state.setFlowName);
+    const flowId = useFlowStore((state: FlowState) => state.flowId);
+    const lastModified = useFlowStore((state: FlowState) => state.lastModified);
+    const ownerId = useFlowStore((state: FlowState) => state.ownerId);
+    const sharedWith = useFlowStore((state: FlowState) => state.sharedWith);
+    const isTemplate = useFlowStore((state: FlowState) => state.isTemplate);
+    const entityType = useFlowStore((state: FlowState) => state.entityType);
+
+    const { data: session } = useSession();
+    const lastSavedRef = useRef<number>(0);
+
+    const isOwner =
+        !!session?.user?.id && !!ownerId && session.user.id === ownerId;
+    const isEditor =
+        !!session?.user?.email &&
+        sharedWith?.some(
+            (s: any) => s.email === session.user?.email && s.role === "edit",
+        );
+    const isEditable = isOwner || isEditor || isTemplate;
 
     const getThumbnailFromNodes = useCallback(
         (
@@ -59,7 +79,7 @@ export function useFlowPersistence() {
         async (thumbnail?: string) => {
             const { flowId, flowName, nodes, edges, entityType } =
                 useFlowStore.getState();
-            if (!flowId) return;
+            if (!flowId || !isEditable) return;
 
             const thumbnailToUse = thumbnail || getThumbnailFromNodes(nodes);
 
@@ -68,7 +88,20 @@ export function useFlowPersistence() {
                     ? `/api/custom-nodes/${flowId}`
                     : `/api/flows/${flowId}`;
 
+            const currentModified = useFlowStore.getState().lastModified;
+            lastSavedRef.current = currentModified;
+
             try {
+                // Strip transient UI flags from node data before persisting to Firestore
+                const cleanedNodes = nodes.map((node) => {
+                    const { executing, batchProgress, batchTotal, ...cleanData } =
+                        node.data;
+                    return {
+                        ...node,
+                        data: cleanData,
+                    };
+                });
+
                 const response = await fetch(apiPath, {
                     method: "PUT",
                     headers: {
@@ -76,7 +109,7 @@ export function useFlowPersistence() {
                     },
                     body: JSON.stringify({
                         name: flowName,
-                        nodes,
+                        nodes: cleanedNodes,
                         edges,
                         ...(thumbnailToUse !== undefined && {
                             thumbnail: thumbnailToUse,
@@ -84,18 +117,16 @@ export function useFlowPersistence() {
                     }),
                 });
 
-                if (response.ok && entityType === "custom-node") {
-                    // Custom node saved successfully
+                if (response.ok) {
+                    logger.info(
+                        `${entityType === "custom-node" ? "Custom node" : "Flow"} saved successfully`,
+                    );
                 }
-
-                logger.info(
-                    `${entityType === "custom-node" ? "Custom node" : "Flow"} auto-saved`,
-                );
             } catch (error) {
                 logger.error("Error saving:", error);
             }
         },
-        [getThumbnailFromNodes],
+        [getThumbnailFromNodes, isEditable],
     );
 
     const exportFlow = useCallback(() => {
@@ -145,6 +176,20 @@ export function useFlowPersistence() {
         };
         input.click();
     }, [setNodes, setEdges, setFlowName]);
+
+    // Auto-save logic
+    useEffect(() => {
+        if (!isEditable || !flowId || !lastModified) return;
+
+        // If we haven't modified since last save, skip
+        if (lastModified <= lastSavedRef.current) return;
+
+        const timeout = setTimeout(() => {
+            void saveFlow();
+        }, 3000); // 3-second debounce
+
+        return () => clearTimeout(timeout);
+    }, [lastModified, flowId, isEditable, saveFlow]);
 
     return {
         saveFlow,
