@@ -366,7 +366,7 @@ export class GeminiService {
         let operation = await this.ai.models.generateVideos(videoRequest);
 
         let pollCount = 0;
-        const maxPolls = 60;
+        const maxPolls = 120;
         while (!operation.done && pollCount < maxPolls) {
             logger.debug(
                 `[GeminiService] Polling video generation... (${pollCount + 1}/${maxPolls})`,

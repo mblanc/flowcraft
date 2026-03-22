@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 "use client";
 
 import { create } from "zustand";
@@ -24,12 +25,16 @@ export const useFlowStore = create<import("./types").FlowState>()(
         {
             name: "flow-storage",
             // Only persist essential graph state – never transient UI flags like isRunning
-            // We also strip node-specific transient flags (executing, etc.) to prevent 
+            // We also strip node-specific transient flags (executing, etc.) to prevent
             // the UI from being stuck in a loading state after hydration.
             partialize: (state) => {
                 const cleanNode = (node: any) => {
-                    const { executing, batchProgress, batchTotal, ...cleanData } =
-                        node.data;
+                    const {
+                        executing,
+                        batchProgress,
+                        batchTotal,
+                        ...cleanData
+                    } = node.data;
                     return { ...node, data: cleanData };
                 };
 
