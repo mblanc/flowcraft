@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { WorkflowEngine } from "../lib/workflow-engine";
 import { Node, Edge } from "@xyflow/react";
@@ -391,6 +392,104 @@ describe("WorkflowEngine", () => {
                     }
                 ).value.text,
             ).toBe("hello");
+        });
+    });
+
+    describe("Batching & mergeResults", () => {
+        it("should detect batch plan and execute in batches", async () => {
+            const nodes = [
+                {
+                    id: "batch-node",
+                    data: { type: "llm", name: "LLM" },
+                },
+            ] as unknown as Node<NodeData>[];
+            const edges: Edge[] = [];
+
+            const mockExecute = vi
+                .fn()
+                .mockImplementation(async (n, inputs) => {
+                    // Return something that can be merged by mergeResults
+                    return {
+                        output: `result-${inputs.namedNodes[0].textValue}`,
+                    };
+                });
+
+            vi.mocked(getNodeDefinition).mockReturnValue({
+                gatherInputs: () => ({
+                    namedNodes: [{ nodeId: "1", textValues: ["a", "b"] }],
+                }),
+                execute: mockExecute,
+            } as any);
+
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
+            await engine.executeNode("batch-node");
+
+            const result = engine.executionResults.get("batch-node") as any;
+            expect(result.outputs).toEqual(["result-a", "result-b"]);
+            expect(result.batchTotal).toBe(2);
+            expect(mockExecute).toHaveBeenCalledTimes(2);
+        });
+
+        it("should handle batch inputs slicing for files", async () => {
+            const nodes = [
+                {
+                    id: "batch-img",
+                    data: { type: "image", name: "Image Node" },
+                },
+            ] as unknown as Node<NodeData>[];
+
+            const mockExecute = vi
+                .fn()
+                .mockResolvedValue({ images: ["out.png"] });
+            vi.mocked(getNodeDefinition).mockReturnValue({
+                gatherInputs: () => ({
+                    namedNodes: [
+                        {
+                            nodeId: "1",
+                            fileValuesList: [
+                                [{ url: "img1.png" }],
+                                [{ url: "img2.png" }],
+                            ],
+                        },
+                    ],
+                }),
+                execute: mockExecute,
+            } as any);
+
+            const engine = new WorkflowEngine(nodes, [], mockOnNodeUpdate);
+            await engine.executeNode("batch-img");
+
+            const result = engine.executionResults.get("batch-img") as any;
+            expect(result.images).toEqual(["out.png", "out.png"]); // two iterations
+            expect(mockExecute).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe("runFromNode", () => {
+        it("should only run nodes downstream of the given node", async () => {
+            const nodes = [
+                { id: "1", data: { type: "text" } },
+                { id: "2", data: { type: "text" } },
+                { id: "3", data: { type: "text" } },
+            ] as unknown as Node<NodeData>[];
+            const edges = [
+                { id: "e1", source: "1", target: "2" },
+                { id: "e2", source: "2", target: "3" },
+            ] as Edge[];
+
+            const mockExecute = vi.fn().mockResolvedValue({});
+            vi.mocked(getNodeDefinition).mockReturnValue({
+                gatherInputs: () => ({}),
+                execute: mockExecute,
+            } as any);
+
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
+            await engine.runFromNode("2");
+
+            expect(mockExecute).toHaveBeenCalledTimes(2); // node 2 and 3, but not 1
+            expect(engine.executionResults.has("2")).toBe(true);
+            expect(engine.executionResults.has("3")).toBe(true);
+            expect(engine.executionResults.has("1")).toBe(false);
         });
     });
 });

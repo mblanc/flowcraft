@@ -12,7 +12,8 @@
         "test": "vitest run",
         "test:ui": "vitest --ui",
         "test:coverage": "vitest --coverage",
-        "preflight": "npm run format && npm run check && npm run lint && npm run test"
+        "preflight": "npm run format && npm run check && npm run lint && npm run test",
+        "prepare": "husky"
     },
     "dependencies": {
         "@google-cloud/firestore": "^8.3.0",
@@ -92,7 +93,9 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-jsx-a11y": "^6.10.2",
         "eslint-plugin-prettier": "^5.5.5",
+        "husky": "^9.1.7",
         "jsdom": "^28.1.0",
+        "lint-staged": "^16.4.0",
         "postcss": "^8.5",
         "prettier": "^3.8.1",
         "prettier-plugin-tailwindcss": "^0.7.2",

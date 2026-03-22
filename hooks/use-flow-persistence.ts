@@ -1,9 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useCallback, useRef, useEffect } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
-import { ImageData, UpscaleData, ResizeData, VideoData, NodeData } from "@/lib/types";
+import {
+    ImageData,
+    UpscaleData,
+    ResizeData,
+    VideoData,
+    NodeData,
+} from "@/lib/types";
 import logger from "@/app/logger";
 import { useSession } from "next-auth/react";
 
@@ -94,8 +101,12 @@ export function useFlowPersistence() {
             try {
                 // Strip transient UI flags from node data before persisting to Firestore
                 const cleanedNodes = nodes.map((node) => {
-                    const { executing, batchProgress, batchTotal, ...cleanData } =
-                        node.data;
+                    const {
+                        executing,
+                        batchProgress,
+                        batchTotal,
+                        ...cleanData
+                    } = node.data;
                     return {
                         ...node,
                         data: cleanData,
