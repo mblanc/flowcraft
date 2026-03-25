@@ -24,6 +24,7 @@ gcloud run deploy $SERVICE \
   --image $IMAGE_URI \
   --cpu 1 \
   --memory 2G \
+  --timeout=10m \
   --region $REGION \
   --set-env-vars PROJECT_ID="svc-demo-vertex",LOCATION="global",FIRESTORE_DATABASE_ID="flowcraft-db",GCS_STORAGE_URI="gs://flowcraft-svc-demo-vertex/",AUTH_TRUST_HOST='true',AUTH_URL='https://flowcraft.mblanc.demo.altostrat.com',ADMIN_EMAILS='mblanc@google.com' \
   --update-secrets=AUTH_SECRET=FLOWCRAFT_AUTH_SECRET:1,AUTH_GOOGLE_ID=FLOWCRAFT_AUTH_GOOGLE_ID:1,AUTH_GOOGLE_SECRET=FLOWCRAFT_AUTH_GOOGLE_SECRET:1,NEXT_AUTH_URL=FLOWCRAFT_NEXT_AUTH_URL:1

@@ -376,7 +376,12 @@ export class GeminiService {
             pollCount++;
         }
 
-        if (!operation.done) throw new Error("Video generation timed out");
+        if (!operation.done) {
+            logger.error(
+                `[GeminiService] Video generation timed out: ${JSON.stringify(operation, null, 2)}`,
+            );
+            throw new Error("Video generation timed out");
+        }
 
         const videos = operation.response?.generatedVideos;
         if (!videos || videos.length === 0) {
