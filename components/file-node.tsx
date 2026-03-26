@@ -16,6 +16,7 @@ import { useNodeResize } from "@/hooks/use-node-resize";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import dynamic from "next/dynamic";
+import { toast } from "sonner";
 
 const PdfPreview = dynamic(
     () => import("./pdf-preview").then((mod) => mod.PdfPreview),
@@ -67,7 +68,7 @@ export const FileNode = memo(
                     : null;
 
             if (!fileType) {
-                alert("Please upload an image, video, or PDF file");
+                toast.error("Please upload an image, video, or PDF file");
                 return;
             }
 
@@ -95,7 +96,7 @@ export const FileNode = memo(
                 setAsyncSignedUrl(data.signedUrl);
             } catch (error) {
                 logger.error("Upload error:", error);
-                alert("Failed to upload file");
+                toast.error("Failed to upload file");
             }
         };
 

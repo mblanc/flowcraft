@@ -28,6 +28,7 @@ import {
 import logger from "@/app/logger";
 import { MediaViewer } from "@/components/media-viewer";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
+import { toast } from "sonner";
 
 export const ListNode = memo(
     ({ data, selected, id }: NodeProps<Node<ListData>>) => {
@@ -190,7 +191,7 @@ export const ListNode = memo(
                 syncItems(updatedItems);
             } catch (error) {
                 logger.error("Upload error:", error);
-                alert("Failed to upload image");
+                toast.error("Failed to upload image");
             } finally {
                 setIsUploading(null);
                 if (fileInputRef.current) {

@@ -14,16 +14,16 @@ const storageUri = config.GCS_STORAGE_URI; // Make sure this env var is set
 export async function uploadImage(
     base64: string,
     filename: string,
-): Promise<string | null> {
+): Promise<string> {
     if (!storageUri) {
         logger.error("GCS_STORAGE_URI environment variable is not set.");
-        // Depending on requirements, you might want to throw an error instead
-        // throw new Error('Server configuration error: STORAGE_URI not specified.');
-        return null; // Return null to indicate failure due to missing config
+        throw new Error(
+            "Server configuration error: STORAGE_URI not specified.",
+        );
     }
     if (!base64) {
         logger.warn("Attempted to upload an empty base64 string.");
-        return null;
+        throw new Error("Attempted to upload an empty base64 string.");
     }
 
     try {
@@ -39,10 +39,11 @@ export async function uploadImage(
             : storageUri.split("/")[0]; // Basic fallback if not starting with gs://
 
         if (!bucketName) {
-            logger.error(
+            const err = new Error(
                 `Could not extract bucket name from STORAGE_URI: ${storageUri}`,
             );
-            return null;
+            logger.error(err.message);
+            throw err;
         }
 
         // Get a reference to the bucket
@@ -70,7 +71,7 @@ export async function uploadImage(
         return gcsUri;
     } catch (error) {
         logger.error(`Failed to upload image ${filename} to GCS:`, error);
-        return null;
+        throw error;
     }
 }
 
@@ -200,10 +201,12 @@ export async function uploadFile(
     buffer: Buffer,
     filename: string,
     contentType: string,
-): Promise<string | null> {
+): Promise<string> {
     if (!storageUri) {
         logger.error("GCS_STORAGE_URI environment variable is not set.");
-        return null;
+        throw new Error(
+            "Server configuration error: STORAGE_URI not specified.",
+        );
     }
 
     try {
@@ -212,10 +215,11 @@ export async function uploadFile(
             : storageUri.split("/")[0];
 
         if (!bucketName) {
-            logger.error(
+            const err = new Error(
                 `Could not extract bucket name from STORAGE_URI: ${storageUri}`,
             );
-            return null;
+            logger.error(err.message);
+            throw err;
         }
 
         const bucket = storage.bucket(bucketName);
@@ -233,6 +237,6 @@ export async function uploadFile(
         return gcsUri;
     } catch (error) {
         logger.error(`Failed to upload file ${filename} to GCS:`, error);
-        return null;
+        throw error;
     }
 }
