@@ -206,21 +206,27 @@ export function FlowCanvas() {
         useFlowStore.getState().setIsConfigSidebarOpen(false);
     }, [selectNode]);
 
-    const handleContextMenu = (event: React.MouseEvent) => {
-        if (!rfInstance) return;
-        const position = rfInstance.screenToFlowPosition({
-            x: event.clientX,
-            y: event.clientY,
-        });
-        setMenuPosition(position);
-    };
+    const handleContextMenu = useCallback(
+        (event: React.MouseEvent) => {
+            if (!rfInstance) return;
+            const position = rfInstance.screenToFlowPosition({
+                x: event.clientX,
+                y: event.clientY,
+            });
+            setMenuPosition(position);
+        },
+        [rfInstance],
+    );
 
-    const handleAddCustomNode = (customNode: CustomNodeItem) => {
-        addNodeWithType("custom-workflow", undefined, {
-            subWorkflowId: customNode.id,
-            name: customNode.name,
-        } as Partial<CustomWorkflowData>);
-    };
+    const handleAddCustomNode = useCallback(
+        (customNode: CustomNodeItem) => {
+            addNodeWithType("custom-workflow", undefined, {
+                subWorkflowId: customNode.id,
+                name: customNode.name,
+            } as Partial<CustomWorkflowData>);
+        },
+        [addNodeWithType],
+    );
 
     const highlightedEdges = useMemo(() => {
         const selectedId = selectedNode?.id;
