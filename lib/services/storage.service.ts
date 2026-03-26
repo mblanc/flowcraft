@@ -9,10 +9,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 export class StorageService {
-    async uploadImage(
-        base64: string,
-        filename: string,
-    ): Promise<string | null> {
+    async uploadImage(base64: string, filename: string): Promise<string> {
         return uploadImage(base64, filename);
     }
 
@@ -20,7 +17,7 @@ export class StorageService {
         buffer: Buffer,
         filename: string,
         contentType: string,
-    ): Promise<string | null> {
+    ): Promise<string> {
         return uploadFile(buffer, filename, contentType);
     }
 
@@ -47,7 +44,7 @@ export class StorageService {
         gcsUri: string,
         width: number,
         height: number,
-    ): Promise<string | null> {
+    ): Promise<string> {
         const sharpInstance = await this.gcsUriToSharp(gcsUri);
         const resizedBuffer = await sharpInstance
             .resize(width, height, { fit: "cover", position: "center" })

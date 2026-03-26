@@ -79,12 +79,14 @@ export function Header() {
             });
             if (response.ok) {
                 const newFlow = await response.json();
+                toast.success("Flow cloned successfully");
                 router.push(`/flow/${newFlow.id}`);
             } else {
-                console.error("Failed to clone flow");
+                toast.error("Failed to clone flow");
             }
         } catch (error) {
             console.error("Error cloning flow:", error);
+            toast.error("Error cloning flow");
         } finally {
             setIsCloning(false);
         }
