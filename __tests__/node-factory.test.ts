@@ -7,7 +7,6 @@ import {
     VideoData,
     FileData,
     UpscaleData,
-    ResizeData,
     ListData,
     WorkflowInputData,
     WorkflowOutputData,

@@ -21,6 +21,8 @@ import {
 } from "../constants";
 import type { ContentPart } from "../types";
 
+const DATA_URI_REGEX = /^data:([^;]+);base64,(.+)$/;
+
 function isSupportedMimeType(mimeType: string): mimeType is SupportedMimeType {
     return (ALL_SUPPORTED_MIME_TYPES as readonly string[]).includes(mimeType);
 }
@@ -133,9 +135,7 @@ export class GeminiService {
                     if (file.url.startsWith("gs://")) {
                         contents.push(createPartFromUri(file.url, file.type));
                     } else if (file.url.startsWith("data:")) {
-                        const base64Match = file.url.match(
-                            /^data:([^;]+);base64,(.+)$/,
-                        );
+                        const base64Match = file.url.match(DATA_URI_REGEX);
                         if (base64Match) {
                             contents.push(
                                 createPartFromBase64(

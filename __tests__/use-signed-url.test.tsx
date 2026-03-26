@@ -72,7 +72,7 @@ describe("useSignedUrl", () => {
         mockFetchAndCache.mockResolvedValue("https://signed.url/new");
 
         let uri = "gs://bucket/a.png";
-        const { result, rerender } = renderHook(() => useSignedUrl(uri));
+        const { rerender } = renderHook(() => useSignedUrl(uri));
 
         uri = "gs://bucket/b.png";
         rerender();

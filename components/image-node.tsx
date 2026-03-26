@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useRef, useState, useCallback } from "react";
+import { memo, useState, useCallback } from "react";
 import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ImageData } from "@/lib/types";
@@ -104,7 +104,6 @@ export const ImageNode = memo(
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const selectNode = useFlowStore((state) => state.selectNode);
         const { executeNode, runFromNode } = useFlowExecution();
-        const nodeRef = useRef<HTMLDivElement>(null);
         const [localPrompt, setLocalPrompt] = useSyncedState(data.prompt);
 
         const connectedNodes = useConnectedSourceNodes(id);
@@ -184,7 +183,6 @@ export const ImageNode = memo(
 
         return (
             <div
-                ref={nodeRef}
                 className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color] ${
                     selected
                         ? "border-primary shadow-primary/20"
