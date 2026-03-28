@@ -36,11 +36,7 @@ export const WorkflowInputNode = memo(
 
         return (
             <div
-                className={`bg-card relative w-64 rounded-lg border-2 p-4 shadow-lg transition-all ${
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border"
-                }`}
+                className={`node-container w-64 transition-all ${selected ? "selected" : ""}`}
             >
                 <div className="mb-4 flex items-start gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-blue-500/10">
@@ -103,7 +99,7 @@ export const WorkflowInputNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-blue-500"
+                    className="bg-blue-500"
                 />
             </div>
         );

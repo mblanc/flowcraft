@@ -85,18 +85,16 @@ export const VideoNode = memo(
 
         return (
             <div
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color] ${
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border"
-                }`}
+                className={`node-container ${selected ? "selected" : ""}`}
                 style={{ width: dimensions.width }}
             >
                 {data.executing && (
                     <div
                         className="border-beam-glow"
                         style={
-                            { "--beam-color": "#ec4899" } as React.CSSProperties
+                            {
+                                "--beam-color": "var(--color-port-video)",
+                            } as React.CSSProperties
                         }
                     />
                 )}
@@ -111,7 +109,7 @@ export const VideoNode = memo(
                     type="target"
                     position={Position.Left}
                     id="prompt-input"
-                    className="!bg-pink-500"
+                    className="bg-pink-500"
                     style={{ top: 35, left: -6 }}
                 />
                 <div className="absolute top-[18px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-pink-500">
@@ -123,7 +121,7 @@ export const VideoNode = memo(
                     type="target"
                     position={Position.Left}
                     id="first-frame-input"
-                    className="!bg-blue-500"
+                    className="bg-blue-500"
                     style={{ top: 65, left: -6 }}
                 />
                 <div className="absolute top-[48px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-blue-500">
@@ -135,7 +133,7 @@ export const VideoNode = memo(
                     type="target"
                     position={Position.Left}
                     id="last-frame-input"
-                    className="!bg-purple-500"
+                    className="bg-purple-500"
                     style={{ top: 95, left: -6 }}
                 />
                 <div className="absolute top-[78px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-purple-500">
@@ -147,7 +145,7 @@ export const VideoNode = memo(
                     type="target"
                     position={Position.Left}
                     id="image-input"
-                    className="!bg-green-500"
+                    className="bg-green-500"
                     style={{ top: 125, left: -6 }}
                 />
                 <div className="absolute top-[108px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-green-500">
@@ -463,7 +461,7 @@ export const VideoNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-pink-500"
+                    className="bg-port-video"
                     id="result-output"
                 />
             </div>

@@ -119,6 +119,11 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    --color-port-string: #a855f7;
+    --color-port-image: #f97316;
+    --color-port-video: #ec4899;
+    --color-port-json: #06b6d4;
 }
 
 @layer base {
@@ -131,23 +136,33 @@
     }
 }
 
+@layer components {
+    .node-container {
+        @apply bg-card border-border relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color];
+    }
+
+    .node-container.selected {
+        @apply border-primary shadow-primary/20;
+    }
+}
+
 /* React Flow custom styles */
 .react-flow {
     background-color: var(--canvas-bg);
 }
 
-.react-flow__node {
+.react-flow .react-flow__node {
     font-family: var(--font-sans);
-    background: transparent !important;
+    background: transparent;
 }
 
-.react-flow__node-default,
-.react-flow__node-input,
-.react-flow__node-agent,
-.react-flow__node-image,
-.react-flow__node-video {
-    background: transparent !important;
-    padding: 0 !important;
+.react-flow .react-flow__node-default,
+.react-flow .react-flow__node-input,
+.react-flow .react-flow__node-agent,
+.react-flow .react-flow__node-image,
+.react-flow .react-flow__node-video {
+    background: transparent;
+    padding: 0;
 }
 
 .react-flow__edge-path {
@@ -157,34 +172,72 @@
 }
 
 /* Converting handle sizes from rem back to px */
-.react-flow__handle {
+.react-flow .react-flow__handle {
     background: var(--primary);
     /* Increased handle size from 14px to 21px (1.5x) */
-    width: 21px !important;
-    height: 21px !important;
-    border: 3px solid var(--card) !important;
+    width: 21px;
+    height: 21px;
+    border: 3px solid var(--card);
     border-radius: 50%;
 }
 
 /* Converting positioning offsets back to px */
-.react-flow__handle-left {
+.react-flow .react-flow__handle-left {
     /* Adjusted offset for 21px handles: -21/2 = -10.5px */
-    left: -10.5px !important;
+    left: -10.5px;
 }
 
-.react-flow__handle-right {
+.react-flow .react-flow__handle-right {
     /* Adjusted offset for 21px handles: -21/2 = -10.5px */
-    right: -10.5px !important;
+    right: -10.5px;
 }
 
-.react-flow__handle-top {
+.react-flow .react-flow__handle-top {
     /* Adjusted offset for 21px handles: -21/2 = -10.5px */
-    top: -10.5px !important;
+    top: -10.5px;
 }
 
-.react-flow__handle-bottom {
+.react-flow .react-flow__handle-bottom {
     /* Adjusted offset for 21px handles: -21/2 = -10.5px */
-    bottom: -10.5px !important;
+    bottom: -10.5px;
+}
+
+/* Specific Handle Color Overrides (matching 0,2,0 specificity) */
+.react-flow .react-flow__handle.bg-primary {
+    @apply bg-primary;
+}
+.react-flow .react-flow__handle.bg-blue-500 {
+    @apply bg-blue-500;
+}
+.react-flow .react-flow__handle.bg-cyan-500 {
+    @apply bg-cyan-500;
+}
+.react-flow .react-flow__handle.bg-teal-500 {
+    @apply bg-teal-500;
+}
+.react-flow .react-flow__handle.bg-green-500 {
+    @apply bg-green-500;
+}
+.react-flow .react-flow__handle.bg-red-500 {
+    @apply bg-red-500;
+}
+.react-flow .react-flow__handle.bg-orange-500 {
+    @apply bg-orange-500;
+}
+.react-flow .react-flow__handle.bg-port-string,
+.react-flow .react-flow__handle.port-string {
+    background-color: var(--color-port-string);
+}
+.react-flow .react-flow__handle.bg-port-image,
+.react-flow .react-flow__handle.port-image {
+    background-color: var(--color-port-image);
+}
+.react-flow .react-flow__handle.bg-port-video,
+.react-flow .react-flow__handle.port-video {
+    background-color: var(--color-port-video);
+}
+.react-flow .react-flow__handle.port-json {
+    background-color: var(--color-port-json);
 }
 
 .react-flow__handle:hover {
@@ -193,38 +246,38 @@
 }
 
 /* Enhanced controls styling with !important to override React Flow defaults */
-.react-flow__controls {
-    background: var(--card) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 0.5rem !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+.react-flow .react-flow__controls {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
-.react-flow__controls-button {
-    background: var(--card) !important;
-    border: none !important;
-    border-bottom: 1px solid var(--border) !important;
-    color: var(--foreground) !important;
-    fill: var(--foreground) !important;
-    width: 32px !important;
-    height: 32px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+.react-flow .react-flow__controls-button {
+    background: var(--card);
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    fill: var(--foreground);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.react-flow__controls-button:last-child {
-    border-bottom: none !important;
+.react-flow .react-flow__controls-button:last-child {
+    border-bottom: none;
 }
 
-.react-flow__controls-button:hover {
-    background: var(--accent) !important;
+.react-flow .react-flow__controls-button:hover {
+    background: var(--accent);
 }
 
-.react-flow__controls-button svg {
-    fill: var(--foreground) !important;
-    width: 16px !important;
-    height: 16px !important;
+.react-flow .react-flow__controls-button svg {
+    fill: var(--foreground);
+    width: 16px;
+    height: 16px;
 }
 
 /* Rolling border glow animation for executing nodes */
@@ -264,26 +317,7 @@
     filter: drop-shadow(0 0 8px var(--beam-color, var(--primary)));
 }
 
-/* Port type handle colors */
-.custom-workflow-node .react-flow__handle.port-string {
-    background: #a855f7 !important;
-    /* purple-500 */
-}
-
-.custom-workflow-node .react-flow__handle.port-image {
-    background: #f97316 !important;
-    /* orange-500 */
-}
-
-.custom-workflow-node .react-flow__handle.port-video {
-    background: #ec4899 !important;
-    /* pink-500 */
-}
-
-.custom-workflow-node .react-flow__handle.port-json {
-    background: #06b6d4 !important;
-    /* cyan-500 */
-}
+/* Handle colors are assigned directly to the React Flow Handle component instances via Next.js and Tailwind classes */
 
 /* Mention editor chip styles */
 .mention-editor .mention-chip {

@@ -146,19 +146,16 @@ export const TextNode = memo(
         return (
             <div
                 ref={nodeRef}
-                className={cn(
-                    "bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color]",
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border",
-                )}
+                className={cn("node-container", selected && "selected")}
                 style={{ width: dimensions.width }}
             >
                 {"executing" in data && data.executing && (
                     <div
                         className="border-beam-glow"
                         style={
-                            { "--beam-color": "#a855f7" } as React.CSSProperties
+                            {
+                                "--beam-color": "var(--color-port-string)",
+                            } as React.CSSProperties
                         }
                     />
                 )}
@@ -252,7 +249,7 @@ export const TextNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-purple-500"
+                    className="bg-port-string"
                 />
             </div>
         );
