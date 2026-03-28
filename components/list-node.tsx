@@ -204,21 +204,14 @@ export const ListNode = memo(
         return (
             <div
                 ref={nodeRef}
-                className={cn(
-                    "bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color]",
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border",
-                )}
+                className={cn("node-container", selected && "selected")}
                 style={{ width: dimensions.width }}
             >
                 {"executing" in data && data.executing && (
                     <div
                         className="border-beam-glow"
                         style={
-                            {
-                                "--beam-color": "#14b8a6",
-                            } as React.CSSProperties
+                            { "--beam-color": "#14b8a6" } as React.CSSProperties
                         }
                     />
                 )}
@@ -467,7 +460,7 @@ export const ListNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-teal-500"
+                    className="bg-teal-500"
                     id="list-output"
                 />
             </div>

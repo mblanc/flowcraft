@@ -307,11 +307,7 @@ export const CustomWorkflowNode = memo(
 
         return (
             <div
-                className={`bg-card custom-workflow-node relative rounded-lg border-2 p-4 shadow-lg transition-all ${
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border"
-                }`}
+                className={`node-container custom-workflow-node transition-all ${selected ? "selected" : ""}`}
                 style={{ width: dimensions.width }}
             >
                 {data.executing && (

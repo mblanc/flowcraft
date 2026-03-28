@@ -77,11 +77,7 @@ export const UpscaleNode = memo(
         return (
             <div
                 ref={nodeRef}
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color] ${
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border"
-                }`}
+                className={`node-container ${selected ? "selected" : ""}`}
                 style={{ width: dimensions.width }}
             >
                 {data.executing && (
@@ -103,7 +99,7 @@ export const UpscaleNode = memo(
                     type="target"
                     position={Position.Left}
                     id="image-input"
-                    className="!bg-green-500"
+                    className="bg-green-500"
                     style={{ top: 35, left: -6 }}
                 />
                 <div className="absolute top-[18px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-green-500">
@@ -304,7 +300,7 @@ export const UpscaleNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-red-500"
+                    className="bg-red-500"
                     id="result-output"
                 />
             </div>

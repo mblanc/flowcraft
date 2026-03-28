@@ -118,10 +118,8 @@ export const LLMNode = memo(
         return (
             <div
                 className={cn(
-                    "bg-card relative flex flex-col rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color]",
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border",
+                    "node-container flex flex-col",
+                    selected && "selected",
                 )}
                 style={{
                     width: dimensions.width,
@@ -148,7 +146,7 @@ export const LLMNode = memo(
                     type="target"
                     position={Position.Left}
                     id="prompts-input"
-                    className="!bg-blue-500"
+                    className="bg-blue-500"
                     style={{ top: 35 }}
                 />
                 <div className="absolute top-[18px] right-full mr-5 text-[10px] font-semibold whitespace-nowrap text-blue-500">
@@ -159,7 +157,7 @@ export const LLMNode = memo(
                     type="target"
                     position={Position.Left}
                     id="file-input"
-                    className="!bg-cyan-500"
+                    className="bg-cyan-500"
                     style={{ top: 65 }}
                 />
                 <div className="absolute top-[48px] right-full mr-5 text-[10px] font-semibold whitespace-nowrap text-cyan-500">
@@ -534,7 +532,7 @@ export const LLMNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-primary"
+                    className="bg-primary"
                 />
 
                 <NodeResizeHandle onResizeStart={handleResizeStart} />

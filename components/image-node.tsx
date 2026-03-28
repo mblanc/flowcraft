@@ -183,18 +183,16 @@ export const ImageNode = memo(
 
         return (
             <div
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color] ${
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border"
-                }`}
+                className={`node-container ${selected ? "selected" : ""}`}
                 style={{ width: dimensions.width }}
             >
                 {data.executing && (
                     <div
                         className="border-beam-glow"
                         style={
-                            { "--beam-color": "#f97316" } as React.CSSProperties
+                            {
+                                "--beam-color": "var(--color-port-image)",
+                            } as React.CSSProperties
                         }
                     />
                 )}
@@ -210,7 +208,7 @@ export const ImageNode = memo(
                     type="target"
                     position={Position.Left}
                     id="prompt-input"
-                    className="!bg-pink-500"
+                    className="bg-pink-500"
                     style={{ top: 35, left: -6 }}
                 />
                 <div className="absolute top-[18px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-pink-500">
@@ -222,7 +220,7 @@ export const ImageNode = memo(
                     type="target"
                     position={Position.Left}
                     id="image-input"
-                    className="!bg-green-500"
+                    className="bg-green-500"
                     style={{ top: 65, left: -6 }}
                 />
                 <div className="absolute top-[48px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-green-500">
@@ -550,7 +548,7 @@ export const ImageNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-orange-500"
+                    className="bg-port-image"
                     id="result-output"
                 />
             </div>

@@ -106,12 +106,7 @@ export const FileNode = memo(
 
         return (
             <div
-                className={cn(
-                    "bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color]",
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border",
-                )}
+                className={cn("node-container", selected && "selected")}
                 style={{ width: dimensions.width }}
             >
                 <div className="mb-3 flex items-center gap-3">
@@ -238,7 +233,7 @@ export const FileNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-cyan-500"
+                    className="bg-cyan-500"
                 />
 
                 <NodeResizeHandle onResizeStart={handleResizeStart} />

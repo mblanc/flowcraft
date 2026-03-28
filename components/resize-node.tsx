@@ -78,11 +78,7 @@ export const ResizeNode = memo(
         return (
             <div
                 ref={nodeRef}
-                className={`bg-card relative rounded-lg border-2 p-4 shadow-lg transition-[border-color,shadow,background-color] ${
-                    selected
-                        ? "border-primary shadow-primary/20"
-                        : "border-border"
-                }`}
+                className={`node-container ${selected ? "selected" : ""}`}
                 style={{ width: dimensions.width }}
             >
                 {data.executing && (
@@ -104,7 +100,7 @@ export const ResizeNode = memo(
                     type="target"
                     position={Position.Left}
                     id="image-input"
-                    className="!bg-green-500"
+                    className="bg-green-500"
                     style={{ top: "50%", left: -6 }}
                 />
                 <div className="absolute top-1/2 right-full mr-5 -translate-y-1/2 text-xs font-semibold whitespace-nowrap text-green-500">
@@ -293,7 +289,7 @@ export const ResizeNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="!bg-blue-500"
+                    className="bg-blue-500"
                     id="result-output"
                 />
             </div>
