@@ -47,7 +47,8 @@ Your capabilities:
 Guidelines:
 - Be concise and helpful. Focus on the creative task at hand.
 - When the user asks you to create something visual, respond with a brief acknowledgment of what you'll generate.
-- When discussing existing canvas items (shared via attachments), reference them by their labels.
+- When the user shares canvas items (via selection or @mention), they will be attached as multimodal content. ALWAYS reference these items by their exact label (e.g. "Image 1", "Video 2") in your response.
+- When iterating on an existing item, acknowledge which item you're working from (e.g. "Based on Image 1, I'll...").
 - Suggest follow-up creative directions the user might want to explore.
 - Do NOT use markdown image or video syntax. Media will be generated separately and placed on the canvas.`;
 
@@ -76,9 +77,7 @@ function buildCanvasContextSummary(nodes: CanvasNode[]): string {
     return `\n\nCurrent canvas items:\n${items.join("\n")}`;
 }
 
-function buildContents(
-    input: AgentInput,
-): Content[] {
+function buildContents(input: AgentInput): Content[] {
     const contents: Content[] = [];
 
     const historySlice = input.history.slice(-20);
@@ -94,6 +93,8 @@ function buildContents(
     const userParts: any[] = [];
 
     if (input.attachments && input.attachments.length > 0) {
+        const attachmentLabels: string[] = [];
+
         for (const att of input.attachments) {
             const node = input.canvasNodes.find((n) => n.id === att.nodeId);
             if (node && "sourceUrl" in node.data && node.data.sourceUrl) {
@@ -106,9 +107,20 @@ function buildContents(
                         (node.type === "canvas-video"
                             ? "video/mp4"
                             : "image/png");
+                    attachmentLabels.push(
+                        `[${att.label} (${node.type.replace("canvas-", "")})]`,
+                    );
                     userParts.push(createPartFromUri(sourceUrl, mimeType));
                 }
             }
+        }
+
+        if (attachmentLabels.length > 0) {
+            userParts.unshift(
+                createPartFromText(
+                    `The user has shared these canvas items with you: ${attachmentLabels.join(", ")}. The media files follow in order.`,
+                ),
+            );
         }
     }
 
@@ -123,7 +135,8 @@ const INTENT_SCHEMA = {
     properties: {
         shouldGenerate: {
             type: "BOOLEAN" as const,
-            description: "Whether media should be generated based on the conversation",
+            description:
+                "Whether media should be generated based on the conversation",
         },
         mediaType: {
             type: "STRING" as const,
@@ -137,7 +150,8 @@ const INTENT_SCHEMA = {
         },
         aspectRatio: {
             type: "STRING" as const,
-            description: "Aspect ratio for the media (e.g. '16:9', '1:1', '9:16'). Default to '16:9'.",
+            description:
+                "Aspect ratio for the media (e.g. '16:9', '1:1', '9:16'). Default to '16:9'.",
         },
         suggestedActions: {
             type: "ARRAY" as const,
@@ -150,7 +164,8 @@ const INTENT_SCHEMA = {
                     },
                     prompt: {
                         type: "STRING" as const,
-                        description: "Message sent when the user clicks this action",
+                        description:
+                            "Message sent when the user clicks this action",
                     },
                 },
                 required: ["label", "prompt"],
@@ -172,8 +187,7 @@ export async function* streamAgentResponse(
     const model = input.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
     const canvasSummary = buildCanvasContextSummary(input.canvasNodes);
     const modeInstruction = getModeInstruction(input.mode);
-    const systemInstruction =
-        SYSTEM_PROMPT + modeInstruction + canvasSummary;
+    const systemInstruction = SYSTEM_PROMPT + modeInstruction + canvasSummary;
 
     const contents = buildContents(input);
 
@@ -212,13 +226,19 @@ export async function* streamAgentResponse(
             { role: "model", parts: [{ text: fullText }] },
         ];
 
+        const hasAttachments =
+            input.attachments && input.attachments.length > 0;
+        const attachmentContext = hasAttachments
+            ? `\n\nThe user has shared ${input.attachments!.length} canvas item(s) as reference. If generating media, these should be used as reference material for the generation. When crafting the generation prompt, incorporate details from the referenced items.`
+            : "";
+
         const intentSystemPrompt = `You are analyzing a conversation between a user and a creative media assistant on a visual canvas.
 Based on the conversation, determine:
 1. Whether media (image or video) should be generated
 2. If so, craft a detailed generation prompt
 3. Suggest 2-3 follow-up actions the user might want
 
-${modeInstruction}
+${modeInstruction}${attachmentContext}
 
 If the user is asking a question, making conversation, or the assistant already declined to generate, set shouldGenerate to false and mediaType to "none".`;
 
@@ -269,16 +289,11 @@ If the user is asking a question, making conversation, or the assistant already 
             ) {
                 const actions: ChatAction[] = intent.suggestedActions
                     .slice(0, 3)
-                    .map(
-                        (
-                            a: { label: string; prompt: string },
-                            i: number,
-                        ) => ({
-                            id: String(i + 1),
-                            label: a.label,
-                            prompt: a.prompt,
-                        }),
-                    );
+                    .map((a: { label: string; prompt: string }, i: number) => ({
+                        id: String(i + 1),
+                        label: a.label,
+                        prompt: a.prompt,
+                    }));
                 yield { type: "actions", actions };
             }
         }

@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useCallback, useRef, type KeyboardEvent } from "react";
+import {
+    useState,
+    useCallback,
+    useRef,
+    useMemo,
+    useEffect,
+    type KeyboardEvent,
+} from "react";
 import { SendHorizonal, Sparkles, Image, Video, Loader2 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
@@ -20,8 +27,14 @@ import {
 } from "@/components/ui/tooltip";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { MODELS } from "@/lib/constants";
+import { CanvasAttachmentBar } from "./canvas-attachment-bar";
+import {
+    CanvasMentionDropdown,
+    type MentionItem,
+} from "./canvas-mention-dropdown";
 import type {
     ChatMessage,
+    ChatAttachment,
     CanvasImageData,
     CanvasVideoData,
     GeneratedMediaRef,
@@ -49,7 +62,10 @@ interface SSEEvent {
     data: string;
 }
 
-function parseSSEEvents(chunk: string, buffer: string): { events: SSEEvent[]; remaining: string } {
+function parseSSEEvents(
+    chunk: string,
+    buffer: string,
+): { events: SSEEvent[]; remaining: string } {
     const raw = buffer + chunk;
     const events: SSEEvent[] = [];
     const blocks = raw.split("\n\n");
@@ -83,7 +99,23 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const abortRef = useRef<AbortController | null>(null);
 
+    // @mention state
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    const [mentionIndex, setMentionIndex] = useState(0);
+    const [mentionPos, setMentionPos] = useState({ top: 0, left: 0 });
+    const [mentionedNodeIds, setMentionedNodeIds] = useState<Set<string>>(
+        new Set(),
+    );
+    const mentionTriggerPos = useRef<number | null>(null);
+
+    // Dismissed selection-based attachment node IDs
+    const [dismissedNodeIds, setDismissedNodeIds] = useState<Set<string>>(
+        new Set(),
+    );
+
     const canvasId = useCanvasStore((s) => s.canvasId);
+    const nodes = useCanvasStore((s) => s.nodes);
+    const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
     const addMessage = useCanvasStore((s) => s.addMessage);
     const updateMessage = useCanvasStore((s) => s.updateMessage);
     const isChatLoading = useCanvasStore((s) => s.isChatLoading);
@@ -95,6 +127,169 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     const addGeneratingNodeId = useCanvasStore((s) => s.addGeneratingNodeId);
     const removeGeneratingNodeId = useCanvasStore(
         (s) => s.removeGeneratingNodeId,
+    );
+
+    // Build mention items from all canvas nodes
+    const mentionItems: MentionItem[] = useMemo(
+        () =>
+            nodes.map((n) => ({
+                id: n.id,
+                label: n.data.label,
+                type: n.type,
+            })),
+        [nodes],
+    );
+
+    const filteredMentionItems = useMemo(
+        () =>
+            mentionQuery !== null
+                ? mentionItems.filter((item) =>
+                      item.label
+                          .toLowerCase()
+                          .includes(mentionQuery.toLowerCase()),
+                  )
+                : [],
+        [mentionItems, mentionQuery],
+    );
+
+    // Selection-based attachments (media nodes only, minus dismissed)
+    const selectionAttachments: ChatAttachment[] = useMemo(() => {
+        return selectedNodeIds
+            .filter((id) => !dismissedNodeIds.has(id))
+            .map((id) => {
+                const node = nodes.find((n) => n.id === id);
+                if (
+                    !node ||
+                    (node.type !== "canvas-image" &&
+                        node.type !== "canvas-video")
+                )
+                    return null;
+                return {
+                    nodeId: node.id,
+                    label: node.data.label,
+                    type: node.type,
+                } as ChatAttachment;
+            })
+            .filter(Boolean) as ChatAttachment[];
+    }, [selectedNodeIds, nodes, dismissedNodeIds]);
+
+    // Mention-based attachments (media nodes only)
+    const mentionAttachments: ChatAttachment[] = useMemo(() => {
+        return Array.from(mentionedNodeIds)
+            .filter((id) => !selectionAttachments.some((a) => a.nodeId === id))
+            .map((id) => {
+                const node = nodes.find((n) => n.id === id);
+                if (
+                    !node ||
+                    (node.type !== "canvas-image" &&
+                        node.type !== "canvas-video")
+                )
+                    return null;
+                return {
+                    nodeId: node.id,
+                    label: node.data.label,
+                    type: node.type,
+                } as ChatAttachment;
+            })
+            .filter(Boolean) as ChatAttachment[];
+    }, [mentionedNodeIds, nodes, selectionAttachments]);
+
+    const allAttachments = useMemo(
+        () => [...selectionAttachments, ...mentionAttachments],
+        [selectionAttachments, mentionAttachments],
+    );
+
+    // Reset dismissed list when canvas selection changes
+    useEffect(() => {
+        setDismissedNodeIds(new Set());
+    }, [selectedNodeIds]);
+
+    const handleRemoveAttachment = useCallback(
+        (nodeId: string) => {
+            if (mentionedNodeIds.has(nodeId)) {
+                setMentionedNodeIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(nodeId);
+                    return next;
+                });
+                // Also remove the @Label text from input
+                const node = nodes.find((n) => n.id === nodeId);
+                if (node) {
+                    setInput((prev) =>
+                        prev.replace(
+                            new RegExp(`@${escapeRegex(node.data.label)}\\s?`),
+                            "",
+                        ),
+                    );
+                }
+            } else {
+                setDismissedNodeIds((prev) => new Set(prev).add(nodeId));
+            }
+        },
+        [mentionedNodeIds, nodes],
+    );
+
+    // @mention detection in textarea
+    const detectMention = useCallback(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+
+        const cursorPos = el.selectionStart;
+        const textBeforeCursor = el.value.slice(0, cursorPos);
+
+        const atIndex = textBeforeCursor.lastIndexOf("@");
+        if (atIndex === -1) {
+            setMentionQuery(null);
+            mentionTriggerPos.current = null;
+            return;
+        }
+
+        const query = textBeforeCursor.slice(atIndex + 1);
+        if (query.includes(" ") || query.includes("\n")) {
+            setMentionQuery(null);
+            mentionTriggerPos.current = null;
+            return;
+        }
+
+        mentionTriggerPos.current = atIndex;
+        setMentionQuery(query);
+        setMentionIndex(0);
+
+        // Position the dropdown above the textarea (since it's at the bottom of the screen)
+        const rect = el.getBoundingClientRect();
+        setMentionPos({
+            top: rect.top - 4,
+            left: rect.left + 12,
+        });
+    }, []);
+
+    const closeMention = useCallback(() => {
+        setMentionQuery(null);
+        mentionTriggerPos.current = null;
+    }, []);
+
+    const handleMentionSelect = useCallback(
+        (item: MentionItem) => {
+            const el = textareaRef.current;
+            if (!el || mentionTriggerPos.current === null) return;
+
+            const before = input.slice(0, mentionTriggerPos.current);
+            const after = input.slice(el.selectionStart);
+            const newValue = `${before}@${item.label} ${after}`;
+
+            setInput(newValue);
+            setMentionedNodeIds((prev) => new Set(prev).add(item.id));
+            closeMention();
+
+            // Restore cursor position after the inserted mention
+            const cursorPos = before.length + 1 + item.label.length + 1;
+            requestAnimationFrame(() => {
+                el.focus();
+                el.selectionStart = cursorPos;
+                el.selectionEnd = cursorPos;
+            });
+        },
+        [input, closeMention],
     );
 
     const generateMedia = useCallback(
@@ -198,7 +393,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     if (!res.ok) {
                         const err = await res.json().catch(() => ({}));
                         throw new Error(
-                            err.error || `Image generation failed (${res.status})`,
+                            err.error ||
+                                `Image generation failed (${res.status})`,
                         );
                     }
 
@@ -223,7 +419,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     if (!res.ok) {
                         const err = await res.json().catch(() => ({}));
                         throw new Error(
-                            err.error || `Video generation failed (${res.status})`,
+                            err.error ||
+                                `Video generation failed (${res.status})`,
                         );
                     }
 
@@ -268,16 +465,40 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
         const text = input.trim();
         if (!text || isChatLoading || !canvasId) return;
 
+        // Strip @mention labels from the message text, replace with a
+        // human-readable "referring to <Label>" note so the LLM still sees the
+        // reference while the raw `@Label` tokens are removed.
+        const cleanedText = text;
+        const attachmentsToSend = [...allAttachments];
+
+        // Also include any mentioned text-type nodes in the message context
+        // (they can't be sent as media attachments but we note them for the LLM)
+        for (const nodeId of mentionedNodeIds) {
+            const node = nodes.find((n) => n.id === nodeId);
+            if (
+                node &&
+                node.type === "canvas-text" &&
+                !attachmentsToSend.some((a) => a.nodeId === nodeId)
+            ) {
+                // Text nodes aren't media attachments, but we keep the @Label
+                // in the message so the LLM sees the reference.
+            }
+        }
+
         const userMessage: ChatMessage = {
             id: uuidv4(),
             role: "user",
-            content: text,
+            content: cleanedText,
+            attachments:
+                attachmentsToSend.length > 0 ? attachmentsToSend : undefined,
             model,
             createdAt: new Date().toISOString(),
         };
 
         addMessage(userMessage);
         setInput("");
+        setMentionedNodeIds(new Set());
+        setDismissedNodeIds(new Set());
         setIsChatLoading(true);
 
         if (textareaRef.current) {
@@ -302,7 +523,11 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    message: text,
+                    message: cleanedText,
+                    attachments:
+                        attachmentsToSend.length > 0
+                            ? attachmentsToSend
+                            : undefined,
                     mode,
                     model,
                 }),
@@ -311,7 +536,9 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
 
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err.error || `Chat request failed (${res.status})`);
+                throw new Error(
+                    err.error || `Chat request failed (${res.status})`,
+                );
             }
 
             const reader = res.body?.getReader();
@@ -387,9 +614,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     ? error.message
                     : "Failed to get response";
             updateMessage(assistantMsgId, {
-                content:
-                    assistantMessage.content ||
-                    `Error: ${message}`,
+                content: assistantMessage.content || `Error: ${message}`,
             });
             toast.error(message);
         } finally {
@@ -402,6 +627,9 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
         canvasId,
         model,
         mode,
+        allAttachments,
+        mentionedNodeIds,
+        nodes,
         addMessage,
         updateMessage,
         setIsChatLoading,
@@ -410,12 +638,45 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
 
     const handleKeyDown = useCallback(
         (e: KeyboardEvent<HTMLTextAreaElement>) => {
+            // Handle mention dropdown navigation
+            if (mentionQuery !== null && filteredMentionItems.length > 0) {
+                if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setMentionIndex((i) =>
+                        Math.min(i + 1, filteredMentionItems.length - 1),
+                    );
+                    return;
+                }
+                if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setMentionIndex((i) => Math.max(i - 1, 0));
+                    return;
+                }
+                if (e.key === "Enter" || e.key === "Tab") {
+                    e.preventDefault();
+                    handleMentionSelect(filteredMentionItems[mentionIndex]);
+                    return;
+                }
+                if (e.key === "Escape") {
+                    e.preventDefault();
+                    closeMention();
+                    return;
+                }
+            }
+
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();
             }
         },
-        [handleSend],
+        [
+            handleSend,
+            mentionQuery,
+            filteredMentionItems,
+            mentionIndex,
+            handleMentionSelect,
+            closeMention,
+        ],
     );
 
     const handleTextareaChange = useCallback(
@@ -424,9 +685,15 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             const el = e.target;
             el.style.height = "auto";
             el.style.height = `${Math.min(el.scrollHeight, 150)}px`;
+
+            detectMention();
         },
-        [],
+        [detectMention],
     );
+
+    const handleTextareaClick = useCallback(() => {
+        detectMention();
+    }, [detectMention]);
 
     const selectedMode = MODES.find((m) => m.id === mode)!;
     const ModeIcon = selectedMode.icon;
@@ -434,16 +701,40 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     return (
         <div className="border-border border-t p-3">
             <div className="bg-muted/50 rounded-lg border">
-                <textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={handleTextareaChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Describe what you want to create..."
-                    disabled={isChatLoading}
-                    rows={1}
-                    className="placeholder:text-muted-foreground w-full resize-none bg-transparent px-3 pt-3 pb-2 text-sm outline-none disabled:opacity-50"
+                <CanvasAttachmentBar
+                    attachments={allAttachments}
+                    onRemove={handleRemoveAttachment}
                 />
+
+                <div className="relative">
+                    <textarea
+                        ref={textareaRef}
+                        value={input}
+                        onChange={handleTextareaChange}
+                        onKeyDown={handleKeyDown}
+                        onClick={handleTextareaClick}
+                        placeholder={
+                            allAttachments.length > 0
+                                ? "Describe what to do with the selected items..."
+                                : "Describe what you want to create... (@ to mention)"
+                        }
+                        disabled={isChatLoading}
+                        rows={1}
+                        className="placeholder:text-muted-foreground w-full resize-none bg-transparent px-3 pt-3 pb-2 text-sm outline-none disabled:opacity-50"
+                    />
+
+                    {mentionQuery !== null &&
+                        filteredMentionItems.length > 0 && (
+                            <CanvasMentionDropdown
+                                items={filteredMentionItems}
+                                query={mentionQuery}
+                                selectedIndex={mentionIndex}
+                                position={mentionPos}
+                                onSelect={handleMentionSelect}
+                                onHover={setMentionIndex}
+                            />
+                        )}
+                </div>
 
                 <div className="flex items-center justify-between gap-2 px-2 pb-2">
                     <div className="flex items-center gap-1.5">
@@ -539,4 +830,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             </div>
         </div>
     );
+}
+
+function escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
