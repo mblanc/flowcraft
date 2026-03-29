@@ -46,6 +46,10 @@ export interface CanvasStore {
     addGeneratingNodeId: (id: string) => void;
     removeGeneratingNodeId: (id: string) => void;
 
+    // Action prompt (set by suggested-action buttons, consumed by chat input)
+    pendingActionPrompt: string | null;
+    setPendingActionPrompt: (prompt: string | null) => void;
+
     // Node ID generation
     getNextLabel: (
         type: "canvas-image" | "canvas-video" | "canvas-text",
@@ -72,6 +76,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     saveStatus: "saved" as const,
     isChatLoading: false,
     generatingNodeIds: [],
+    pendingActionPrompt: null,
     lastModified: 0,
 
     setCanvas: (canvas) =>
@@ -186,6 +191,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
                 (nid) => nid !== id,
             ),
         })),
+
+    setPendingActionPrompt: (prompt) => set({ pendingActionPrompt: prompt }),
 
     getNextLabel: (type) => {
         const prefix = TYPE_PREFIX_MAP[type];

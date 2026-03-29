@@ -128,6 +128,10 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     const removeGeneratingNodeId = useCanvasStore(
         (s) => s.removeGeneratingNodeId,
     );
+    const pendingActionPrompt = useCanvasStore((s) => s.pendingActionPrompt);
+    const setPendingActionPrompt = useCanvasStore(
+        (s) => s.setPendingActionPrompt,
+    );
 
     // Build mention items from all canvas nodes
     const mentionItems: MentionItem[] = useMemo(
@@ -404,6 +408,30 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                         status: "ready",
                     });
                 } else {
+                    const referenceImages =
+                        media.referenceNodeIds
+                            ?.map((nid) => {
+                                const n = useCanvasStore
+                                    .getState()
+                                    .nodes.find((node) => node.id === nid);
+                                if (
+                                    n &&
+                                    n.type === "canvas-image" &&
+                                    "sourceUrl" in n.data &&
+                                    n.data.sourceUrl
+                                ) {
+                                    return {
+                                        url: n.data.sourceUrl as string,
+                                        type:
+                                            ("mimeType" in n.data
+                                                ? (n.data.mimeType as string)
+                                                : null) || "image/png",
+                                    };
+                                }
+                                return null;
+                            })
+                            .filter(Boolean) ?? [];
+
                     const res = await fetch("/api/generate-video", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -413,6 +441,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                             duration: media.config.duration || 4,
                             model: media.config.model,
                             resolution: media.config.resolution,
+                            images: referenceImages,
                         }),
                     });
 
@@ -461,179 +490,198 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
         ],
     );
 
-    const handleSend = useCallback(async () => {
-        const text = input.trim();
-        if (!text || isChatLoading || !canvasId) return;
+    const handleSend = useCallback(
+        async (overrideMessage?: string) => {
+            const text = overrideMessage ?? input.trim();
+            if (!text || isChatLoading || !canvasId) return;
 
-        // Strip @mention labels from the message text, replace with a
-        // human-readable "referring to <Label>" note so the LLM still sees the
-        // reference while the raw `@Label` tokens are removed.
-        const cleanedText = text;
-        const attachmentsToSend = [...allAttachments];
+            const isActionPrompt = !!overrideMessage;
+            const cleanedText = text;
+            const attachmentsToSend = isActionPrompt ? [] : [...allAttachments];
 
-        // Also include any mentioned text-type nodes in the message context
-        // (they can't be sent as media attachments but we note them for the LLM)
-        for (const nodeId of mentionedNodeIds) {
-            const node = nodes.find((n) => n.id === nodeId);
-            if (
-                node &&
-                node.type === "canvas-text" &&
-                !attachmentsToSend.some((a) => a.nodeId === nodeId)
-            ) {
-                // Text nodes aren't media attachments, but we keep the @Label
-                // in the message so the LLM sees the reference.
-            }
-        }
-
-        const userMessage: ChatMessage = {
-            id: uuidv4(),
-            role: "user",
-            content: cleanedText,
-            attachments:
-                attachmentsToSend.length > 0 ? attachmentsToSend : undefined,
-            model,
-            createdAt: new Date().toISOString(),
-        };
-
-        addMessage(userMessage);
-        setInput("");
-        setMentionedNodeIds(new Set());
-        setDismissedNodeIds(new Set());
-        setIsChatLoading(true);
-
-        if (textareaRef.current) {
-            textareaRef.current.style.height = "auto";
-        }
-
-        const assistantMsgId = uuidv4();
-        const assistantMessage: ChatMessage = {
-            id: assistantMsgId,
-            role: "assistant",
-            content: "",
-            model,
-            createdAt: new Date().toISOString(),
-        };
-        addMessage(assistantMessage);
-
-        const abortController = new AbortController();
-        abortRef.current = abortController;
-
-        try {
-            const res = await fetch(`/api/canvases/${canvasId}/chat`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message: cleanedText,
-                    attachments:
-                        attachmentsToSend.length > 0
-                            ? attachmentsToSend
-                            : undefined,
-                    mode,
-                    model,
-                }),
-                signal: abortController.signal,
-            });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(
-                    err.error || `Chat request failed (${res.status})`,
-                );
-            }
-
-            const reader = res.body?.getReader();
-            if (!reader) throw new Error("No response stream");
-
-            const decoder = new TextDecoder();
-            let buffer = "";
-            let accumulatedText = "";
-            let pendingMedia: MediaToGenerate | null = null;
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                const { events, remaining } = parseSSEEvents(chunk, buffer);
-                buffer = remaining;
-
-                for (const sse of events) {
-                    try {
-                        const payload = JSON.parse(sse.data);
-
-                        switch (sse.event) {
-                            case "text":
-                                accumulatedText += payload.delta;
-                                updateMessage(assistantMsgId, {
-                                    content: accumulatedText,
-                                });
-                                break;
-
-                            case "media":
-                                pendingMedia = payload as MediaToGenerate;
-                                break;
-
-                            case "actions":
-                                if (payload.actions) {
-                                    updateMessage(assistantMsgId, {
-                                        actions: payload.actions,
-                                    });
-                                }
-                                break;
-
-                            case "error":
-                                throw new Error(
-                                    payload.message || "Stream error",
-                                );
-
-                            case "done":
-                                break;
-                        }
-                    } catch (parseErr) {
-                        if (
-                            parseErr instanceof Error &&
-                            parseErr.message !== "Stream error"
-                        ) {
-                            console.warn("SSE parse error:", parseErr);
-                        } else {
-                            throw parseErr;
-                        }
+            if (!isActionPrompt) {
+                for (const nodeId of mentionedNodeIds) {
+                    const node = nodes.find((n) => n.id === nodeId);
+                    if (
+                        node &&
+                        node.type === "canvas-text" &&
+                        !attachmentsToSend.some((a) => a.nodeId === nodeId)
+                    ) {
+                        // Text nodes stay as @Label in the message for the LLM
                     }
                 }
             }
 
-            if (pendingMedia) {
-                generateMedia(pendingMedia, assistantMsgId);
+            const userMessage: ChatMessage = {
+                id: uuidv4(),
+                role: "user",
+                content: cleanedText,
+                attachments:
+                    attachmentsToSend.length > 0
+                        ? attachmentsToSend
+                        : undefined,
+                model,
+                createdAt: new Date().toISOString(),
+            };
+
+            addMessage(userMessage);
+            if (!isActionPrompt) {
+                setInput("");
+                setMentionedNodeIds(new Set());
+                setDismissedNodeIds(new Set());
+                if (textareaRef.current) {
+                    textareaRef.current.style.height = "auto";
+                }
             }
-        } catch (error) {
-            if (error instanceof DOMException && error.name === "AbortError") {
-                return;
+            setIsChatLoading(true);
+
+            const assistantMsgId = uuidv4();
+            const assistantMessage: ChatMessage = {
+                id: assistantMsgId,
+                role: "assistant",
+                content: "",
+                model,
+                createdAt: new Date().toISOString(),
+            };
+            addMessage(assistantMessage);
+
+            const abortController = new AbortController();
+            abortRef.current = abortController;
+
+            try {
+                const res = await fetch(`/api/canvases/${canvasId}/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: cleanedText,
+                        attachments:
+                            attachmentsToSend.length > 0
+                                ? attachmentsToSend
+                                : undefined,
+                        mode,
+                        model,
+                    }),
+                    signal: abortController.signal,
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(
+                        err.error || `Chat request failed (${res.status})`,
+                    );
+                }
+
+                const reader = res.body?.getReader();
+                if (!reader) throw new Error("No response stream");
+
+                const decoder = new TextDecoder();
+                let buffer = "";
+                let accumulatedText = "";
+                let pendingMedia: MediaToGenerate | null = null;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const { events, remaining } = parseSSEEvents(chunk, buffer);
+                    buffer = remaining;
+
+                    for (const sse of events) {
+                        try {
+                            const payload = JSON.parse(sse.data);
+
+                            switch (sse.event) {
+                                case "text":
+                                    accumulatedText += payload.delta;
+                                    updateMessage(assistantMsgId, {
+                                        content: accumulatedText,
+                                    });
+                                    break;
+
+                                case "media":
+                                    pendingMedia = payload as MediaToGenerate;
+                                    break;
+
+                                case "actions":
+                                    if (payload.actions) {
+                                        updateMessage(assistantMsgId, {
+                                            actions: payload.actions,
+                                        });
+                                    }
+                                    break;
+
+                                case "error":
+                                    throw new Error(
+                                        payload.message || "Stream error",
+                                    );
+
+                                case "done":
+                                    break;
+                            }
+                        } catch (parseErr) {
+                            if (
+                                parseErr instanceof Error &&
+                                parseErr.message !== "Stream error"
+                            ) {
+                                console.warn("SSE parse error:", parseErr);
+                            } else {
+                                throw parseErr;
+                            }
+                        }
+                    }
+                }
+
+                if (pendingMedia) {
+                    generateMedia(pendingMedia, assistantMsgId);
+                }
+            } catch (error) {
+                if (
+                    error instanceof DOMException &&
+                    error.name === "AbortError"
+                ) {
+                    return;
+                }
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to get response";
+                updateMessage(assistantMsgId, {
+                    content: assistantMessage.content || `Error: ${message}`,
+                });
+                toast.error(message);
+            } finally {
+                setIsChatLoading(false);
+                abortRef.current = null;
             }
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : "Failed to get response";
-            updateMessage(assistantMsgId, {
-                content: assistantMessage.content || `Error: ${message}`,
-            });
-            toast.error(message);
-        } finally {
-            setIsChatLoading(false);
-            abortRef.current = null;
+        },
+        [
+            input,
+            isChatLoading,
+            canvasId,
+            model,
+            mode,
+            allAttachments,
+            mentionedNodeIds,
+            nodes,
+            addMessage,
+            updateMessage,
+            setIsChatLoading,
+            generateMedia,
+        ],
+    );
+
+    // Auto-send when a suggested action button is clicked
+    useEffect(() => {
+        if (pendingActionPrompt && !isChatLoading) {
+            setPendingActionPrompt(null);
+            handleSend(pendingActionPrompt);
         }
     }, [
-        input,
+        pendingActionPrompt,
         isChatLoading,
-        canvasId,
-        model,
-        mode,
-        allAttachments,
-        mentionedNodeIds,
-        nodes,
-        addMessage,
-        updateMessage,
-        setIsChatLoading,
-        generateMedia,
+        setPendingActionPrompt,
+        handleSend,
     ]);
 
     const handleKeyDown = useCallback(
@@ -816,7 +864,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
 
                     <Button
                         size="icon-sm"
-                        onClick={handleSend}
+                        onClick={() => handleSend()}
                         disabled={!input.trim() || isChatLoading}
                         className="shrink-0 rounded-lg"
                     >

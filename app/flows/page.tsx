@@ -22,6 +22,25 @@ import Image from "next/image";
 import logger from "@/app/logger";
 import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-url-cache";
 
+async function fetchThumbnailUrl(
+    id: string,
+    thumbnail: string | undefined,
+): Promise<[string, string] | null> {
+    if (!thumbnail) return null;
+
+    if (thumbnail.startsWith("gs://")) {
+        try {
+            const signedUrl = await fetchAndCacheSignedUrl(thumbnail);
+            if (signedUrl) return [id, signedUrl];
+        } catch (error) {
+            logger.error("Error fetching signed URL for thumbnail:", error);
+        }
+        return null;
+    }
+
+    return [id, thumbnail];
+}
+
 interface Flow {
     id: string;
     name: string;
@@ -78,25 +97,6 @@ export default function FlowsList() {
     );
 
     const isAdmin = session?.user?.isAdmin || false;
-
-    const fetchThumbnailUrl = async (
-        id: string,
-        thumbnail: string | undefined,
-    ): Promise<[string, string] | null> => {
-        if (!thumbnail) return null;
-
-        if (thumbnail.startsWith("gs://")) {
-            try {
-                const signedUrl = await fetchAndCacheSignedUrl(thumbnail);
-                if (signedUrl) return [id, signedUrl];
-            } catch (error) {
-                logger.error("Error fetching signed URL for thumbnail:", error);
-            }
-            return null;
-        }
-
-        return [id, thumbnail];
-    };
 
     const fetchData = useCallback(async () => {
         setLoading(true);
