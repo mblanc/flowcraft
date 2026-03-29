@@ -130,9 +130,7 @@ export async function POST(
                         }),
                     ),
                 );
-                controller.enqueue(
-                    encoder.encode(formatSSE("done", {})),
-                );
+                controller.enqueue(encoder.encode(formatSSE("done", {})));
             } finally {
                 controller.close();
             }
