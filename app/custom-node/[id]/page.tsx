@@ -37,6 +37,7 @@ function CustomNodeEditorContent() {
                         {
                             ownerId: customNode.userId,
                         },
+                        customNode.updatedAt,
                     );
                     setLoading(false);
                 } else if (response.status === 404) {

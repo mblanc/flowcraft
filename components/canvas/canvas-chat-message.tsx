@@ -1,10 +1,12 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { User, Bot, Image, Video } from "lucide-react";
+import { User, Bot, Image, Video, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { ChatMessage } from "@/lib/canvas-types";
+import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { cn } from "@/lib/utils";
 
 function formatTime(isoString: string): string {
@@ -26,6 +28,18 @@ const MEDIA_TYPE_ICON = {
 function CanvasChatMessageComponent({ message }: { message: ChatMessage }) {
     const isUser = message.role === "user";
     const isSystem = message.role === "system";
+    const isChatLoading = useCanvasStore((s) => s.isChatLoading);
+    const setPendingActionPrompt = useCanvasStore(
+        (s) => s.setPendingActionPrompt,
+    );
+
+    const handleActionClick = useCallback(
+        (prompt: string) => {
+            if (isChatLoading) return;
+            setPendingActionPrompt(prompt);
+        },
+        [isChatLoading, setPendingActionPrompt],
+    );
 
     if (isSystem) {
         return (
@@ -118,6 +132,24 @@ function CanvasChatMessageComponent({ message }: { message: ChatMessage }) {
                             })}
                         </div>
                     )}
+
+                {!isUser && message.actions && message.actions.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                        {message.actions.map((action) => (
+                            <Button
+                                key={action.id}
+                                variant="outline"
+                                size="sm"
+                                disabled={isChatLoading}
+                                onClick={() => handleActionClick(action.prompt)}
+                                className="h-7 gap-1.5 rounded-full px-3 text-xs"
+                            >
+                                <Zap className="size-3" />
+                                {action.label}
+                            </Button>
+                        ))}
+                    </div>
+                )}
 
                 <span className="text-muted-foreground px-1 text-[10px]">
                     {formatTime(message.createdAt)}

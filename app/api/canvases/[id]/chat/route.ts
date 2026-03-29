@@ -115,6 +115,11 @@ export async function POST(
                         case "done":
                             ssePayload = formatSSE("done", {});
                             break;
+                        default:
+                            logger.warn(
+                                `[ChatAPI] Unknown event type: ${(event as { type: string }).type}`,
+                            );
+                            continue;
                     }
                     controller.enqueue(encoder.encode(ssePayload));
                 }

@@ -40,15 +40,18 @@ const SYSTEM_PROMPT = `You are a creative media assistant inside a visual canvas
 
 Your capabilities:
 - Generate images from text descriptions
-- Generate videos from text descriptions
+- Generate videos from text descriptions or from existing images (image-to-video)
+- Edit and iterate on existing canvas images by using them as reference
 - Discuss and refine creative ideas
-- Reference and iterate on existing canvas items the user shares with you
+- Understand natural-language generation config (aspect ratio, resolution, duration)
 
 Guidelines:
 - Be concise and helpful. Focus on the creative task at hand.
 - When the user asks you to create something visual, respond with a brief acknowledgment of what you'll generate.
 - When the user shares canvas items (via selection or @mention), they will be attached as multimodal content. ALWAYS reference these items by their exact label (e.g. "Image 1", "Video 2") in your response.
-- When iterating on an existing item, acknowledge which item you're working from (e.g. "Based on Image 1, I'll...").
+- When iterating on an existing item, acknowledge which item you're working from (e.g. "Based on Image 1, I'll..."). The referenced item will be passed as input to the generation model automatically.
+- When the user asks to "animate" or "make a video from" an image, generate a video using the image as a reference.
+- If the user specifies aspect ratio (e.g. "square", "portrait", "9:16", "vertical"), resolution (e.g. "1080p", "4K"), or duration (e.g. "8 seconds"), extract and apply those settings.
 - Suggest follow-up creative directions the user might want to explore.
 - Do NOT use markdown image or video syntax. Media will be generated separately and placed on the canvas.`;
 
@@ -153,6 +156,22 @@ const INTENT_SCHEMA = {
             description:
                 "Aspect ratio for the media (e.g. '16:9', '1:1', '9:16'). Default to '16:9'.",
         },
+        resolution: {
+            type: "STRING" as const,
+            enum: ["720p", "1080p", "4k"],
+            description:
+                "Resolution if explicitly specified by the user. Omit if not mentioned.",
+        },
+        duration: {
+            type: "NUMBER" as const,
+            description:
+                "Video duration in seconds (4, 6, or 8). Only for video generation. Omit if not mentioned.",
+        },
+        generationModel: {
+            type: "STRING" as const,
+            description:
+                "Override generation model if the user explicitly requests a specific one. Omit if not mentioned.",
+        },
         suggestedActions: {
             type: "ARRAY" as const,
             items: {
@@ -229,16 +248,24 @@ export async function* streamAgentResponse(
         const hasAttachments =
             input.attachments && input.attachments.length > 0;
         const attachmentContext = hasAttachments
-            ? `\n\nThe user has shared ${input.attachments!.length} canvas item(s) as reference. If generating media, these should be used as reference material for the generation. When crafting the generation prompt, incorporate details from the referenced items.`
+            ? `\n\nThe user has shared ${input.attachments!.length} canvas item(s) as reference. These MUST be used as reference material for the generation. When crafting the generation prompt, incorporate details from the referenced items. For example:
+- If an image is shared and the user wants edits → generate an image with the edit instructions (the original is passed as reference automatically).
+- If an image is shared and the user wants a video → generate a video (the image will be used as the first frame / reference automatically).
+- If a video is shared and the user wants changes → generate a new video with the updated instructions.`
             : "";
 
         const intentSystemPrompt = `You are analyzing a conversation between a user and a creative media assistant on a visual canvas.
 Based on the conversation, determine:
 1. Whether media (image or video) should be generated
 2. If so, craft a detailed generation prompt
-3. Suggest 2-3 follow-up actions the user might want
+3. Extract any generation configuration the user specified (aspect ratio, resolution, duration)
+4. Suggest 2-3 follow-up actions the user might want
 
 ${modeInstruction}${attachmentContext}
+
+For aspect ratio, map natural language: "square" → "1:1", "portrait"/"vertical" → "9:16", "landscape"/"wide"/"horizontal" → "16:9", "cinematic"/"ultrawide" → "21:9". Default to "16:9" if unspecified.
+For resolution, accept "720p", "1080p", or "4k". Default to unspecified (let the system choose).
+For video duration, accept 4, 6, or 8 seconds. Default to unspecified.
 
 If the user is asking a question, making conversation, or the assistant already declined to generate, set shouldGenerate to false and mediaType to "none".`;
 
@@ -277,6 +304,15 @@ If the user is asking a question, making conversation, or the assistant already 
                                 : undefined,
                         config: {
                             aspectRatio: intent.aspectRatio || "16:9",
+                            ...(intent.resolution
+                                ? { resolution: intent.resolution }
+                                : {}),
+                            ...(intent.generationModel
+                                ? { model: intent.generationModel }
+                                : {}),
+                            ...(intent.duration
+                                ? { duration: intent.duration }
+                                : {}),
                         },
                     },
                 };
