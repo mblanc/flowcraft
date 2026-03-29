@@ -3,11 +3,14 @@ import {
     createPartFromBase64,
     createPartFromText,
     createPartFromUri,
+    Content,
     ContentListUnion,
+    ContentUnion,
     GenerateVideosParameters,
     VideoGenerationReferenceType,
     Image as GeminiImage,
     GenerateContentConfig,
+    GenerateContentResponse,
     Tool,
     ThinkingLevel,
 } from "@google/genai";
@@ -193,6 +196,63 @@ export class GeminiService {
             .filter((part) => part.text)
             .map((part) => part.text)
             .join("");
+    }
+
+    async *generateTextStream(options: {
+        contents: Content[];
+        systemInstruction?: ContentUnion;
+        model?: string;
+        config?: GenerateContentConfig;
+    }): AsyncGenerator<string> {
+        const selectedModel =
+            options.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
+
+        logger.info(
+            `[GeminiService] Streaming text with model: ${selectedModel}`,
+        );
+
+        const stream = await this.ai.models.generateContentStream({
+            model: selectedModel,
+            contents: options.contents,
+            config: {
+                ...options.config,
+                systemInstruction: options.systemInstruction,
+            },
+        });
+
+        for await (const chunk of stream) {
+            const text = chunk.candidates?.[0]?.content?.parts
+                ?.filter((p) => p.text)
+                .map((p) => p.text)
+                .join("");
+            if (text) {
+                yield text;
+            }
+        }
+    }
+
+    async generateStructured(options: {
+        contents: Content[];
+        systemInstruction?: ContentUnion;
+        model?: string;
+        responseSchema: Record<string, unknown>;
+    }): Promise<GenerateContentResponse> {
+        const selectedModel =
+            options.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
+
+        logger.info(
+            `[GeminiService] Generating structured output with model: ${selectedModel}`,
+        );
+
+        return this.ai.models.generateContent({
+            model: selectedModel,
+            contents: options.contents,
+            config: {
+                systemInstruction: options.systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: options.responseSchema,
+            },
+        });
     }
 
     async generateImage(

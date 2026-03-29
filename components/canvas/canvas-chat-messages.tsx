@@ -7,11 +7,20 @@ import { CanvasChatMessage } from "./canvas-chat-message";
 
 export function CanvasChatMessages() {
     const messages = useCanvasStore((s) => s.messages);
+    const isChatLoading = useCanvasStore((s) => s.isChatLoading);
     const bottomRef = useRef<HTMLDivElement>(null);
+
+    const lastMessageContent = messages[messages.length - 1]?.content;
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages.length]);
+
+    useEffect(() => {
+        if (isChatLoading) {
+            bottomRef.current?.scrollIntoView({ behavior: "instant" });
+        }
+    }, [isChatLoading, lastMessageContent]);
 
     if (messages.length === 0) {
         return (
