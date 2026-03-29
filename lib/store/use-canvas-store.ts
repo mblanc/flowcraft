@@ -43,6 +43,8 @@ export interface CanvasStore {
     updateMessage: (id: string, data: Partial<ChatMessage>) => void;
     setIsChatLoading: (loading: boolean) => void;
     setSaveStatus: (status: "saved" | "saving" | "error") => void;
+    addGeneratingNodeId: (id: string) => void;
+    removeGeneratingNodeId: (id: string) => void;
 
     // Node ID generation
     getNextLabel: (
@@ -172,6 +174,18 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
 
     setSaveStatus: (status) =>
         set({ saveStatus: status, isSaving: status === "saving" }),
+
+    addGeneratingNodeId: (id) =>
+        set((state) => ({
+            generatingNodeIds: [...state.generatingNodeIds, id],
+        })),
+
+    removeGeneratingNodeId: (id) =>
+        set((state) => ({
+            generatingNodeIds: state.generatingNodeIds.filter(
+                (nid) => nid !== id,
+            ),
+        })),
 
     getNextLabel: (type) => {
         const prefix = TYPE_PREFIX_MAP[type];
