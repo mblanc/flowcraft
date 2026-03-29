@@ -70,9 +70,7 @@ export const CanvasVideoNode = memo(
                             <input
                                 ref={renameInputRef}
                                 value={renameDraft}
-                                onChange={(e) =>
-                                    setRenameDraft(e.target.value)
-                                }
+                                onChange={(e) => setRenameDraft(e.target.value)}
                                 onBlur={commitRename}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") commitRename();

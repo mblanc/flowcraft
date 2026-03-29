@@ -38,10 +38,7 @@ export interface CanvasTextData {
     [key: string]: unknown;
 }
 
-export type CanvasNodeData =
-    | CanvasImageData
-    | CanvasVideoData
-    | CanvasTextData;
+export type CanvasNodeData = CanvasImageData | CanvasVideoData | CanvasTextData;
 
 export interface CanvasNode {
     id: string;

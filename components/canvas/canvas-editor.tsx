@@ -13,6 +13,7 @@ import "@xyflow/react/dist/style.css";
 import { useTheme } from "next-themes";
 import { CanvasHeader } from "./canvas-header";
 import { CanvasToolbar } from "./canvas-toolbar";
+import { CanvasChatPanel } from "./canvas-chat-panel";
 import { CanvasImageNode } from "./nodes/canvas-image-node";
 import { CanvasVideoNode } from "./nodes/canvas-video-node";
 import { CanvasTextNode } from "./nodes/canvas-text-node";
@@ -53,7 +54,6 @@ export function CanvasEditor() {
     const getViewportCenter = useCallback(() => {
         const instance = rfInstanceRef.current;
         if (!instance) return { x: 0, y: 0 };
-        const vp = instance.getViewport();
         const container = document.querySelector(".react-flow");
         const w = container?.clientWidth ?? 800;
         const h = container?.clientHeight ?? 600;
@@ -127,17 +127,7 @@ export function CanvasEditor() {
                     </ReactFlow>
                 </div>
 
-                {/* Chat panel placeholder */}
-                <div className="border-border bg-card flex w-[380px] shrink-0 flex-col border-l">
-                    <div className="border-border flex h-12 items-center border-b px-4">
-                        <h2 className="text-foreground text-sm font-semibold">
-                            Chat
-                        </h2>
-                    </div>
-                    <div className="text-muted-foreground flex flex-1 items-center justify-center p-4 text-center text-sm">
-                        Chat panel will be implemented in Phase 3
-                    </div>
-                </div>
+                <CanvasChatPanel />
             </div>
         </div>
     );
