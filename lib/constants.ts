@@ -88,6 +88,7 @@ export const DEFAULTS = {
 export const COLLECTIONS = {
     FLOWS: "flows",
     CUSTOM_NODES: "custom_nodes",
+    CANVASES: "canvases",
 } as const;
 
 export const SUPPORTED_MIME_TYPES = {
