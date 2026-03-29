@@ -6,7 +6,7 @@ import "./globals.css";
 
 import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/ui/theme-provider";
 
 const openSans = Open_Sans({
     weight: ["300", "400", "500", "600", "700"],

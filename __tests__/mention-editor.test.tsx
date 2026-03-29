@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { MentionEditor } from "../components/mention-editor";
+import { MentionEditor } from "../components/nodes/mention-editor";
 
 describe("MentionEditor", () => {
     it("renders without crashing", () => {

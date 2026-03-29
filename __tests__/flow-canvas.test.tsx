@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { FlowCanvas } from "../components/flow-canvas";
+import { FlowCanvas } from "../components/flow/flow-canvas";
 import { TooltipProvider } from "../components/ui/tooltip";
 
 vi.mock("@xyflow/react/dist/style.css", () => ({}));

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { Sidebar } from "../components/sidebar";
+import { Sidebar } from "../components/flow/sidebar";
 import { TooltipProvider } from "../components/ui/tooltip";
 
 vi.mock("next-auth/react", () => ({

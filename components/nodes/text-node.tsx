@@ -10,7 +10,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { TextData } from "@/lib/types";
 import { FileText, Maximize2 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { NodeTitle } from "@/components/node-title";
+import { NodeTitle } from "@/components/nodes/node-title";
 import { cn } from "@/lib/utils";
 import {
     Dialog,
@@ -19,7 +19,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Textarea } from "./ui/textarea";
+import { Textarea } from "../ui/textarea";
 import {
     Tooltip,
     TooltipContent,

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { NodeTitle } from "../components/node-title";
+import { NodeTitle } from "../components/nodes/node-title";
 
 describe("NodeTitle", () => {
     it("renders without crashing", () => {

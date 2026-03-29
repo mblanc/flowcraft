@@ -2,7 +2,7 @@
 
 import { memo, useState, useEffect } from "react";
 import Image from "next/image";
-import { MediaViewer } from "@/components/media-viewer";
+import { MediaViewer } from "@/components/nodes/media-viewer";
 import { cn } from "@/lib/utils";
 import logger from "@/app/logger";
 import {

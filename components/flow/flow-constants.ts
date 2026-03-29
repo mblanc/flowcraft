@@ -1,14 +1,14 @@
-import { LLMNode } from "../llm-node";
-import { TextNode } from "../text-node";
-import { ImageNode } from "../image-node";
-import { VideoNode } from "../video-node";
-import { FileNode } from "../file-node";
-import { UpscaleNode } from "../upscale-node";
-import { ResizeNode } from "../resize-node";
-import { WorkflowInputNode } from "../workflow-input-node";
-import { WorkflowOutputNode } from "../workflow-output-node";
-import { CustomWorkflowNode } from "../custom-workflow-node";
-import { ListNode } from "../list-node";
+import { LLMNode } from "../nodes/llm-node";
+import { TextNode } from "../nodes/text-node";
+import { ImageNode } from "../nodes/image-node";
+import { VideoNode } from "../nodes/video-node";
+import { FileNode } from "../nodes/file-node";
+import { UpscaleNode } from "../nodes/upscale-node";
+import { ResizeNode } from "../nodes/resize-node";
+import { WorkflowInputNode } from "../nodes/workflow-input-node";
+import { WorkflowOutputNode } from "../nodes/workflow-output-node";
+import { CustomWorkflowNode } from "../nodes/custom-workflow-node";
+import { ListNode } from "../nodes/list-node";
 import type { CustomNodePort } from "@/lib/types";
 import {
     Bot,

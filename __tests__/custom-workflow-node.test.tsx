@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { CustomWorkflowNode } from "../components/custom-workflow-node";
+import { CustomWorkflowNode } from "../components/nodes/custom-workflow-node";
 import { ReactFlowProvider } from "@xyflow/react";
 import type { NodeProps } from "@xyflow/react";
 import type { CustomWorkflowData } from "../lib/types";

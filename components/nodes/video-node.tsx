@@ -3,25 +3,24 @@
 import type React from "react";
 
 import { memo, useState, useCallback } from "react";
-import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-import type { ImageData } from "@/lib/types";
+import type { VideoData } from "@/lib/types";
 import {
-    ImageIcon,
+    Video,
     Play,
     ChevronDown,
     FastForward,
     Loader2,
-    Globe,
-    Search,
     Settings,
+    Volume2,
+    VolumeX,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { NodeTitle } from "@/components/node-title";
+import { NodeTitle } from "@/components/nodes/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
-import { MentionEditor } from "@/components/mention-editor";
+import { MentionEditor } from "@/components/nodes/mention-editor";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
-import { MODELS, IMAGE_MODEL_CONFIGS } from "@/lib/constants";
+import { MODELS } from "@/lib/constants";
 import {
     Select,
     SelectContent,
@@ -36,23 +35,20 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-import { MediaViewer } from "@/components/media-viewer";
-import { BatchMediaGallery } from "@/components/batch-media-gallery";
+import { BatchMediaGallery } from "@/components/nodes/batch-media-gallery";
 import { useNodeResize } from "@/hooks/use-node-resize";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { useSyncedState } from "@/hooks/use-synced-state";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 
-export const ImageNode = memo(
-    ({ data, selected, id }: NodeProps<Node<ImageData>>) => {
+export const VideoNode = memo(
+    ({ data, selected, id }: NodeProps<Node<VideoData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const selectNode = useFlowStore((state) => state.selectNode);
         const { executeNode, runFromNode } = useFlowExecution();
         const [localPrompt, setLocalPrompt] = useSyncedState(data.prompt);
 
-        const connectedNodes = useConnectedSourceNodes(id);
-        const [isImageOpen, setIsImageOpen] = useState(false);
+        const connectedTextNodes = useConnectedSourceNodes(id, "prompt-input");
         const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const { dimensions, handleResizeStart } = useNodeResize(
             id,
@@ -66,10 +62,7 @@ export const ImageNode = memo(
             },
         );
 
-        const imageSource =
-            data.images && data.images.length > 0 ? data.images[0] : undefined;
-        const { displayUrl: rawDisplayUrl } = useSignedUrl(imageSource);
-        const displayUrl = rawDisplayUrl || "/placeholder.svg";
+        const { displayUrl: videoPlaybackUrl } = useSignedUrl(data.videoUrl);
 
         const handleExecute = (e: React.MouseEvent) => {
             e.stopPropagation();
@@ -90,42 +83,6 @@ export const ImageNode = memo(
             updateNodeData(id, { prompt: value });
         };
 
-        const handleModelChange = (value: string) => {
-            const newModel = value as keyof typeof IMAGE_MODEL_CONFIGS;
-            const config = IMAGE_MODEL_CONFIGS[newModel];
-            const updates: Partial<ImageData> = { model: newModel };
-
-            // Reset ratio if not supported
-            if (
-                !(config.ratios as readonly string[]).includes(data.aspectRatio)
-            ) {
-                updates.aspectRatio = config
-                    .ratios[0] as ImageData["aspectRatio"];
-            }
-
-            // Reset resolution if not supported
-            if (
-                !(config.resolutions as readonly string[]).includes(
-                    data.resolution,
-                )
-            ) {
-                updates.resolution = config
-                    .resolutions[0] as ImageData["resolution"];
-            }
-
-            // Reset grounding if not supported
-            if (!config.grounding.google) updates.groundingGoogleSearch = false;
-            if (!config.grounding.image) updates.groundingImageSearch = false;
-
-            updateNodeData(id, updates);
-        };
-
-        const currentModelConfig =
-            IMAGE_MODEL_CONFIGS[
-                data.model as keyof typeof IMAGE_MODEL_CONFIGS
-            ] ||
-            IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW];
-
         return (
             <div
                 className={`node-container ${selected ? "selected" : ""}`}
@@ -136,14 +93,13 @@ export const ImageNode = memo(
                         className="border-beam-glow"
                         style={
                             {
-                                "--beam-color": "var(--color-port-image)",
+                                "--beam-color": "var(--color-port-video)",
                             } as React.CSSProperties
                         }
                     />
                 )}
-
                 {data.batchTotal && data.batchTotal > 0 && !data.executing && (
-                    <span className="absolute top-2 right-2 z-10 rounded-full bg-orange-500/20 px-2 py-0.5 text-[10px] font-bold text-orange-400">
+                    <span className="absolute top-2 right-2 z-10 rounded-full bg-pink-500/20 px-2 py-0.5 text-[10px] font-bold text-pink-400">
                         {data.batchTotal}x
                     </span>
                 )}
@@ -160,21 +116,45 @@ export const ImageNode = memo(
                     Prompt
                 </div>
 
-                {/* Image Input Handle */}
+                {/* First Frame Input Handle */}
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    id="first-frame-input"
+                    className="bg-blue-500"
+                    style={{ top: 65, left: -6 }}
+                />
+                <div className="absolute top-[48px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-blue-500">
+                    First Frame
+                </div>
+
+                {/* Last Frame Input Handle */}
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    id="last-frame-input"
+                    className="bg-purple-500"
+                    style={{ top: 95, left: -6 }}
+                />
+                <div className="absolute top-[78px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-purple-500">
+                    Last Frame
+                </div>
+
+                {/* Image(s) Input Handle */}
                 <Handle
                     type="target"
                     position={Position.Left}
                     id="image-input"
                     className="bg-green-500"
-                    style={{ top: 65, left: -6 }}
+                    style={{ top: 125, left: -6 }}
                 />
-                <div className="absolute top-[48px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-green-500">
+                <div className="absolute top-[108px] right-full mr-5 text-xs font-semibold whitespace-nowrap text-green-500">
                     Image(s)
                 </div>
 
                 <div className="mb-3 flex items-center gap-3">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-orange-500/10">
-                        <ImageIcon className="h-5 w-5 text-orange-400" />
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-pink-500/10">
+                        <Video className="h-5 w-5 text-pink-400" />
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -199,7 +179,7 @@ export const ImageNode = memo(
                                                         true,
                                                     );
                                             }}
-                                            className="flex h-8 w-8 items-center justify-center rounded-full text-orange-400 transition-colors hover:bg-orange-500/20"
+                                            className="flex h-8 w-8 items-center justify-center rounded-full text-pink-400 transition-colors hover:bg-pink-500/20"
                                         >
                                             <Settings className="h-4 w-4" />
                                         </button>
@@ -211,7 +191,7 @@ export const ImageNode = memo(
                                 <button
                                     onClick={handleExecute}
                                     disabled={data.executing}
-                                    className="flex h-8 items-center justify-center gap-1 rounded-md px-1 text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-pink-400 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                                     title="Execute Node"
                                 >
                                     {data.executing && data.batchTotal ? (
@@ -234,7 +214,7 @@ export const ImageNode = memo(
                                             setIsRunMenuOpen(!isRunMenuOpen)
                                         }
                                         disabled={data.executing}
-                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-orange-400 transition-colors hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-orange-500/20" : ""}`}
+                                        className={`flex h-8 w-8 items-center justify-center rounded-md text-pink-400 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${isRunMenuOpen ? "bg-pink-500/20" : ""}`}
                                     >
                                         <ChevronDown
                                             className={`h-4 w-4 transition-transform ${isRunMenuOpen ? "rotate-180" : ""}`}
@@ -248,7 +228,7 @@ export const ImageNode = memo(
                                                     setIsRunMenuOpen(false);
                                                 }}
                                                 disabled={data.executing}
-                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-pink-400 transition-colors hover:bg-pink-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 <FastForward className="h-3 w-3" />
                                                 Run from here
@@ -261,7 +241,7 @@ export const ImageNode = memo(
                         <MentionEditor
                             value={localPrompt}
                             onChange={handlePromptChange}
-                            availableNodes={connectedNodes}
+                            availableNodes={connectedTextNodes}
                             placeholder="Enter prompt..."
                             className="nowheel nopan nodrag text-muted-foreground mb-2 w-full text-xs"
                         />
@@ -273,42 +253,25 @@ export const ImageNode = memo(
                     </div>
                 </div>
 
-                {data.images.length > 1 ? (
+                {data.videoUrls && data.videoUrls.length > 1 ? (
                     <BatchMediaGallery
-                        items={data.images}
-                        type="image"
+                        items={data.videoUrls}
+                        type="video"
                         maxHeight={dimensions.height - 200}
                         nodeWidth={dimensions.width}
                     />
-                ) : data.images.length === 1 && displayUrl ? (
-                    <>
-                        <div
-                            className="border-border mt-3 cursor-pointer overflow-hidden rounded-md border transition-opacity hover:opacity-90"
+                ) : data.videoUrl ? (
+                    <div
+                        className="border-border mt-3 overflow-hidden rounded-md border"
+                        style={{ maxHeight: dimensions.height - 200 }}
+                    >
+                        <video
+                            src={videoPlaybackUrl}
+                            controls
+                            className="h-auto w-full object-contain"
                             style={{ maxHeight: dimensions.height - 200 }}
-                            onClick={() => setIsImageOpen(true)}
-                        >
-                            <Image
-                                src={displayUrl}
-                                alt={data.name}
-                                width={dimensions.width - 32}
-                                height={dimensions.height - 200}
-                                className="h-auto w-full object-contain"
-                                style={{
-                                    maxHeight: dimensions.height - 200,
-                                }}
-                                unoptimized={displayUrl.startsWith("data:")}
-                                onContextMenu={(e) => {
-                                    e.stopPropagation();
-                                }}
-                            />
-                        </div>
-                        <MediaViewer
-                            isOpen={isImageOpen}
-                            onOpenChange={setIsImageOpen}
-                            url={displayUrl}
-                            alt={data.name}
                         />
-                    </>
+                    </div>
                 ) : null}
 
                 <div className="border-border/50 mt-3 flex flex-wrap gap-2 border-t pt-3">
@@ -318,7 +281,11 @@ export const ImageNode = memo(
                                 <div className="w-fit">
                                     <Select
                                         value={data.model}
-                                        onValueChange={handleModelChange}
+                                        onValueChange={(value) =>
+                                            updateNodeData(id, {
+                                                model: value as VideoData["model"],
+                                            })
+                                        }
                                     >
                                         <SelectTrigger
                                             size="sm"
@@ -329,27 +296,19 @@ export const ImageNode = memo(
                                         <SelectContent>
                                             <SelectItem
                                                 value={
-                                                    MODELS.IMAGE
-                                                        .GEMINI_2_5_FLASH_IMAGE
+                                                    MODELS.VIDEO
+                                                        .VEO_3_1_FAST_PREVIEW
                                                 }
                                             >
-                                                Nano Banana
+                                                Veo 3.1 Fast
                                             </SelectItem>
                                             <SelectItem
                                                 value={
-                                                    MODELS.IMAGE
-                                                        .GEMINI_3_PRO_IMAGE_PREVIEW
+                                                    MODELS.VIDEO
+                                                        .VEO_3_1_PRO_PREVIEW
                                                 }
                                             >
-                                                Nano Banana Pro
-                                            </SelectItem>
-                                            <SelectItem
-                                                value={
-                                                    MODELS.IMAGE
-                                                        .GEMINI_3_1_FLASH_IMAGE_PREVIEW
-                                                }
-                                            >
-                                                Nano Banana 2
+                                                Veo 3.1 Pro
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -368,7 +327,7 @@ export const ImageNode = memo(
                                         onValueChange={(value) =>
                                             updateNodeData(id, {
                                                 aspectRatio:
-                                                    value as ImageData["aspectRatio"],
+                                                    value as VideoData["aspectRatio"],
                                             })
                                         }
                                     >
@@ -379,16 +338,12 @@ export const ImageNode = memo(
                                             <SelectValue placeholder="Ratio" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {currentModelConfig.ratios.map(
-                                                (ratio) => (
-                                                    <SelectItem
-                                                        key={ratio}
-                                                        value={ratio}
-                                                    >
-                                                        {ratio}
-                                                    </SelectItem>
-                                                ),
-                                            )}
+                                            <SelectItem value="16:9">
+                                                16:9
+                                            </SelectItem>
+                                            <SelectItem value="9:16">
+                                                9:16
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -406,7 +361,7 @@ export const ImageNode = memo(
                                         onValueChange={(value) =>
                                             updateNodeData(id, {
                                                 resolution:
-                                                    value as ImageData["resolution"],
+                                                    value as VideoData["resolution"],
                                             })
                                         }
                                     >
@@ -417,16 +372,15 @@ export const ImageNode = memo(
                                             <SelectValue placeholder="Res" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {currentModelConfig.resolutions.map(
-                                                (res) => (
-                                                    <SelectItem
-                                                        key={res}
-                                                        value={res}
-                                                    >
-                                                        {res}
-                                                    </SelectItem>
-                                                ),
-                                            )}
+                                            <SelectItem value="720p">
+                                                720p
+                                            </SelectItem>
+                                            <SelectItem value="1080p">
+                                                1080p
+                                            </SelectItem>
+                                            <SelectItem value="4k">
+                                                4k
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -438,51 +392,65 @@ export const ImageNode = memo(
 
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div
-                                    className={`flex h-7 items-center gap-1.5 rounded-full py-1 transition-colors ${data.groundingGoogleSearch ? "bg-blue-500/10 text-blue-400" : "bg-muted/30 text-muted-foreground opacity-50"}`}
-                                >
-                                    <Globe className="h-3 w-3" />
-                                    <Switch
-                                        disabled={
-                                            !currentModelConfig.grounding.google
-                                        }
-                                        className="scale-75"
-                                        checked={data.groundingGoogleSearch}
-                                        onCheckedChange={(checked) =>
+                                <div className="w-fit">
+                                    <Select
+                                        value={String(data.duration)}
+                                        onValueChange={(value) =>
                                             updateNodeData(id, {
-                                                groundingGoogleSearch: checked,
+                                                duration: Number(
+                                                    value,
+                                                ) as VideoData["duration"],
                                             })
                                         }
-                                    />
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
+                                        >
+                                            <SelectValue placeholder="Duration" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="4">
+                                                4s
+                                            </SelectItem>
+                                            <SelectItem value="6">
+                                                6s
+                                            </SelectItem>
+                                            <SelectItem value="8">
+                                                8s
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Google Search Grounding</p>
+                                <p>Duration</p>
                             </TooltipContent>
                         </Tooltip>
 
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div
-                                    className={`flex h-7 items-center gap-1.5 rounded-full py-1 transition-colors ${data.groundingImageSearch ? "bg-green-500/10 text-green-400" : "bg-muted/30 text-muted-foreground opacity-50"}`}
+                                    className={`flex h-7 items-center gap-1.5 rounded-full px-1.5 py-1 transition-colors ${data.generateAudio ? "bg-pink-500/10 text-pink-400" : "bg-muted/30 text-muted-foreground opacity-50"}`}
                                 >
-                                    <Search className="h-3 w-3" />
+                                    {data.generateAudio ? (
+                                        <Volume2 className="h-3 w-3" />
+                                    ) : (
+                                        <VolumeX className="h-3 w-3" />
+                                    )}
                                     <Switch
-                                        disabled={
-                                            !currentModelConfig.grounding.image
-                                        }
                                         className="scale-75"
-                                        checked={data.groundingImageSearch}
+                                        checked={data.generateAudio}
                                         onCheckedChange={(checked) =>
                                             updateNodeData(id, {
-                                                groundingImageSearch: checked,
+                                                generateAudio: checked,
                                             })
                                         }
                                     />
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Image Search Grounding</p>
+                                <p>Generate Audio</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -493,7 +461,7 @@ export const ImageNode = memo(
                 <Handle
                     type="source"
                     position={Position.Right}
-                    className="bg-port-image"
+                    className="bg-port-video"
                     id="result-output"
                 />
             </div>
@@ -508,4 +476,4 @@ export const ImageNode = memo(
     },
 );
 
-ImageNode.displayName = "ImageNode";
+VideoNode.displayName = "VideoNode";

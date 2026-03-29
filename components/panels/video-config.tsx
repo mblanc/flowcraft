@@ -6,7 +6,7 @@ import type { VideoData } from "@/lib/types";
 import { MODELS } from "@/lib/constants";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { MentionEditor } from "../mention-editor";
+import { MentionEditor } from "../nodes/mention-editor";
 import {
     Select,
     SelectContent,

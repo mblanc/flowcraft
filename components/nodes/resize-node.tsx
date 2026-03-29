@@ -14,7 +14,7 @@ import {
     Settings,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { NodeTitle } from "@/components/node-title";
+import { NodeTitle } from "@/components/nodes/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import {
     Select,
@@ -29,8 +29,8 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MediaViewer } from "@/components/media-viewer";
-import { BatchMediaGallery } from "@/components/batch-media-gallery";
+import { MediaViewer } from "@/components/nodes/media-viewer";
+import { BatchMediaGallery } from "@/components/nodes/batch-media-gallery";
 import { useNodeResize } from "@/hooks/use-node-resize";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";

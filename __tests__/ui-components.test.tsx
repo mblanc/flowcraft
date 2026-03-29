@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 
-import { SchemaEditor } from "../components/config-panels/schema-editor";
-import { BatchMediaGallery } from "../components/batch-media-gallery";
-import { ShareFlowModal } from "../components/share-flow-modal";
+import { SchemaEditor } from "../components/panels/schema-editor";
+import { BatchMediaGallery } from "../components/nodes/batch-media-gallery";
+import { ShareFlowModal } from "../components/flow/share-flow-modal";
 
 // Mock resize observer and match media which might be used by Dialogs
 class ResizeObserver {

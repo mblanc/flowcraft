@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
-import { ImageNode } from "../components/image-node";
+import { ImageNode } from "../components/nodes/image-node";
 import { ReactFlowProvider } from "@xyflow/react";
 import { TooltipProvider } from "../components/ui/tooltip";
 

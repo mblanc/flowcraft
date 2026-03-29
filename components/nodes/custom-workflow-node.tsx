@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Box, Play } from "lucide-react";
 import { CustomWorkflowData } from "@/lib/types";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { NodeTitle } from "@/components/node-title";
+import { NodeTitle } from "@/components/nodes/node-title";
 import { toast } from "sonner";
 import Image from "next/image";
 import logger from "@/app/logger";

@@ -17,16 +17,16 @@ import {
     Loader2,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { NodeTitle } from "@/components/node-title";
+import { NodeTitle } from "@/components/nodes/node-title";
 import { cn } from "@/lib/utils";
-import { Textarea } from "./ui/textarea";
+import { Textarea } from "../ui/textarea";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import logger from "@/app/logger";
-import { MediaViewer } from "@/components/media-viewer";
+import { MediaViewer } from "@/components/nodes/media-viewer";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import { toast } from "sonner";
 import { isGcsUri, parseGcsUri } from "@/lib/gcs-uri";
@@ -68,11 +68,7 @@ export const ListNode = memo(
                 const newSignedUrls = { ...signedUrls };
 
                 for (const item of data.items) {
-                    if (
-                        item &&
-                        isGcsUri(item) &&
-                        !newSignedUrls[item]
-                    ) {
+                    if (item && isGcsUri(item) && !newSignedUrls[item]) {
                         try {
                             const res = await fetch(
                                 `/api/signed-url?gcsUri=${encodeURIComponent(item)}`,
@@ -323,8 +319,8 @@ export const ListNode = memo(
                                             <span className="text-muted-foreground max-w-[150px] truncate text-[10px]">
                                                 {item
                                                     ? isGcsUri(item)
-                                                        ? parseGcsUri(item).path
-                                                              .split("/")
+                                                        ? parseGcsUri(item)
+                                                              .path.split("/")
                                                               .pop()
                                                         : "Direct URL"
                                                     : "No image uploaded"}

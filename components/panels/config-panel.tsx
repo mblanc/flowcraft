@@ -9,12 +9,12 @@ import type {
     VideoData,
     FileData,
 } from "@/lib/types";
-import { LLMConfig } from "./config-panels/llm-config";
-import { TextConfig } from "./config-panels/text-config";
-import { ImageConfig } from "./config-panels/image-config";
-import { VideoConfig } from "./config-panels/video-config";
-import { FileConfig } from "./config-panels/file-config";
-import { CustomWorkflowConfig } from "./config-panels/custom-workflow-config";
+import { LLMConfig } from "./llm-config";
+import { TextConfig } from "./text-config";
+import { ImageConfig } from "./image-config";
+import { VideoConfig } from "./video-config";
+import { FileConfig } from "./file-config";
+import { CustomWorkflowConfig } from "./custom-workflow-config";
 
 export function ConfigPanel() {
     const selectedNode = useFlowStore((state: FlowState) => state.selectedNode);

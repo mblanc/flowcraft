@@ -2,13 +2,13 @@
 
 import React, { useState } from "react";
 import { Plus, Box, LucideIcon } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
-} from "./ui/tooltip";
+} from "../ui/tooltip";
 import { NodeType, NodeData, CustomNodePort } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

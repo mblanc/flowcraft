@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { LLMDataSchema } from "../lib/schemas";
-import { LLMNode } from "../components/llm-node";
+import { LLMNode } from "../components/nodes/llm-node";
 import { migrateNodes } from "../lib/migration";
 import { executeLLMNode } from "../lib/executors";
 import { Node } from "@xyflow/react";

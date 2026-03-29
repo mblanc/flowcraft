@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemeProvider } from "@/components/ui/theme-provider";
 import { describe, it, expect } from "vitest";
 
 describe("ThemeToggle", () => {
