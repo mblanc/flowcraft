@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen } from "@testing-library/react";
-import { WorkflowInputNode } from "../components/workflow-input-node";
-import { WorkflowOutputNode } from "../components/workflow-output-node";
+import { WorkflowInputNode } from "../components/nodes/workflow-input-node";
+import { WorkflowOutputNode } from "../components/nodes/workflow-output-node";
 import { describe, it, expect, vi } from "vitest";
 import { WorkflowInputData, WorkflowOutputData } from "../lib/types";
 

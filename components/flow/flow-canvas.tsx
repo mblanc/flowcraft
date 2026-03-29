@@ -34,10 +34,10 @@ import {
     nativeItems,
     workflowIOItems,
     type CustomNodeItem,
-} from "./flow-canvas/flow-constants";
-import { FlowContextMenu } from "./flow-canvas/flow-context-menu";
-import { NodeConnectionDropdown } from "./flow-canvas/node-connection-dropdown";
-import { FlowRunPanel } from "./flow-canvas/flow-run-panel";
+} from "./flow-constants";
+import { FlowContextMenu } from "./flow-context-menu";
+import { NodeConnectionDropdown } from "./node-connection-dropdown";
+import { FlowRunPanel } from "./flow-run-panel";
 import { useFlowShortcuts } from "@/hooks/use-flow-shortcuts";
 import { useFlowDragDrop } from "@/hooks/use-flow-drag-drop";
 import { useNodeConnection } from "@/hooks/use-node-connection";

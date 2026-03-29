@@ -15,7 +15,7 @@ import {
     Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { UserProfile } from "@/components/user-profile";
+import { UserProfile } from "@/components/flow/user-profile";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Image from "next/image";
 import logger from "@/app/logger";

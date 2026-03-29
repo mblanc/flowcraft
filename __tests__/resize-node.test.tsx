@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { ResizeNode } from "../components/resize-node";
+import { ResizeNode } from "../components/nodes/resize-node";
 import { ReactFlowProvider } from "@xyflow/react";
 import type { NodeProps } from "@xyflow/react";
 import type { ResizeData } from "../lib/types";

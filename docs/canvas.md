@@ -20,19 +20,19 @@ Canvas is a new top-level feature that provides a free-form creative workspace w
 
 A new **"Canvas"** tab is added to the dashboard (`/flows` page) **after** the Community tab. The tab is **only rendered when `session.user.isAdmin === true`**.
 
-| Tab | Value | Icon | Visibility |
-|-----|-------|------|------------|
-| My Flows | `my` | `Workflow` | All users |
-| Shared with me | `shared` | `Users` | All users |
-| Community | `community` | `Globe` | All users |
-| **Canvas** | **`canvas`** | **`PanelRight`** | **Admin only** |
+| Tab            | Value        | Icon             | Visibility     |
+| -------------- | ------------ | ---------------- | -------------- |
+| My Flows       | `my`         | `Workflow`       | All users      |
+| Shared with me | `shared`     | `Users`          | All users      |
+| Community      | `community`  | `Globe`          | All users      |
+| **Canvas**     | **`canvas`** | **`PanelRight`** | **Admin only** |
 
 ### 2.2 Routes
 
-| Route | Purpose |
-|-------|---------|
+| Route                 | Purpose                                                  |
+| --------------------- | -------------------------------------------------------- |
 | `/flows` (tab=canvas) | Canvas listing — grid of canvas cards with create/delete |
-| `/canvas/[id]` | Canvas editor — full-screen canvas + chat |
+| `/canvas/[id]`        | Canvas editor — full-screen canvas + chat                |
 
 ### 2.3 Firestore Collection
 
@@ -46,26 +46,26 @@ New collection: **`canvases`**
 
 ```typescript
 interface CanvasDocument {
-  id: string;
-  userId: string;                  // Owner
-  name: string;                    // User-editable, default "Untitled Canvas"
-  thumbnail?: string;              // GCS URI, auto-generated from canvas state
+    id: string;
+    userId: string; // Owner
+    name: string; // User-editable, default "Untitled Canvas"
+    thumbnail?: string; // GCS URI, auto-generated from canvas state
 
-  // React Flow state
-  nodes: CanvasNode[];             // Media items, text blocks
-  edges: never[];                  // Reserved for future use (connections)
-  viewport: { x: number; y: number; zoom: number };
+    // React Flow state
+    nodes: CanvasNode[]; // Media items, text blocks
+    edges: never[]; // Reserved for future use (connections)
+    viewport: { x: number; y: number; zoom: number };
 
-  // Chat state
-  messages: ChatMessage[];
+    // Chat state
+    messages: ChatMessage[];
 
-  // Metadata
-  visibility: "private" | "public";
-  sharedWith: string[];            // User IDs (future)
-  sharedWithEmails: string[];      // Emails (future)
-  isTemplate: boolean;             // Community templates (future)
-  createdAt: string;               // ISO timestamp
-  updatedAt: string;               // ISO timestamp
+    // Metadata
+    visibility: "private" | "public";
+    sharedWith: string[]; // User IDs (future)
+    sharedWithEmails: string[]; // Emails (future)
+    isTemplate: boolean; // Community templates (future)
+    createdAt: string; // ISO timestamp
+    updatedAt: string; // ISO timestamp
 }
 ```
 
@@ -73,58 +73,58 @@ interface CanvasDocument {
 
 Each item on the canvas is a React Flow node. Node types:
 
-| `type` | Description |
-|--------|-------------|
+| `type`         | Description                 |
+| -------------- | --------------------------- |
 | `canvas-image` | Generated or uploaded image |
 | `canvas-video` | Generated or uploaded video |
-| `canvas-text` | Editable text block |
+| `canvas-text`  | Editable text block         |
 
 ```typescript
 interface CanvasNode {
-  id: string;                      // e.g. "image-1", "video-3", "text-2"
-  type: "canvas-image" | "canvas-video" | "canvas-text";
-  position: { x: number; y: number };
-  data: CanvasImageData | CanvasVideoData | CanvasTextData;
-  width?: number;
-  height?: number;
-  selected?: boolean;
+    id: string; // e.g. "image-1", "video-3", "text-2"
+    type: "canvas-image" | "canvas-video" | "canvas-text";
+    position: { x: number; y: number };
+    data: CanvasImageData | CanvasVideoData | CanvasTextData;
+    width?: number;
+    height?: number;
+    selected?: boolean;
 }
 
 interface CanvasImageData {
-  type: "canvas-image";
-  label: string;                   // Auto: "Image 1", "Image 2", etc. User-editable
-  sourceUrl: string;               // GCS URI (gs://...)
-  mimeType: string;
-  prompt?: string;                 // Generation prompt that created this
-  width: number;
-  height: number;
-  aspectRatio?: string;
-  model?: string;                  // Model used for generation
-  status: "ready" | "generating" | "error";
-  error?: string;
+    type: "canvas-image";
+    label: string; // Auto: "Image 1", "Image 2", etc. User-editable
+    sourceUrl: string; // GCS URI (gs://...)
+    mimeType: string;
+    prompt?: string; // Generation prompt that created this
+    width: number;
+    height: number;
+    aspectRatio?: string;
+    model?: string; // Model used for generation
+    status: "ready" | "generating" | "error";
+    error?: string;
 }
 
 interface CanvasVideoData {
-  type: "canvas-video";
-  label: string;                   // Auto: "Video 1", "Video 2", etc. User-editable
-  sourceUrl: string;               // GCS URI
-  mimeType: string;
-  prompt?: string;
-  duration?: number;
-  aspectRatio?: string;
-  model?: string;
-  status: "ready" | "generating" | "error";
-  progress?: number;               // 0-100, for generation polling
-  error?: string;
+    type: "canvas-video";
+    label: string; // Auto: "Video 1", "Video 2", etc. User-editable
+    sourceUrl: string; // GCS URI
+    mimeType: string;
+    prompt?: string;
+    duration?: number;
+    aspectRatio?: string;
+    model?: string;
+    status: "ready" | "generating" | "error";
+    progress?: number; // 0-100, for generation polling
+    error?: string;
 }
 
 interface CanvasTextData {
-  type: "canvas-text";
-  label: string;                   // Auto: "Text 1", etc.
-  content: string;                 // Rich text / markdown content
-  fontSize?: number;
-  width: number;
-  height: number;
+    type: "canvas-text";
+    label: string; // Auto: "Text 1", etc.
+    content: string; // Rich text / markdown content
+    fontSize?: number;
+    width: number;
+    height: number;
 }
 ```
 
@@ -132,32 +132,32 @@ interface CanvasTextData {
 
 ```typescript
 interface ChatMessage {
-  id: string;                      // UUID
-  role: "user" | "assistant" | "system";
-  content: string;                 // Markdown text
-  attachments?: ChatAttachment[];  // Media references from canvas
-  actions?: ChatAction[];          // Suggested quick-action buttons
-  generatedMedia?: GeneratedMediaRef[]; // Media this message created
-  model?: string;                  // Model used for this response
-  createdAt: string;               // ISO timestamp
+    id: string; // UUID
+    role: "user" | "assistant" | "system";
+    content: string; // Markdown text
+    attachments?: ChatAttachment[]; // Media references from canvas
+    actions?: ChatAction[]; // Suggested quick-action buttons
+    generatedMedia?: GeneratedMediaRef[]; // Media this message created
+    model?: string; // Model used for this response
+    createdAt: string; // ISO timestamp
 }
 
 interface ChatAttachment {
-  nodeId: string;                  // Canvas node ID being referenced
-  label: string;                   // Display label (e.g. "Image 1")
-  type: "canvas-image" | "canvas-video";
-  thumbnailUrl?: string;           // For preview in chat input
+    nodeId: string; // Canvas node ID being referenced
+    label: string; // Display label (e.g. "Image 1")
+    type: "canvas-image" | "canvas-video";
+    thumbnailUrl?: string; // For preview in chat input
 }
 
 interface ChatAction {
-  id: string;
-  label: string;                   // Button text (e.g. "Yes, generate it")
-  prompt: string;                  // Message sent when clicked
+    id: string;
+    label: string; // Button text (e.g. "Yes, generate it")
+    prompt: string; // Message sent when clicked
 }
 
 interface GeneratedMediaRef {
-  nodeId: string;                  // The canvas node that was created
-  type: "canvas-image" | "canvas-video";
+    nodeId: string; // The canvas node that was created
+    type: "canvas-image" | "canvas-video";
 }
 ```
 
@@ -198,10 +198,10 @@ interface GeneratedMediaRef {
 
 Vertical icon toolbar, always visible:
 
-| Icon | Action | Behavior |
-|------|--------|----------|
-| `Type` (T) | Add Text | Creates a new `canvas-text` node at canvas center |
-| `Upload` (↑) | Import | Opens file picker (images: png/jpg/webp, videos: mp4/webm). Uploads to GCS, adds as node |
+| Icon         | Action   | Behavior                                                                                 |
+| ------------ | -------- | ---------------------------------------------------------------------------------------- |
+| `Type` (T)   | Add Text | Creates a new `canvas-text` node at canvas center                                        |
+| `Upload` (↑) | Import   | Opens file picker (images: png/jpg/webp, videos: mp4/webm). Uploads to GCS, adds as node |
 
 ### 4.3 Canvas Area (Center)
 
@@ -211,12 +211,12 @@ Built with **React Flow** (`@xyflow/react`):
 - **Background**: Dot grid pattern (consistent with flow editor)
 - **Controls**: Zoom in/out/fit-view buttons (React Flow `<Controls />`)
 - **Node interactions**:
-  - Click to select (blue border highlight)
-  - Shift+Click or drag-select for multi-select
-  - Drag to reposition
-  - Resize handles on selected nodes
-  - Double-click label to rename
-  - Right-click context menu: Rename, Delete, Copy prompt
+    - Click to select (blue border highlight)
+    - Shift+Click or drag-select for multi-select
+    - Drag to reposition
+    - Resize handles on selected nodes
+    - Double-click label to rename
+    - Right-click context menu: Rename, Delete, Copy prompt
 
 ### 4.4 Chat Panel (Right)
 
@@ -227,10 +227,10 @@ Fixed-width panel (~380px), not resizable.
 1. **Message history** (scrollable): Renders `ChatMessage[]` with markdown, media previews, and action buttons
 2. **Attachments bar**: Shows capsules for selected canvas items (when items are selected on canvas). Each capsule has the item label + thumbnail + remove button
 3. **Chat input area**:
-   - Rich text input with `@` mention support (typing `@` shows a dropdown of all canvas nodes with label + type icon; selecting one inserts a capsule)
-   - **Mode selector** (combobox): `Auto` | `Image` | `Video` — controls generation type
-   - **Model selector** (combobox): Lists available models, defaults to `Gemini 3.1 Flash`
-   - **Send button**: Submits the message
+    - Rich text input with `@` mention support (typing `@` shows a dropdown of all canvas nodes with label + type icon; selecting one inserts a capsule)
+    - **Mode selector** (combobox): `Auto` | `Image` | `Video` — controls generation type
+    - **Model selector** (combobox): Lists available models, defaults to `Gemini 3.1 Flash`
+    - **Send button**: Submits the message
 
 ---
 
@@ -257,11 +257,11 @@ The agent operates under a system prompt that defines:
 
 ### 5.3 Generation Mode Logic
 
-| Mode | Behavior |
-|------|----------|
-| **Auto** | Agent uses the reasoning LLM to decide whether to generate an image or video based on the user's message |
-| **Image** | Forces image generation. Agent wraps user intent into an image generation prompt |
-| **Video** | Forces video generation. Agent wraps user intent into a video generation prompt |
+| Mode      | Behavior                                                                                                 |
+| --------- | -------------------------------------------------------------------------------------------------------- |
+| **Auto**  | Agent uses the reasoning LLM to decide whether to generate an image or video based on the user's message |
+| **Image** | Forces image generation. Agent wraps user intent into an image generation prompt                         |
+| **Video** | Forces video generation. Agent wraps user intent into a video generation prompt                          |
 
 ### 5.4 Context Assembly
 
@@ -270,8 +270,8 @@ For each user message, the backend assembles context from:
 1. **System prompt** (role, capabilities, instructions)
 2. **Chat history** (previous messages, trimmed to fit context window)
 3. **Selected canvas items** (attached via selection or @mention):
-   - Images: GCS URI passed as image parts to the LLM
-   - Videos: GCS URI passed as file reference
+    - Images: GCS URI passed as image parts to the LLM
+    - Videos: GCS URI passed as file reference
 4. **User message text**
 
 ### 5.5 Response Format
@@ -280,19 +280,19 @@ The agent returns a **streamed** response with a structured suffix:
 
 ```typescript
 interface AgentResponse {
-  text: string;                    // Markdown response (streamed)
-  mediaToGenerate?: {
-    type: "image" | "video";
-    prompt: string;
-    referenceNodeIds?: string[];   // Canvas items to use as reference
-    config: {
-      aspectRatio?: string;
-      resolution?: string;
-      model?: string;
-      duration?: number;           // Video only
+    text: string; // Markdown response (streamed)
+    mediaToGenerate?: {
+        type: "image" | "video";
+        prompt: string;
+        referenceNodeIds?: string[]; // Canvas items to use as reference
+        config: {
+            aspectRatio?: string;
+            resolution?: string;
+            model?: string;
+            duration?: number; // Video only
+        };
     };
-  };
-  suggestedActions?: ChatAction[]; // Quick-action buttons
+    suggestedActions?: ChatAction[]; // Quick-action buttons
 }
 ```
 
@@ -318,11 +318,11 @@ When the user references an existing canvas item (via @mention or selection) and
 
 Exposed in the model selector combobox:
 
-| Category | Models |
-|----------|--------|
-| **Text/Reasoning** | `gemini-3.1-flash` (default), `gemini-3-pro-preview`, `gemini-2.5-flash` |
-| **Image** | `gemini-3.1-flash-image-preview` (default), `gemini-3-pro-image-preview`, `gemini-2.5-flash-image` |
-| **Video** | `veo-3.1-fast-generate-preview` (default), `veo-3.1-generate-preview` |
+| Category           | Models                                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
+| **Text/Reasoning** | `gemini-3.1-flash` (default), `gemini-3-pro-preview`, `gemini-2.5-flash`                           |
+| **Image**          | `gemini-3.1-flash-image-preview` (default), `gemini-3-pro-image-preview`, `gemini-2.5-flash-image` |
+| **Video**          | `veo-3.1-fast-generate-preview` (default), `veo-3.1-generate-preview`                              |
 
 The model selector controls the **reasoning** model. Image/video generation models are auto-selected based on generation type, or can be overridden via chat instructions.
 
@@ -332,29 +332,29 @@ The model selector controls the **reasoning** model. Image/video generation mode
 
 ### 6.1 Canvas CRUD
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/canvases` | List user's canvases (supports `?tab=canvas`) |
-| `POST` | `/api/canvases` | Create new canvas |
-| `GET` | `/api/canvases/[id]` | Get canvas by ID |
-| `PATCH` | `/api/canvases/[id]` | Update canvas (nodes, name, viewport, messages) |
-| `DELETE` | `/api/canvases/[id]` | Delete canvas |
+| Method   | Route                | Description                                     |
+| -------- | -------------------- | ----------------------------------------------- |
+| `GET`    | `/api/canvases`      | List user's canvases (supports `?tab=canvas`)   |
+| `POST`   | `/api/canvases`      | Create new canvas                               |
+| `GET`    | `/api/canvases/[id]` | Get canvas by ID                                |
+| `PATCH`  | `/api/canvases/[id]` | Update canvas (nodes, name, viewport, messages) |
+| `DELETE` | `/api/canvases/[id]` | Delete canvas                                   |
 
 ### 6.2 Canvas Chat
 
-| Method | Route | Description |
-|--------|-------|-------------|
+| Method | Route                     | Description                                            |
+| ------ | ------------------------- | ------------------------------------------------------ |
 | `POST` | `/api/canvases/[id]/chat` | Send a message to the canvas agent. Returns SSE stream |
 
 **Request body:**
 
 ```typescript
 interface CanvasChatRequest {
-  message: string;
-  attachments?: ChatAttachment[];  // Selected canvas items
-  mode: "auto" | "image" | "video";
-  model?: string;                  // Override reasoning model
-  history?: ChatMessage[];         // Recent chat context (or fetched server-side)
+    message: string;
+    attachments?: ChatAttachment[]; // Selected canvas items
+    mode: "auto" | "image" | "video";
+    model?: string; // Override reasoning model
+    history?: ChatMessage[]; // Recent chat context (or fetched server-side)
 }
 ```
 
@@ -381,12 +381,12 @@ data: {}
 
 Reuses existing API routes:
 
-| Route | Used for |
-|-------|----------|
-| `POST /api/generate-image` | Image generation (existing) |
-| `POST /api/generate-video` | Video generation (existing) |
-| `POST /api/upload-file` | User file uploads (existing) |
-| `GET /api/signed-url` | Signed URL for GCS media display (existing) |
+| Route                      | Used for                                    |
+| -------------------------- | ------------------------------------------- |
+| `POST /api/generate-image` | Image generation (existing)                 |
+| `POST /api/generate-video` | Video generation (existing)                 |
+| `POST /api/upload-file`    | User file uploads (existing)                |
+| `GET /api/signed-url`      | Signed URL for GCS media display (existing) |
 
 ---
 
@@ -452,35 +452,37 @@ app/api/
 
 ```typescript
 interface CanvasStore {
-  // Canvas data
-  canvasId: string | null;
-  canvasName: string;
-  nodes: CanvasNode[];
-  viewport: { x: number; y: number; zoom: number };
-  messages: ChatMessage[];
+    // Canvas data
+    canvasId: string | null;
+    canvasName: string;
+    nodes: CanvasNode[];
+    viewport: { x: number; y: number; zoom: number };
+    messages: ChatMessage[];
 
-  // UI state
-  selectedNodeIds: string[];
-  isSaving: boolean;
-  saveStatus: "saved" | "saving" | "error";
-  isChatLoading: boolean;
-  generatingNodeIds: string[];     // Nodes currently being generated
+    // UI state
+    selectedNodeIds: string[];
+    isSaving: boolean;
+    saveStatus: "saved" | "saving" | "error";
+    isChatLoading: boolean;
+    generatingNodeIds: string[]; // Nodes currently being generated
 
-  // Actions
-  setCanvas: (canvas: CanvasDocument) => void;
-  setCanvasName: (name: string) => void;
-  addNode: (node: CanvasNode) => void;
-  updateNode: (id: string, data: Partial<CanvasNode>) => void;
-  removeNode: (id: string) => void;
-  setNodes: (nodes: CanvasNode[]) => void;
-  setViewport: (viewport: { x: number; y: number; zoom: number }) => void;
-  setSelectedNodeIds: (ids: string[]) => void;
-  addMessage: (message: ChatMessage) => void;
-  updateMessage: (id: string, data: Partial<ChatMessage>) => void;
-  save: () => Promise<void>;
+    // Actions
+    setCanvas: (canvas: CanvasDocument) => void;
+    setCanvasName: (name: string) => void;
+    addNode: (node: CanvasNode) => void;
+    updateNode: (id: string, data: Partial<CanvasNode>) => void;
+    removeNode: (id: string) => void;
+    setNodes: (nodes: CanvasNode[]) => void;
+    setViewport: (viewport: { x: number; y: number; zoom: number }) => void;
+    setSelectedNodeIds: (ids: string[]) => void;
+    addMessage: (message: ChatMessage) => void;
+    updateMessage: (id: string, data: Partial<ChatMessage>) => void;
+    save: () => Promise<void>;
 
-  // Node ID generation
-  getNextLabel: (type: "canvas-image" | "canvas-video" | "canvas-text") => string;
+    // Node ID generation
+    getNextLabel: (
+        type: "canvas-image" | "canvas-video" | "canvas-text",
+    ) => string;
 }
 ```
 
@@ -517,6 +519,7 @@ Follows the same pattern as the existing flow auto-save mechanism.
 The feature will be built atomically in the following order:
 
 ### Phase 1 — Foundation
+
 1. **Firestore collection & service**: `canvas.service.ts` with CRUD operations
 2. **API routes**: `/api/canvases` (list, create), `/api/canvases/[id]` (get, update, delete)
 3. **Dashboard tab**: Add "Canvas" tab (admin-only) to `/flows` page with listing, create, delete
@@ -525,6 +528,7 @@ The feature will be built atomically in the following order:
 6. **Auto-save**: Debounced persistence
 
 ### Phase 2 — Canvas Nodes
+
 7. **Canvas image node**: `canvas-image-node.tsx` with preview, label, resize, selection highlight
 8. **Canvas video node**: `canvas-video-node.tsx` with video player, label, progress indicator
 9. **Canvas text node**: `canvas-text-node.tsx` with inline editing
@@ -533,6 +537,7 @@ The feature will be built atomically in the following order:
 12. **Context menu**: Right-click on node → Rename, Delete, Copy prompt
 
 ### Phase 3 — Chat Panel (Static)
+
 13. **Chat panel layout**: Fixed-width panel with message list + input area
 14. **Chat message rendering**: Markdown, media thumbnails, timestamps
 15. **Chat input**: Basic text input with send button
@@ -540,6 +545,7 @@ The feature will be built atomically in the following order:
 17. **Model selector**: Combobox with available models
 
 ### Phase 4 — Agent Integration
+
 18. **Agent orchestration**: `canvas-agent.ts` — system prompt, context assembly, intent detection
 19. **Chat API route**: `/api/canvases/[id]/chat` with SSE streaming
 20. **Streaming responses**: Token-by-token rendering in chat panel
@@ -548,17 +554,20 @@ The feature will be built atomically in the following order:
 23. **Chat history persistence**: Messages saved as part of canvas document
 
 ### Phase 5 — Context & Mentions
+
 24. **Selection-to-context**: Selected canvas nodes appear as attachments in chat input bar
 25. **@mention system**: `@` trigger → dropdown of canvas nodes → capsule insertion
 26. **Context assembly**: Selected/mentioned items sent as multimodal parts to the agent
 27. **Agent media references**: Agent can reference canvas items by label in responses
 
 ### Phase 6 — Suggested Actions & Iteration
+
 28. **Suggested action buttons**: Agent returns quick actions, rendered as clickable buttons below messages
 29. **Media iteration**: "Edit Image 1" → original image passed as reference + new instructions
 30. **Generation config via chat**: User can specify aspect ratio, resolution in natural language
 
 ### Future Phases (Not in initial scope)
+
 - Canvas sharing (`sharedWith`, `sharedWithEmails`)
 - Community canvas templates
 - Opening canvas feature to non-admin users
@@ -573,17 +582,17 @@ The feature will be built atomically in the following order:
 
 ## 12. Key Technical Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Canvas library | React Flow (`@xyflow/react`) | Already in the project, proven with flow editor, handles zoom/pan/drag/resize |
-| State management | Zustand | Consistent with existing flow store pattern |
-| Chat streaming | SSE (Server-Sent Events) | Simple, well-supported, unidirectional (server → client) |
-| Chat persistence | Part of canvas document | Keeps data co-located, simpler queries |
-| Agent LLM | Gemini 3.1 Flash (default) | Fast, capable, already integrated via Vertex AI |
-| Media storage | GCS (existing bucket) | Reuses existing upload/signed-URL infrastructure |
-| Admin gating | `session.user.isAdmin` check | Existing pattern from `auth.ts` — env-based `ADMIN_EMAILS` |
-| Auto-save | Debounced PATCH (500ms) | Same pattern as flow editor, prevents data loss |
-| @mentions | Custom mention dropdown | Similar to existing `mention-editor` in flow nodes |
+| Decision         | Choice                       | Rationale                                                                     |
+| ---------------- | ---------------------------- | ----------------------------------------------------------------------------- |
+| Canvas library   | React Flow (`@xyflow/react`) | Already in the project, proven with flow editor, handles zoom/pan/drag/resize |
+| State management | Zustand                      | Consistent with existing flow store pattern                                   |
+| Chat streaming   | SSE (Server-Sent Events)     | Simple, well-supported, unidirectional (server → client)                      |
+| Chat persistence | Part of canvas document      | Keeps data co-located, simpler queries                                        |
+| Agent LLM        | Gemini 3.1 Flash (default)   | Fast, capable, already integrated via Vertex AI                               |
+| Media storage    | GCS (existing bucket)        | Reuses existing upload/signed-URL infrastructure                              |
+| Admin gating     | `session.user.isAdmin` check | Existing pattern from `auth.ts` — env-based `ADMIN_EMAILS`                    |
+| Auto-save        | Debounced PATCH (500ms)      | Same pattern as flow editor, prevents data loss                               |
+| @mentions        | Custom mention dropdown      | Similar to existing `mention-editor` in flow nodes                            |
 
 ---
 
@@ -599,23 +608,23 @@ The feature will be built atomically in the following order:
 
 ## 14. Error Handling
 
-| Scenario | UX |
-|----------|-----|
-| Image generation fails | Node shows error state (red border, error message). Toast notification. Retry option in context menu |
-| Video generation times out | Node shows timeout message. Toast with retry option |
-| Chat API error | Error message in chat panel. Retry button on failed message |
-| Auto-save fails | Header shows "Error saving" status. Retry on next change |
-| Upload fails | Toast with error message. File not added to canvas |
-| Model unavailable | Fallback to default model. Info toast |
+| Scenario                   | UX                                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Image generation fails     | Node shows error state (red border, error message). Toast notification. Retry option in context menu |
+| Video generation times out | Node shows timeout message. Toast with retry option                                                  |
+| Chat API error             | Error message in chat panel. Retry button on failed message                                          |
+| Auto-save fails            | Header shows "Error saving" status. Retry on next change                                             |
+| Upload fails               | Toast with error message. File not added to canvas                                                   |
+| Model unavailable          | Fallback to default model. Info toast                                                                |
 
 ---
 
 ## 15. Naming Conventions
 
-| Entity | Singular | Plural | Collection |
-|--------|----------|--------|------------|
-| Canvas | Canvas | Canvases | `canvases` |
-| Canvas Node | CanvasNode | CanvasNodes | — |
-| Chat Message | ChatMessage | ChatMessages | — |
+| Entity       | Singular    | Plural       | Collection |
+| ------------ | ----------- | ------------ | ---------- |
+| Canvas       | Canvas      | Canvases     | `canvases` |
+| Canvas Node  | CanvasNode  | CanvasNodes  | —          |
+| Chat Message | ChatMessage | ChatMessages | —          |
 
 Route segments use lowercase singular: `/canvas/[id]`, `/api/canvases`.

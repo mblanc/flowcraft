@@ -11,7 +11,7 @@ import type { FlowState } from "@/lib/store/use-flow-store";
 import { useShallow } from "zustand/react/shallow";
 import { createNode } from "@/lib/node-factory";
 import logger from "@/app/logger";
-import type { CustomNodeItem } from "@/components/flow-canvas/flow-constants";
+import type { CustomNodeItem } from "@/components/flow/flow-constants";
 
 export function useFlowDragDrop(rfInstance: ReactFlowInstance | null) {
     const { addNodeWithType, addNode, updateNodeData } = useFlowStore(

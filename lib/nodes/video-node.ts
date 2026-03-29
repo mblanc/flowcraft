@@ -31,10 +31,13 @@ export async function executeVideoNode(
     const rawPrompt = node.data.prompt || inputs.prompt || "";
     const nodeMap = new Map(namedNodes.map((n) => [n.nodeId, n]));
     NODE_MENTION_REGEX.lastIndex = 0;
-    const finalPrompt = rawPrompt.replace(NODE_MENTION_REGEX, (match, nodeId) => {
-        const named = nodeMap.get(nodeId);
-        return named?.textValue ?? match;
-    });
+    const finalPrompt = rawPrompt.replace(
+        NODE_MENTION_REGEX,
+        (match, nodeId) => {
+            const named = nodeMap.get(nodeId);
+            return named?.textValue ?? match;
+        },
+    );
 
     if (!finalPrompt) {
         throw new Error("No prompt available for video node");

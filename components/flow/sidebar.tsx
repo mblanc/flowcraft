@@ -1,7 +1,7 @@
 "use client";
 
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { ConfigPanel } from "./config-panel";
+import { ConfigPanel } from "../panels/config-panel";
 import {
     X,
     Bot,
@@ -16,7 +16,7 @@ import {
     Box,
     ListOrdered,
 } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 
 export function Sidebar() {
     const isConfigSidebarOpen = useFlowStore(

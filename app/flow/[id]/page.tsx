@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { FlowCanvas } from "@/components/flow-canvas";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
+import { FlowCanvas } from "@/components/flow/flow-canvas";
+import { Header } from "@/components/flow/header";
+import { Sidebar } from "@/components/flow/sidebar";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
 import { Loader2 } from "lucide-react";

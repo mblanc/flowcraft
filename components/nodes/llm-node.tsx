@@ -15,7 +15,7 @@ import {
     FastForward,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { NodeTitle } from "@/components/node-title";
+import { NodeTitle } from "@/components/nodes/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { MODELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -42,9 +42,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MentionEditor } from "@/components/mention-editor";
+import { MentionEditor } from "@/components/nodes/mention-editor";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
-import { BatchTextOutput } from "@/components/batch-text-output";
+import { BatchTextOutput } from "@/components/nodes/batch-text-output";
 import { useNodeResize } from "@/hooks/use-node-resize";
 import { useSyncedState } from "@/hooks/use-synced-state";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";

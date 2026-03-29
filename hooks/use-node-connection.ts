@@ -17,8 +17,8 @@ import { isTypeCompatible } from "@/lib/utils";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { createNode } from "@/lib/node-factory";
 import { v4 as uuidv4 } from "uuid";
-import type { CustomNodeItem } from "@/components/flow-canvas/flow-constants";
-import { nativeItems } from "@/components/flow-canvas/flow-constants";
+import type { CustomNodeItem } from "@/components/flow/flow-constants";
+import { nativeItems } from "@/components/flow/flow-constants";
 
 export function useNodeConnection(
     rfInstance: ReactFlowInstance | null,

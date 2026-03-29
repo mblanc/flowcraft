@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
-import { LLMNode } from "../components/llm-node";
+import { LLMNode } from "../components/nodes/llm-node";
 import { ReactFlowProvider } from "@xyflow/react";
 import { TooltipProvider } from "../components/ui/tooltip";
 

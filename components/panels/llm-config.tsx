@@ -8,7 +8,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Switch } from "../ui/switch";
-import { MentionEditor } from "../mention-editor";
+import { MentionEditor } from "../nodes/mention-editor";
 import {
     Select,
     SelectContent,

@@ -5,15 +5,15 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { WorkflowOutputData } from "@/lib/types";
 import { LogOut } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { Input } from "./ui/input";
+import { Input } from "../ui/input";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "./ui/select";
-import { Label } from "./ui/label";
+} from "../ui/select";
+import { Label } from "../ui/label";
 
 export const WorkflowOutputNode = memo(
     ({ data, selected, id }: NodeProps<Node<WorkflowOutputData>>) => {

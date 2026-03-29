@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { UpscaleNode } from "../components/upscale-node";
+import { UpscaleNode } from "../components/nodes/upscale-node";
 import { ReactFlowProvider } from "@xyflow/react";
 import type { NodeProps } from "@xyflow/react";
 import type { UpscaleData } from "../lib/types";
