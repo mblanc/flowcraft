@@ -2,7 +2,11 @@
 
 import { create } from "zustand";
 import { applyNodeChanges, type NodeChange } from "@xyflow/react";
-import type { CanvasDocument, CanvasNode, ChatMessage } from "@/lib/canvas-types";
+import type {
+    CanvasDocument,
+    CanvasNode,
+    ChatMessage,
+} from "@/lib/canvas-types";
 
 export interface CanvasStore {
     // Canvas data
@@ -37,11 +41,16 @@ export interface CanvasStore {
     setSelectedNodeIds: (ids: string[]) => void;
     addMessage: (message: ChatMessage) => void;
     updateMessage: (id: string, data: Partial<ChatMessage>) => void;
+    setIsChatLoading: (loading: boolean) => void;
     setSaveStatus: (status: "saved" | "saving" | "error") => void;
 
     // Node ID generation
-    getNextLabel: (type: "canvas-image" | "canvas-video" | "canvas-text") => string;
-    getNextNodeId: (type: "canvas-image" | "canvas-video" | "canvas-text") => string;
+    getNextLabel: (
+        type: "canvas-image" | "canvas-video" | "canvas-text",
+    ) => string;
+    getNextNodeId: (
+        type: "canvas-image" | "canvas-video" | "canvas-text",
+    ) => string;
 }
 
 const TYPE_PREFIX_MAP = {
@@ -119,8 +128,11 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
 
     onNodesChange: (changes) => {
         set((state) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const nextNodes = applyNodeChanges(changes, state.nodes as any[]) as unknown as CanvasNode[];
+            const nextNodes = applyNodeChanges(
+                changes,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                state.nodes as any[],
+            ) as unknown as CanvasNode[];
             const selectedIds = nextNodes
                 .filter((n) => n.selected)
                 .map((n) => n.id);
@@ -138,8 +150,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
         });
     },
 
-    setViewport: (viewport) =>
-        set({ viewport, lastModified: Date.now() }),
+    setViewport: (viewport) => set({ viewport, lastModified: Date.now() }),
 
     setSelectedNodeIds: (ids) => set({ selectedNodeIds: ids }),
 
@@ -156,6 +167,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
             ),
             lastModified: Date.now(),
         })),
+
+    setIsChatLoading: (loading) => set({ isChatLoading: loading }),
 
     setSaveStatus: (status) =>
         set({ saveStatus: status, isSaving: status === "saving" }),

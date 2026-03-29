@@ -6,7 +6,11 @@ import type {
     DocumentSnapshot,
     QueryDocumentSnapshot,
 } from "@google-cloud/firestore";
-import type { CanvasDocument, CanvasNode, ChatMessage } from "@/lib/canvas-types";
+import type {
+    CanvasDocument,
+    CanvasNode,
+    ChatMessage,
+} from "@/lib/canvas-types";
 
 export interface CanvasCreateRequest {
     name: string;
@@ -34,9 +38,14 @@ export class CanvasService {
             thumbnail: data?.thumbnail as string | undefined,
             nodes: (data?.nodes ?? []) as CanvasNode[],
             edges: [] as never[],
-            viewport: (data?.viewport ?? { x: 0, y: 0, zoom: 1 }) as CanvasDocument["viewport"],
+            viewport: (data?.viewport ?? {
+                x: 0,
+                y: 0,
+                zoom: 1,
+            }) as CanvasDocument["viewport"],
             messages: (data?.messages ?? []) as ChatMessage[],
-            visibility: (data?.visibility ?? "private") as CanvasDocument["visibility"],
+            visibility: (data?.visibility ??
+                "private") as CanvasDocument["visibility"],
             sharedWith: (data?.sharedWith ?? []) as string[],
             sharedWithEmails: (data?.sharedWithEmails ?? []) as string[],
             isTemplate: (data?.isTemplate ?? false) as boolean,

@@ -3,7 +3,11 @@
 import { useRef, useCallback, useState } from "react";
 import { Type, Upload, Loader2 } from "lucide-react";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
-import type { CanvasTextData, CanvasImageData, CanvasVideoData } from "@/lib/canvas-types";
+import type {
+    CanvasTextData,
+    CanvasImageData,
+    CanvasVideoData,
+} from "@/lib/canvas-types";
 import {
     Tooltip,
     TooltipContent,
