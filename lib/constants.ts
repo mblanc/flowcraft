@@ -22,6 +22,63 @@ export const MODELS = {
     },
 } as const;
 
+export const IMAGE_MODEL_CONFIGS = {
+    [MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE]: {
+        ratios: [
+            "1:1",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        resolutions: ["1K"],
+        grounding: { google: true, image: false },
+    },
+    [MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW]: {
+        ratios: [
+            "1:1",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        resolutions: ["1K", "2K", "4K"],
+        grounding: { google: true, image: false },
+    },
+    [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW]: {
+        ratios: [
+            "1:1",
+            "1:4",
+            "1:8",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        resolutions: ["512", "1K", "2K", "4K"],
+        grounding: { google: true, image: true },
+    },
+} as const;
+
+export const BATCH_CONCURRENCY = 3;
+
 export const DEFAULTS = {
     ASPECT_RATIO: "16:9",
     VIDEO_DURATION: 4,

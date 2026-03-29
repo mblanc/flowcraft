@@ -13,7 +13,7 @@ import {
     findInputByHandle,
 } from "./shared/node-helpers";
 import { executeNodeApiCall } from "./shared/execute-api-call";
-import { MENTION_RE } from "./shared/mention-resolver";
+import { NODE_MENTION_REGEX } from "@/lib/mention-utils";
 
 export async function executeVideoNode(
     node: Node<VideoData>,
@@ -30,8 +30,8 @@ export async function executeVideoNode(
 
     const rawPrompt = node.data.prompt || inputs.prompt || "";
     const nodeMap = new Map(namedNodes.map((n) => [n.nodeId, n]));
-    MENTION_RE.lastIndex = 0;
-    const finalPrompt = rawPrompt.replace(MENTION_RE, (match, nodeId) => {
+    NODE_MENTION_REGEX.lastIndex = 0;
+    const finalPrompt = rawPrompt.replace(NODE_MENTION_REGEX, (match, nodeId) => {
         const named = nodeMap.get(nodeId);
         return named?.textValue ?? match;
     });

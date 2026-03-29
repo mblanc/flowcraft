@@ -1,6 +1,7 @@
 import { ContentPart, NamedNodeInput } from "../../types";
+import { NODE_MENTION_REGEX } from "@/lib/mention-utils";
 
-export const MENTION_RE = /@\[([^\]]+)\]/g;
+export const MENTION_RE = NODE_MENTION_REGEX;
 
 /**
  * Parses a string containing `@[nodeId]` tokens and returns a `ContentPart[]`
