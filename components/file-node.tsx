@@ -17,6 +17,7 @@ import { useSignedUrl } from "@/hooks/use-signed-url";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { isGcsUri } from "@/lib/gcs-uri";
 
 const PdfPreview = dynamic(
     () => import("./pdf-preview").then((mod) => mod.PdfPreview),
@@ -49,7 +50,7 @@ export const FileNode = memo(
         const { signedUrl: gcsSignedUrl } = useSignedUrl(data.gcsUri);
 
         const signedUrl =
-            (data.gcsUri?.startsWith("gs://")
+            (isGcsUri(data.gcsUri)
                 ? (gcsSignedUrl ?? asyncSignedUrl)
                 : data.fileUrl) || undefined;
 

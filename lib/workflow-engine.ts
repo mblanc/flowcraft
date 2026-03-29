@@ -1,5 +1,6 @@
 import logger from "@/app/logger";
 import { Edge, Node } from "@xyflow/react";
+import { BATCH_CONCURRENCY } from "@/lib/constants";
 import {
     NodeData,
     NodeInputs,
@@ -256,7 +257,6 @@ export class WorkflowEngine {
                         `[WorkflowEngine] Batch execution: ${node.data.type} node "${node.data.name}" running ${batchPlan.batchSize} iterations`,
                     );
 
-                    const BATCH_CONCURRENCY = 3;
                     let completedCount = 0;
                     const batchResults: Partial<NodeData>[] = new Array(
                         batchPlan.batchSize,

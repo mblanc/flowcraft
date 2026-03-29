@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { NODE_MENTION_REGEX } from "@/lib/mention-utils";
 
 export interface MentionNode {
     id: string;
@@ -30,12 +31,12 @@ const escapeHtml = (s: string) =>
 /** Converts stored `@[nodeId]` string → display HTML with mention chips. */
 function valueToHtml(value: string, nodes: MentionNode[]): string {
     const nodeMap = new Map(nodes.map((n) => [n.id, n.name]));
-    const MENTION_RE = /@\[([^\]]+)\]/g;
     let result = "";
     let lastIndex = 0;
     let match: RegExpExecArray | null;
 
-    while ((match = MENTION_RE.exec(value)) !== null) {
+    NODE_MENTION_REGEX.lastIndex = 0;
+    while ((match = NODE_MENTION_REGEX.exec(value)) !== null) {
         const before = value.slice(lastIndex, match.index);
         result += escapeHtml(before).replace(/\n/g, "<br>");
 

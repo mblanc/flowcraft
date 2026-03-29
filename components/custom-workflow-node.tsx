@@ -13,6 +13,7 @@ import logger from "@/app/logger";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { shallowEqual } from "@/lib/utils";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
+import { isGcsUri } from "@/lib/gcs-uri";
 
 function SubWorkflowOutputPreview({
     type,
@@ -62,7 +63,7 @@ function SubWorkflowOutputPreview({
             for (const uri of uris) {
                 if (!uri) continue;
 
-                if (uri.startsWith("gs://")) {
+                if (isGcsUri(uri)) {
                     try {
                         const res = await fetch(
                             `/api/signed-url?gcsUri=${encodeURIComponent(uri)}`,

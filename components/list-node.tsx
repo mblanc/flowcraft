@@ -29,6 +29,7 @@ import logger from "@/app/logger";
 import { MediaViewer } from "@/components/media-viewer";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import { toast } from "sonner";
+import { isGcsUri, parseGcsUri } from "@/lib/gcs-uri";
 
 export const ListNode = memo(
     ({ data, selected, id }: NodeProps<Node<ListData>>) => {
@@ -69,7 +70,7 @@ export const ListNode = memo(
                 for (const item of data.items) {
                     if (
                         item &&
-                        item.startsWith("gs://") &&
+                        isGcsUri(item) &&
                         !newSignedUrls[item]
                     ) {
                         try {
@@ -102,7 +103,7 @@ export const ListNode = memo(
 
         const resolveUrl = useCallback(
             (url: string) => {
-                if (url?.startsWith("gs://")) {
+                if (isGcsUri(url)) {
                     return signedUrls[url] || "";
                 }
                 return url;
@@ -321,8 +322,10 @@ export const ListNode = memo(
                                         <div className="flex flex-1 items-center justify-between px-2 pt-1">
                                             <span className="text-muted-foreground max-w-[150px] truncate text-[10px]">
                                                 {item
-                                                    ? item.startsWith("gs://")
-                                                        ? item.split("/").pop()
+                                                    ? isGcsUri(item)
+                                                        ? parseGcsUri(item).path
+                                                              .split("/")
+                                                              .pop()
                                                         : "Direct URL"
                                                     : "No image uploaded"}
                                             </span>

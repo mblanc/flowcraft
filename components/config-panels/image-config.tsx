@@ -3,7 +3,7 @@
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
 import type { ImageData } from "@/lib/types";
-import { MODELS } from "@/lib/constants";
+import { MODELS, IMAGE_MODEL_CONFIGS } from "@/lib/constants";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
@@ -21,61 +21,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import logger from "@/app/logger";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
-
-const IMAGE_MODEL_CONFIGS = {
-    [MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE]: {
-        ratios: [
-            "1:1",
-            "3:2",
-            "2:3",
-            "3:4",
-            "4:3",
-            "4:5",
-            "5:4",
-            "9:16",
-            "16:9",
-            "21:9",
-        ],
-        resolutions: ["1K"],
-        grounding: { google: true, image: false },
-    },
-    [MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW]: {
-        ratios: [
-            "1:1",
-            "3:2",
-            "2:3",
-            "3:4",
-            "4:3",
-            "4:5",
-            "5:4",
-            "9:16",
-            "16:9",
-            "21:9",
-        ],
-        resolutions: ["1K", "2K", "4K"],
-        grounding: { google: true, image: false },
-    },
-    [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW]: {
-        ratios: [
-            "1:1",
-            "1:4",
-            "1:8",
-            "3:2",
-            "2:3",
-            "3:4",
-            "4:1",
-            "4:3",
-            "4:5",
-            "5:4",
-            "8:1",
-            "9:16",
-            "16:9",
-            "21:9",
-        ],
-        resolutions: ["512", "1K", "2K", "4K"],
-        grounding: { google: true, image: true },
-    },
-} as const;
+import { isGcsUri } from "@/lib/gcs-uri";
 
 export function ImageConfig({
     data,
@@ -100,7 +46,7 @@ export function ImageConfig({
         const fetchSignedUrls = async () => {
             const urls = await Promise.all(
                 data.images.map(async (image) => {
-                    if (image.startsWith("gs://")) {
+                    if (isGcsUri(image)) {
                         try {
                             const res = await fetch(
                                 `/api/signed-url?gcsUri=${encodeURIComponent(image)}`,
