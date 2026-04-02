@@ -95,6 +95,7 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
     aspectRatio: AspectRatio169_916Schema,
     duration: z.union([z.literal(4), z.literal(6), z.literal(8)]),
     model: z.enum([
+        MODELS.VIDEO.VEO_3_1_LITE_PREVIEW,
         MODELS.VIDEO.VEO_3_1_FAST_PREVIEW,
         MODELS.VIDEO.VEO_3_1_PRO_PREVIEW,
     ]),
@@ -307,6 +308,7 @@ export const GenerateVideoSchema = z.object({
         .default(DEFAULTS.VIDEO_DURATION),
     model: z
         .enum([
+            MODELS.VIDEO.VEO_3_1_LITE_PREVIEW,
             MODELS.VIDEO.VEO_3_1_FAST_PREVIEW,
             MODELS.VIDEO.VEO_3_1_PRO_PREVIEW,
         ])
