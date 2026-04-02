@@ -51,7 +51,7 @@ const MODES: { id: CanvasMode; label: string; icon: typeof Sparkles }[] = [
 
 const REASONING_MODELS = [
     { id: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW, label: "Gemini 3 Flash" },
-    { id: MODELS.TEXT.GEMINI_3_PRO_PREVIEW, label: "Gemini 3 Pro" },
+    { id: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW, label: "Gemini 3.1 Pro" },
     { id: MODELS.TEXT.GEMINI_2_5_FLASH, label: "Gemini 2.5 Flash" },
 ];
 

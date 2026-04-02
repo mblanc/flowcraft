@@ -4,7 +4,7 @@
 
 export const MODELS = {
     TEXT: {
-        GEMINI_3_PRO_PREVIEW: "gemini-3-pro-preview",
+        GEMINI_3_1_PRO_PREVIEW: "gemini-3.1-pro-preview",
         GEMINI_3_FLASH_PREVIEW: "gemini-3-flash-preview",
         GEMINI_2_5_FLASH: "gemini-2.5-flash",
         GEMINI_2_5_PRO: "gemini-2.5-pro",
@@ -17,6 +17,7 @@ export const MODELS = {
         IMAGEN_4_0_UPSCALE: "imagen-4.0-upscale-preview",
     },
     VIDEO: {
+        VEO_3_1_LITE_PREVIEW: "veo-3.1-lite-generate-001",
         VEO_3_1_FAST_PREVIEW: "veo-3.1-fast-generate-preview",
         VEO_3_1_PRO_PREVIEW: "veo-3.1-generate-preview",
     },

@@ -109,8 +109,8 @@ export function LLMConfig({ data, nodeId }: { data: LLMData; nodeId: string }) {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={MODELS.TEXT.GEMINI_3_PRO_PREVIEW}>
-                            Gemini 3 Pro Preview
+                        <SelectItem value={MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW}>
+                            Gemini 3.1 Pro Preview
                         </SelectItem>
                         <SelectItem value={MODELS.TEXT.GEMINI_3_FLASH_PREVIEW}>
                             Gemini 3 Flash Preview
