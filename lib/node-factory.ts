@@ -78,7 +78,7 @@ export function createNode(
                     images: [],
                     aspectRatio: DEFAULTS.ASPECT_RATIO,
                     duration: DEFAULTS.VIDEO_DURATION,
-                    model: MODELS.VIDEO.VEO_3_1_FAST_PREVIEW,
+                    model: MODELS.VIDEO.VEO_3_1_LITE,
                     generateAudio: false,
                     resolution: "720p",
                 } as VideoData,

@@ -6,6 +6,7 @@ interface UseCanvasNodeResizeOptions {
     defaultHeight: number;
     minWidth: number;
     minHeight: number;
+    lockAspectRatio?: boolean;
 }
 
 export function useCanvasNodeResize(
@@ -14,7 +15,13 @@ export function useCanvasNodeResize(
     dataHeight: number | undefined,
     options: UseCanvasNodeResizeOptions,
 ) {
-    const { defaultWidth, defaultHeight, minWidth, minHeight } = options;
+    const {
+        defaultWidth,
+        defaultHeight,
+        minWidth,
+        minHeight,
+        lockAspectRatio,
+    } = options;
     const updateNode = useCanvasStore((state) => state.updateNode);
 
     const [dimensions, setDimensions] = useState({
@@ -56,15 +63,30 @@ export function useCanvasNodeResize(
         const handleMouseMove = (e: MouseEvent) => {
             const deltaX = e.clientX - resizeStartRef.current.x;
             const deltaY = e.clientY - resizeStartRef.current.y;
+
+            let newWidth = Math.max(
+                minWidth,
+                resizeStartRef.current.width + deltaX,
+            );
+            let newHeight = Math.max(
+                minHeight,
+                resizeStartRef.current.height + deltaY,
+            );
+
+            if (lockAspectRatio) {
+                const ratio =
+                    resizeStartRef.current.width /
+                    resizeStartRef.current.height;
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    newHeight = Math.max(minHeight, newWidth / ratio);
+                } else {
+                    newWidth = Math.max(minWidth, newHeight * ratio);
+                }
+            }
+
             setDimensions({
-                width: Math.max(
-                    minWidth,
-                    resizeStartRef.current.width + deltaX,
-                ),
-                height: Math.max(
-                    minHeight,
-                    resizeStartRef.current.height + deltaY,
-                ),
+                width: newWidth,
+                height: newHeight,
             });
         };
 
@@ -91,6 +113,7 @@ export function useCanvasNodeResize(
         dimensions.height,
         minWidth,
         minHeight,
+        lockAspectRatio,
     ]);
 
     return { dimensions, handleResizeStart, isResizing };

@@ -10,6 +10,7 @@ export interface CanvasImageData {
     model?: string;
     status: "ready" | "generating" | "error";
     error?: string;
+    referenceNodeIds?: string[];
     [key: string]: unknown;
 }
 
@@ -25,6 +26,7 @@ export interface CanvasVideoData {
     status: "ready" | "generating" | "error";
     progress?: number;
     error?: string;
+    referenceNodeIds?: string[];
     [key: string]: unknown;
 }
 

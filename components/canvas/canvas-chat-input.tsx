@@ -316,6 +316,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     aspectRatio: media.config.aspectRatio,
                     model: media.config.model,
                     status: "generating",
+                    referenceNodeIds: media.referenceNodeIds,
                 };
                 addNode({
                     id: nodeId,
@@ -336,6 +337,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     model: media.config.model,
                     status: "generating",
                     progress: 0,
+                    referenceNodeIds: media.referenceNodeIds,
                 };
                 addNode({
                     id: nodeId,
@@ -747,8 +749,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     const ModeIcon = selectedMode.icon;
 
     return (
-        <div className="border-border border-t p-3">
-            <div className="bg-muted/50 rounded-lg border">
+        <div className="border-border rounded-b-2xl border-t p-3">
+            <div className="bg-muted/50 rounded-xl border">
                 <CanvasAttachmentBar
                     attachments={allAttachments}
                     onRemove={handleRemoveAttachment}

@@ -53,7 +53,8 @@ Guidelines:
 - When the user asks to "animate" or "make a video from" an image, generate a video using the image as a reference.
 - If the user specifies aspect ratio (e.g. "square", "portrait", "9:16", "vertical"), resolution (e.g. "1080p", "4K"), or duration (e.g. "8 seconds"), extract and apply those settings.
 - Suggest follow-up creative directions the user might want to explore.
-- Do NOT use markdown image or video syntax. Media will be generated separately and placed on the canvas.`;
+- Do NOT use markdown image or video syntax. Media will be generated separately and placed on the canvas.
+- IMPORTANT: Reply ONLY with natural, conversational language. Do NOT output any JSON objects, ReAct formats, or tool call syntaxes. The actual media generation is automatically handled behind the scenes.`;
 
 function getModeInstruction(mode: "auto" | "image" | "video"): string {
     switch (mode) {

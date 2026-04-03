@@ -379,7 +379,7 @@ export class GeminiService {
             resolution,
         } = options;
 
-        const selectedModel = model || MODELS.VIDEO.VEO_3_1_FAST_PREVIEW;
+        const selectedModel = model || MODELS.VIDEO.VEO_3_1_LITE;
         logger.info(
             `[GeminiService] Generating video with model: ${selectedModel}, ${resolution}`,
         );
@@ -412,7 +412,7 @@ export class GeminiService {
         }
 
         if (images && images.length > 0) {
-            videoRequest.model = MODELS.VIDEO.VEO_3_1_PRO_PREVIEW;
+            videoRequest.model = MODELS.VIDEO.VEO_3_1_PRO;
             videoRequest.config!.referenceImages = images.map((image) => ({
                 image: { gcsUri: image.url, mimeType: "image/png" },
                 referenceType: VideoGenerationReferenceType.ASSET,

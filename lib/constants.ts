@@ -17,9 +17,9 @@ export const MODELS = {
         IMAGEN_4_0_UPSCALE: "imagen-4.0-upscale-preview",
     },
     VIDEO: {
-        VEO_3_1_LITE_PREVIEW: "veo-3.1-lite-generate-001",
-        VEO_3_1_FAST_PREVIEW: "veo-3.1-fast-generate-preview",
-        VEO_3_1_PRO_PREVIEW: "veo-3.1-generate-preview",
+        VEO_3_1_LITE: "veo-3.1-lite-generate-001",
+        VEO_3_1_FAST: "veo-3.1-fast-generate-001",
+        VEO_3_1_PRO: "veo-3.1-generate-001",
     },
 } as const;
 
