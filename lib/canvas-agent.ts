@@ -22,6 +22,8 @@ export interface MediaToGenerate {
     type: "image" | "video";
     prompt: string;
     referenceNodeIds?: string[];
+    firstFrameNodeId?: string;
+    lastFrameNodeId?: string;
     config: {
         aspectRatio?: string;
         resolution?: string;
@@ -173,6 +175,16 @@ const INTENT_SCHEMA = {
             description:
                 "Override generation model if the user explicitly requests a specific one. Omit if not mentioned.",
         },
+        firstFrameLabel: {
+            type: "STRING" as const,
+            description:
+                "For video only: exact label of the canvas item to use as the first frame (e.g., 'Image 1'). Omit if unspecified.",
+        },
+        lastFrameLabel: {
+            type: "STRING" as const,
+            description:
+                "For video only: exact label of the canvas item to use as the last frame. Omit if unspecified.",
+        },
         suggestedActions: {
             type: "ARRAY" as const,
             items: {
@@ -226,6 +238,7 @@ export async function* streamAgentResponse(
             fullText += delta;
             yield { type: "text", delta };
         }
+        logger.debug(`[CanvasAgent] Phase A complete: ${fullText}`);
     } catch (error) {
         logger.error("[CanvasAgent] Streaming error:", error);
         if (!fullText) {
@@ -251,7 +264,7 @@ export async function* streamAgentResponse(
         const attachmentContext = hasAttachments
             ? `\n\nThe user has shared ${input.attachments!.length} canvas item(s) as reference. These MUST be used as reference material for the generation. When crafting the generation prompt, incorporate details from the referenced items. For example:
 - If an image is shared and the user wants edits → generate an image with the edit instructions (the original is passed as reference automatically).
-- If an image is shared and the user wants a video → generate a video (the image will be used as the first frame / reference automatically).
+- If an image is shared and the user wants a video → generate a video. If the user explicitly asks to use an image as the first or last frame, set firstFrameLabel and lastFrameLabel to the exact label of the image.
 - If a video is shared and the user wants changes → generate a new video with the updated instructions.`
             : "";
 
@@ -282,6 +295,8 @@ If the user is asking a question, making conversation, or the assistant already 
             .map((p) => p.text)
             .join("");
 
+        logger.debug(`[CanvasAgent] Phase B raw intent: ${intentText}`);
+
         if (intentText) {
             const intent = JSON.parse(intentText);
 
@@ -290,9 +305,54 @@ If the user is asking a question, making conversation, or the assistant already 
                 intent.mediaType !== "none" &&
                 intent.generationPrompt
             ) {
-                const referenceNodeIds = input.attachments
+                let referenceNodeIds = input.attachments
                     ?.map((a) => a.nodeId)
                     .filter(Boolean);
+
+                let firstFrameNodeId: string | undefined;
+                let lastFrameNodeId: string | undefined;
+
+                if (
+                    intent.mediaType === "video" &&
+                    referenceNodeIds &&
+                    referenceNodeIds.length > 0
+                ) {
+                    if (intent.firstFrameLabel) {
+                        const att = input.attachments?.find(
+                            (a) =>
+                                a.label?.toLowerCase() ===
+                                intent.firstFrameLabel?.toLowerCase(),
+                        );
+                        if (att) firstFrameNodeId = att.nodeId;
+                    }
+                    if (intent.lastFrameLabel) {
+                        const att = input.attachments?.find(
+                            (a) =>
+                                a.label?.toLowerCase() ===
+                                intent.lastFrameLabel?.toLowerCase(),
+                        );
+                        if (att) lastFrameNodeId = att.nodeId;
+                    }
+
+                    // Fallback programmatic logic if LLM didn't specify explicitly
+                    if (!firstFrameNodeId && !lastFrameNodeId) {
+                        if (referenceNodeIds.length === 1) {
+                            firstFrameNodeId = referenceNodeIds[0];
+                            referenceNodeIds = []; // Consumed
+                        } else if (referenceNodeIds.length === 2) {
+                            firstFrameNodeId = referenceNodeIds[0];
+                            lastFrameNodeId = referenceNodeIds[1];
+                            referenceNodeIds = []; // Consumed
+                        } else {
+                            // more -> always references images
+                            // If there are 3+, keep them all as references, do not set first/last frame
+                        }
+                    } else {
+                        // User explicitly assigned frames, and they are incompatible with generic references.
+                        // Clear the remaining references so we don't mix them.
+                        referenceNodeIds = [];
+                    }
+                }
 
                 yield {
                     type: "media",
@@ -303,6 +363,8 @@ If the user is asking a question, making conversation, or the assistant already 
                             referenceNodeIds && referenceNodeIds.length > 0
                                 ? referenceNodeIds
                                 : undefined,
+                        firstFrameNodeId,
+                        lastFrameNodeId,
                         config: {
                             aspectRatio: intent.aspectRatio || "16:9",
                             ...(intent.resolution

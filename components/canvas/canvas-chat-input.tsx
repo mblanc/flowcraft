@@ -434,6 +434,32 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                             })
                             .filter(Boolean) ?? [];
 
+                    const firstFrameNode = media.firstFrameNodeId
+                        ? useCanvasStore
+                              .getState()
+                              .nodes.find(
+                                  (n) => n.id === media.firstFrameNodeId,
+                              )
+                        : null;
+                    const firstFrameUrl =
+                        firstFrameNode &&
+                        "sourceUrl" in firstFrameNode.data &&
+                        firstFrameNode.data.sourceUrl
+                            ? (firstFrameNode.data.sourceUrl as string)
+                            : undefined;
+
+                    const lastFrameNode = media.lastFrameNodeId
+                        ? useCanvasStore
+                              .getState()
+                              .nodes.find((n) => n.id === media.lastFrameNodeId)
+                        : null;
+                    const lastFrameUrl =
+                        lastFrameNode &&
+                        "sourceUrl" in lastFrameNode.data &&
+                        lastFrameNode.data.sourceUrl
+                            ? (lastFrameNode.data.sourceUrl as string)
+                            : undefined;
+
                     const res = await fetch("/api/generate-video", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -443,6 +469,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                             duration: media.config.duration || 4,
                             model: media.config.model,
                             resolution: media.config.resolution,
+                            firstFrame: firstFrameUrl,
+                            lastFrame: lastFrameUrl,
                             images: referenceImages,
                         }),
                     });

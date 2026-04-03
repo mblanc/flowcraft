@@ -333,7 +333,7 @@ export const GenerateVideoSchema = z.object({
                 MODELS.VIDEO.VEO_3_1_PRO,
             ])
             .optional()
-            .default(MODELS.VIDEO.VEO_3_1_FAST),
+            .default(MODELS.VIDEO.VEO_3_1_LITE),
     ),
     generateAudio: z.boolean().optional().default(true),
     resolution: z.enum(["720p", "1080p", "4k"]).optional().default("720p"),
