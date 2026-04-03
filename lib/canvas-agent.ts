@@ -29,6 +29,7 @@ export interface MediaToGenerate {
         resolution?: string;
         model?: string;
         duration?: number;
+        generateAudio?: boolean;
     };
 }
 
@@ -170,6 +171,11 @@ const INTENT_SCHEMA = {
             description:
                 "Video duration in seconds (4, 6, or 8). Only for video generation. Omit if not mentioned.",
         },
+        generateAudio: {
+            type: "BOOLEAN" as const,
+            description:
+                "For video only: whether to generate audio/sound alongside the video. Default false. Set to true only if the user explicitly requests audio, sound, music, or narration.",
+        },
         generationModel: {
             type: "STRING" as const,
             description:
@@ -280,6 +286,7 @@ ${modeInstruction}${attachmentContext}
 For aspect ratio, map natural language: "square" → "1:1", "portrait"/"vertical" → "9:16", "landscape"/"wide"/"horizontal" → "16:9", "cinematic"/"ultrawide" → "21:9". Default to "16:9" if unspecified.
 For resolution, accept "720p", "1080p", or "4k". Default to unspecified (let the system choose).
 For video duration, accept 4, 6, or 8 seconds. Default to unspecified.
+For audio, set generateAudio to true ONLY if the user explicitly asks for audio, sound, music, voiceover, or narration with the video. Default to false.
 
 If the user is asking a question, making conversation, or the assistant already declined to generate, set shouldGenerate to false and mediaType to "none".`;
 
@@ -376,6 +383,7 @@ If the user is asking a question, making conversation, or the assistant already 
                             ...(intent.duration
                                 ? { duration: intent.duration }
                                 : {}),
+                            generateAudio: intent.generateAudio === true,
                         },
                     },
                 };
