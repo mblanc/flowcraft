@@ -99,10 +99,9 @@ export function CanvasEditor() {
         <div className="bg-background flex h-screen flex-col">
             <CanvasHeader />
             <div className="flex flex-1 overflow-hidden">
-                <CanvasToolbar getViewportCenter={getViewportCenter} />
-
                 {/* Canvas area */}
                 <div className="relative h-full flex-1">
+                    <CanvasToolbar getViewportCenter={getViewportCenter} />
                     <ReactFlow
                         nodes={nodes}
                         edges={[]}

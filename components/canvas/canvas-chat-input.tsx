@@ -775,9 +775,6 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
         detectMention();
     }, [detectMention]);
 
-    const selectedMode = MODES.find((m) => m.id === mode)!;
-    const ModeIcon = selectedMode.icon;
-
     return (
         <div className="border-border rounded-b-2xl border-t p-3">
             <div className="bg-muted/50 rounded-xl border">
@@ -832,7 +829,6 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                                 size="sm"
                                                 className="h-7 gap-1.5 border-none bg-transparent px-2 text-xs shadow-none"
                                             >
-                                                <ModeIcon className="size-3.5" />
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
