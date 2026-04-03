@@ -1,6 +1,21 @@
 import { z } from "zod";
 import { MODELS, DEFAULTS } from "./constants";
 
+// --- Legacy Model Migration ---
+// Maps old preview model strings to their GA equivalents for backward compatibility
+// with flows stored in Firestore before the model rename.
+const LEGACY_VIDEO_MODEL_MAP: Record<string, string> = {
+    "veo-3.1-fast-generate-preview": MODELS.VIDEO.VEO_3_1_FAST,
+    "veo-3.1-generate-preview": MODELS.VIDEO.VEO_3_1_PRO,
+};
+
+function migrateVideoModel(val: unknown): unknown {
+    if (typeof val === "string" && val in LEGACY_VIDEO_MODEL_MAP) {
+        return LEGACY_VIDEO_MODEL_MAP[val];
+    }
+    return val;
+}
+
 // --- Shared Types ---
 
 const AspectRatio169_916Schema = z.enum(["16:9", "9:16"]);
@@ -94,11 +109,14 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
     videoUrls: z.array(z.string()).optional(),
     aspectRatio: AspectRatio169_916Schema,
     duration: z.union([z.literal(4), z.literal(6), z.literal(8)]),
-    model: z.enum([
-        MODELS.VIDEO.VEO_3_1_LITE_PREVIEW,
-        MODELS.VIDEO.VEO_3_1_FAST_PREVIEW,
-        MODELS.VIDEO.VEO_3_1_PRO_PREVIEW,
-    ]),
+    model: z.preprocess(
+        migrateVideoModel,
+        z.enum([
+            MODELS.VIDEO.VEO_3_1_LITE,
+            MODELS.VIDEO.VEO_3_1_FAST,
+            MODELS.VIDEO.VEO_3_1_PRO,
+        ]),
+    ),
     generateAudio: z.boolean(),
     resolution: z.enum(["720p", "1080p", "4k"]),
     width: z.number().optional(),
@@ -306,14 +324,17 @@ export const GenerateVideoSchema = z.object({
         .union([z.literal(4), z.literal(6), z.literal(8)])
         .optional()
         .default(DEFAULTS.VIDEO_DURATION),
-    model: z
-        .enum([
-            MODELS.VIDEO.VEO_3_1_LITE_PREVIEW,
-            MODELS.VIDEO.VEO_3_1_FAST_PREVIEW,
-            MODELS.VIDEO.VEO_3_1_PRO_PREVIEW,
-        ])
-        .optional()
-        .default(MODELS.VIDEO.VEO_3_1_FAST_PREVIEW),
+    model: z.preprocess(
+        migrateVideoModel,
+        z
+            .enum([
+                MODELS.VIDEO.VEO_3_1_LITE,
+                MODELS.VIDEO.VEO_3_1_FAST,
+                MODELS.VIDEO.VEO_3_1_PRO,
+            ])
+            .optional()
+            .default(MODELS.VIDEO.VEO_3_1_FAST),
+    ),
     generateAudio: z.boolean().optional().default(true),
     resolution: z.enum(["720p", "1080p", "4k"]).optional().default("720p"),
 });

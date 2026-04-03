@@ -296,17 +296,20 @@ export const VideoNode = memo(
                                         <SelectContent>
                                             <SelectItem
                                                 value={
-                                                    MODELS.VIDEO
-                                                        .VEO_3_1_FAST_PREVIEW
+                                                    MODELS.VIDEO.VEO_3_1_LITE
+                                                }
+                                            >
+                                                Veo 3.1 Lite
+                                            </SelectItem>
+                                            <SelectItem
+                                                value={
+                                                    MODELS.VIDEO.VEO_3_1_FAST
                                                 }
                                             >
                                                 Veo 3.1 Fast
                                             </SelectItem>
                                             <SelectItem
-                                                value={
-                                                    MODELS.VIDEO
-                                                        .VEO_3_1_PRO_PREVIEW
-                                                }
+                                                value={MODELS.VIDEO.VEO_3_1_PRO}
                                             >
                                                 Veo 3.1 Pro
                                             </SelectItem>

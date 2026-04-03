@@ -125,9 +125,9 @@ export function CanvasEditor() {
                         {background}
                         <Controls />
                     </ReactFlow>
-                </div>
 
-                <CanvasChatPanel getViewportCenter={getViewportCenter} />
+                    <CanvasChatPanel getViewportCenter={getViewportCenter} />
+                </div>
             </div>
         </div>
     );

@@ -163,11 +163,11 @@ export function VideoConfig({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={MODELS.VIDEO.VEO_3_1_FAST_PREVIEW}>
-                            Veo 3.1 Fast Preview
+                        <SelectItem value={MODELS.VIDEO.VEO_3_1_FAST}>
+                            Veo 3.1 Fast
                         </SelectItem>
-                        <SelectItem value={MODELS.VIDEO.VEO_3_1_PRO_PREVIEW}>
-                            Veo 3.1 Pro Preview
+                        <SelectItem value={MODELS.VIDEO.VEO_3_1_PRO}>
+                            Veo 3.1 Pro
                         </SelectItem>
                     </SelectContent>
                 </Select>

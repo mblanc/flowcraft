@@ -34,7 +34,7 @@ function makeVideoNode(id = "vid-1"): Node<VideoData> {
             images: [],
             aspectRatio: "16:9",
             duration: 4,
-            model: "veo-3.1-fast-generate-preview",
+            model: "veo-3.1-fast-generate-001",
             generateAudio: false,
             resolution: "720p",
         } as VideoData,
