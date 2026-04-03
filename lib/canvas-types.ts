@@ -27,6 +27,8 @@ export interface CanvasVideoData {
     progress?: number;
     error?: string;
     referenceNodeIds?: string[];
+    width?: number;
+    height?: number;
     [key: string]: unknown;
 }
 

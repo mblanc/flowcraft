@@ -412,7 +412,6 @@ export class GeminiService {
         }
 
         if (images && images.length > 0) {
-            videoRequest.model = MODELS.VIDEO.VEO_3_1_PRO;
             videoRequest.config!.referenceImages = images.map((image) => ({
                 image: { gcsUri: image.url, mimeType: "image/png" },
                 referenceType: VideoGenerationReferenceType.ASSET,
