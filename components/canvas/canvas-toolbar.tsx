@@ -146,12 +146,12 @@ export function CanvasToolbar({ getViewportCenter }: CanvasToolbarProps) {
 
     return (
         <TooltipProvider delayDuration={300}>
-            <div className="border-border bg-card flex w-12 shrink-0 flex-col items-center gap-1 border-r pt-3">
+            <div className="border-border bg-card/95 absolute top-1/2 left-4 z-20 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full border p-1 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/75">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <button
                             onClick={handleAddText}
-                            className="hover:bg-accent flex h-10 w-10 items-center justify-center rounded-md transition-colors"
+                            className="hover:bg-accent flex h-10 w-10 items-center justify-center rounded-full transition-colors"
                         >
                             <Type className="h-5 w-5" />
                         </button>
@@ -164,7 +164,7 @@ export function CanvasToolbar({ getViewportCenter }: CanvasToolbarProps) {
                         <button
                             onClick={handleImport}
                             disabled={uploading}
-                            className="hover:bg-accent flex h-10 w-10 items-center justify-center rounded-md transition-colors disabled:opacity-50"
+                            className="hover:bg-accent flex h-10 w-10 items-center justify-center rounded-full transition-colors disabled:opacity-50"
                         >
                             {uploading ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />

@@ -229,7 +229,7 @@ export const CanvasVideoNode = memo(
 
                     {/* Title Layer */}
                     <div className="pointer-events-auto absolute -top-[28px] left-2 z-20 flex max-w-full items-center gap-1.5">
-                        <div className="bg-background/50 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border shadow-sm backdrop-blur-sm">
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center">
                             <VideoIcon className="text-muted-foreground h-3 w-3" />
                         </div>
                         {isRenaming ? (
@@ -253,7 +253,7 @@ export const CanvasVideoNode = memo(
                             />
                         ) : (
                             <span
-                                className="text-secondary-foreground bg-background/50 cursor-text truncate rounded-full border px-2 py-0.5 text-xs font-semibold shadow-sm backdrop-blur-sm select-none"
+                                className="text-secondary-foreground cursor-text truncate px-1 py-0.5 text-xs font-semibold select-none"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     startRename();
