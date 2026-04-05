@@ -1,0 +1,134 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.mockup-frame { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 8px; }
+.app { background: var(--color-background-primary); border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); overflow: hidden; font-family: var(--font-sans); }
+.nav { display: flex; align-items: center; gap: 24px; padding: 10px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px; }
+.nav-logo { font-weight: 500; font-size: 15px; color: var(--color-text-primary); letter-spacing: -0.3px; }
+.nav-item { color: var(--color-text-tertiary); cursor: pointer; padding: 4px 0; }
+.nav-item.active { color: var(--color-text-primary); font-weight: 500; border-bottom: 1.5px solid #D4912A; }
+.split { display: flex; min-height: 520px; }
+.chat { width: 280px; min-width: 280px; border-right: 0.5px solid var(--color-border-tertiary); display: flex; flex-direction: column; }
+.canvas { flex: 1; display: flex; flex-direction: column; background: var(--color-background-secondary); }
+.chat-messages { flex: 1; padding: 12px; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+.msg-user { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 8px 10px; font-size: 13px; color: var(--color-text-primary); line-height: 1.5; }
+.msg-attach { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--color-text-secondary); margin-top: 6px; padding: 3px 8px; background: var(--color-background-primary); border-radius: 4px; border: 0.5px solid var(--color-border-tertiary); }
+.msg-agent { font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; padding: 4px 0; border-left: 2px solid var(--color-border-tertiary); padding-left: 10px; }
+.card-progress { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+.card-title { font-size: 12px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 8px; }
+.step { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 3px 0; }
+.step-done { color: #3D9A5F; }
+.step-active { color: #D4912A; }
+.step-pending { color: var(--color-text-tertiary); }
+.dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dot-done { background: #3D9A5F; }
+.dot-active { background: #D4912A; }
+.dot-pending { background: var(--color-border-tertiary); }
+.pbar { height: 3px; background: var(--color-border-tertiary); border-radius: 2px; margin: 8px 0 4px; }
+.pbar-fill { height: 100%; width: 62%; background: #D4912A; border-radius: 2px; }
+.pbar-label { font-size: 10px; color: var(--color-text-tertiary); }
+.input-bar { padding: 8px 12px; border-top: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 6px; }
+.input-field { flex: 1; font-size: 12px; color: var(--color-text-tertiary); padding: 7px 10px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); background: var(--color-background-primary); }
+.btn-send { width: 28px; height: 28px; border-radius: 50%; background: #D4912A; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.btn-send svg { width: 12px; height: 12px; }
+.canvas-toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; font-size: 11px; color: var(--color-text-secondary); background: var(--color-background-primary); border-bottom: 0.5px solid var(--color-border-tertiary); }
+.tb-sep { width: 0.5px; height: 16px; background: var(--color-border-tertiary); }
+.canvas-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative; }
+.canvas-img { width: 100%; max-width: 340px; aspect-ratio: 1; border-radius: var(--border-radius-md); background: linear-gradient(145deg, #e8ddd0 0%, #d4c8b8 40%, #c9bba9 100%); display: flex; align-items: flex-end; justify-content: flex-end; padding: 12px; position: relative; overflow: hidden; }
+.product-shape { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 120px; height: 80px; border-radius: 40px; background: rgba(255,255,255,0.35); border: 2px solid rgba(255,255,255,0.5); }
+.logo-mark { font-size: 9px; font-weight: 500; color: rgba(0,0,0,0.4); letter-spacing: 1px; }
+.canvas-meta { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; font-size: 11px; color: var(--color-text-tertiary); background: var(--color-background-primary); border-top: 0.5px solid var(--color-border-tertiary); }
+.meta-actions { display: flex; gap: 8px; }
+.meta-btn { font-size: 11px; color: var(--color-text-secondary); padding: 3px 8px; border-radius: 4px; border: 0.5px solid var(--color-border-tertiary); cursor: pointer; background: var(--color-background-primary); }
+.status-bar { display: flex; align-items: center; gap: 16px; padding: 6px 20px; border-top: 0.5px solid var(--color-border-tertiary); font-size: 10px; color: var(--color-text-tertiary); }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; background: #D4912A; }
+.check { width: 14px; height: 14px; flex-shrink: 0; }
+</style>
+
+<div class="mockup-frame">
+<div class="app">
+  <div class="nav">
+    <span class="nav-logo">lumen</span>
+    <span class="nav-item active">Studio</span>
+    <span class="nav-item">Library</span>
+    <span class="nav-item">Brand kit</span>
+    <span class="nav-item">Templates</span>
+  </div>
+
+  <div class="split">
+    <div class="chat">
+      <div class="chat-messages">
+        <div class="msg-user">
+          Remove the background and put it on a warm studio backdrop with soft lighting
+          <div><span class="msg-attach"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M14 10v3a1 1 0 01-1 1H3a1 1 0 01-1-1v-3M11 5L8 2 5 5M8 2v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> headphones.jpg 2.1 MB</span></div>
+        </div>
+
+        <div class="msg-agent">
+          I'll remove the background, generate a studio backdrop, overlay your logo, and export in two formats.
+        </div>
+
+        <div class="card-progress">
+          <div class="card-title">Product studio shot</div>
+          <div class="step step-done">
+            <svg class="check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#3D9A5F" stroke-width="1.2"/><path d="M5 8l2 2 4-4" fill="none" stroke="#3D9A5F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Remove background
+          </div>
+          <div class="step step-done">
+            <svg class="check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#3D9A5F" stroke-width="1.2"/><path d="M5 8l2 2 4-4" fill="none" stroke="#3D9A5F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Generate studio backdrop
+          </div>
+          <div class="step step-active">
+            <div class="dot dot-active"></div>
+            Overlay brand logo
+          </div>
+          <div class="step step-pending">
+            <div class="dot dot-pending"></div>
+            Export: feed + story
+          </div>
+          <div class="pbar"><div class="pbar-fill"></div></div>
+          <div class="pbar-label">$0.09 spent · ~15s remaining</div>
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <div class="input-field">Type a message...</div>
+        <div class="btn-send"><svg viewBox="0 0 16 16" fill="none"><path d="M2 8h12M10 4l4 4-4 4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <div class="canvas">
+      <div class="canvas-toolbar">
+        <span style="cursor:pointer">&#8592;</span>
+        <span style="cursor:pointer">&#8594;</span>
+        <span class="tb-sep"></span>
+        <span>100%</span>
+        <span class="tb-sep"></span>
+        <span>Compare</span>
+        <span>Download</span>
+        <span style="margin-left:auto">Step 2 of 4</span>
+      </div>
+      <div class="canvas-body">
+        <div class="canvas-img">
+          <div class="product-shape"></div>
+          <span class="logo-mark">LUMEN</span>
+        </div>
+      </div>
+      <div class="canvas-meta">
+        <span>studio_shot.png · 1024 x 1024 · 1.8 MB</span>
+        <div class="meta-actions">
+          <span class="meta-btn">Download</span>
+          <span class="meta-btn">Edit</span>
+          <span class="meta-btn">Use as input</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div style="display:flex;align-items:center;gap:4px"><div class="status-dot"></div> Workflow running</div>
+    <span>$0.09 / est. $0.13</span>
+    <span>Elapsed: 12s</span>
+    <span style="display:flex;align-items:center;gap:3px"><svg width="8" height="8" viewBox="0 0 8 8"><rect width="8" height="8" rx="1.5" fill="#D4912A" opacity="0.5"/></svg> Brand kit: active</span>
+  </div>
+</div>
+</div>
