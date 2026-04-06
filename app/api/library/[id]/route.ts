@@ -31,9 +31,9 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(
         try {
             const body = await req.json();
 
-            if (!Array.isArray(body.tags)) {
+            if (!Array.isArray(body.tags) || !body.tags.every(tag => typeof tag === 'string')) {
                 return NextResponse.json(
-                    { error: "tags must be an array" },
+                    { error: "tags must be an array of strings" },
                     { status: 400 },
                 );
             }
