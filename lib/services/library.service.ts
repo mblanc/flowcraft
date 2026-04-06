@@ -54,6 +54,7 @@ export class LibraryService {
     async listAssets(
         userId: string,
         type?: LibraryAssetType,
+        options?: { before?: Date; limit?: number },
     ): Promise<LibraryAsset[]> {
         logger.debug(
             `[LibraryService] Listing assets for user: ${userId}, type: ${type ?? "all"}`,
@@ -65,6 +66,14 @@ export class LibraryService {
 
         if (type) {
             query = query.where("type", "==", type);
+        }
+
+        if (options?.before) {
+            query = query.where("createdAt", "<", options.before);
+        }
+
+        if (options?.limit) {
+            query = query.limit(options.limit);
         }
 
         const snapshot = await query.get();

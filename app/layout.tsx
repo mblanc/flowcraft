@@ -19,6 +19,7 @@ export const metadata: Metadata = {
     title: "FlowCraft",
     description:
         "A visual workflow builder for AI-powered content generation using Google's AI models",
+    icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({

@@ -8,9 +8,14 @@ export const GET = withAuth(async (req, _context, session) => {
     try {
         const { searchParams } = new URL(req.url);
         const type = searchParams.get("type") as LibraryAssetType | null;
+        const beforeParam = searchParams.get("before");
+        const limitParam = searchParams.get("limit");
+        const before = beforeParam ? new Date(beforeParam) : undefined;
+        const limit = limitParam ? parseInt(limitParam, 10) : undefined;
         const assets = await libraryService.listAssets(
             session.user!.id!,
             type ?? undefined,
+            { before, limit },
         );
         return NextResponse.json({ assets });
     } catch (error) {

@@ -49,21 +49,6 @@ export function LibraryAssetCard({ asset, onClick }: LibraryAssetCardProps) {
                     </span>
                 </div>
             )}
-
-            <div className="p-2.5">
-                {asset.provenance.prompt && (
-                    <p className="text-muted-foreground line-clamp-2 text-xs">
-                        {asset.provenance.prompt}
-                    </p>
-                )}
-                <p className="text-muted-foreground mt-1 text-[10px]">
-                    {new Date(asset.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                    })}
-                </p>
-            </div>
         </div>
     );
 }
