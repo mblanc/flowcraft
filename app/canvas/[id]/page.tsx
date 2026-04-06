@@ -74,7 +74,7 @@ function CanvasContent() {
                         permission to access it.
                     </p>
                     <button
-                        onClick={() => router.push("/flows?tab=canvas")}
+                        onClick={() => router.push("/agents")}
                         className="text-primary hover:underline"
                     >
                         Back to canvases
