@@ -114,6 +114,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     );
 
     const canvasId = useCanvasStore((s) => s.canvasId);
+    const canvasName = useCanvasStore((s) => s.canvasName);
     const nodes = useCanvasStore((s) => s.nodes);
     const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
     const addMessage = useCanvasStore((s) => s.addMessage);
@@ -409,6 +410,25 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                         sourceUrl: imageUrl,
                         status: "ready",
                     });
+
+                    // Save to library (fire-and-forget)
+                    fetch("/api/library", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            type: "image",
+                            gcsUri: imageUrl,
+                            mimeType: "image/png",
+                            aspectRatio: media.config.aspectRatio,
+                            model: media.config.model,
+                            provenance: {
+                                sourceType: "canvas",
+                                sourceId: canvasId,
+                                sourceName: canvasName,
+                                prompt: media.prompt,
+                            },
+                        }),
+                    }).catch(() => {});
                 } else {
                     const referenceImages =
                         media.referenceNodeIds
@@ -491,6 +511,26 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                         status: "ready",
                         progress: 100,
                     });
+
+                    // Save to library (fire-and-forget)
+                    fetch("/api/library", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            type: "video",
+                            gcsUri: videoUrl,
+                            mimeType: "video/mp4",
+                            aspectRatio: media.config.aspectRatio,
+                            model: media.config.model,
+                            duration: media.config.duration,
+                            provenance: {
+                                sourceType: "canvas",
+                                sourceId: canvasId,
+                                sourceName: canvasName,
+                                prompt: media.prompt,
+                            },
+                        }),
+                    }).catch(() => {});
                 }
 
                 toast.success(

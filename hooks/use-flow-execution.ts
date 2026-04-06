@@ -5,6 +5,15 @@ import { useFlowStore } from "@/lib/store/use-flow-store";
 import { WorkflowEngine } from "@/lib/workflow-engine";
 import logger from "@/app/logger";
 
+function buildContext() {
+    const { flowId, flowName, ownerId } = useFlowStore.getState();
+    return {
+        userId: ownerId ?? undefined,
+        flowId: flowId ?? undefined,
+        flowName: flowName ?? undefined,
+    };
+}
+
 export function useFlowExecution() {
     const setIsRunning = useFlowStore((state) => state.setIsRunning);
 
@@ -12,7 +21,7 @@ export function useFlowExecution() {
         const { nodes, edges, updateNodeData } = useFlowStore.getState();
         setIsRunning(true);
         try {
-            const engine = new WorkflowEngine(nodes, edges, updateNodeData);
+            const engine = new WorkflowEngine(nodes, edges, updateNodeData, buildContext());
             await engine.run();
         } catch (error) {
             logger.error("Error running flow:", error);
@@ -28,11 +37,7 @@ export function useFlowExecution() {
 
         setIsRunning(true);
         try {
-            const engine = new WorkflowEngine(nodes, edges, updateNodeData);
-            // We need to execute nodes in order. The engine doesn't currently have a "runSelected"
-            // but we can execute them individually or enhance the engine.
-            // For now, let's run them individually if they have no dependencies within the selection,
-            // or just rely on the engine's executeNode logic for each selected node.
+            const engine = new WorkflowEngine(nodes, edges, updateNodeData, buildContext());
             for (const node of selectedNodes) {
                 await engine.executeNode(node.id);
             }
@@ -48,7 +53,7 @@ export function useFlowExecution() {
             const { nodes, edges, updateNodeData } = useFlowStore.getState();
             setIsRunning(true);
             try {
-                const engine = new WorkflowEngine(nodes, edges, updateNodeData);
+                const engine = new WorkflowEngine(nodes, edges, updateNodeData, buildContext());
                 await engine.runFromNode(nodeId);
             } catch (error) {
                 logger.error("Error running from node:", error);
@@ -62,7 +67,7 @@ export function useFlowExecution() {
     const executeNode = useCallback(async (nodeId: string) => {
         const { nodes, edges, updateNodeData } = useFlowStore.getState();
         try {
-            const engine = new WorkflowEngine(nodes, edges, updateNodeData);
+            const engine = new WorkflowEngine(nodes, edges, updateNodeData, buildContext());
             await engine.executeNode(nodeId);
         } catch (error) {
             logger.error("Error executing node:", error);

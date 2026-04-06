@@ -82,6 +82,9 @@ export type BaseNodeData = z.infer<typeof BaseNodeDataSchema> & {
 export interface ExecutionContext {
     onNodeUpdate?: (nodeId: string, data: Partial<NodeData>) => void;
     fetch?: typeof fetch;
+    userId?: string;
+    flowId?: string;
+    flowName?: string;
 }
 
 export type NodeExecutor<T extends NodeData = NodeData, I = NodeInputs> = (

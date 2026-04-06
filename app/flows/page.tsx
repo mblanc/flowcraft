@@ -14,11 +14,13 @@ import {
     Globe,
     Copy,
     PanelRight,
+    BookImage,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserProfile } from "@/components/flow/user-profile";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Image from "next/image";
+import Link from "next/link";
 import logger from "@/app/logger";
 import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-url-cache";
 
@@ -493,7 +495,7 @@ export default function FlowsList() {
     return (
         <div className="bg-background flex h-screen flex-col">
             <header className="border-border bg-card flex h-14 items-center justify-between border-b px-8">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-md">
                             <span className="text-primary-foreground text-sm font-bold">
@@ -504,6 +506,13 @@ export default function FlowsList() {
                             FlowCraft
                         </h1>
                     </div>
+                    <Link
+                        href="/library"
+                        className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm transition-colors"
+                    >
+                        <BookImage className="h-4 w-4" />
+                        Library
+                    </Link>
                 </div>
                 <UserProfile isCollapsed={false} />
             </header>
