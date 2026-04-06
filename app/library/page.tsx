@@ -22,7 +22,9 @@ export default function LibraryPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [assets, setAssets] = useState<LibraryAsset[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedAsset, setSelectedAsset] = useState<LibraryAsset | null>(null);
+    const [selectedAsset, setSelectedAsset] = useState<LibraryAsset | null>(
+        null,
+    );
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -70,7 +72,9 @@ export default function LibraryPage() {
         setAssets((prev) =>
             prev.map((a) => (a.id === id ? { ...a, tags } : a)),
         );
-        setSelectedAsset((prev) => (prev?.id === id ? { ...prev, tags } : prev));
+        setSelectedAsset((prev) =>
+            prev?.id === id ? { ...prev, tags } : prev,
+        );
     }, []);
 
     if (status === "loading") {
@@ -84,14 +88,20 @@ export default function LibraryPage() {
     return (
         <div className="bg-background min-h-screen">
             {/* Header */}
-            <header className="border-border sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+            <header className="border-border bg-background/80 sticky top-0 z-10 border-b backdrop-blur-sm">
                 <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
                     <div className="flex items-center gap-6">
-                        <Link href="/flows" className="flex items-center gap-2 text-sm font-semibold">
+                        <Link
+                            href="/flows"
+                            className="flex items-center gap-2 text-sm font-semibold"
+                        >
                             <BookImage className="h-5 w-5" />
                             Library
                         </Link>
-                        <LibraryTabs activeTab={activeTab} onChange={setActiveTab} />
+                        <LibraryTabs
+                            activeTab={activeTab}
+                            onChange={setActiveTab}
+                        />
                     </div>
                     <div className="flex items-center gap-4">
                         <LibraryToolbar

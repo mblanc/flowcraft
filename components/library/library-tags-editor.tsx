@@ -62,8 +62,9 @@ export function LibraryTagsEditor({
 
     return (
         <div className="space-y-1.5">
-            <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-                Tags {isSaving && <span className="normal-case">(saving…)</span>}
+            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                Tags{" "}
+                {isSaving && <span className="normal-case">(saving…)</span>}
             </p>
             <div className="flex flex-wrap gap-1.5">
                 {tags.map((tag) => (
@@ -93,7 +94,7 @@ export function LibraryTagsEditor({
                             }
                         }}
                         placeholder="Add tag…"
-                        className="border-border bg-background text-foreground placeholder:text-muted-foreground w-24 rounded-full border px-2.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                        className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-ring w-24 rounded-full border px-2.5 py-0.5 text-xs focus:ring-1 focus:outline-none"
                     />
                     <button
                         onClick={() => addTag(inputValue)}

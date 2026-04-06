@@ -9,7 +9,10 @@ export const GET = withAuth<{ params: Promise<{ id: string }> }>(
         try {
             const asset = await libraryService.getAsset(id, session.user!.id!);
             if (!asset) {
-                return NextResponse.json({ error: "Not found" }, { status: 404 });
+                return NextResponse.json(
+                    { error: "Not found" },
+                    { status: 404 },
+                );
             }
             return NextResponse.json(asset);
         } catch (error) {
@@ -40,10 +43,16 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(
         } catch (error) {
             if (error instanceof Error) {
                 if (error.message === "Asset not found") {
-                    return NextResponse.json({ error: error.message }, { status: 404 });
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 404 },
+                    );
                 }
                 if (error.message === "Unauthorized") {
-                    return NextResponse.json({ error: error.message }, { status: 403 });
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 403 },
+                    );
                 }
             }
             logger.error("Error updating library asset tags:", error);
@@ -64,10 +73,16 @@ export const DELETE = withAuth<{ params: Promise<{ id: string }> }>(
         } catch (error) {
             if (error instanceof Error) {
                 if (error.message === "Asset not found") {
-                    return NextResponse.json({ error: error.message }, { status: 404 });
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 404 },
+                    );
                 }
                 if (error.message === "Unauthorized") {
-                    return NextResponse.json({ error: error.message }, { status: 403 });
+                    return NextResponse.json(
+                        { error: error.message },
+                        { status: 403 },
+                    );
                 }
             }
             logger.error("Error deleting library asset:", error);

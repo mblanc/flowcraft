@@ -13,7 +13,7 @@ export function LibraryAssetCard({ asset, onClick }: LibraryAssetCardProps) {
 
     return (
         <div
-            className="group border-border bg-card relative mb-3 cursor-pointer overflow-hidden rounded-lg border break-inside-avoid transition-shadow hover:shadow-lg"
+            className="group border-border bg-card relative mb-3 cursor-pointer break-inside-avoid overflow-hidden rounded-lg border transition-shadow hover:shadow-lg"
             onClick={onClick}
         >
             {asset.type === "image" ? (
@@ -44,7 +44,7 @@ export function LibraryAssetCard({ asset, onClick }: LibraryAssetCardProps) {
                             <div className="bg-muted-foreground/20 h-8 w-8 animate-pulse rounded" />
                         </div>
                     )}
-                    <span className="absolute bottom-1.5 right-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
+                    <span className="absolute right-1.5 bottom-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
                         Video
                     </span>
                 </div>

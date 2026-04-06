@@ -1,13 +1,18 @@
 import { getFirestore } from "@/lib/firestore";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
-import type { DocumentSnapshot, QueryDocumentSnapshot } from "@google-cloud/firestore";
+import type {
+    DocumentSnapshot,
+    QueryDocumentSnapshot,
+} from "@google-cloud/firestore";
 import type { LibraryAsset, LibraryAssetType } from "@/lib/library-types";
 
 export class LibraryService {
     private firestore = getFirestore();
 
-    private transformDoc(doc: DocumentSnapshot | QueryDocumentSnapshot): LibraryAsset {
+    private transformDoc(
+        doc: DocumentSnapshot | QueryDocumentSnapshot,
+    ): LibraryAsset {
         const data = doc.data();
         return {
             id: doc.id,
@@ -29,16 +34,30 @@ export class LibraryService {
         };
     }
 
-    async createAsset(data: Omit<LibraryAsset, "id" | "createdAt">): Promise<LibraryAsset> {
-        logger.info(`[LibraryService] Creating asset for user: ${data.userId}, type: ${data.type}`);
+    async createAsset(
+        data: Omit<LibraryAsset, "id" | "createdAt">,
+    ): Promise<LibraryAsset> {
+        logger.info(
+            `[LibraryService] Creating asset for user: ${data.userId}, type: ${data.type}`,
+        );
         const ref = this.firestore.collection(COLLECTIONS.LIBRARY_ASSETS);
-        const docRef = await ref.add({ ...data, createdAt: new Date() });
+        const docData = Object.fromEntries(
+            Object.entries({ ...data, createdAt: new Date() }).filter(
+                ([, v]) => v !== undefined,
+            ),
+        );
+        const docRef = await ref.add(docData);
         const doc = await docRef.get();
         return this.transformDoc(doc);
     }
 
-    async listAssets(userId: string, type?: LibraryAssetType): Promise<LibraryAsset[]> {
-        logger.debug(`[LibraryService] Listing assets for user: ${userId}, type: ${type ?? "all"}`);
+    async listAssets(
+        userId: string,
+        type?: LibraryAssetType,
+    ): Promise<LibraryAsset[]> {
+        logger.debug(
+            `[LibraryService] Listing assets for user: ${userId}, type: ${type ?? "all"}`,
+        );
         let query = this.firestore
             .collection(COLLECTIONS.LIBRARY_ASSETS)
             .where("userId", "==", userId)
@@ -67,9 +86,15 @@ export class LibraryService {
         return asset;
     }
 
-    async updateTags(id: string, userId: string, tags: string[]): Promise<void> {
+    async updateTags(
+        id: string,
+        userId: string,
+        tags: string[],
+    ): Promise<void> {
         logger.info(`[LibraryService] Updating tags for asset: ${id}`);
-        const ref = this.firestore.collection(COLLECTIONS.LIBRARY_ASSETS).doc(id);
+        const ref = this.firestore
+            .collection(COLLECTIONS.LIBRARY_ASSETS)
+            .doc(id);
         const doc = await ref.get();
 
         if (!doc.exists) throw new Error("Asset not found");
@@ -80,7 +105,9 @@ export class LibraryService {
 
     async deleteAsset(id: string, userId: string): Promise<void> {
         logger.info(`[LibraryService] Deleting asset: ${id}`);
-        const ref = this.firestore.collection(COLLECTIONS.LIBRARY_ASSETS).doc(id);
+        const ref = this.firestore
+            .collection(COLLECTIONS.LIBRARY_ASSETS)
+            .doc(id);
         const doc = await ref.get();
 
         if (!doc.exists) throw new Error("Asset not found");

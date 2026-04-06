@@ -21,7 +21,12 @@ export function useFlowExecution() {
         const { nodes, edges, updateNodeData } = useFlowStore.getState();
         setIsRunning(true);
         try {
-            const engine = new WorkflowEngine(nodes, edges, updateNodeData, buildContext());
+            const engine = new WorkflowEngine(
+                nodes,
+                edges,
+                updateNodeData,
+                buildContext(),
+            );
             await engine.run();
         } catch (error) {
             logger.error("Error running flow:", error);
@@ -37,7 +42,12 @@ export function useFlowExecution() {
 
         setIsRunning(true);
         try {
-            const engine = new WorkflowEngine(nodes, edges, updateNodeData, buildContext());
+            const engine = new WorkflowEngine(
+                nodes,
+                edges,
+                updateNodeData,
+                buildContext(),
+            );
             for (const node of selectedNodes) {
                 await engine.executeNode(node.id);
             }
@@ -53,7 +63,12 @@ export function useFlowExecution() {
             const { nodes, edges, updateNodeData } = useFlowStore.getState();
             setIsRunning(true);
             try {
-                const engine = new WorkflowEngine(nodes, edges, updateNodeData, buildContext());
+                const engine = new WorkflowEngine(
+                    nodes,
+                    edges,
+                    updateNodeData,
+                    buildContext(),
+                );
                 await engine.runFromNode(nodeId);
             } catch (error) {
                 logger.error("Error running from node:", error);
@@ -67,7 +82,12 @@ export function useFlowExecution() {
     const executeNode = useCallback(async (nodeId: string) => {
         const { nodes, edges, updateNodeData } = useFlowStore.getState();
         try {
-            const engine = new WorkflowEngine(nodes, edges, updateNodeData, buildContext());
+            const engine = new WorkflowEngine(
+                nodes,
+                edges,
+                updateNodeData,
+                buildContext(),
+            );
             await engine.executeNode(nodeId);
         } catch (error) {
             logger.error("Error executing node:", error);

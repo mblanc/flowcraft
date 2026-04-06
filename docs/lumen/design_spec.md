@@ -13,7 +13,7 @@
 
 **Conversation is the interface, media is the canvas.** The user thinks in natural language. The agent thinks in workflows. The UI must bridge these two mental models without exposing the machinery. The chat is where intent is expressed and refined. The canvas is where results materialize and are manipulated.
 
-**Show the work, not the wiring.** Users need to see what the agent is doing (progress, intermediate results, cost) but never how it's doing it (DAG nodes, provider names, adapter calls). Transparency about *progress* builds trust. Transparency about *implementation* creates anxiety.
+**Show the work, not the wiring.** Users need to see what the agent is doing (progress, intermediate results, cost) but never how it's doing it (DAG nodes, provider names, adapter calls). Transparency about _progress_ builds trust. Transparency about _implementation_ creates anxiety.
 
 **Media deserves space.** Generated images, videos, and audio are the product — not accessories to a text conversation. Every layout decision must privilege media display. Full-bleed previews. Large thumbnails. Inline playback. The UI should feel like a creative studio that happens to have a chat, not a chatbot that happens to show images.
 
@@ -23,7 +23,7 @@
 
 **Studio minimal.** The interface is a tool for making things. It should feel like a clean workbench — warm neutrals, generous whitespace, no decoration. Media output is the only color. The UI recedes; the work advances.
 
-Typography: one sans-serif family (two weights: regular and medium), monospaced for technical details only. No display fonts. The media *is* the display.
+Typography: one sans-serif family (two weights: regular and medium), monospaced for technical details only. No display fonts. The media _is_ the display.
 
 Color: near-white backgrounds, ink-dark text, one accent color (warm amber) for interactive elements and progress indicators. All other color comes from user-generated media. Dark mode is a first-class citizen — creative professionals work in dark environments.
 
@@ -43,12 +43,12 @@ Motion: purposeful only. Progress animations, smooth panel transitions, media lo
 
 Four spaces, each serving a distinct job:
 
-| Space | Purpose | Primary action |
-|-------|---------|---------------|
-| **Studio** | Where work happens. Chat + canvas. One active workflow at a time. | Create, iterate, refine |
-| **Library** | Browse all generated assets across all workflows. Grid view with filters and search. | Find, reuse, download |
-| **Brand kit** | Configure brand assets: logo, colors, fonts, tone, guidelines. | Set up, maintain |
-| **Templates** | Browse, create, and run saved workflow templates. | Automate, reuse |
+| Space         | Purpose                                                                              | Primary action          |
+| ------------- | ------------------------------------------------------------------------------------ | ----------------------- |
+| **Studio**    | Where work happens. Chat + canvas. One active workflow at a time.                    | Create, iterate, refine |
+| **Library**   | Browse all generated assets across all workflows. Grid view with filters and search. | Find, reuse, download   |
+| **Brand kit** | Configure brand assets: logo, colors, fonts, tone, guidelines.                       | Set up, maintain        |
+| **Templates** | Browse, create, and run saved workflow templates.                                    | Automate, reuse         |
 
 The Studio is the default and primary view. Users spend 80%+ of their time here.
 
@@ -88,12 +88,12 @@ The Studio uses a **chat + canvas split layout**. This is the core interaction s
 
 **Responsive behavior:**
 
-| Viewport | Layout |
-|----------|--------|
-| ≥1280px | Side-by-side split. Chat: 400px fixed. Canvas: fills remaining width. |
-| 1024–1279px | Side-by-side split. Chat: 360px. Canvas: fills rest. |
-| 768–1023px | Stacked with toggle. Chat or canvas visible, swipe/tab to switch. Canvas slides over chat. |
-| <768px (mobile) | Full-screen chat. Canvas appears as an overlay sheet when media is tapped. |
+| Viewport        | Layout                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| ≥1280px         | Side-by-side split. Chat: 400px fixed. Canvas: fills remaining width.                      |
+| 1024–1279px     | Side-by-side split. Chat: 360px. Canvas: fills rest.                                       |
+| 768–1023px      | Stacked with toggle. Chat or canvas visible, swipe/tab to switch. Canvas slides over chat. |
+| <768px (mobile) | Full-screen chat. Canvas appears as an overlay sheet when media is tapped.                 |
 
 ---
 
@@ -104,6 +104,7 @@ The Studio uses a **chat + canvas split layout**. This is the core interaction s
 The chat is not just text bubbles. It contains structured message types:
 
 #### User message
+
 Standard text input. Can include attached files (drag-drop or button). Attachments show as compact chips below the text:
 
 ```
@@ -116,9 +117,11 @@ Standard text input. Can include attached files (drag-drop or button). Attachmen
 ```
 
 #### Agent text response
+
 Plain text from the orchestrator. Used for clarifying questions, confirmations, and conversational replies. Left-aligned, no bubble — just text with a subtle left border.
 
 #### Plan card
+
 When the agent proposes a multi-step workflow, it appears as a structured card:
 
 ```
@@ -141,6 +144,7 @@ The ◻ CP marker indicates a checkpoint — the workflow will pause here for ap
 "Edit plan" expands the card into an editable list where users can reorder, remove, or add steps. This is the power-user escape hatch.
 
 #### Progress card
+
 During execution, replaces the plan card with live progress:
 
 ```
@@ -160,6 +164,7 @@ During execution, replaces the plan card with live progress:
 Each completed step shows a small thumbnail that, when clicked, loads that intermediate result into the canvas.
 
 #### Checkpoint card
+
 When execution hits a checkpoint:
 
 ```
@@ -179,6 +184,7 @@ The thumbnail is clickable → loads full preview in canvas.
 "Give feedback" expands an inline text input ("Make the backdrop lighter and more minimal").
 
 #### Media result card
+
 Final output. Shows compact thumbnails in chat with a "View in canvas" action:
 
 ```
@@ -203,11 +209,13 @@ Final output. Shows compact thumbnails in chat with a "View in canvas" action:
 ```
 
 **[+] button** opens an attachment menu:
+
 - Upload file (image, video, audio, document)
 - Pick from library (opens a compact asset browser)
 - Use camera (mobile)
 
 **Slash commands** for power users. Typing `/` shows a dropdown:
+
 - `/generate` — image/video/audio generation
 - `/edit` — modify existing media
 - `/template` — run a saved template
@@ -396,11 +404,11 @@ The one exception: the variant grid. Clicking a variant in the grid is a selecti
 
 Users can drag files onto three drop targets:
 
-| Target | Action |
-|--------|--------|
-| **Chat panel** | Attach file to the next message (input for a new workflow) |
-| **Canvas — variant grid** | Add the dropped image as a new variant for comparison |
-| **Canvas — single view** | Replace the current canvas content (triggers "edit this" intent) |
+| Target                    | Action                                                           |
+| ------------------------- | ---------------------------------------------------------------- |
+| **Chat panel**            | Attach file to the next message (input for a new workflow)       |
+| **Canvas — variant grid** | Add the dropped image as a new variant for comparison            |
+| **Canvas — single view**  | Replace the current canvas content (triggers "edit this" intent) |
 
 ### 5.4 Multi-select and batch operations
 
@@ -412,20 +420,20 @@ In the variant grid, users can select multiple items (click with Shift/Cmd held)
 
 ### 5.5 Keyboard shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `/` | Focus input bar with slash command mode |
-| `Enter` | Send message |
-| `Shift+Enter` | New line in input |
-| `Cmd+D` | Download current canvas content |
-| `Cmd+Z` | Undo last canvas action (rollback) |
-| `←` `→` | Navigate between outputs |
-| `Space` | Play/pause (video and audio) |
-| `F` | Toggle fullscreen canvas |
-| `G` | Toggle variant grid view |
-| `C` | Toggle comparison view |
-| `1-9` | Select variant N in grid view |
-| `Esc` | Close overlay / exit fullscreen |
+| Shortcut      | Action                                  |
+| ------------- | --------------------------------------- |
+| `/`           | Focus input bar with slash command mode |
+| `Enter`       | Send message                            |
+| `Shift+Enter` | New line in input                       |
+| `Cmd+D`       | Download current canvas content         |
+| `Cmd+Z`       | Undo last canvas action (rollback)      |
+| `←` `→`       | Navigate between outputs                |
+| `Space`       | Play/pause (video and audio)            |
+| `F`           | Toggle fullscreen canvas                |
+| `G`           | Toggle variant grid view                |
+| `C`           | Toggle comparison view                  |
+| `1-9`         | Select variant N in grid view           |
+| `Esc`         | Close overlay / exit fullscreen         |
 
 ---
 
@@ -723,11 +731,11 @@ Clicking an asset opens a detail panel (slide-over from right):
 
 Three tiers:
 
-| Tier | Usage | Style |
-|------|-------|-------|
-| **Primary** | One per screen. Main action (Approve, Send, Download). | Amber background, dark text, medium weight. |
-| **Secondary** | Supporting actions (Edit plan, View in canvas). | Transparent background, subtle border, default text. |
-| **Ghost** | Tertiary actions (⋯ More, Close). | No border, no background. Text only. Hover: subtle background. |
+| Tier          | Usage                                                  | Style                                                          |
+| ------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
+| **Primary**   | One per screen. Main action (Approve, Send, Download). | Amber background, dark text, medium weight.                    |
+| **Secondary** | Supporting actions (Edit plan, View in canvas).        | Transparent background, subtle border, default text.           |
+| **Ghost**     | Tertiary actions (⋯ More, Close).                      | No border, no background. Text only. Hover: subtle background. |
 
 All buttons: `height: 36px`, `padding: 0 16px`, `border-radius: var(--radius-md)`, `font-size: var(--text-sm)`, `font-weight: var(--weight-medium)`.
 
@@ -737,11 +745,11 @@ Used for plan cards, progress cards, checkpoint cards, media result cards, templ
 
 ```css
 .card {
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  box-shadow: var(--shadow-sm);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    box-shadow: var(--shadow-sm);
 }
 ```
 
@@ -749,9 +757,9 @@ Interactive cards (template cards, variant cells) get a hover state:
 
 ```css
 .card-interactive:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-md);
-  transition: all var(--duration-fast) var(--ease-default);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+    transition: all var(--duration-fast) var(--ease-default);
 }
 ```
 
@@ -761,44 +769,44 @@ A reusable component for displaying media previews at any size.
 
 ```css
 .media-thumb {
-  position: relative;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--lumen-gray-100);  /* placeholder color */
+    position: relative;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--lumen-gray-100); /* placeholder color */
 }
 
 .media-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity var(--duration-slow) var(--ease-decelerate);
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity var(--duration-slow) var(--ease-decelerate);
 }
 
 .media-thumb img.loaded {
-  opacity: 1;
+    opacity: 1;
 }
 
 /* Type badge */
 .media-thumb .badge {
-  position: absolute;
-  top: var(--space-2);
-  left: var(--space-2);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: rgba(0,0,0,0.6);
-  color: white;
-  backdrop-filter: blur(4px);
+    position: absolute;
+    top: var(--space-2);
+    left: var(--space-2);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    backdrop-filter: blur(4px);
 }
 
 /* Duration (for video/audio) */
 .media-thumb .duration {
-  position: absolute;
-  bottom: var(--space-2);
-  right: var(--space-2);
-  /* same style as badge */
+    position: absolute;
+    bottom: var(--space-2);
+    right: var(--space-2);
+    /* same style as badge */
 }
 ```
 
@@ -808,19 +816,21 @@ Used when media is being generated. A CSS-only shimmer animation:
 
 ```css
 .shimmer {
-  background: linear-gradient(
-    110deg,
-    var(--lumen-gray-100) 30%,
-    var(--lumen-gray-50) 50%,
-    var(--lumen-gray-100) 70%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s linear infinite;
-  border-radius: var(--radius-md);
+    background: linear-gradient(
+        110deg,
+        var(--lumen-gray-100) 30%,
+        var(--lumen-gray-50) 50%,
+        var(--lumen-gray-100) 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s linear infinite;
+    border-radius: var(--radius-md);
 }
 
 @keyframes shimmer {
-  to { background-position: -200% 0; }
+    to {
+        background-position: -200% 0;
+    }
 }
 ```
 
@@ -830,17 +840,17 @@ In dark mode, shimmer uses `gray-800` → `gray-700` → `gray-800`.
 
 ```css
 .progress-bar {
-  height: 4px;
-  background: var(--lumen-gray-200);
-  border-radius: var(--radius-full);
-  overflow: hidden;
+    height: 4px;
+    background: var(--lumen-gray-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
 }
 
 .progress-bar .fill {
-  height: 100%;
-  background: var(--lumen-amber-500);
-  border-radius: var(--radius-full);
-  transition: width var(--duration-normal) var(--ease-default);
+    height: 100%;
+    background: var(--lumen-amber-500);
+    border-radius: var(--radius-full);
+    transition: width var(--duration-normal) var(--ease-default);
 }
 ```
 
@@ -881,12 +891,12 @@ Custom controls over a native `<video>` element:
 
 ### 10.1 Image rendering rules
 
-| Scenario | Display rule |
-|----------|-------------|
-| Image ≤ canvas width | Display at native resolution, centered |
-| Image > canvas width | Scale to fit width, maintain aspect ratio |
-| Very tall image (>2:1 ratio) | Scale to fit height, horizontally centered |
-| Very wide image (>3:1 ratio) | Scale to fit width, scrollable if taller |
+| Scenario                      | Display rule                                                 |
+| ----------------------------- | ------------------------------------------------------------ |
+| Image ≤ canvas width          | Display at native resolution, centered                       |
+| Image > canvas width          | Scale to fit width, maintain aspect ratio                    |
+| Very tall image (>2:1 ratio)  | Scale to fit height, horizontally centered                   |
+| Very wide image (>3:1 ratio)  | Scale to fit width, scrollable if taller                     |
 | Transparent background (RGBA) | Render over a checkerboard pattern (standard in image tools) |
 
 ### 10.2 Video rendering rules
@@ -1011,13 +1021,13 @@ The input bar is always visible regardless of active tab. Users can type while v
 
 ### 12.2 Gestures
 
-| Gesture | Action |
-|---------|--------|
-| Swipe left/right | Switch between Chat and Canvas tabs |
-| Pinch to zoom | Zoom on canvas media |
-| Double tap | Toggle between fit-to-screen and 100% zoom |
-| Long press on variant | Select for comparison |
-| Pull down on canvas | Show toolbar |
+| Gesture               | Action                                     |
+| --------------------- | ------------------------------------------ |
+| Swipe left/right      | Switch between Chat and Canvas tabs        |
+| Pinch to zoom         | Zoom on canvas media                       |
+| Double tap            | Toggle between fit-to-screen and 100% zoom |
+| Long press on variant | Select for comparison                      |
+| Pull down on canvas   | Show toolbar                               |
 
 ### 12.3 Media display on mobile
 
@@ -1046,18 +1056,18 @@ The input bar is always visible regardless of active tab. Users can type while v
 ```html
 <!-- Variant grid -->
 <div role="radiogroup" aria-label="Generated variants">
-  <div role="radio" aria-checked="true" tabindex="0">Variant 1</div>
-  <div role="radio" aria-checked="false" tabindex="-1">Variant 2</div>
+    <div role="radio" aria-checked="true" tabindex="0">Variant 1</div>
+    <div role="radio" aria-checked="false" tabindex="-1">Variant 2</div>
 </div>
 
 <!-- Progress updates -->
 <div aria-live="polite" aria-atomic="false">
-  Step 2 of 4 completed: Generate studio backdrop
+    Step 2 of 4 completed: Generate studio backdrop
 </div>
 
 <!-- Checkpoint -->
 <div role="alertdialog" aria-label="Approval required">
-  The agent paused for your review.
+    The agent paused for your review.
 </div>
 ```
 
@@ -1065,20 +1075,20 @@ The input bar is always visible regardless of active tab. Users can type while v
 
 ## 14. Micro-interactions reference
 
-| Interaction | Animation | Duration | Easing |
-|-------------|-----------|----------|--------|
-| Media reveal (generation complete) | Fade in + scale 1.02→1.0 | 300ms | ease-spring |
-| Plan card expand (edit mode) | Height auto-animate | 200ms | ease-default |
-| Step completion (✓ appears) | Scale 0→1 + checkmark draw | 250ms | ease-spring |
-| Canvas mode transition | Crossfade | 200ms | ease-default |
-| Variant selection border | Border-color transition | 120ms | ease-default |
-| Shimmer loading | Background position loop | 1500ms | linear |
-| Progress bar fill | Width transition | 200ms | ease-default |
-| Chat message appear | Fade in + translate-y 8→0 | 200ms | ease-decelerate |
-| Comparison slider drag | Clip-path update | 0ms (realtime) | — |
-| Error state appear | Fade in | 200ms | ease-default |
-| Tab switch (mobile) | Translate-x + opacity | 200ms | ease-default |
-| Toolbar auto-hide | Opacity + translate-y | 300ms | ease-default |
+| Interaction                        | Animation                  | Duration       | Easing          |
+| ---------------------------------- | -------------------------- | -------------- | --------------- |
+| Media reveal (generation complete) | Fade in + scale 1.02→1.0   | 300ms          | ease-spring     |
+| Plan card expand (edit mode)       | Height auto-animate        | 200ms          | ease-default    |
+| Step completion (✓ appears)        | Scale 0→1 + checkmark draw | 250ms          | ease-spring     |
+| Canvas mode transition             | Crossfade                  | 200ms          | ease-default    |
+| Variant selection border           | Border-color transition    | 120ms          | ease-default    |
+| Shimmer loading                    | Background position loop   | 1500ms         | linear          |
+| Progress bar fill                  | Width transition           | 200ms          | ease-default    |
+| Chat message appear                | Fade in + translate-y 8→0  | 200ms          | ease-decelerate |
+| Comparison slider drag             | Clip-path update           | 0ms (realtime) | —               |
+| Error state appear                 | Fade in                    | 200ms          | ease-default    |
+| Tab switch (mobile)                | Translate-x + opacity      | 200ms          | ease-default    |
+| Toolbar auto-hide                  | Opacity + translate-y      | 300ms          | ease-default    |
 
 ---
 
@@ -1127,14 +1137,14 @@ Build interactive prototypes (Figma prototype or code) for these flows first —
 
 ## Appendix A — Competitive UI reference
 
-| Product | What to learn | What to avoid |
-|---------|--------------|---------------|
-| **Midjourney (web)** | The variant grid UX. The "upscale / variation" actions on each variant. The gallery-first layout. | The Discord-legacy UX. Tiny thumbnails. No inline editing. |
-| **Runway** | The timeline editor for video. The "gen-1/gen-2" model selector. The canvas-first approach. | Complexity for simple tasks. Modal overload. |
-| **Figma** | The inspector panel (right side) for properties. The command palette (`Cmd+/`). The multiplayer cursors. | The learning curve. Not relevant for conversational interfaces. |
-| **Linear** | The speed. The keyboard-first interaction. The command palette. The restrained visual design. | The density — our media content needs more breathing room. |
-| **Notion AI** | The inline AI interaction within existing content. The slash command menu. | The "AI block" that feels separate from the content. We want seamless integration. |
-| **Descript** | The transcript-driven video editing. The side-by-side transcript + timeline. | The complexity of the full editing suite. We're an agent, not an NLE. |
+| Product              | What to learn                                                                                            | What to avoid                                                                      |
+| -------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Midjourney (web)** | The variant grid UX. The "upscale / variation" actions on each variant. The gallery-first layout.        | The Discord-legacy UX. Tiny thumbnails. No inline editing.                         |
+| **Runway**           | The timeline editor for video. The "gen-1/gen-2" model selector. The canvas-first approach.              | Complexity for simple tasks. Modal overload.                                       |
+| **Figma**            | The inspector panel (right side) for properties. The command palette (`Cmd+/`). The multiplayer cursors. | The learning curve. Not relevant for conversational interfaces.                    |
+| **Linear**           | The speed. The keyboard-first interaction. The command palette. The restrained visual design.            | The density — our media content needs more breathing room.                         |
+| **Notion AI**        | The inline AI interaction within existing content. The slash command menu.                               | The "AI block" that feels separate from the content. We want seamless integration. |
+| **Descript**         | The transcript-driven video editing. The side-by-side transcript + timeline.                             | The complexity of the full editing suite. We're an agent, not an NLE.              |
 
 ## Appendix B — Design principles quick reference (for the team wall)
 

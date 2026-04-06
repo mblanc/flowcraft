@@ -12,16 +12,20 @@ export function LibraryProvenance({ provenance }: LibraryProvenanceProps) {
 
     return (
         <div className="space-y-1.5">
-            <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                 Source
             </p>
             <div className="flex items-center gap-1 text-sm">
                 <Icon className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-                <span className="text-foreground font-medium">{provenance.sourceName}</span>
+                <span className="text-foreground font-medium">
+                    {provenance.sourceName}
+                </span>
                 {provenance.nodeLabel && (
                     <>
                         <ChevronRight className="text-muted-foreground h-3 w-3" />
-                        <span className="text-muted-foreground">{provenance.nodeLabel}</span>
+                        <span className="text-muted-foreground">
+                            {provenance.nodeLabel}
+                        </span>
                     </>
                 )}
             </div>

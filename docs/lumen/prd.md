@@ -21,7 +21,7 @@ The agent is not a collection of tools with buttons. It is a **planner that reas
 
 **Fragmentation.** Today's media creation requires stitching together 5–15 separate tools: Gemini for images, Veo for video, Gemini 3 TTS for voice, Google Photos for editing. Each has its own interface, auth, asset management, and export pipeline. Professional workflows waste 40–60% of time on inter-tool logistics rather than creative decisions.
 
-**Expertise barrier.** Each tool requires domain knowledge — prompting strategies for image gen, timeline editing for video, EQ for audio. This locks out non-specialists (marketers, founders, product teams) who know *what* they want but not *how* to execute it.
+**Expertise barrier.** Each tool requires domain knowledge — prompting strategies for image gen, timeline editing for video, EQ for audio. This locks out non-specialists (marketers, founders, product teams) who know _what_ they want but not _how_ to execute it.
 
 **No compositional reasoning.** Existing tools handle individual steps well but cannot reason about multi-step workflows. There is no system that can take "create a product demo video from these screenshots with animated transitions and a voiceover" and autonomously decompose it into: screenshot sequencing → transition design → TTS → background music → audio mix → subtitle render → final export.
 
@@ -65,22 +65,22 @@ Designer, video editor, or content producer who already has expertise but wants 
 
 ### Primary metrics
 
-| Metric | Target (6 months) | Rationale |
-|--------|-------------------|-----------|
-| Workflow completion rate | > 75% | % of started workflows that produce a final output the user accepts |
-| Avg. primitives per workflow | > 3.0 | Measures compositional depth — are users going beyond single-step generation? |
-| Time to first deliverable | < 5 min (simple), < 30 min (complex) | End-to-end time from intent to export |
-| Weekly active users | 10K+ | Adoption |
-| NPS | > 50 | User satisfaction |
+| Metric                       | Target (6 months)                    | Rationale                                                                     |
+| ---------------------------- | ------------------------------------ | ----------------------------------------------------------------------------- |
+| Workflow completion rate     | > 75%                                | % of started workflows that produce a final output the user accepts           |
+| Avg. primitives per workflow | > 3.0                                | Measures compositional depth — are users going beyond single-step generation? |
+| Time to first deliverable    | < 5 min (simple), < 30 min (complex) | End-to-end time from intent to export                                         |
+| Weekly active users          | 10K+                                 | Adoption                                                                      |
+| NPS                          | > 50                                 | User satisfaction                                                             |
 
 ### Secondary metrics
 
-| Metric | Target | Rationale |
-|--------|--------|-----------|
-| Primitive success rate | > 95% | % of individual primitive calls that succeed without retry |
-| User iteration depth | > 2.5 rounds | Avg. number of refinement cycles per workflow, indicating users trust the system enough to iterate |
-| Brand kit adoption | > 40% of teams | % of team accounts that configure and actively use a brand kit |
-| Multi-format export rate | > 30% | % of workflows that export to 2+ formats (indicates cross-platform value) |
+| Metric                   | Target         | Rationale                                                                                          |
+| ------------------------ | -------------- | -------------------------------------------------------------------------------------------------- |
+| Primitive success rate   | > 95%          | % of individual primitive calls that succeed without retry                                         |
+| User iteration depth     | > 2.5 rounds   | Avg. number of refinement cycles per workflow, indicating users trust the system enough to iterate |
+| Brand kit adoption       | > 40% of teams | % of team accounts that configure and actively use a brand kit                                     |
+| Multi-format export rate | > 30%          | % of workflows that export to 2+ formats (indicates cross-platform value)                          |
 
 ---
 
@@ -90,28 +90,34 @@ Designer, video editor, or content producer who already has expertise but wants 
 
 **US-01 — Single-step generation**
 As a creator, I want to generate an image / video / music / voiceover from a text description so that I can produce media assets without specialized tools.
+
 - Acceptance: supports text→image, text→video, image→video, text→music, text→speech.
 - Quality: outputs are competitive with best-in-class standalone tools (Gemini 3.1 Image, Veo, Lyria).
 
 **US-02 — Single-step editing**
 As a creator, I want to edit existing media (remove background, inpaint, upscale, trim video, overlay text) by describing what I want changed.
+
 - Acceptance: supports inpaint/outpaint, background removal, upscale, color correction, video trim/cut/merge, text/graphic overlay, format conversion.
 
 **US-03 — Multi-step workflow from natural language**
 As a user, I want to describe a complex media task in plain language and have the agent plan and execute it as a multi-step pipeline.
+
 - Acceptance: agent decomposes intent into a DAG of primitives, shows the plan, executes with parallelism where possible, and surfaces the final output.
 - Example: "Take this product photo, remove the background, put it on a studio backdrop, add my logo in the bottom right, and export in 1:1 and 9:16."
 
 **US-04 — Intermediate review and course correction**
 As a user, I want to review intermediate outputs during long workflows and provide feedback before the agent continues.
+
 - Acceptance: configurable checkpoints where the workflow pauses. User can approve, reject (with notes), or modify parameters before proceeding.
 
 **US-05 — Brand kit**
 As a team lead, I want to configure brand assets (logo, fonts, color palette, tone guidelines) once and have them automatically applied to all generated content.
+
 - Acceptance: brand kit is stored per-workspace. Primitives like text overlay, color correction, and style transfer reference it by default.
 
 **US-06 — Multi-format export**
 As a marketer, I want to export a single piece of content in multiple formats and aspect ratios (feed post, story, banner) in one step.
+
 - Acceptance: user specifies target platforms, agent handles resizing, reformatting, and re-rendering. Outputs are packaged as a downloadable bundle.
 
 ### P1 — High priority, post-launch
@@ -164,66 +170,66 @@ Each primitive is a self-contained operation with typed inputs and outputs.
 
 #### 6.1.1 Generation primitives
 
-| Primitive | Input | Output | Priority | Model candidates |
-|-----------|-------|--------|----------|-----------------|
-| text → image | prompt, style params, resolution, seed | image | P0 | Gemini 3.1 Image (Pro/Flash) |
-| text → video | prompt, duration, resolution, seed | video | P0 | Veo (Vertex AI) |
-| image → video | image + prompt, duration | video | P0 | Veo (Vertex AI) |
-| text → music | prompt, duration, genre, mood | audio | P0 | Lyria / MusicFX (Vertex AI) |
-| text → SFX | prompt, duration | audio | P1 | Vertex AI AudioFX |
-| text → speech | text, voice ID, language, emotion | audio | P0 | Gemini 3 TTS |
-| text → 3D asset | prompt, format | mesh | P2 | Vertex AI 3D (Experimental) |
-| image → 3D asset | image(s), format | mesh | P2 | Vertex AI 3D (Experimental) |
+| Primitive        | Input                                  | Output | Priority | Model candidates             |
+| ---------------- | -------------------------------------- | ------ | -------- | ---------------------------- |
+| text → image     | prompt, style params, resolution, seed | image  | P0       | Gemini 3.1 Image (Pro/Flash) |
+| text → video     | prompt, duration, resolution, seed     | video  | P0       | Veo (Vertex AI)              |
+| image → video    | image + prompt, duration               | video  | P0       | Veo (Vertex AI)              |
+| text → music     | prompt, duration, genre, mood          | audio  | P0       | Lyria / MusicFX (Vertex AI)  |
+| text → SFX       | prompt, duration                       | audio  | P1       | Vertex AI AudioFX            |
+| text → speech    | text, voice ID, language, emotion      | audio  | P0       | Gemini 3 TTS                 |
+| text → 3D asset  | prompt, format                         | mesh   | P2       | Vertex AI 3D (Experimental)  |
+| image → 3D asset | image(s), format                       | mesh   | P2       | Vertex AI 3D (Experimental)  |
 
 #### 6.1.2 Understanding primitives
 
-| Primitive | Input | Output | Priority |
-|-----------|-------|--------|----------|
-| Image captioning | image | text description | P0 |
-| Video scene detection | video | list of scene boundaries with timestamps | P0 |
-| Object detection | image | bounding boxes + labels | P1 |
-| Segmentation | image + target | mask (PNG) | P0 |
-| Face detection | image | bounding boxes + landmarks | P1 |
-| Pose estimation | image | skeleton keypoints | P1 |
-| Depth estimation | image | depth map (PNG) | P1 |
-| OCR | image | extracted text + positions | P0 |
-| Speech → text | audio | transcript + timestamps | P0 |
-| Style / aesthetic scoring | image | quality score + attributes | P1 |
-| Content classification | image/video | labels (NSFW, brand safety, etc.) | P1 |
-| Audio source separation | audio | separated tracks (vocals, instruments, noise) | P2 |
+| Primitive                 | Input          | Output                                        | Priority |
+| ------------------------- | -------------- | --------------------------------------------- | -------- |
+| Image captioning          | image          | text description                              | P0       |
+| Video scene detection     | video          | list of scene boundaries with timestamps      | P0       |
+| Object detection          | image          | bounding boxes + labels                       | P1       |
+| Segmentation              | image + target | mask (PNG)                                    | P0       |
+| Face detection            | image          | bounding boxes + landmarks                    | P1       |
+| Pose estimation           | image          | skeleton keypoints                            | P1       |
+| Depth estimation          | image          | depth map (PNG)                               | P1       |
+| OCR                       | image          | extracted text + positions                    | P0       |
+| Speech → text             | audio          | transcript + timestamps                       | P0       |
+| Style / aesthetic scoring | image          | quality score + attributes                    | P1       |
+| Content classification    | image/video    | labels (NSFW, brand safety, etc.)             | P1       |
+| Audio source separation   | audio          | separated tracks (vocals, instruments, noise) | P2       |
 
 #### 6.1.3 Edit / transform primitives
 
-| Primitive | Input | Output | Priority |
-|-----------|-------|--------|----------|
-| Inpaint / outpaint | image + mask + prompt | image | P0 |
-| Background removal | image | image (RGBA) + mask | P0 |
-| Upscale / super-res | image, scale factor | image | P0 |
-| Style transfer | image + style reference | image | P1 |
-| Color correction | image/video + adjustments | image/video | P0 |
-| Video trim / cut / merge | video + edit list | video | P0 |
-| Transitions & effects | video clips + transition type | video | P1 |
-| Frame interpolation | video, target FPS | video | P2 |
-| Video stabilization | video | video | P2 |
-| Audio mix / EQ / denoise | audio tracks + settings | audio | P0 |
-| Text / graphic overlay | media + overlay spec | media | P0 |
-| Subtitle rendering | video + transcript/SRT | video | P0 |
-| Lip sync | video/image + audio | video | P2 |
-| Face swap | image/video + source face | image/video | P2 |
-| Motion tracking | video + target | tracking data | P2 |
-| Format conversion | media + target format/aspect | media | P0 |
-| Watermark | media + watermark asset | media | P1 | Google Cloud Video Intelligence / Image overlays |
+| Primitive                | Input                         | Output              | Priority |
+| ------------------------ | ----------------------------- | ------------------- | -------- | ------------------------------------------------ |
+| Inpaint / outpaint       | image + mask + prompt         | image               | P0       |
+| Background removal       | image                         | image (RGBA) + mask | P0       |
+| Upscale / super-res      | image, scale factor           | image               | P0       |
+| Style transfer           | image + style reference       | image               | P1       |
+| Color correction         | image/video + adjustments     | image/video         | P0       |
+| Video trim / cut / merge | video + edit list             | video               | P0       |
+| Transitions & effects    | video clips + transition type | video               | P1       |
+| Frame interpolation      | video, target FPS             | video               | P2       |
+| Video stabilization      | video                         | video               | P2       |
+| Audio mix / EQ / denoise | audio tracks + settings       | audio               | P0       |
+| Text / graphic overlay   | media + overlay spec          | media               | P0       |
+| Subtitle rendering       | video + transcript/SRT        | video               | P0       |
+| Lip sync                 | video/image + audio           | video               | P2       |
+| Face swap                | image/video + source face     | image/video         | P2       |
+| Motion tracking          | video + target                | tracking data       | P2       |
+| Format conversion        | media + target format/aspect  | media               | P0       |
+| Watermark                | media + watermark asset       | media               | P1       | Google Cloud Video Intelligence / Image overlays |
 
 #### 6.1.4 Infrastructure
 
-| Component | Description | Priority |
-|-----------|-------------|----------|
-| Brand kit | Per-workspace storage of logos, fonts, colors, tone guidelines. Referenced by overlay, style, and validation primitives. | P0 |
-| Template engine | Parameterized workflow definitions. Variables for inputs, fixed structure for steps. | P1 |
-| Asset library | Persistent storage, tagging, and semantic search for generated/uploaded assets. | P1 |
-| Policy rules engine | Declarative rules evaluated against understanding primitive outputs. Returns pass/fail + violation list. | P1 |
-| Version history | Track all iterations of a workflow, enable rollback and diff. | P2 |
-| Render queue | Async job management with priority, progress tracking, and webhook notifications. | P1 |
+| Component           | Description                                                                                                              | Priority |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------- |
+| Brand kit           | Per-workspace storage of logos, fonts, colors, tone guidelines. Referenced by overlay, style, and validation primitives. | P0       |
+| Template engine     | Parameterized workflow definitions. Variables for inputs, fixed structure for steps.                                     | P1       |
+| Asset library       | Persistent storage, tagging, and semantic search for generated/uploaded assets.                                          | P1       |
+| Policy rules engine | Declarative rules evaluated against understanding primitive outputs. Returns pass/fail + violation list.                 | P1       |
+| Version history     | Track all iterations of a workflow, enable rollback and diff.                                                            | P2       |
+| Render queue        | Async job management with priority, progress tracking, and webhook notifications.                                        | P1       |
 
 ### 6.2 Agent / planner layer
 
@@ -436,15 +442,15 @@ The agent tracks the full version tree and can cheaply re-render from any point.
 
 ## 10. Risks & mitigations
 
-| Risk | Severity | Likelihood | Mitigation |
-|------|----------|------------|------------|
-| **Model quality inconsistency** — different providers produce varying quality, breaking multi-step workflows | High | High | Primitive adapters include quality validation. Planner selects best provider per step. Fallback chain on quality failure. |
-| **Cost blowup on complex workflows** — a 10-step pipeline calling expensive models can cost $5–50 per run | High | High | Cost estimation before execution. Per-workflow budget caps. Model routing that balances cost/quality. Caching to avoid redundant calls. |
-| **Latency on long pipelines** — end-to-end movie production could take 30+ minutes | Medium | High | Streaming intermediates so users see progress. Parallel execution of independent branches. Async render queue with notifications. |
-| **Copyright and IP** — generated content may infringe on training data copyrights, licensed music, or brand assets | High | Medium | Content classification and provenance tracking. Licensed music libraries as default. Clear ToS around generated content ownership. |
-| **Misuse** — deepfakes, non-consensual face swap, misleading ads | High | Medium | Face swap requires consent verification. Content classification flags synthetic media. Watermarking on all generated content. Rate limiting on face-related primitives. |
-| **Provider lock-in** — dependency on external model providers who may change pricing or APIs | Medium | Medium | Adapter abstraction layer. Support 2+ providers per primitive type. Self-hosted fallbacks for critical primitives. |
-| **Planning failures** — agent misinterprets intent or produces invalid DAGs | Medium | High | Plan preview before execution. Typed I/O validation at plan time. Fallback to template matching when novel composition fails. User can manually edit the plan. |
+| Risk                                                                                                               | Severity | Likelihood | Mitigation                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------ | -------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Model quality inconsistency** — different providers produce varying quality, breaking multi-step workflows       | High     | High       | Primitive adapters include quality validation. Planner selects best provider per step. Fallback chain on quality failure.                                               |
+| **Cost blowup on complex workflows** — a 10-step pipeline calling expensive models can cost $5–50 per run          | High     | High       | Cost estimation before execution. Per-workflow budget caps. Model routing that balances cost/quality. Caching to avoid redundant calls.                                 |
+| **Latency on long pipelines** — end-to-end movie production could take 30+ minutes                                 | Medium   | High       | Streaming intermediates so users see progress. Parallel execution of independent branches. Async render queue with notifications.                                       |
+| **Copyright and IP** — generated content may infringe on training data copyrights, licensed music, or brand assets | High     | Medium     | Content classification and provenance tracking. Licensed music libraries as default. Clear ToS around generated content ownership.                                      |
+| **Misuse** — deepfakes, non-consensual face swap, misleading ads                                                   | High     | Medium     | Face swap requires consent verification. Content classification flags synthetic media. Watermarking on all generated content. Rate limiting on face-related primitives. |
+| **Provider lock-in** — dependency on external model providers who may change pricing or APIs                       | Medium   | Medium     | Adapter abstraction layer. Support 2+ providers per primitive type. Self-hosted fallbacks for critical primitives.                                                      |
+| **Planning failures** — agent misinterprets intent or produces invalid DAGs                                        | Medium   | High       | Plan preview before execution. Typed I/O validation at plan time. Fallback to template matching when novel composition fails. User can manually edit the plan.          |
 
 ---
 
@@ -474,25 +480,25 @@ See `media_agent_architecture.md` for the complete primitive taxonomy and compos
 
 ## Appendix B — Competitive landscape
 
-| Competitor | Strengths | Gaps |
-|------------|-----------|------|
-| **Runway** | Best-in-class video gen, professional user base | Single-tool, no multi-step composition, no audio |
-| **Pika** | Fast video gen, good UI | Limited editing, no pipeline orchestration |
-| **Canva** | Massive user base, templates, brand kit | AI features are add-ons, not compositional. No video gen. |
-| **Adobe Firefly** | Integrated in Creative Cloud | Locked to Adobe ecosystem, limited autonomy |
+| Competitor        | Strengths                                       | Gaps                                                      |
+| ----------------- | ----------------------------------------------- | --------------------------------------------------------- |
+| **Runway**        | Best-in-class video gen, professional user base | Single-tool, no multi-step composition, no audio          |
+| **Pika**          | Fast video gen, good UI                         | Limited editing, no pipeline orchestration                |
+| **Canva**         | Massive user base, templates, brand kit         | AI features are add-ons, not compositional. No video gen. |
+| **Adobe Firefly** | Integrated in Creative Cloud                    | Locked to Adobe ecosystem, limited autonomy               |
 
-**Our differentiation:** No competitor offers an *agent* that reasons across modalities and composes multi-step workflows autonomously. Everyone else is a tool; we are the orchestrator.
+**Our differentiation:** No competitor offers an _agent_ that reasons across modalities and composes multi-step workflows autonomously. Everyone else is a tool; we are the orchestrator.
 
 ## Appendix C — Glossary
 
-| Term | Definition |
-|------|------------|
-| **Primitive** | An atomic, single-step media operation (generate, edit, understand). The smallest unit of work. |
-| **Workflow** | A directed acyclic graph (DAG) of primitives that produces a final deliverable. |
-| **Template** | A saved, parameterized workflow definition that can be re-run with different inputs. |
-| **Checkpoint** | A point in a workflow where execution pauses for user review and approval. |
-| **Brand kit** | A per-workspace collection of brand assets (logo, fonts, colors, guidelines) applied to generation. |
-| **Adapter** | An abstraction layer wrapping one or more model providers behind a common interface for a given primitive. |
-| **Planner** | The LLM-powered agent component that decomposes user intent into a workflow DAG. |
-| **Executor** | The runtime component that runs DAG nodes, manages parallelism, retries, and checkpoints. |
-| **Reviewer** | The post-execution validation component that checks quality, brand compliance, and policy. |
+| Term           | Definition                                                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Primitive**  | An atomic, single-step media operation (generate, edit, understand). The smallest unit of work.            |
+| **Workflow**   | A directed acyclic graph (DAG) of primitives that produces a final deliverable.                            |
+| **Template**   | A saved, parameterized workflow definition that can be re-run with different inputs.                       |
+| **Checkpoint** | A point in a workflow where execution pauses for user review and approval.                                 |
+| **Brand kit**  | A per-workspace collection of brand assets (logo, fonts, colors, guidelines) applied to generation.        |
+| **Adapter**    | An abstraction layer wrapping one or more model providers behind a common interface for a given primitive. |
+| **Planner**    | The LLM-powered agent component that decomposes user intent into a workflow DAG.                           |
+| **Executor**   | The runtime component that runs DAG nodes, manages parallelism, retries, and checkpoints.                  |
+| **Reviewer**   | The post-execution validation component that checks quality, brand compliance, and policy.                 |

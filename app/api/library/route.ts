@@ -28,7 +28,9 @@ export const POST = withAuth(async (req, _context, session) => {
 
         if (!body.gcsUri || !body.type || !body.mimeType || !body.provenance) {
             return NextResponse.json(
-                { error: "gcsUri, type, mimeType, and provenance are required" },
+                {
+                    error: "gcsUri, type, mimeType, and provenance are required",
+                },
                 { status: 400 },
             );
         }
