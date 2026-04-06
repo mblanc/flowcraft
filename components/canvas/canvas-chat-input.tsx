@@ -412,23 +412,31 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     });
 
                     // Save to library (fire-and-forget)
-                    fetch("/api/library", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            type: "image",
-                            gcsUri: imageUrl,
-                            mimeType: "image/png",
-                            aspectRatio: media.config.aspectRatio,
-                            model: media.config.model,
-                            provenance: {
-                                sourceType: "canvas",
-                                sourceId: canvasId,
-                                sourceName: canvasName,
-                                prompt: media.prompt,
-                            },
-                        }),
-                    }).catch(() => {});
+                    if (canvasId) {
+                        fetch("/api/library", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                type: "image",
+                                gcsUri: imageUrl,
+                                mimeType: "image/png",
+                                aspectRatio: media.config.aspectRatio,
+                                model: media.config.model,
+                                provenance: {
+                                    sourceType: "canvas",
+                                    sourceId: canvasId,
+                                    sourceName: canvasName,
+                                    prompt: media.prompt,
+                                    mediaInputs: referenceImages.length
+                                        ? referenceImages.map((img) => ({
+                                              url: (img as { url: string }).url,
+                                              mimeType: (img as { type: string }).type,
+                                          }))
+                                        : undefined,
+                                },
+                            }),
+                        }).catch(() => {});
+                    }
                 } else {
                     const referenceImages =
                         media.referenceNodeIds
@@ -512,24 +520,41 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     });
 
                     // Save to library (fire-and-forget)
-                    fetch("/api/library", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            type: "video",
-                            gcsUri: videoUrl,
-                            mimeType: "video/mp4",
-                            aspectRatio: media.config.aspectRatio,
-                            model: media.config.model,
-                            duration: media.config.duration,
-                            provenance: {
-                                sourceType: "canvas",
-                                sourceId: canvasId,
-                                sourceName: canvasName,
-                                prompt: media.prompt,
-                            },
-                        }),
-                    }).catch(() => {});
+                    if (canvasId) {
+                        const allVideoMediaInputs = [
+                            ...(firstFrameUrl
+                                ? [{ url: firstFrameUrl, mimeType: "image/png" }]
+                                : []),
+                            ...(lastFrameUrl
+                                ? [{ url: lastFrameUrl, mimeType: "image/png" }]
+                                : []),
+                            ...referenceImages.map((img) => ({
+                                url: (img as { url: string }).url,
+                                mimeType: (img as { type: string }).type,
+                            })),
+                        ];
+                        fetch("/api/library", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                type: "video",
+                                gcsUri: videoUrl,
+                                mimeType: "video/mp4",
+                                aspectRatio: media.config.aspectRatio,
+                                model: media.config.model,
+                                duration: media.config.duration,
+                                provenance: {
+                                    sourceType: "canvas",
+                                    sourceId: canvasId,
+                                    sourceName: canvasName,
+                                    prompt: media.prompt,
+                                    mediaInputs: allVideoMediaInputs.length
+                                        ? allVideoMediaInputs
+                                        : undefined,
+                                },
+                            }),
+                        }).catch(() => {});
+                    }
                 }
 
                 toast.success(

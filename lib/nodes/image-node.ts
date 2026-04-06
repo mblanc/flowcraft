@@ -113,7 +113,11 @@ export async function executeImageNode(
         throw error;
     }
 
-    return { images: [data.imageUrl] };
+    return {
+        images: [data.imageUrl],
+        prompt: promptSource || undefined,
+        mediaInputs: inputs.images?.length ? inputs.images : undefined,
+    };
 }
 
 export const imageNodeDefinition: NodeDefinition<ImageData, NodeInputs> = {

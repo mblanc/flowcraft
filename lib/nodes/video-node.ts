@@ -61,10 +61,17 @@ export async function executeVideoNode(
         context,
     );
 
+    const mediaInputs = [
+        ...(firstFrame ? [{ url: firstFrame, mimeType: "image/png" }] : []),
+        ...(lastFrame ? [{ url: lastFrame, mimeType: "image/png" }] : []),
+        ...(images ?? []).map((i) => ({ url: i.url, mimeType: i.type })),
+    ];
     return {
         videoUrl: data.videoUrl,
         firstFrame,
         lastFrame,
+        prompt: finalPrompt || undefined,
+        ...(mediaInputs.length ? { mediaInputs } : {}),
     };
 }
 

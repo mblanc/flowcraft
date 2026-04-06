@@ -84,7 +84,12 @@ function mergeResults(
                 (r) =>
                     ((r as Record<string, unknown>).images as string[]) || [],
             );
-            return { images: allImages } as Partial<NodeData>;
+            const firstImageResult = results[0] as Record<string, unknown>;
+            return {
+                images: allImages,
+                prompt: firstImageResult?.prompt,
+                mediaInputs: firstImageResult?.mediaInputs,
+            } as Partial<NodeData>;
         }
         case "llm": {
             const allOutputs = results.map(
@@ -100,9 +105,12 @@ function mergeResults(
                 (r) =>
                     ((r as Record<string, unknown>).videoUrl as string) || "",
             );
+            const firstVideoResult = results[0] as Record<string, unknown>;
             return {
                 videoUrl: allUrls[0],
                 videoUrls: allUrls,
+                prompt: firstVideoResult?.prompt,
+                mediaInputs: firstVideoResult?.mediaInputs,
             } as Partial<NodeData>;
         }
         case "upscale": {
@@ -356,6 +364,7 @@ export class WorkflowEngine {
         if (!userId || !flowId) return;
 
         const fetchFn = this.context.fetch ?? fetch;
+        const r = result as Record<string, unknown>;
         const provenance: LibraryAssetProvenance = {
             sourceType: "flow",
             sourceId: flowId,
@@ -366,15 +375,14 @@ export class WorkflowEngine {
                     | string
                     | undefined) ?? node.data.type,
             prompt:
-                ((result as Record<string, unknown>).prompt as
-                    | string
-                    | undefined) ??
+                (r.prompt as string | undefined) ??
                 ((node.data as Record<string, unknown>).prompt as
                     | string
                     | undefined),
+            mediaInputs: r.mediaInputs as
+                | { url: string; mimeType?: string }[]
+                | undefined,
         };
-
-        const r = result as Record<string, unknown>;
 
         if (node.data.type === "image") {
             const uris = (r.images as string[] | undefined) ?? [];
