@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 
 const dashboardBoxes = [
     {
-        name: "FlowCraft",
+        name: "Flows",
         description: "Visual workflow builder for AI content generation",
         href: "/flows",
         icon: Workflow,
@@ -24,7 +24,7 @@ const dashboardBoxes = [
         shadow: "shadow-blue-500/20",
     },
     {
-        name: "Agents (Canvas)",
+        name: "Agents",
         description: "Collaborative canvas for agent-driven media Creation",
         href: "/agents",
         icon: Bot,

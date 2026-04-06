@@ -14,7 +14,13 @@ interface CombinedUser {
     image?: string | null; // From Auth.js session
 }
 
-export function UserProfile({ isCollapsed }: { isCollapsed: boolean }) {
+export function UserProfile({
+    isCollapsed,
+    dropdownPosition = "bottom",
+}: {
+    isCollapsed: boolean;
+    dropdownPosition?: "top" | "bottom";
+}) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const {
         data: session,
@@ -74,7 +80,7 @@ export function UserProfile({ isCollapsed }: { isCollapsed: boolean }) {
         <div className="user-profile-dropdown relative">
             <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex cursor-pointer items-center gap-2 rounded-md bg-gray-100 p-2 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md bg-gray-100 p-2 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
             >
                 {displayPicture ? (
                     <Image
@@ -93,12 +99,12 @@ export function UserProfile({ isCollapsed }: { isCollapsed: boolean }) {
                 )}
                 {!isCollapsed && (
                     <>
-                        <span className="truncate text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <span className="max-w-[120px] truncate text-sm font-medium text-gray-700 dark:text-gray-300">
                             {displayName}
                         </span>
                         <ChevronDown
                             size={16}
-                            className={`text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+                            className={`ml-auto text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
                         />
                     </>
                 )}
@@ -106,7 +112,13 @@ export function UserProfile({ isCollapsed }: { isCollapsed: boolean }) {
 
             {/* Dropdown Menu */}
             {isDropdownOpen && (
-                <div className="absolute top-full left-0 z-50 mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <div
+                    className={`absolute left-0 z-50 w-full min-w-[200px] rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 ${
+                        dropdownPosition === "top"
+                            ? "bottom-full mb-2"
+                            : "top-full mt-2"
+                    }`}
+                >
                     <div className="py-1">
                         {/* User Info */}
                         <div className="border-b border-gray-200 px-4 py-2 dark:border-gray-700">
