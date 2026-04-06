@@ -10,7 +10,11 @@ interface LibraryAssetActionsProps {
     onDelete: () => void;
 }
 
-export function LibraryAssetActions({ assetId, gcsUri, onDelete }: LibraryAssetActionsProps) {
+export function LibraryAssetActions({
+    assetId,
+    gcsUri,
+    onDelete,
+}: LibraryAssetActionsProps) {
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDownload = async () => {

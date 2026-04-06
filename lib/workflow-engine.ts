@@ -318,7 +318,10 @@ export class WorkflowEngine {
 
             // Fire-and-forget: save generated media to library
             this.saveToLibrary(node, result).catch((err) =>
-                logger.warn(`[WorkflowEngine] Library save failed for node ${nodeId}:`, err),
+                logger.warn(
+                    `[WorkflowEngine] Library save failed for node ${nodeId}:`,
+                    err,
+                ),
             );
 
             this.onNodeUpdate(nodeId, {
@@ -358,9 +361,17 @@ export class WorkflowEngine {
             sourceId: flowId,
             sourceName: flowName ?? "Untitled Flow",
             nodeId: node.id,
-            nodeLabel: (node.data as Record<string, unknown>).label as string | undefined ?? node.data.type,
-            prompt: (result as Record<string, unknown>).prompt as string | undefined
-                ?? (node.data as Record<string, unknown>).prompt as string | undefined,
+            nodeLabel:
+                ((node.data as Record<string, unknown>).label as
+                    | string
+                    | undefined) ?? node.data.type,
+            prompt:
+                ((result as Record<string, unknown>).prompt as
+                    | string
+                    | undefined) ??
+                ((node.data as Record<string, unknown>).prompt as
+                    | string
+                    | undefined),
         };
 
         const r = result as Record<string, unknown>;
@@ -384,8 +395,9 @@ export class WorkflowEngine {
                 });
             }
         } else if (node.data.type === "video") {
-            const uris = (r.videoUrls as string[] | undefined)
-                ?? (r.videoUrl ? [r.videoUrl as string] : []);
+            const uris =
+                (r.videoUrls as string[] | undefined) ??
+                (r.videoUrl ? [r.videoUrl as string] : []);
             const nodeData = node.data as Record<string, unknown>;
             for (const gcsUri of uris) {
                 if (!gcsUri) continue;

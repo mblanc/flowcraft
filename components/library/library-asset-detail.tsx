@@ -69,22 +69,22 @@ export function LibraryAssetDetail({
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                                 src={displayUrl}
-                                alt={asset.provenance.prompt ?? "Generated image"}
+                                alt={
+                                    asset.provenance.prompt ?? "Generated image"
+                                }
                                 className="max-h-72 w-full rounded-lg object-contain"
                             />
                         ) : (
                             <div className="bg-muted-foreground/20 h-48 w-full animate-pulse rounded-lg" />
                         )
+                    ) : displayUrl ? (
+                        <video
+                            src={displayUrl}
+                            controls
+                            className="max-h-72 w-full rounded-lg"
+                        />
                     ) : (
-                        displayUrl ? (
-                            <video
-                                src={displayUrl}
-                                controls
-                                className="max-h-72 w-full rounded-lg"
-                            />
-                        ) : (
-                            <div className="bg-muted-foreground/20 h-48 w-full animate-pulse rounded-lg" />
-                        )
+                        <div className="bg-muted-foreground/20 h-48 w-full animate-pulse rounded-lg" />
                     )}
                 </div>
 
@@ -93,21 +93,30 @@ export function LibraryAssetDetail({
                     {/* Metadata */}
                     <div className="grid grid-cols-2 gap-3">
                         {asset.aspectRatio && (
-                            <MetaItem label="Aspect ratio" value={asset.aspectRatio} />
+                            <MetaItem
+                                label="Aspect ratio"
+                                value={asset.aspectRatio}
+                            />
                         )}
                         {asset.model && (
                             <MetaItem label="Model" value={asset.model} />
                         )}
                         {asset.duration != null && (
-                            <MetaItem label="Duration" value={`${asset.duration}s`} />
+                            <MetaItem
+                                label="Duration"
+                                value={`${asset.duration}s`}
+                            />
                         )}
                         <MetaItem
                             label="Created"
-                            value={new Date(asset.createdAt).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                            })}
+                            value={new Date(asset.createdAt).toLocaleDateString(
+                                "en-US",
+                                {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                },
+                            )}
                         />
                     </div>
 
@@ -138,7 +147,7 @@ export function LibraryAssetDetail({
 function MetaItem({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                 {label}
             </p>
             <p className="text-foreground mt-0.5 text-sm">{value}</p>

@@ -489,8 +489,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                             duration: media.config.duration || 4,
                             model: media.config.model,
                             resolution: media.config.resolution,
-                            generateAudio:
-                                media.config.generateAudio ?? false,
+                            generateAudio: media.config.generateAudio ?? false,
                             firstFrame: firstFrameUrl,
                             lastFrame: lastFrameUrl,
                             images: referenceImages,
@@ -559,6 +558,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             getViewportCenter,
             addGeneratingNodeId,
             removeGeneratingNodeId,
+            canvasId,
+            canvasName,
         ],
     );
 

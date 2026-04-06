@@ -146,7 +146,7 @@ export function CanvasToolbar({ getViewportCenter }: CanvasToolbarProps) {
 
     return (
         <TooltipProvider delayDuration={300}>
-            <div className="border-border bg-card/95 absolute top-1/2 left-4 z-20 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full border p-1 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/75">
+            <div className="border-border bg-card/95 supports-[backdrop-filter]:bg-card/75 absolute top-1/2 left-4 z-20 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full border p-1 shadow-sm backdrop-blur">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <button
