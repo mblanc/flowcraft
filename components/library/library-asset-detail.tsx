@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { X } from "lucide-react";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import type { LibraryAsset } from "@/lib/library-types";
@@ -22,9 +22,7 @@ export function LibraryAssetDetail({
     onTagsChange,
 }: LibraryAssetDetailProps) {
     const { displayUrl } = useSignedUrl(asset.gcsUri);
-    const panelRef = useRef<HTMLDivElement>(null);
 
-    // Close on Escape
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose();
@@ -33,22 +31,40 @@ export function LibraryAssetDetail({
         return () => window.removeEventListener("keydown", handler);
     }, [onClose]);
 
-    // Close on backdrop click
-    const handleBackdropClick = (e: React.MouseEvent) => {
-        if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-            onClose();
-        }
-    };
-
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-stretch justify-end bg-black/40 backdrop-blur-sm"
-            onClick={handleBackdropClick}
-        >
+        <div className="fixed inset-0 z-50 flex bg-black/90">
+            {/* Left: media — click the dark backdrop to close */}
             <div
-                ref={panelRef}
-                className="bg-background border-border flex h-full w-full max-w-md flex-col overflow-y-auto border-l shadow-2xl"
+                className="flex flex-1 cursor-pointer items-center justify-center overflow-hidden p-6 lg:p-12"
+                onClick={onClose}
             >
+                {asset.type === "image" ? (
+                    displayUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={displayUrl}
+                            alt={asset.provenance.prompt ?? "Generated image"}
+                            className="max-h-full max-w-full cursor-default rounded-lg object-contain"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    ) : (
+                        <div className="h-64 w-64 animate-pulse rounded-lg bg-white/10" />
+                    )
+                ) : displayUrl ? (
+                    <video
+                        src={displayUrl}
+                        controls
+                        autoPlay
+                        className="max-h-full max-w-full cursor-default rounded-lg"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                ) : (
+                    <div className="h-64 w-64 animate-pulse rounded-lg bg-white/10" />
+                )}
+            </div>
+
+            {/* Right: metadata panel */}
+            <div className="bg-background border-border flex h-full w-80 flex-col overflow-y-auto border-l lg:w-96">
                 {/* Header */}
                 <div className="border-border flex items-center justify-between border-b px-5 py-4">
                     <span className="text-foreground font-semibold capitalize">
@@ -62,35 +78,8 @@ export function LibraryAssetDetail({
                     </button>
                 </div>
 
-                {/* Preview */}
-                <div className="bg-muted flex items-center justify-center p-4">
-                    {asset.type === "image" ? (
-                        displayUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                                src={displayUrl}
-                                alt={
-                                    asset.provenance.prompt ?? "Generated image"
-                                }
-                                className="max-h-72 w-full rounded-lg object-contain"
-                            />
-                        ) : (
-                            <div className="bg-muted-foreground/20 h-48 w-full animate-pulse rounded-lg" />
-                        )
-                    ) : displayUrl ? (
-                        <video
-                            src={displayUrl}
-                            controls
-                            className="max-h-72 w-full rounded-lg"
-                        />
-                    ) : (
-                        <div className="bg-muted-foreground/20 h-48 w-full animate-pulse rounded-lg" />
-                    )}
-                </div>
-
                 {/* Metadata + actions */}
                 <div className="flex flex-1 flex-col gap-5 px-5 py-5">
-                    {/* Metadata */}
                     <div className="grid grid-cols-2 gap-3">
                         {asset.aspectRatio && (
                             <MetaItem
@@ -120,17 +109,14 @@ export function LibraryAssetDetail({
                         />
                     </div>
 
-                    {/* Provenance */}
                     <LibraryProvenance provenance={asset.provenance} />
 
-                    {/* Tags */}
                     <LibraryTagsEditor
                         assetId={asset.id}
                         initialTags={asset.tags}
                         onTagsChange={(tags) => onTagsChange(asset.id, tags)}
                     />
 
-                    {/* Actions */}
                     <div className="mt-auto pt-2">
                         <LibraryAssetActions
                             assetId={asset.id}

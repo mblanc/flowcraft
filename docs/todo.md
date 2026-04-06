@@ -1,5 +1,5 @@
 - app mode
-- Assets
+- Saving system copy canvas for flows
 
 - List selector
 - Painter / Annotate
@@ -54,7 +54,6 @@
 
 NTA
 
-- Assets library
 - api mode
 - cost details
 
@@ -66,7 +65,6 @@ NTA
 
 # Nodes
 
-- prompt creation with variables
 - Video Stitch
 - Ease Curve
 - Image Compare

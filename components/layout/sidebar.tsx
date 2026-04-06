@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
     Home,
@@ -30,11 +31,13 @@ export function Sidebar() {
         <aside className="border-border/50 bg-card/30 flex h-screen w-64 flex-col border-r backdrop-blur-xl">
             <div className="flex h-16 items-center px-6">
                 <Link href="/" className="flex items-center gap-2">
-                    <div className="bg-primary shadow-primary/20 flex h-8 w-8 items-center justify-center rounded-lg shadow-lg">
-                        <span className="text-primary-foreground text-sm font-bold">
-                            F
-                        </span>
-                    </div>
+                    <Image
+                        src="/flowcraft_logo.png"
+                        alt="FlowCraft"
+                        width={32}
+                        height={32}
+                        className="rounded-lg"
+                    />
                     <span className="text-foreground text-lg font-bold tracking-tight">
                         FlowCraft
                     </span>

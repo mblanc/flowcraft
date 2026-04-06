@@ -1,16 +1,38 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { LibraryTabs } from "@/components/library/library-tabs";
 import { LibraryToolbar } from "@/components/library/library-toolbar";
-import { LibraryMasonryGrid } from "@/components/library/library-masonry-grid";
+import {
+    LibraryMasonryGrid,
+    type LibraryAssetGroup,
+} from "@/components/library/library-masonry-grid";
 import { LibraryAssetDetail } from "@/components/library/library-asset-detail";
 import type { LibraryAsset } from "@/lib/library-types";
 
 type LibraryTab = "images" | "videos";
+
+const PAGE_LIMIT = 40;
+
+function formatDateLabel(date: Date): string {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        ...(date.getFullYear() !== today.getFullYear()
+            ? { year: "numeric" }
+            : {}),
+    });
+}
 
 export default function LibraryPage() {
     const { status } = useSession();
@@ -20,9 +42,14 @@ export default function LibraryPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [assets, setAssets] = useState<LibraryAsset[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [cursor, setCursor] = useState<string | null>(null);
     const [selectedAsset, setSelectedAsset] = useState<LibraryAsset | null>(
         null,
     );
+
+    const sentinelRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -30,14 +57,24 @@ export default function LibraryPage() {
         }
     }, [status, router]);
 
-    const fetchAssets = useCallback(async () => {
+    const fetchInitial = useCallback(async () => {
         setLoading(true);
+        setAssets([]);
+        setCursor(null);
+        setHasMore(false);
         try {
             const type = activeTab === "images" ? "image" : "video";
-            const res = await fetch(`/api/library?type=${type}`);
+            const res = await fetch(
+                `/api/library?type=${type}&limit=${PAGE_LIMIT}`,
+            );
             if (res.ok) {
                 const data = await res.json();
-                setAssets(data.assets ?? []);
+                const fetched: LibraryAsset[] = data.assets ?? [];
+                setAssets(fetched);
+                if (fetched.length === PAGE_LIMIT) {
+                    setCursor(fetched[fetched.length - 1].createdAt);
+                    setHasMore(true);
+                }
             }
         } finally {
             setLoading(false);
@@ -46,20 +83,75 @@ export default function LibraryPage() {
 
     useEffect(() => {
         if (status === "authenticated") {
-            fetchAssets();
+            fetchInitial();
         }
-    }, [status, fetchAssets]);
+    }, [status, fetchInitial]);
 
-    const filteredAssets = searchQuery.trim()
-        ? assets.filter((a) => {
-              const q = searchQuery.toLowerCase();
-              return (
-                  a.provenance.prompt?.toLowerCase().includes(q) ||
-                  a.tags.some((t) => t.toLowerCase().includes(q)) ||
-                  a.provenance.sourceName.toLowerCase().includes(q)
-              );
-          })
-        : assets;
+    const loadMore = useCallback(async () => {
+        if (!hasMore || loadingMore || !cursor) return;
+        setLoadingMore(true);
+        try {
+            const type = activeTab === "images" ? "image" : "video";
+            const res = await fetch(
+                `/api/library?type=${type}&before=${encodeURIComponent(cursor)}&limit=${PAGE_LIMIT}`,
+            );
+            if (res.ok) {
+                const data = await res.json();
+                const fetched: LibraryAsset[] = data.assets ?? [];
+                setAssets((prev) => [...prev, ...fetched]);
+                if (fetched.length === PAGE_LIMIT) {
+                    setCursor(fetched[fetched.length - 1].createdAt);
+                } else {
+                    setHasMore(false);
+                }
+            }
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [hasMore, loadingMore, cursor, activeTab]);
+
+    // Stable ref so the observer doesn't need to be recreated on every render
+    const loadMoreRef = useRef(loadMore);
+    loadMoreRef.current = loadMore;
+
+    useEffect(() => {
+        const sentinel = sentinelRef.current;
+        if (!sentinel) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    loadMoreRef.current();
+                }
+            },
+            { threshold: 0.1 },
+        );
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, []);
+
+    const filteredAssets = useMemo(() => {
+        if (!searchQuery.trim()) return assets;
+        const q = searchQuery.toLowerCase();
+        return assets.filter(
+            (a) =>
+                a.provenance.prompt?.toLowerCase().includes(q) ||
+                a.tags.some((t) => t.toLowerCase().includes(q)) ||
+                a.provenance.sourceName.toLowerCase().includes(q),
+        );
+    }, [assets, searchQuery]);
+
+    const groups = useMemo<LibraryAssetGroup[]>(() => {
+        const map = new Map<string, LibraryAsset[]>();
+        for (const asset of filteredAssets) {
+            const key = new Date(asset.createdAt).toDateString();
+            if (!map.has(key)) map.set(key, []);
+            map.get(key)!.push(asset);
+        }
+        return [...map.entries()].map(([key, items]) => ({
+            label: formatDateLabel(new Date(key)),
+            assets: items,
+        }));
+    }, [filteredAssets]);
 
     const handleDelete = useCallback((id: string) => {
         setAssets((prev) => prev.filter((a) => a.id !== id));
@@ -115,14 +207,26 @@ export default function LibraryPage() {
                         <Loader2 className="text-primary h-12 w-12 animate-spin" />
                     </div>
                 ) : (
-                    <LibraryMasonryGrid
-                        assets={filteredAssets}
-                        onAssetClick={setSelectedAsset}
-                    />
+                    <>
+                        <LibraryMasonryGrid
+                            groups={groups}
+                            onAssetClick={setSelectedAsset}
+                        />
+
+                        {/* Infinite scroll sentinel */}
+                        {hasMore && (
+                            <div ref={sentinelRef} className="py-8">
+                                {loadingMore && (
+                                    <div className="flex justify-center">
+                                        <Loader2 className="text-primary h-6 w-6 animate-spin" />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </>
                 )}
             </main>
 
-            {/* Detail overlay */}
             {selectedAsset && (
                 <LibraryAssetDetail
                     asset={selectedAsset}
