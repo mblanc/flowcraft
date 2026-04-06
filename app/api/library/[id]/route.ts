@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { withAuth } from "@/lib/api-utils";
 import { libraryService } from "@/lib/services/library.service";
 import logger from "@/app/logger";
+
+const updateTagsSchema = z.object({
+    tags: z.array(z.string()),
+});
 
 export const GET = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
@@ -29,16 +34,15 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(
     async (req, { params }, session) => {
         const { id } = await params;
         try {
-            const body = await req.json();
-
-            if (!Array.isArray(body.tags) || !body.tags.every(tag => typeof tag === 'string')) {
+            const parsed = updateTagsSchema.safeParse(await req.json());
+            if (!parsed.success) {
                 return NextResponse.json(
-                    { error: "tags must be an array of strings" },
+                    { error: parsed.error.flatten().fieldErrors },
                     { status: 400 },
                 );
             }
 
-            await libraryService.updateTags(id, session.user!.id!, body.tags);
+            await libraryService.updateTags(id, session.user!.id!, parsed.data.tags);
             return NextResponse.json({ success: true });
         } catch (error) {
             if (error instanceof Error) {
