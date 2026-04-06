@@ -436,7 +436,9 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                         : undefined,
                                 },
                             }),
-                        }).catch(() => {});
+                        }).catch((err) => {
+                            console.error("Failed to save image to library:", err);
+                        });
                     }
                 } else {
                     const referenceImages =
@@ -554,7 +556,9 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                         : undefined,
                                 },
                             }),
-                        }).catch(() => {});
+                        }).catch((err) => {
+                            console.error("Failed to save video to library:", err);
+                        });
                     }
                 }
 
