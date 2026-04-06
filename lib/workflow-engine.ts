@@ -387,42 +387,44 @@ export class WorkflowEngine {
         if (node.data.type === "image") {
             const uris = (r.images as string[] | undefined) ?? [];
             const nodeData = node.data as Record<string, unknown>;
-            for (const gcsUri of uris) {
-                if (!gcsUri) continue;
-                await fetchFn("/api/library", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        type: "image",
-                        gcsUri,
-                        mimeType: "image/png",
-                        aspectRatio: nodeData.aspectRatio,
-                        model: nodeData.model,
-                        provenance,
+            await Promise.all(
+                uris.filter(Boolean).map((gcsUri) =>
+                    fetchFn("/api/library", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            type: "image",
+                            gcsUri,
+                            mimeType: "image/png",
+                            aspectRatio: nodeData.aspectRatio,
+                            model: nodeData.model,
+                            provenance,
+                        }),
                     }),
-                });
-            }
+                ),
+            );
         } else if (node.data.type === "video") {
             const uris =
                 (r.videoUrls as string[] | undefined) ??
                 (r.videoUrl ? [r.videoUrl as string] : []);
             const nodeData = node.data as Record<string, unknown>;
-            for (const gcsUri of uris) {
-                if (!gcsUri) continue;
-                await fetchFn("/api/library", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        type: "video",
-                        gcsUri,
-                        mimeType: "video/mp4",
-                        aspectRatio: nodeData.aspectRatio,
-                        model: nodeData.model,
-                        duration: nodeData.duration,
-                        provenance,
+            await Promise.all(
+                uris.filter(Boolean).map((gcsUri) =>
+                    fetchFn("/api/library", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            type: "video",
+                            gcsUri,
+                            mimeType: "video/mp4",
+                            aspectRatio: nodeData.aspectRatio,
+                            model: nodeData.model,
+                            duration: nodeData.duration,
+                            provenance,
+                        }),
                     }),
-                });
-            }
+                ),
+            );
         }
     }
 
