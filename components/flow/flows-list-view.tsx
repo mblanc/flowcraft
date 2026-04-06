@@ -151,6 +151,12 @@ export function FlowsListView({
         }
     }, [status, fetchData]);
 
+    useEffect(() => {
+        if (status === "unauthenticated") {
+            router.push("/sign-in");
+        }
+    }, [status, router]);
+
     const handleCreateFlow = async () => {
         setCreatingFlow(true);
         try {
@@ -470,6 +476,10 @@ export function FlowsListView({
             </div>
         );
     };
+
+    if (status === "unauthenticated") {
+        return null;
+    }
 
     return (
         <div className="space-y-12">

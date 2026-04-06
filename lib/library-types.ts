@@ -7,6 +7,7 @@ export interface LibraryAssetProvenance {
     nodeId?: string;
     nodeLabel?: string;
     prompt?: string;
+    mediaInputs?: { url: string; mimeType?: string }[];
 }
 
 export interface LibraryAsset {
