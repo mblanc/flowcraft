@@ -1,8 +1,37 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { withAuth } from "@/lib/api-utils";
 import { libraryService } from "@/lib/services/library.service";
 import logger from "@/app/logger";
 import type { LibraryAssetType } from "@/lib/library-types";
+
+const createAssetSchema = z.object({
+    gcsUri: z.string().min(1),
+    type: z.enum(["image", "video"]),
+    mimeType: z.string().min(1),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    duration: z.number().optional(),
+    aspectRatio: z.string().optional(),
+    model: z.string().optional(),
+    tags: z.array(z.string()).default([]),
+    provenance: z.object({
+        sourceType: z.enum(["flow", "canvas"]),
+        sourceId: z.string().min(1),
+        sourceName: z.string().min(1),
+        nodeId: z.string().optional(),
+        nodeLabel: z.string().optional(),
+        prompt: z.string().optional(),
+        mediaInputs: z
+            .array(
+                z.object({
+                    url: z.string(),
+                    mimeType: z.string().optional(),
+                }),
+            )
+            .optional(),
+    }),
+});
 
 export const GET = withAuth(async (req, _context, session) => {
     try {
@@ -10,8 +39,20 @@ export const GET = withAuth(async (req, _context, session) => {
         const type = searchParams.get("type") as LibraryAssetType | null;
         const beforeParam = searchParams.get("before");
         const limitParam = searchParams.get("limit");
-        const before = beforeParam ? new Date(beforeParam) : undefined;
-        const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+        let before: Date | undefined;
+        if (beforeParam) {
+            const parsed = new Date(beforeParam);
+            if (isNaN(parsed.getTime())) {
+                return NextResponse.json(
+                    { error: "Invalid 'before' date parameter" },
+                    { status: 400 },
+                );
+            }
+            before = parsed;
+        }
+        const limitRaw = limitParam ? parseInt(limitParam, 10) : undefined;
+        const limit =
+            limitRaw !== undefined && isNaN(limitRaw) ? undefined : limitRaw;
         const search = searchParams.get("search") ?? undefined;
         const assets = await libraryService.listAssets(
             session.user!.id!,
@@ -30,29 +71,18 @@ export const GET = withAuth(async (req, _context, session) => {
 
 export const POST = withAuth(async (req, _context, session) => {
     try {
-        const body = await req.json();
-
-        if (!body.gcsUri || !body.type || !body.mimeType || !body.provenance) {
+        const parseResult = createAssetSchema.safeParse(await req.json());
+        if (!parseResult.success) {
             return NextResponse.json(
-                {
-                    error: "gcsUri, type, mimeType, and provenance are required",
-                },
+                { error: parseResult.error.flatten() },
                 { status: 400 },
             );
         }
+        const body = parseResult.data;
 
         const asset = await libraryService.createAsset({
             userId: session.user!.id!,
-            type: body.type,
-            gcsUri: body.gcsUri,
-            mimeType: body.mimeType,
-            width: body.width,
-            height: body.height,
-            duration: body.duration,
-            aspectRatio: body.aspectRatio,
-            model: body.model,
-            tags: body.tags ?? [],
-            provenance: body.provenance,
+            ...body,
         });
 
         return NextResponse.json(asset);
