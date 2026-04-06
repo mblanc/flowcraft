@@ -39,7 +39,7 @@ export function CanvasHeader() {
     };
 
     const handleBack = () => {
-        router.push("/flows?tab=canvas");
+        router.push("/agents");
     };
 
     const statusLabel =
