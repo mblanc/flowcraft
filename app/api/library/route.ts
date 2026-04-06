@@ -12,10 +12,11 @@ export const GET = withAuth(async (req, _context, session) => {
         const limitParam = searchParams.get("limit");
         const before = beforeParam ? new Date(beforeParam) : undefined;
         const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+        const search = searchParams.get("search") ?? undefined;
         const assets = await libraryService.listAssets(
             session.user!.id!,
             type ?? undefined,
-            { before, limit },
+            { before, limit, search },
         );
         return NextResponse.json({ assets });
     } catch (error) {

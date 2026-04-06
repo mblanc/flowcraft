@@ -54,7 +54,7 @@ export class LibraryService {
     async listAssets(
         userId: string,
         type?: LibraryAssetType,
-        options?: { before?: Date; limit?: number },
+        options?: { before?: Date; limit?: number; search?: string },
     ): Promise<LibraryAsset[]> {
         logger.debug(
             `[LibraryService] Listing assets for user: ${userId}, type: ${type ?? "all"}`,
@@ -68,16 +68,30 @@ export class LibraryService {
             query = query.where("type", "==", type);
         }
 
-        if (options?.before) {
-            query = query.where("createdAt", "<", options.before);
-        }
+        if (!options?.search) {
+            if (options?.before) {
+                query = query.where("createdAt", "<", options.before);
+            }
 
-        if (options?.limit) {
-            query = query.limit(options.limit);
+            if (options?.limit) {
+                query = query.limit(options.limit);
+            }
         }
 
         const snapshot = await query.get();
-        return snapshot.docs.map((doc) => this.transformDoc(doc));
+        const assets = snapshot.docs.map((doc) => this.transformDoc(doc));
+
+        if (options?.search) {
+            const q = options.search.toLowerCase();
+            return assets.filter(
+                (a) =>
+                    a.provenance.prompt?.toLowerCase().includes(q) ||
+                    a.provenance.sourceName.toLowerCase().includes(q) ||
+                    a.tags.some((t) => t.toLowerCase().includes(q)),
+            );
+        }
+
+        return assets;
     }
 
     async getAsset(id: string, userId: string): Promise<LibraryAsset | null> {

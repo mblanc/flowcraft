@@ -370,6 +370,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                     .nodes.find((node) => node.id === nid);
                                 if (
                                     n &&
+                                    n.type === "canvas-image" &&
                                     "sourceUrl" in n.data &&
                                     n.data.sourceUrl
                                 ) {
@@ -383,7 +384,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                 }
                                 return null;
                             })
-                            .filter(Boolean) ?? [];
+                            ?.filter(Boolean) ?? [];
 
                     const res = await fetch("/api/generate-image", {
                         method: "POST",
@@ -460,7 +461,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                 }
                                 return null;
                             })
-                            .filter(Boolean) ?? [];
+                            ?.filter(Boolean) ?? [];
 
                     const firstFrameNode = media.firstFrameNodeId
                         ? useCanvasStore

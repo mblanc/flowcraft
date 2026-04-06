@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { LibraryTabs } from "@/components/library/library-tabs";
 import { LibraryToolbar } from "@/components/library/library-toolbar";
@@ -40,6 +41,7 @@ export default function LibraryPage() {
 
     const [activeTab, setActiveTab] = useState<LibraryTab>("images");
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [assets, setAssets] = useState<LibraryAsset[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -50,6 +52,9 @@ export default function LibraryPage() {
     );
 
     const sentinelRef = useRef<HTMLDivElement>(null);
+    const tabRequestGenerationRef = useRef(0);
+    const initialRequestAbortRef = useRef<AbortController | null>(null);
+    const loadMoreRequestAbortRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -57,29 +62,75 @@ export default function LibraryPage() {
         }
     }, [status, router]);
 
+    useEffect(() => {
+        // Invalidate any in-flight requests from the previous tab selection.
+        tabRequestGenerationRef.current += 1;
+        initialRequestAbortRef.current?.abort();
+        loadMoreRequestAbortRef.current?.abort();
+        setLoadingMore(false);
+    }, [activeTab]);
+
+    useEffect(() => {
+        return () => {
+            initialRequestAbortRef.current?.abort();
+            loadMoreRequestAbortRef.current?.abort();
+        };
+    }, []);
+
+    useEffect(() => {
+        const id = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+        return () => clearTimeout(id);
+    }, [searchQuery]);
+
     const fetchInitial = useCallback(async () => {
+        const requestGeneration = tabRequestGenerationRef.current;
+        initialRequestAbortRef.current?.abort();
+        const controller = new AbortController();
+        initialRequestAbortRef.current = controller;
         setLoading(true);
         setAssets([]);
         setCursor(null);
         setHasMore(false);
         try {
             const type = activeTab === "images" ? "image" : "video";
+            const searchParam = debouncedSearch
+                ? `&search=${encodeURIComponent(debouncedSearch)}`
+                : `&limit=${PAGE_LIMIT}`;
             const res = await fetch(
-                `/api/library?type=${type}&limit=${PAGE_LIMIT}`,
+                `/api/library?type=${type}${searchParam}`,
+                { signal: controller.signal },
             );
-            if (res.ok) {
-                const data = await res.json();
-                const fetched: LibraryAsset[] = data.assets ?? [];
-                setAssets(fetched);
-                if (fetched.length === PAGE_LIMIT) {
-                    setCursor(fetched[fetched.length - 1].createdAt);
-                    setHasMore(true);
-                }
+            if (!res.ok) {
+                toast.error("Failed to load library");
+                return;
             }
+            const data = await res.json();
+            const fetched: LibraryAsset[] = data.assets ?? [];
+            if (
+                controller.signal.aborted ||
+                requestGeneration !== tabRequestGenerationRef.current
+            ) {
+                return;
+            }
+            setAssets(fetched);
+            if (!debouncedSearch && fetched.length === PAGE_LIMIT) {
+                setCursor(fetched[fetched.length - 1].createdAt);
+                setHasMore(true);
+            }
+        } catch (error) {
+            if (error instanceof Error && error.name === "AbortError") {
+                return;
+            }
+            toast.error("Failed to load library");
         } finally {
-            setLoading(false);
+            if (
+                !controller.signal.aborted &&
+                requestGeneration === tabRequestGenerationRef.current
+            ) {
+                setLoading(false);
+            }
         }
-    }, [activeTab]);
+    }, [activeTab, debouncedSearch]);
 
     useEffect(() => {
         if (status === "authenticated") {
@@ -89,24 +140,48 @@ export default function LibraryPage() {
 
     const loadMore = useCallback(async () => {
         if (!hasMore || loadingMore || !cursor) return;
+        const requestGeneration = tabRequestGenerationRef.current;
+        const requestCursor = cursor;
+        loadMoreRequestAbortRef.current?.abort();
+        const controller = new AbortController();
+        loadMoreRequestAbortRef.current = controller;
         setLoadingMore(true);
         try {
             const type = activeTab === "images" ? "image" : "video";
             const res = await fetch(
-                `/api/library?type=${type}&before=${encodeURIComponent(cursor)}&limit=${PAGE_LIMIT}`,
+                `/api/library?type=${type}&before=${encodeURIComponent(requestCursor)}&limit=${PAGE_LIMIT}`,
+                { signal: controller.signal },
             );
-            if (res.ok) {
-                const data = await res.json();
-                const fetched: LibraryAsset[] = data.assets ?? [];
-                setAssets((prev) => [...prev, ...fetched]);
-                if (fetched.length === PAGE_LIMIT) {
-                    setCursor(fetched[fetched.length - 1].createdAt);
-                } else {
-                    setHasMore(false);
-                }
+            if (!res.ok) {
+                toast.error("Failed to load more assets");
+                return;
             }
+            const data = await res.json();
+            const fetched: LibraryAsset[] = data.assets ?? [];
+            if (
+                controller.signal.aborted ||
+                requestGeneration !== tabRequestGenerationRef.current
+            ) {
+                return;
+            }
+            setAssets((prev) => [...prev, ...fetched]);
+            if (fetched.length === PAGE_LIMIT) {
+                setCursor(fetched[fetched.length - 1].createdAt);
+            } else {
+                setHasMore(false);
+            }
+        } catch (error) {
+            if (error instanceof Error && error.name === "AbortError") {
+                return;
+            }
+            toast.error("Failed to load more assets");
         } finally {
-            setLoadingMore(false);
+            if (
+                !controller.signal.aborted &&
+                requestGeneration === tabRequestGenerationRef.current
+            ) {
+                setLoadingMore(false);
+            }
         }
     }, [hasMore, loadingMore, cursor, activeTab]);
 
@@ -115,6 +190,7 @@ export default function LibraryPage() {
     loadMoreRef.current = loadMore;
 
     useEffect(() => {
+        if (!hasMore) return;
         const sentinel = sentinelRef.current;
         if (!sentinel) return;
         const observer = new IntersectionObserver(
@@ -127,22 +203,11 @@ export default function LibraryPage() {
         );
         observer.observe(sentinel);
         return () => observer.disconnect();
-    }, []);
-
-    const filteredAssets = useMemo(() => {
-        if (!searchQuery.trim()) return assets;
-        const q = searchQuery.toLowerCase();
-        return assets.filter(
-            (a) =>
-                a.provenance.prompt?.toLowerCase().includes(q) ||
-                a.tags.some((t) => t.toLowerCase().includes(q)) ||
-                a.provenance.sourceName.toLowerCase().includes(q),
-        );
-    }, [assets, searchQuery]);
+    }, [hasMore]);
 
     const groups = useMemo<LibraryAssetGroup[]>(() => {
         const map = new Map<string, LibraryAsset[]>();
-        for (const asset of filteredAssets) {
+        for (const asset of assets) {
             const key = new Date(asset.createdAt).toDateString();
             if (!map.has(key)) map.set(key, []);
             map.get(key)!.push(asset);
@@ -151,7 +216,7 @@ export default function LibraryPage() {
             label: formatDateLabel(new Date(key)),
             assets: items,
         }));
-    }, [filteredAssets]);
+    }, [assets]);
 
     const handleDelete = useCallback((id: string) => {
         setAssets((prev) => prev.filter((a) => a.id !== id));
@@ -197,7 +262,7 @@ export default function LibraryPage() {
             <div className="border-border/50 bg-card/50 sticky top-0 z-10 -mx-4 flex items-center justify-between border-y px-4 py-3 backdrop-blur-sm sm:mx-0 sm:rounded-2xl sm:border">
                 <LibraryTabs activeTab={activeTab} onChange={setActiveTab} />
                 <div className="text-muted-foreground text-sm font-medium">
-                    {filteredAssets.length} items
+                    {assets.length} items
                 </div>
             </div>
 
