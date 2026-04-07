@@ -210,7 +210,9 @@ export class GeminiService {
         logger.info(
             `[GeminiService] Streaming text with model: ${selectedModel}`,
         );
-        logger.debug(`[GeminiService] Contents: ${JSON.stringify(options.contents, null, 2)}`);
+        logger.debug(
+            `[GeminiService] Contents: ${JSON.stringify(options.contents, null, 2)}`,
+        );
 
         const stream = await this.ai.models.generateContentStream({
             model: selectedModel,

@@ -53,7 +53,10 @@ const MODES: { id: CanvasMode; label: string; icon: typeof Sparkles }[] = [
 const REASONING_MODELS = [
     { id: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW, label: "Gemini 3 Flash" },
     { id: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW, label: "Gemini 3.1 Pro" },
-    { id: MODELS.TEXT.GEMINI_3_1_FLASH_LITE_PREVIEW, label: "Gemini 3.1 Flash Lite" },
+    {
+        id: MODELS.TEXT.GEMINI_3_1_FLASH_LITE_PREVIEW,
+        label: "Gemini 3.1 Flash Lite",
+    },
 ];
 
 const DEFAULT_MODEL = MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
@@ -335,7 +338,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             );
 
             const nodeId = uuidv4();
-            const nodeType = step.type === "image" ? "canvas-image" : "canvas-video";
+            const nodeType =
+                step.type === "image" ? "canvas-image" : "canvas-video";
             const label = step.label ?? getNextLabel(nodeType);
 
             if (step.type === "image") {
@@ -352,7 +356,14 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     status: "generating",
                     referenceNodeIds: step.referenceNodeIds,
                 };
-                addNode({ id: nodeId, type: "canvas-image", position, data, width, height });
+                addNode({
+                    id: nodeId,
+                    type: "canvas-image",
+                    position,
+                    data,
+                    width,
+                    height,
+                });
             } else {
                 const data: CanvasVideoData = {
                     type: "canvas-video",
@@ -368,10 +379,20 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     progress: 0,
                     referenceNodeIds: step.referenceNodeIds,
                 };
-                addNode({ id: nodeId, type: "canvas-video", position, data, width, height });
+                addNode({
+                    id: nodeId,
+                    type: "canvas-video",
+                    position,
+                    data,
+                    width,
+                    height,
+                });
             }
 
-            return { rect: { x: position.x, y: position.y, w: width, h: height }, nodeId };
+            return {
+                rect: { x: position.x, y: position.y, w: width, h: height },
+                nodeId,
+            };
         },
         [getViewportCenter, addNode, getNextLabel, nodes],
     );
@@ -473,7 +494,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                     break;
 
                                 case "plan": {
-                                    const steps = payload.steps as GenerationStep[];
+                                    const steps =
+                                        payload.steps as GenerationStep[];
                                     updateMessage(assistantMsgId, {
                                         plan: { steps },
                                     });
@@ -485,11 +507,19 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                                 x: n.position.x,
                                                 y: n.position.y,
                                                 w:
-                                                    (n.data as { width?: number }).width ??
+                                                    (
+                                                        n.data as {
+                                                            width?: number;
+                                                        }
+                                                    ).width ??
                                                     n.width ??
                                                     300,
                                                 h:
-                                                    (n.data as { height?: number }).height ??
+                                                    (
+                                                        n.data as {
+                                                            height?: number;
+                                                        }
+                                                    ).height ??
                                                     n.height ??
                                                     300,
                                             }));
@@ -499,10 +529,11 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                             s.id,
                                             "pending",
                                         );
-                                        const { rect, nodeId } = addPlaceholderNode(
-                                            s,
-                                            occupiedRects,
-                                        );
+                                        const { rect, nodeId } =
+                                            addPlaceholderNode(
+                                                s,
+                                                occupiedRects,
+                                            );
                                         stepNodeMap.set(s.id, nodeId);
                                         occupiedRects.push(rect);
                                     });
@@ -524,11 +555,13 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                         payload.stepId,
                                         "done",
                                     );
-                                    const nodeId = stepNodeMap.get(payload.stepId);
+                                    const nodeId = stepNodeMap.get(
+                                        payload.stepId,
+                                    );
                                     if (nodeId) {
-                                        useCanvasStore.getState().updateNodeData(
-                                            nodeId,
-                                            {
+                                        useCanvasStore
+                                            .getState()
+                                            .updateNodeData(nodeId, {
                                                 sourceUrl: node.sourceUrl,
                                                 label: node.label,
                                                 mimeType: node.mimeType,
@@ -536,8 +569,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                                 ...(node.type === "canvas-video"
                                                     ? { progress: 100 }
                                                     : {}),
-                                            },
-                                        );
+                                            });
                                         const currentMsg = useCanvasStore
                                             .getState()
                                             .messages.find(
@@ -556,19 +588,25 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                 }
 
                                 case "step_error": {
-                                    const nodeId = stepNodeMap.get(payload.stepId);
+                                    const nodeId = stepNodeMap.get(
+                                        payload.stepId,
+                                    );
                                     setPlanStepStatus(
                                         assistantMsgId,
                                         payload.stepId,
                                         "error",
                                     );
                                     if (nodeId) {
-                                        useCanvasStore.getState().updateNodeData(
-                                            nodeId,
-                                            { status: "error", error: payload.message },
-                                        );
+                                        useCanvasStore
+                                            .getState()
+                                            .updateNodeData(nodeId, {
+                                                status: "error",
+                                                error: payload.message,
+                                            });
                                     }
-                                    toast.error(`Generation failed: ${payload.message}`);
+                                    toast.error(
+                                        `Generation failed: ${payload.message}`,
+                                    );
                                     break;
                                 }
 
