@@ -211,6 +211,9 @@ export class GeminiService {
             `[GeminiService] Streaming text with model: ${selectedModel}`,
         );
         logger.debug(
+            `[GeminiService] System Instruction: ${JSON.stringify(options.systemInstruction, null, 2)}`,
+        );
+        logger.debug(
             `[GeminiService] Contents: ${JSON.stringify(options.contents, null, 2)}`,
         );
 
@@ -250,6 +253,12 @@ export class GeminiService {
 
         logger.info(
             `[GeminiService] Generating structured output with model: ${selectedModel}`,
+        );
+        logger.debug(
+            `[GeminiService] System Instruction: ${JSON.stringify(options.systemInstruction, null, 2)}`,
+        );
+        logger.debug(
+            `[GeminiService] Contents: ${JSON.stringify(options.contents, null, 2)}`,
         );
 
         return this.ai.models.generateContent({
@@ -399,7 +408,7 @@ export class GeminiService {
                 numberOfVideos: 1,
                 durationSeconds: duration || DEFAULTS.VIDEO_DURATION,
                 aspectRatio: aspectRatio || DEFAULTS.ASPECT_RATIO,
-                generateAudio: generateAudio !== false,
+                generateAudio: !!generateAudio,
                 resolution: (resolution as string) || "720p",
                 outputGcsUri: config.GCS_STORAGE_URI,
             },

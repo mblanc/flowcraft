@@ -103,7 +103,7 @@ function buildContents(input: AgentInput): Content[] {
                             ? "video/mp4"
                             : "image/png");
                     attachmentLabels.push(
-                        `[${att.label} (${node.type.replace("canvas-", "")})]`,
+                        `[${att.label} (id: ${att.nodeId}, type: ${node.type.replace("canvas-", "")})]`,
                     );
                     userParts.push(createPartFromUri(sourceUrl, mimeType));
                 }
@@ -230,31 +230,6 @@ const PLAN_SCHEMA = {
     required: ["steps", "suggestedActions"],
 };
 
-/** Resolve label-based references to node IDs.
- *  Checks current message attachments first, then falls back to the full canvas node list
- *  so that nodes referenced from conversation history are still resolved. */
-function resolveLabelsToNodeIds(
-    labels: string[] | undefined,
-    attachments: ChatAttachment[],
-    canvasNodes: CanvasNode[],
-): string[] {
-    if (!labels || labels.length === 0) return [];
-    return labels
-        .map((label) => {
-            const lower = label.toLowerCase();
-            const att = attachments.find(
-                (a) => a.label?.toLowerCase() === lower,
-            );
-            if (att) return att.nodeId;
-            // Fallback: any canvas node with a matching label
-            const node = canvasNodes.find(
-                (n) => n.data.label.toLowerCase() === lower,
-            );
-            return node?.id;
-        })
-        .filter((id): id is string => !!id);
-}
-
 export function applyVideoFallback(
     step: GenerationStep,
     type: string,
@@ -343,6 +318,7 @@ Based on the conversation, produce a generation plan:
 - For sequential workflows ("generate a portrait then animate it") → step_0 generates the image, step_1 is video with dependsOn: ["step_0"].
 - For no generation → steps: [].
 - Each step that references an existing canvas item should list those items' IDs in referenceNodeIds (generic reference), firstFrameNodeId (video first frame), or lastFrameNodeId (video last frame).
+- IMPORTANT: You must ONLY use Node IDs that are explicitly listed in the 'Current canvas items' list above. Do NOT invent, assume, or generate any other IDs.
 
 For aspect ratio, map: "square" → "1:1", "portrait"/"vertical" → "9:16", "landscape"/"wide" → "16:9". Default "16:9".
 For resolution: "512", "1K", "2K", or "4K". Default "1K". Map user language: "low"/"small" → "512", "HD"/"1080p" → "2K", "4K"/"ultra" → "4K".
@@ -402,25 +378,61 @@ Also suggest 2-3 follow-up actions the user might want.`;
                         ...(s.resolution ? { resolution: s.resolution } : {}),
                         ...(s.model ? { model: s.model } : {}),
                         ...(s.duration ? { duration: s.duration } : {}),
-                        ...(s.generateAudio
-                            ? { generateAudio: s.generateAudio }
-                            : {}),
+                        generateAudio: s.generateAudio ?? false,
                         ...(s.dependsOn && s.dependsOn.length > 0
                             ? { dependsOn: s.dependsOn }
                             : {}),
                     };
 
-                    // Use Node IDs directly if provided by LLM
+                    // Use Node IDs directly if provided by LLM and valid
                     if (s.referenceNodeIds && s.referenceNodeIds.length > 0) {
-                        step.referenceNodeIds = s.referenceNodeIds;
+                        const validIds = s.referenceNodeIds.filter(
+                            (id) =>
+                                input.canvasNodes.some((n) => n.id === id) ||
+                                attachments.some((a) => a.nodeId === id),
+                        );
+                        if (validIds.length > 0) {
+                            step.referenceNodeIds = validIds;
+                        }
+                        if (validIds.length < s.referenceNodeIds.length) {
+                            logger.warn(
+                                `[CanvasAgent] Ignored some hallucinated referenceNodeIds`,
+                            );
+                        }
                     }
 
                     if (s.firstFrameNodeId) {
-                        step.firstFrameNodeId = s.firstFrameNodeId;
+                        const isValid =
+                            input.canvasNodes.some(
+                                (n) => n.id === s.firstFrameNodeId,
+                            ) ||
+                            attachments.some(
+                                (a) => a.nodeId === s.firstFrameNodeId,
+                            );
+                        if (isValid) {
+                            step.firstFrameNodeId = s.firstFrameNodeId;
+                        } else {
+                            logger.warn(
+                                `[CanvasAgent] Ignored hallucinated firstFrameNodeId: ${s.firstFrameNodeId}`,
+                            );
+                        }
                     }
 
                     if (s.lastFrameNodeId) {
-                        step.lastFrameNodeId = s.lastFrameNodeId;
+                        const isValid =
+                            input.canvasNodes.some(
+                                (n) => n.id === s.lastFrameNodeId,
+                            ) ||
+                            attachments.some(
+                                (a) => a.nodeId === s.lastFrameNodeId,
+                            );
+                        if (isValid) {
+                            step.lastFrameNodeId = s.lastFrameNodeId;
+                        } else {
+                            logger.warn(
+                                `[CanvasAgent] Ignored hallucinated lastFrameNodeId: ${s.lastFrameNodeId}`,
+                            );
+                        }
                     }
 
                     // Programmatic fallback for video when LLM didn't specify frames
