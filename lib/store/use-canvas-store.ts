@@ -46,6 +46,7 @@ export interface CanvasStore {
     setSaveStatus: (status: "saved" | "saving" | "error") => void;
     addGeneratingNodeId: (id: string) => void;
     removeGeneratingNodeId: (id: string) => void;
+    clearMessages: () => void;
 
     // Action prompt (set by suggested-action buttons, consumed by chat input)
     pendingActionPrompt: string | null;
@@ -184,6 +185,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
             ),
             lastModified: Date.now(),
         })),
+
+    clearMessages: () => set({ messages: [], lastModified: Date.now() }),
 
     setIsChatLoading: (loading) => set({ isChatLoading: loading }),
 
