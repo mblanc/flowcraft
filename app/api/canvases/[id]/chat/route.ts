@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
 import { streamAgentResponse } from "@/lib/canvas-agent";
+import { executePlan } from "@/lib/canvas-generation";
 import logger from "@/app/logger";
 import type { ChatAttachment } from "@/lib/canvas-types";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 interface ChatRequestBody {
     message: string;
@@ -16,6 +17,19 @@ interface ChatRequestBody {
 
 function formatSSE(event: string, data: unknown): string {
     return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+/** Build a map of nodeId → GCS URI for ALL canvas nodes so plan steps can
+ *  reference any canvas item, even if it wasn't attached to the current message. */
+function buildNodeUriMap(canvas: { nodes: { id: string; data: Record<string, unknown> }[] }): Map<string, string> {
+    const map = new Map<string, string>();
+    for (const node of canvas.nodes) {
+        const uri = node.data.sourceUrl as string | undefined;
+        if (uri?.startsWith("gs://")) {
+            map.set(node.id, uri);
+        }
+    }
+    return map;
 }
 
 export async function POST(
@@ -82,10 +96,14 @@ export async function POST(
         );
     }
 
+    const nodeUriMap = buildNodeUriMap(canvas);
+
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
         async start(controller) {
+            const encode = (payload: string) => encoder.encode(payload);
+
             try {
                 const agentStream = streamAgentResponse({
                     message: body.message,
@@ -97,36 +115,92 @@ export async function POST(
                 });
 
                 for await (const event of agentStream) {
-                    let ssePayload: string;
                     switch (event.type) {
                         case "text":
-                            ssePayload = formatSSE("text", {
-                                delta: event.delta,
-                            });
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("text", { delta: event.delta }),
+                                ),
+                            );
                             break;
-                        case "media":
-                            ssePayload = formatSSE("media", event.media);
+
+                        case "plan": {
+                            // Announce the plan immediately so the client can show pending steps
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("plan", {
+                                        steps: event.plan.steps,
+                                    }),
+                                ),
+                            );
+
+                            // Execute the plan server-side, streaming per-step events
+                            for await (const stepEvent of executePlan(
+                                event.plan,
+                                nodeUriMap,
+                                session.user.id!,
+                                canvasId,
+                                canvas.name,
+                            )) {
+                                switch (stepEvent.type) {
+                                    case "step_start":
+                                        controller.enqueue(
+                                            encode(
+                                                formatSSE("step_start", {
+                                                    stepId: stepEvent.stepId,
+                                                }),
+                                            ),
+                                        );
+                                        break;
+                                    case "step_done":
+                                        controller.enqueue(
+                                            encode(
+                                                formatSSE("step_done", {
+                                                    stepId: stepEvent.stepId,
+                                                    node: stepEvent.node,
+                                                }),
+                                            ),
+                                        );
+                                        break;
+                                    case "step_error":
+                                        controller.enqueue(
+                                            encode(
+                                                formatSSE("step_error", {
+                                                    stepId: stepEvent.stepId,
+                                                    message: stepEvent.message,
+                                                }),
+                                            ),
+                                        );
+                                        break;
+                                }
+                            }
                             break;
+                        }
+
                         case "actions":
-                            ssePayload = formatSSE("actions", {
-                                actions: event.actions,
-                            });
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("actions", {
+                                        actions: event.actions,
+                                    }),
+                                ),
+                            );
                             break;
+
                         case "done":
-                            ssePayload = formatSSE("done", {});
+                            controller.enqueue(encode(formatSSE("done", {})));
                             break;
+
                         default:
                             logger.warn(
                                 `[ChatAPI] Unknown event type: ${(event as { type: string }).type}`,
                             );
-                            continue;
                     }
-                    controller.enqueue(encoder.encode(ssePayload));
                 }
             } catch (error) {
                 logger.error("[ChatAPI] Stream error:", error);
                 controller.enqueue(
-                    encoder.encode(
+                    encode(
                         formatSSE("error", {
                             message:
                                 error instanceof Error
@@ -135,7 +209,7 @@ export async function POST(
                         }),
                     ),
                 );
-                controller.enqueue(encoder.encode(formatSSE("done", {})));
+                controller.enqueue(encode(formatSSE("done", {})));
             } finally {
                 controller.close();
             }

@@ -38,8 +38,9 @@ import type {
     CanvasImageData,
     CanvasVideoData,
     GeneratedMediaRef,
+    NodePayload,
+    GenerationStep,
 } from "@/lib/canvas-types";
-import type { MediaToGenerate } from "@/lib/canvas-agent";
 
 type CanvasMode = "auto" | "image" | "video";
 
@@ -52,7 +53,7 @@ const MODES: { id: CanvasMode; label: string; icon: typeof Sparkles }[] = [
 const REASONING_MODELS = [
     { id: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW, label: "Gemini 3 Flash" },
     { id: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW, label: "Gemini 3.1 Pro" },
-    { id: MODELS.TEXT.GEMINI_2_5_FLASH, label: "Gemini 2.5 Flash" },
+    { id: MODELS.TEXT.GEMINI_3_1_FLASH_LITE_PREVIEW, label: "Gemini 3.1 Flash Lite" },
 ];
 
 const DEFAULT_MODEL = MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
@@ -114,7 +115,6 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     );
 
     const canvasId = useCanvasStore((s) => s.canvasId);
-    const canvasName = useCanvasStore((s) => s.canvasName);
     const nodes = useCanvasStore((s) => s.nodes);
     const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
     const addMessage = useCanvasStore((s) => s.addMessage);
@@ -122,13 +122,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     const isChatLoading = useCanvasStore((s) => s.isChatLoading);
     const setIsChatLoading = useCanvasStore((s) => s.setIsChatLoading);
     const addNode = useCanvasStore((s) => s.addNode);
-    const updateNodeData = useCanvasStore((s) => s.updateNodeData);
     const getNextLabel = useCanvasStore((s) => s.getNextLabel);
-    const getNextNodeId = useCanvasStore((s) => s.getNextNodeId);
-    const addGeneratingNodeId = useCanvasStore((s) => s.addGeneratingNodeId);
-    const removeGeneratingNodeId = useCanvasStore(
-        (s) => s.removeGeneratingNodeId,
-    );
+    const setPlanStepStatus = useCanvasStore((s) => s.setPlanStepStatus);
     const pendingActionPrompt = useCanvasStore((s) => s.pendingActionPrompt);
     const setPendingActionPrompt = useCanvasStore(
         (s) => s.setPendingActionPrompt,
@@ -297,300 +292,88 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
         [input, closeMention],
     );
 
-    const generateMedia = useCallback(
-        async (media: MediaToGenerate, assistantMsgId: string) => {
-            const nodeType =
-                media.type === "image" ? "canvas-image" : "canvas-video";
-            const nodeId = getNextNodeId(nodeType);
-            const label = getNextLabel(nodeType);
-            const center = getViewportCenter();
+    /** Create a placeholder node for a generation step, collision-aware.
+     *  Returns { rect, nodeId } — nodeId is a fresh uuid, NOT step.id,
+     *  so multiple runs never produce duplicate canvas node IDs. */
+    const addPlaceholderNode = useCallback(
+        (
+            step: GenerationStep,
+            occupiedRects: PlaceholderRect[],
+        ): { rect: PlaceholderRect; nodeId: string } => {
+            const { width, height } = parseAspectRatioDimensions(
+                step.aspectRatio,
+            );
 
-            if (media.type === "image") {
+            // Find the reference node to position near
+            const refNodeId =
+                step.referenceNodeIds?.[0] ?? step.firstFrameNodeId;
+            const refNode = refNodeId
+                ? nodes.find((n) => n.id === refNodeId)
+                : null;
+            const refRect: PlaceholderRect | null = refNode
+                ? {
+                      x: refNode.position.x,
+                      y: refNode.position.y,
+                      w:
+                          (refNode.data as { width?: number }).width ??
+                          refNode.width ??
+                          300,
+                      h:
+                          (refNode.data as { height?: number }).height ??
+                          refNode.height ??
+                          300,
+                  }
+                : null;
+
+            const center = getViewportCenter();
+            const position = findEmptyPosition(
+                width,
+                height,
+                refRect,
+                occupiedRects,
+                center,
+            );
+
+            const nodeId = uuidv4();
+            const nodeType = step.type === "image" ? "canvas-image" : "canvas-video";
+            const label = step.label ?? getNextLabel(nodeType);
+
+            if (step.type === "image") {
                 const data: CanvasImageData = {
                     type: "canvas-image",
                     label,
                     sourceUrl: "",
                     mimeType: "image/png",
-                    prompt: media.prompt,
-                    width: 300,
-                    height: 300,
-                    aspectRatio: media.config.aspectRatio,
-                    model: media.config.model,
+                    prompt: step.prompt,
+                    width,
+                    height,
+                    aspectRatio: step.aspectRatio,
+                    model: step.model,
                     status: "generating",
-                    referenceNodeIds: media.referenceNodeIds,
+                    referenceNodeIds: step.referenceNodeIds,
                 };
-                addNode({
-                    id: nodeId,
-                    type: "canvas-image",
-                    position: { x: center.x - 150, y: center.y - 150 },
-                    data,
-                    width: 300,
-                    height: 300,
-                });
+                addNode({ id: nodeId, type: "canvas-image", position, data, width, height });
             } else {
                 const data: CanvasVideoData = {
                     type: "canvas-video",
                     label,
                     sourceUrl: "",
                     mimeType: "video/mp4",
-                    prompt: media.prompt,
-                    aspectRatio: media.config.aspectRatio,
-                    model: media.config.model,
+                    prompt: step.prompt,
+                    width,
+                    height,
+                    aspectRatio: step.aspectRatio,
+                    model: step.model,
                     status: "generating",
                     progress: 0,
-                    referenceNodeIds: media.referenceNodeIds,
+                    referenceNodeIds: step.referenceNodeIds,
                 };
-                addNode({
-                    id: nodeId,
-                    type: "canvas-video",
-                    position: { x: center.x - 180, y: center.y - 140 },
-                    data,
-                    width: 360,
-                    height: 280,
-                });
+                addNode({ id: nodeId, type: "canvas-video", position, data, width, height });
             }
 
-            addGeneratingNodeId(nodeId);
-
-            const generatedRef: GeneratedMediaRef = {
-                nodeId,
-                type: nodeType,
-            };
-            updateMessage(assistantMsgId, {
-                generatedMedia: [generatedRef],
-            });
-
-            try {
-                if (media.type === "image") {
-                    const referenceImages =
-                        media.referenceNodeIds
-                            ?.map((nid) => {
-                                const n = useCanvasStore
-                                    .getState()
-                                    .nodes.find((node) => node.id === nid);
-                                if (
-                                    n &&
-                                    n.type === "canvas-image" &&
-                                    "sourceUrl" in n.data &&
-                                    n.data.sourceUrl
-                                ) {
-                                    return {
-                                        url: n.data.sourceUrl as string,
-                                        type:
-                                            ("mimeType" in n.data
-                                                ? (n.data.mimeType as string)
-                                                : null) || "image/png",
-                                    };
-                                }
-                                return null;
-                            })
-                            ?.filter(Boolean) ?? [];
-
-                    const res = await fetch("/api/generate-image", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            prompt: media.prompt,
-                            images: referenceImages,
-                            aspectRatio: media.config.aspectRatio || "16:9",
-                            model: media.config.model,
-                            resolution: media.config.resolution,
-                        }),
-                    });
-
-                    if (!res.ok) {
-                        const err = await res.json().catch(() => ({}));
-                        throw new Error(
-                            err.error ||
-                                `Image generation failed (${res.status})`,
-                        );
-                    }
-
-                    const { imageUrl } = await res.json();
-                    updateNodeData(nodeId, {
-                        sourceUrl: imageUrl,
-                        status: "ready",
-                    });
-
-                    // Save to library (fire-and-forget)
-                    if (canvasId) {
-                        fetch("/api/library", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                type: "image",
-                                gcsUri: imageUrl,
-                                mimeType: "image/png",
-                                aspectRatio: media.config.aspectRatio,
-                                model: media.config.model,
-                                provenance: {
-                                    sourceType: "canvas",
-                                    sourceId: canvasId,
-                                    sourceName: canvasName,
-                                    prompt: media.prompt,
-                                    mediaInputs: referenceImages.length
-                                        ? referenceImages.map((img) => ({
-                                              url: (img as { url: string }).url,
-                                              mimeType: (img as { type: string }).type,
-                                          }))
-                                        : undefined,
-                                },
-                            }),
-                        }).catch((err) => {
-                            console.error("Failed to save image to library:", err);
-                        });
-                    }
-                } else {
-                    const referenceImages =
-                        media.referenceNodeIds
-                            ?.map((nid) => {
-                                const n = useCanvasStore
-                                    .getState()
-                                    .nodes.find((node) => node.id === nid);
-                                if (
-                                    n &&
-                                    n.type === "canvas-image" &&
-                                    "sourceUrl" in n.data &&
-                                    n.data.sourceUrl
-                                ) {
-                                    return {
-                                        url: n.data.sourceUrl as string,
-                                        type:
-                                            ("mimeType" in n.data
-                                                ? (n.data.mimeType as string)
-                                                : null) || "image/png",
-                                    };
-                                }
-                                return null;
-                            })
-                            ?.filter(Boolean) ?? [];
-
-                    const firstFrameNode = media.firstFrameNodeId
-                        ? useCanvasStore
-                              .getState()
-                              .nodes.find(
-                                  (n) => n.id === media.firstFrameNodeId,
-                              )
-                        : null;
-                    const firstFrameUrl =
-                        firstFrameNode &&
-                        "sourceUrl" in firstFrameNode.data &&
-                        firstFrameNode.data.sourceUrl
-                            ? (firstFrameNode.data.sourceUrl as string)
-                            : undefined;
-
-                    const lastFrameNode = media.lastFrameNodeId
-                        ? useCanvasStore
-                              .getState()
-                              .nodes.find((n) => n.id === media.lastFrameNodeId)
-                        : null;
-                    const lastFrameUrl =
-                        lastFrameNode &&
-                        "sourceUrl" in lastFrameNode.data &&
-                        lastFrameNode.data.sourceUrl
-                            ? (lastFrameNode.data.sourceUrl as string)
-                            : undefined;
-
-                    const res = await fetch("/api/generate-video", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            prompt: media.prompt,
-                            aspectRatio: media.config.aspectRatio || "16:9",
-                            duration: media.config.duration || 4,
-                            model: media.config.model,
-                            resolution: media.config.resolution,
-                            generateAudio: media.config.generateAudio ?? false,
-                            firstFrame: firstFrameUrl,
-                            lastFrame: lastFrameUrl,
-                            images: referenceImages,
-                        }),
-                    });
-
-                    if (!res.ok) {
-                        const err = await res.json().catch(() => ({}));
-                        throw new Error(
-                            err.error ||
-                                `Video generation failed (${res.status})`,
-                        );
-                    }
-
-                    const { videoUrl } = await res.json();
-                    updateNodeData(nodeId, {
-                        sourceUrl: videoUrl,
-                        status: "ready",
-                        progress: 100,
-                    });
-
-                    // Save to library (fire-and-forget)
-                    if (canvasId) {
-                        const allVideoMediaInputs = [
-                            ...(firstFrameUrl
-                                ? [{ url: firstFrameUrl, mimeType: "image/png" }]
-                                : []),
-                            ...(lastFrameUrl
-                                ? [{ url: lastFrameUrl, mimeType: "image/png" }]
-                                : []),
-                            ...referenceImages.map((img) => ({
-                                url: (img as { url: string }).url,
-                                mimeType: (img as { type: string }).type,
-                            })),
-                        ];
-                        fetch("/api/library", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                type: "video",
-                                gcsUri: videoUrl,
-                                mimeType: "video/mp4",
-                                aspectRatio: media.config.aspectRatio,
-                                model: media.config.model,
-                                duration: media.config.duration,
-                                provenance: {
-                                    sourceType: "canvas",
-                                    sourceId: canvasId,
-                                    sourceName: canvasName,
-                                    prompt: media.prompt,
-                                    mediaInputs: allVideoMediaInputs.length
-                                        ? allVideoMediaInputs
-                                        : undefined,
-                                },
-                            }),
-                        }).catch((err) => {
-                            console.error("Failed to save video to library:", err);
-                        });
-                    }
-                }
-
-                toast.success(
-                    `${media.type === "image" ? "Image" : "Video"} generated successfully`,
-                );
-            } catch (error) {
-                const message =
-                    error instanceof Error
-                        ? error.message
-                        : "Generation failed";
-                updateNodeData(nodeId, {
-                    status: "error",
-                    error: message,
-                });
-                toast.error(message);
-            } finally {
-                removeGeneratingNodeId(nodeId);
-            }
+            return { rect: { x: position.x, y: position.y, w: width, h: height }, nodeId };
         },
-        [
-            addNode,
-            updateNodeData,
-            updateMessage,
-            getNextNodeId,
-            getNextLabel,
-            getViewportCenter,
-            addGeneratingNodeId,
-            removeGeneratingNodeId,
-            canvasId,
-            canvasName,
-        ],
+        [getViewportCenter, addNode, getNextLabel, nodes],
     );
 
     const handleSend = useCallback(
@@ -599,26 +382,12 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             if (!text || isChatLoading || !canvasId) return;
 
             const isActionPrompt = !!overrideMessage;
-            const cleanedText = text;
             const attachmentsToSend = isActionPrompt ? [] : [...allAttachments];
-
-            if (!isActionPrompt) {
-                for (const nodeId of mentionedNodeIds) {
-                    const node = nodes.find((n) => n.id === nodeId);
-                    if (
-                        node &&
-                        node.type === "canvas-text" &&
-                        !attachmentsToSend.some((a) => a.nodeId === nodeId)
-                    ) {
-                        // Text nodes stay as @Label in the message for the LLM
-                    }
-                }
-            }
 
             const userMessage: ChatMessage = {
                 id: uuidv4(),
                 role: "user",
-                content: cleanedText,
+                content: text,
                 attachments:
                     attachmentsToSend.length > 0
                         ? attachmentsToSend
@@ -656,7 +425,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        message: cleanedText,
+                        message: text,
                         attachments:
                             attachmentsToSend.length > 0
                                 ? attachmentsToSend
@@ -680,7 +449,8 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                 const decoder = new TextDecoder();
                 let buffer = "";
                 let accumulatedText = "";
-                let pendingMedia: MediaToGenerate | null = null;
+                // Maps stepId → canvas nodeId for this generation run
+                const stepNodeMap = new Map<string, string>();
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -702,9 +472,105 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                     });
                                     break;
 
-                                case "media":
-                                    pendingMedia = payload as MediaToGenerate;
+                                case "plan": {
+                                    const steps = payload.steps as GenerationStep[];
+                                    updateMessage(assistantMsgId, {
+                                        plan: { steps },
+                                    });
+                                    // Seed occupied rects with all current canvas nodes
+                                    const occupiedRects: PlaceholderRect[] =
+                                        useCanvasStore
+                                            .getState()
+                                            .nodes.map((n) => ({
+                                                x: n.position.x,
+                                                y: n.position.y,
+                                                w:
+                                                    (n.data as { width?: number }).width ??
+                                                    n.width ??
+                                                    300,
+                                                h:
+                                                    (n.data as { height?: number }).height ??
+                                                    n.height ??
+                                                    300,
+                                            }));
+                                    steps.forEach((s) => {
+                                        setPlanStepStatus(
+                                            assistantMsgId,
+                                            s.id,
+                                            "pending",
+                                        );
+                                        const { rect, nodeId } = addPlaceholderNode(
+                                            s,
+                                            occupiedRects,
+                                        );
+                                        stepNodeMap.set(s.id, nodeId);
+                                        occupiedRects.push(rect);
+                                    });
                                     break;
+                                }
+
+                                case "step_start":
+                                    setPlanStepStatus(
+                                        assistantMsgId,
+                                        payload.stepId,
+                                        "generating",
+                                    );
+                                    break;
+
+                                case "step_done": {
+                                    const node = payload.node as NodePayload;
+                                    setPlanStepStatus(
+                                        assistantMsgId,
+                                        payload.stepId,
+                                        "done",
+                                    );
+                                    const nodeId = stepNodeMap.get(payload.stepId);
+                                    if (nodeId) {
+                                        useCanvasStore.getState().updateNodeData(
+                                            nodeId,
+                                            {
+                                                sourceUrl: node.sourceUrl,
+                                                label: node.label,
+                                                mimeType: node.mimeType,
+                                                status: "ready",
+                                                ...(node.type === "canvas-video"
+                                                    ? { progress: 100 }
+                                                    : {}),
+                                            },
+                                        );
+                                        const currentMsg = useCanvasStore
+                                            .getState()
+                                            .messages.find(
+                                                (m) => m.id === assistantMsgId,
+                                            );
+                                        const existingRefs: GeneratedMediaRef[] =
+                                            currentMsg?.generatedMedia ?? [];
+                                        updateMessage(assistantMsgId, {
+                                            generatedMedia: [
+                                                ...existingRefs,
+                                                { nodeId, type: node.type },
+                                            ],
+                                        });
+                                    }
+                                    break;
+                                }
+
+                                case "step_error": {
+                                    const nodeId = stepNodeMap.get(payload.stepId);
+                                    setPlanStepStatus(
+                                        assistantMsgId,
+                                        payload.stepId,
+                                        "error",
+                                    );
+                                    if (nodeId) {
+                                        useCanvasStore.getState().updateNodeData(
+                                            nodeId,
+                                            { status: "error", error: payload.message },
+                                        );
+                                    }
+                                    toast.error(`Generation failed: ${payload.message}`);
+                                    break;
+                                }
 
                                 case "actions":
                                     if (payload.actions) {
@@ -734,10 +600,6 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                         }
                     }
                 }
-
-                if (pendingMedia) {
-                    generateMedia(pendingMedia, assistantMsgId);
-                }
             } catch (error) {
                 if (
                     error instanceof DOMException &&
@@ -765,12 +627,11 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             model,
             mode,
             allAttachments,
-            mentionedNodeIds,
-            nodes,
             addMessage,
             updateMessage,
             setIsChatLoading,
-            generateMedia,
+            setPlanStepStatus,
+            addPlaceholderNode,
         ],
     );
 
@@ -981,4 +842,107 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
 
 function escapeRegex(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// ─── Placeholder positioning utilities ───────────────────────────────────────
+
+interface PlaceholderRect {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
+const GAP = 20;
+const BASE_AREA = 90_000; // ~300×300 px²
+
+function parseAspectRatioDimensions(aspectRatio?: string): {
+    width: number;
+    height: number;
+} {
+    if (!aspectRatio) return { width: 300, height: 300 };
+    const [wStr, hStr] = aspectRatio.split(":");
+    const wRatio = parseFloat(wStr);
+    const hRatio = parseFloat(hStr);
+    if (!wRatio || !hRatio) return { width: 300, height: 300 };
+    const width = Math.round(Math.sqrt(BASE_AREA * (wRatio / hRatio)));
+    const height = Math.round(BASE_AREA / width);
+    return { width, height };
+}
+
+function rectsOverlap(a: PlaceholderRect, b: PlaceholderRect): boolean {
+    return !(
+        a.x + a.w + GAP <= b.x ||
+        b.x + b.w + GAP <= a.x ||
+        a.y + a.h + GAP <= b.y ||
+        b.y + b.h + GAP <= a.y
+    );
+}
+
+function isPositionFree(
+    candidate: PlaceholderRect,
+    occupied: PlaceholderRect[],
+): boolean {
+    return !occupied.some((r) => rectsOverlap(candidate, r));
+}
+
+/**
+ * Find an empty canvas position for a new placeholder node.
+ * Tries positions around the reference rect first (right, below, left, above),
+ * then spirals outward in a grid from the anchor point.
+ */
+function findEmptyPosition(
+    w: number,
+    h: number,
+    ref: PlaceholderRect | null,
+    occupied: PlaceholderRect[],
+    viewportCenter: { x: number; y: number },
+): { x: number; y: number } {
+    const anchor = ref
+        ? { x: ref.x + ref.w / 2, y: ref.y + ref.h / 2 }
+        : viewportCenter;
+
+    // Priority candidates around the reference rect
+    if (ref) {
+        const candidates = [
+            // Right
+            { x: ref.x + ref.w + GAP, y: ref.y + (ref.h - h) / 2 },
+            // Below
+            { x: ref.x + (ref.w - w) / 2, y: ref.y + ref.h + GAP },
+            // Left
+            { x: ref.x - w - GAP, y: ref.y + (ref.h - h) / 2 },
+            // Above
+            { x: ref.x + (ref.w - w) / 2, y: ref.y - h - GAP },
+        ];
+        for (const pos of candidates) {
+            const rect = { x: pos.x, y: pos.y, w, h };
+            if (isPositionFree(rect, occupied)) return pos;
+        }
+    }
+
+    // Spiral outward in a grid from the anchor
+    const step = Math.max(w, h) + GAP;
+    for (let ring = 0; ring <= 20; ring++) {
+        if (ring === 0) {
+            const pos = { x: anchor.x - w / 2, y: anchor.y - h / 2 };
+            if (isPositionFree({ x: pos.x, y: pos.y, w, h }, occupied))
+                return pos;
+            continue;
+        }
+        // Walk the perimeter of the ring
+        for (let dx = -ring; dx <= ring; dx++) {
+            for (let dy = -ring; dy <= ring; dy++) {
+                if (Math.abs(dx) !== ring && Math.abs(dy) !== ring) continue;
+                const pos = {
+                    x: anchor.x - w / 2 + dx * step,
+                    y: anchor.y - h / 2 + dy * step,
+                };
+                if (isPositionFree({ x: pos.x, y: pos.y, w, h }, occupied))
+                    return pos;
+            }
+        }
+    }
+
+    // Absolute fallback (should never reach here)
+    return { x: anchor.x - w / 2, y: anchor.y - h / 2 };
 }

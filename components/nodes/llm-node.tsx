@@ -498,25 +498,11 @@ export const LLMNode = memo(
                                             </SelectItem>
                                             <SelectItem
                                                 value={
-                                                    MODELS.TEXT.GEMINI_2_5_PRO
-                                                }
-                                            >
-                                                Gemini 2.5 Pro
-                                            </SelectItem>
-                                            <SelectItem
-                                                value={
-                                                    MODELS.TEXT.GEMINI_2_5_FLASH
-                                                }
-                                            >
-                                                Gemini 2.5 Flash
-                                            </SelectItem>
-                                            <SelectItem
-                                                value={
                                                     MODELS.TEXT
-                                                        .GEMINI_2_5_FLASH_LITE
+                                                        .GEMINI_3_1_FLASH_LITE_PREVIEW
                                                 }
                                             >
-                                                Gemini 2.5 Flash Lite
+                                                Gemini 3.1 Flash Lite Preview
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
