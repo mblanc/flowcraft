@@ -3,9 +3,9 @@
 import { memo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { User, Bot, Image, Video, Zap } from "lucide-react";
+import { User, Bot, Image, Video, Zap, Check, Loader2, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { ChatMessage } from "@/lib/canvas-types";
+import type { ChatMessage, GenerationStep, StepStatus } from "@/lib/canvas-types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,82 @@ const MEDIA_TYPE_ICON = {
     "canvas-image": Image,
     "canvas-video": Video,
 } as const;
+
+function StepStatusIcon({ status }: { status: StepStatus | undefined }) {
+    switch (status) {
+        case "done":
+            return <Check className="size-3 text-green-500" />;
+        case "generating":
+            return <Loader2 className="size-3 animate-spin text-blue-500" />;
+        case "error":
+            return <X className="size-3 text-red-500" />;
+        default:
+            return <Clock className="size-3 text-muted-foreground" />;
+    }
+}
+
+function PlanCard({
+    steps,
+    messageId,
+}: {
+    steps: GenerationStep[];
+    messageId: string;
+}) {
+    const stepStatuses =
+        useCanvasStore((s) => s.planStepStatuses[messageId]) ?? {};
+
+    const doneCount = steps.filter(
+        (s) => stepStatuses[s.id] === "done",
+    ).length;
+
+    return (
+        <div className="bg-muted/60 mt-1.5 rounded-lg border p-2.5 text-xs">
+            <p className="text-muted-foreground mb-2 font-medium">
+                {doneCount === steps.length && steps.length > 0
+                    ? `${steps.length} generation${steps.length > 1 ? "s" : ""} complete`
+                    : `${steps.length} generation${steps.length > 1 ? "s" : ""} planned`}
+            </p>
+            <ul className="space-y-1.5">
+                {steps.map((step) => {
+                    const status = stepStatuses[step.id] as
+                        | StepStatus
+                        | undefined;
+                    return (
+                        <li
+                            key={step.id}
+                            className="flex items-center gap-2"
+                        >
+                            <StepStatusIcon status={status} />
+                            <span
+                                className={cn(
+                                    "truncate",
+                                    status === "done" &&
+                                        "text-foreground",
+                                    status === "generating" &&
+                                        "text-blue-600 dark:text-blue-400",
+                                    status === "error" &&
+                                        "text-red-500 line-through",
+                                    !status &&
+                                        "text-muted-foreground",
+                                )}
+                            >
+                                {step.label ??
+                                    (step.type === "image"
+                                        ? "Image"
+                                        : "Video")}
+                            </span>
+                            {status === "generating" && (
+                                <span className="text-muted-foreground shrink-0">
+                                    generating…
+                                </span>
+                            )}
+                        </li>
+                    );
+                })}
+            </ul>
+        </div>
+    );
+}
 
 function CanvasChatMessageComponent({ message }: { message: ChatMessage }) {
     const isUser = message.role === "user";
@@ -114,6 +190,13 @@ function CanvasChatMessageComponent({ message }: { message: ChatMessage }) {
                         </div>
                     )}
                 </div>
+
+                {!isUser && message.plan && message.plan.steps.length > 0 && (
+                    <PlanCard
+                        steps={message.plan.steps}
+                        messageId={message.id}
+                    />
+                )}
 
                 {message.generatedMedia &&
                     message.generatedMedia.length > 0 && (

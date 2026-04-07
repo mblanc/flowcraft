@@ -268,7 +268,7 @@ export const CanvasVideoNode = memo(
                     {/* Content Layer */}
                     <div className="border-border/50 bg-muted/20 relative h-full w-full overflow-hidden rounded-[24px] border shadow-sm">
                         {isGenerating && (
-                            <div className="bg-muted/50 flex h-full flex-col items-center justify-center gap-2">
+                            <div className="flex h-full flex-col items-center justify-center gap-2 bg-white">
                                 <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
                                 <span className="text-muted-foreground text-xs font-medium">
                                     Generating...

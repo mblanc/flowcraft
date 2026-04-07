@@ -72,6 +72,44 @@ export interface GeneratedMediaRef {
     type: "canvas-image" | "canvas-video";
 }
 
+export type StepStatus = "pending" | "generating" | "done" | "error";
+
+export interface GenerationStep {
+    id: string;
+    type: "image" | "video";
+    prompt: string;
+    label?: string;
+    aspectRatio?: string;
+    resolution?: string;
+    model?: string;
+    duration?: number;
+    generateAudio?: boolean;
+    /** Existing canvas node IDs to use as generic references */
+    referenceNodeIds?: string[];
+    /** Existing canvas node ID to use as video first frame */
+    firstFrameNodeId?: string;
+    /** Existing canvas node ID to use as video last frame */
+    lastFrameNodeId?: string;
+    /** Step IDs within this plan whose output to use as references */
+    dependsOn?: string[];
+}
+
+export interface AgentPlan {
+    steps: GenerationStep[];
+}
+
+export interface NodePayload {
+    id: string;
+    type: "canvas-image" | "canvas-video";
+    label: string;
+    sourceUrl: string;
+    mimeType?: string;
+    prompt: string;
+    aspectRatio?: string;
+    model?: string;
+    referenceNodeIds?: string[];
+}
+
 export interface ChatMessage {
     id: string;
     role: "user" | "assistant" | "system";
@@ -79,6 +117,7 @@ export interface ChatMessage {
     attachments?: ChatAttachment[];
     actions?: ChatAction[];
     generatedMedia?: GeneratedMediaRef[];
+    plan?: AgentPlan;
     model?: string;
     createdAt: string;
 }

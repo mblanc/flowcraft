@@ -6,6 +6,7 @@ import type {
     CanvasDocument,
     CanvasNode,
     ChatMessage,
+    StepStatus,
 } from "@/lib/canvas-types";
 
 export interface CanvasStore {
@@ -50,6 +51,14 @@ export interface CanvasStore {
     pendingActionPrompt: string | null;
     setPendingActionPrompt: (prompt: string | null) => void;
 
+    // Per-message step statuses for plan cards (ephemeral, not persisted)
+    planStepStatuses: Record<string, Record<string, StepStatus>>;
+    setPlanStepStatus: (
+        messageId: string,
+        stepId: string,
+        status: StepStatus,
+    ) => void;
+
     // Node ID generation
     getNextLabel: (
         type: "canvas-image" | "canvas-video" | "canvas-text",
@@ -77,6 +86,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     isChatLoading: false,
     generatingNodeIds: [],
     pendingActionPrompt: null,
+    planStepStatuses: {},
     lastModified: 0,
 
     setCanvas: (canvas) =>
@@ -193,6 +203,17 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
         })),
 
     setPendingActionPrompt: (prompt) => set({ pendingActionPrompt: prompt }),
+
+    setPlanStepStatus: (messageId, stepId, status) =>
+        set((state) => ({
+            planStepStatuses: {
+                ...state.planStepStatuses,
+                [messageId]: {
+                    ...(state.planStepStatuses[messageId] ?? {}),
+                    [stepId]: status,
+                },
+            },
+        })),
 
     getNextLabel: (type) => {
         const prefix = TYPE_PREFIX_MAP[type];
