@@ -97,6 +97,9 @@ export const ImageDataSchema = BaseNodeDataSchema.extend({
     groundingImageSearch: z.boolean().default(false),
     width: z.number().optional(),
     height: z.number().optional(),
+    mediaInputs: z
+        .array(z.object({ url: z.string(), mimeType: z.string().optional() }))
+        .optional(),
 });
 
 export const VideoDataSchema = BaseNodeDataSchema.extend({
@@ -121,6 +124,9 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
     resolution: z.enum(["720p", "1080p", "4k"]),
     width: z.number().optional(),
     height: z.number().optional(),
+    mediaInputs: z
+        .array(z.object({ url: z.string(), mimeType: z.string().optional() }))
+        .optional(),
 });
 
 export const FileDataSchema = BaseNodeDataSchema.extend({

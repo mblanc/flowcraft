@@ -21,7 +21,9 @@ function formatSSE(event: string, data: unknown): string {
 
 /** Build a map of nodeId → GCS URI for ALL canvas nodes so plan steps can
  *  reference any canvas item, even if it wasn't attached to the current message. */
-function buildNodeUriMap(canvas: { nodes: { id: string; data: Record<string, unknown> }[] }): Map<string, string> {
+function buildNodeUriMap(canvas: {
+    nodes: { id: string; data: Record<string, unknown> }[];
+}): Map<string, string> {
     const map = new Map<string, string>();
     for (const node of canvas.nodes) {
         const uri = node.data.sourceUrl as string | undefined;

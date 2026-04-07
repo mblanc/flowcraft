@@ -96,10 +96,9 @@ export default function LibraryPage() {
             const searchParam = debouncedSearch
                 ? `&search=${encodeURIComponent(debouncedSearch)}`
                 : `&limit=${PAGE_LIMIT}`;
-            const res = await fetch(
-                `/api/library?type=${type}${searchParam}`,
-                { signal: controller.signal },
-            );
+            const res = await fetch(`/api/library?type=${type}${searchParam}`, {
+                signal: controller.signal,
+            });
             if (!res.ok) {
                 toast.error("Failed to load library");
                 return;

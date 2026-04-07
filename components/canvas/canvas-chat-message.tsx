@@ -3,9 +3,23 @@
 import { memo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { User, Bot, Image, Video, Zap, Check, Loader2, Clock, X } from "lucide-react";
+import {
+    User,
+    Bot,
+    Image,
+    Video,
+    Zap,
+    Check,
+    Loader2,
+    Clock,
+    X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { ChatMessage, GenerationStep, StepStatus } from "@/lib/canvas-types";
+import type {
+    ChatMessage,
+    GenerationStep,
+    StepStatus,
+} from "@/lib/canvas-types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +48,7 @@ function StepStatusIcon({ status }: { status: StepStatus | undefined }) {
         case "error":
             return <X className="size-3 text-red-500" />;
         default:
-            return <Clock className="size-3 text-muted-foreground" />;
+            return <Clock className="text-muted-foreground size-3" />;
     }
 }
 
@@ -48,9 +62,7 @@ function PlanCard({
     const stepStatuses =
         useCanvasStore((s) => s.planStepStatuses[messageId]) ?? {};
 
-    const doneCount = steps.filter(
-        (s) => stepStatuses[s.id] === "done",
-    ).length;
+    const doneCount = steps.filter((s) => stepStatuses[s.id] === "done").length;
 
     return (
         <div className="bg-muted/60 mt-1.5 rounded-lg border p-2.5 text-xs">
@@ -65,28 +77,21 @@ function PlanCard({
                         | StepStatus
                         | undefined;
                     return (
-                        <li
-                            key={step.id}
-                            className="flex items-center gap-2"
-                        >
+                        <li key={step.id} className="flex items-center gap-2">
                             <StepStatusIcon status={status} />
                             <span
                                 className={cn(
                                     "truncate",
-                                    status === "done" &&
-                                        "text-foreground",
+                                    status === "done" && "text-foreground",
                                     status === "generating" &&
                                         "text-blue-600 dark:text-blue-400",
                                     status === "error" &&
                                         "text-red-500 line-through",
-                                    !status &&
-                                        "text-muted-foreground",
+                                    !status && "text-muted-foreground",
                                 )}
                             >
                                 {step.label ??
-                                    (step.type === "image"
-                                        ? "Image"
-                                        : "Video")}
+                                    (step.type === "image" ? "Image" : "Video")}
                             </span>
                             {status === "generating" && (
                                 <span className="text-muted-foreground shrink-0">

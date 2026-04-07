@@ -181,21 +181,21 @@ const PLAN_SCHEMA = {
                         description:
                             "For video: generate audio. Set true only if user explicitly requests audio/sound/music/narration. Default false.",
                     },
-                    referenceLabels: {
+                    referenceNodeIds: {
                         type: "ARRAY" as const,
                         items: { type: "STRING" as const },
                         description:
-                            "Labels of existing canvas items to use as generic references (e.g. ['Image 1']). For image editing and style transfer.",
+                            "IDs of existing canvas items to use as generic references. For image editing and style transfer.",
                     },
-                    firstFrameLabel: {
+                    firstFrameNodeId: {
                         type: "STRING" as const,
                         description:
-                            "For video: exact label of the canvas item to use as first frame.",
+                            "For video: exact ID of the canvas item to use as first frame.",
                     },
-                    lastFrameLabel: {
+                    lastFrameNodeId: {
                         type: "STRING" as const,
                         description:
-                            "For video: exact label of the canvas item to use as last frame.",
+                            "For video: exact ID of the canvas item to use as last frame.",
                     },
                     dependsOn: {
                         type: "ARRAY" as const,
@@ -255,6 +255,35 @@ function resolveLabelsToNodeIds(
         .filter((id): id is string => !!id);
 }
 
+export function applyVideoFallback(
+    step: GenerationStep,
+    type: string,
+    attachments: ChatAttachment[],
+    index: number,
+    totalSteps: number,
+) {
+    if (
+        type === "video" &&
+        !step.firstFrameNodeId &&
+        !step.lastFrameNodeId &&
+        !step.dependsOn?.length &&
+        attachments.length > 0 &&
+        !step.referenceNodeIds?.length
+    ) {
+        if (attachments.length === 1) {
+            step.firstFrameNodeId = attachments[0].nodeId;
+        } else if (attachments.length === 2) {
+            step.firstFrameNodeId = attachments[0].nodeId;
+            step.lastFrameNodeId = attachments[1].nodeId;
+        } else if (totalSteps === attachments.length) {
+            // Map 1-to-1 if counts match
+            step.firstFrameNodeId = attachments[index].nodeId;
+        } else {
+            step.referenceNodeIds = attachments.map((a) => a.nodeId);
+        }
+    }
+}
+
 export async function* streamAgentResponse(
     input: AgentInput,
 ): AsyncGenerator<AgentEvent> {
@@ -304,7 +333,7 @@ export async function* streamAgentResponse(
         const hasAttachments =
             input.attachments && input.attachments.length > 0;
         const attachmentContext = hasAttachments
-            ? `\n\nThe user has shared ${input.attachments!.length} canvas item(s) as reference. Incorporate these into your plan using referenceLabels, firstFrameLabel, or lastFrameLabel as appropriate.`
+            ? `\n\nThe user has shared ${input.attachments!.length} canvas item(s) as reference. Incorporate these into your plan using referenceNodeIds, firstFrameNodeId, or lastFrameNodeId as appropriate.`
             : "";
 
         const planSystemPrompt = `You are analyzing a conversation between a user and a creative media assistant on a visual canvas.
@@ -313,7 +342,7 @@ Based on the conversation, produce a generation plan:
 - For "4 variants of X" → 4 steps with the same prompt, different labels.
 - For sequential workflows ("generate a portrait then animate it") → step_0 generates the image, step_1 is video with dependsOn: ["step_0"].
 - For no generation → steps: [].
-- Each step that references an existing canvas item should list those items' labels in referenceLabels (generic reference), firstFrameLabel (video first frame), or lastFrameLabel (video last frame).
+- Each step that references an existing canvas item should list those items' IDs in referenceNodeIds (generic reference), firstFrameNodeId (video first frame), or lastFrameNodeId (video last frame).
 
 For aspect ratio, map: "square" → "1:1", "portrait"/"vertical" → "9:16", "landscape"/"wide" → "16:9". Default "16:9".
 For resolution: "512", "1K", "2K", or "4K". Default "1K". Map user language: "low"/"small" → "512", "HD"/"1080p" → "2K", "4K"/"ultra" → "4K".
@@ -350,9 +379,9 @@ Also suggest 2-3 follow-up actions the user might want.`;
                     model?: string;
                     duration?: number;
                     generateAudio?: boolean;
-                    referenceLabels?: string[];
-                    firstFrameLabel?: string;
-                    lastFrameLabel?: string;
+                    referenceNodeIds?: string[];
+                    firstFrameNodeId?: string;
+                    lastFrameNodeId?: string;
                     dependsOn?: string[];
                 }>;
                 suggestedActions?: Array<{ label: string; prompt: string }>;
@@ -361,7 +390,7 @@ Also suggest 2-3 follow-up actions the user might want.`;
             const attachments = input.attachments ?? [];
 
             if (parsed.steps && parsed.steps.length > 0) {
-                const steps: GenerationStep[] = parsed.steps.map((s) => {
+                const steps: GenerationStep[] = parsed.steps.map((s, index) => {
                     const step: GenerationStep = {
                         id: s.id,
                         type: s.type,
@@ -381,52 +410,27 @@ Also suggest 2-3 follow-up actions the user might want.`;
                             : {}),
                     };
 
-                    // Resolve label-based references to node IDs
-                    const refIds = resolveLabelsToNodeIds(
-                        s.referenceLabels,
-                        attachments,
-                        input.canvasNodes,
-                    );
-                    if (refIds.length > 0) step.referenceNodeIds = refIds;
-
-                    if (s.firstFrameLabel) {
-                        const nodeId = resolveLabelsToNodeIds(
-                            [s.firstFrameLabel],
-                            attachments,
-                            input.canvasNodes,
-                        )[0];
-                        if (nodeId) step.firstFrameNodeId = nodeId;
+                    // Use Node IDs directly if provided by LLM
+                    if (s.referenceNodeIds && s.referenceNodeIds.length > 0) {
+                        step.referenceNodeIds = s.referenceNodeIds;
                     }
 
-                    if (s.lastFrameLabel) {
-                        const nodeId = resolveLabelsToNodeIds(
-                            [s.lastFrameLabel],
-                            attachments,
-                            input.canvasNodes,
-                        )[0];
-                        if (nodeId) step.lastFrameNodeId = nodeId;
+                    if (s.firstFrameNodeId) {
+                        step.firstFrameNodeId = s.firstFrameNodeId;
+                    }
+
+                    if (s.lastFrameNodeId) {
+                        step.lastFrameNodeId = s.lastFrameNodeId;
                     }
 
                     // Programmatic fallback for video when LLM didn't specify frames
-                    if (
-                        s.type === "video" &&
-                        !step.firstFrameNodeId &&
-                        !step.lastFrameNodeId &&
-                        !step.dependsOn?.length &&
-                        attachments.length > 0 &&
-                        !refIds.length
-                    ) {
-                        if (attachments.length === 1) {
-                            step.firstFrameNodeId = attachments[0].nodeId;
-                        } else if (attachments.length === 2) {
-                            step.firstFrameNodeId = attachments[0].nodeId;
-                            step.lastFrameNodeId = attachments[1].nodeId;
-                        } else {
-                            step.referenceNodeIds = attachments.map(
-                                (a) => a.nodeId,
-                            );
-                        }
-                    }
+                    applyVideoFallback(
+                        step,
+                        s.type,
+                        attachments,
+                        index,
+                        parsed.steps.length,
+                    );
 
                     return step;
                 });
@@ -441,16 +445,11 @@ Also suggest 2-3 follow-up actions the user might want.`;
             ) {
                 const actions: ChatAction[] = parsed.suggestedActions
                     .slice(0, 3)
-                    .map(
-                        (
-                            a: { label: string; prompt: string },
-                            i: number,
-                        ) => ({
-                            id: String(i + 1),
-                            label: a.label,
-                            prompt: a.prompt,
-                        }),
-                    );
+                    .map((a: { label: string; prompt: string }, i: number) => ({
+                        id: String(i + 1),
+                        label: a.label,
+                        prompt: a.prompt,
+                    }));
                 yield { type: "actions", actions };
             }
         }
