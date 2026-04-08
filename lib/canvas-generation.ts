@@ -92,9 +92,15 @@ async function executeImageStep(
     });
 
     const extension = mimeType.split("/")[1] || "png";
+    const sanitizedLabel = (step.label || "image")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    const baseName = sanitizedLabel || "image";
+
     const sourceUrl = await storageService.uploadImage(
         data,
-        `canvas-${randomUUID()}.${extension}`,
+        `${baseName}-${randomUUID()}.${extension}`,
     );
 
     return {
