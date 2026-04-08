@@ -1,4 +1,9 @@
-import { Content, createPartFromText, createPartFromUri } from "@google/genai";
+import {
+    Content,
+    createPartFromText,
+    createPartFromUri,
+    ThinkingLevel,
+} from "@google/genai";
 import { geminiService } from "@/lib/services/gemini.service";
 import { MODELS } from "@/lib/constants";
 import logger from "@/app/logger";
@@ -162,9 +167,9 @@ const PLAN_SCHEMA = {
                     },
                     resolution: {
                         type: "STRING" as const,
-                        enum: ["512", "1K", "2K", "4K"],
+                        enum: ["512", "1K", "2K", "4K", "720p", "1080p"],
                         description:
-                            "Resolution if explicitly specified by the user. Default 1K.",
+                            "Resolution if explicitly specified by the user. Default 1K for images, 720p for videos.",
                     },
                     model: {
                         type: "STRING" as const,
@@ -280,6 +285,11 @@ export async function* streamAgentResponse(
             contents,
             systemInstruction,
             model,
+            config: {
+                thinkingConfig: {
+                    thinkingLevel: ThinkingLevel.HIGH,
+                },
+            },
         })) {
             fullText += delta;
             yield { type: "text", delta };
@@ -321,7 +331,7 @@ Based on the conversation, produce a generation plan:
 - IMPORTANT: You must ONLY use Node IDs that are explicitly listed in the 'Current canvas items' list above. Do NOT invent, assume, or generate any other IDs.
 
 For aspect ratio, map: "square" → "1:1", "portrait"/"vertical" → "9:16", "landscape"/"wide" → "16:9". Default "16:9".
-For resolution: "512", "1K", "2K", or "4K". Default "1K". Map user language: "low"/"small" → "512", "HD"/"1080p" → "2K", "4K"/"ultra" → "4K".
+For resolution: images use "512", "1K", "2K", or "4K" (default "1K"); videos use "720p", "1080p", or "4K" (default "720p"). Map user language: "low"/"small" → "512", "HD" → "2K", "1080p" → "1080p", "4K"/"ultra" → "4K".
 For video duration: 4, 6, or 8 seconds. Omit if unspecified.
 For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music/narration. Default false.
 
@@ -334,6 +344,11 @@ Also suggest 2-3 follow-up actions the user might want.`;
             systemInstruction: planSystemPrompt,
             model,
             responseSchema: PLAN_SCHEMA,
+            config: {
+                thinkingConfig: {
+                    thinkingLevel: ThinkingLevel.HIGH,
+                },
+            },
         });
 
         const planText = planResponse.candidates?.[0]?.content?.parts

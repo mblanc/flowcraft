@@ -247,6 +247,7 @@ export class GeminiService {
         systemInstruction?: ContentUnion;
         model?: string;
         responseSchema: Record<string, unknown>;
+        config?: GenerateContentConfig;
     }): Promise<GenerateContentResponse> {
         const selectedModel =
             options.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
@@ -265,6 +266,7 @@ export class GeminiService {
             model: selectedModel,
             contents: options.contents,
             config: {
+                ...options.config,
                 systemInstruction: options.systemInstruction,
                 responseMimeType: "application/json",
                 responseSchema: options.responseSchema,
