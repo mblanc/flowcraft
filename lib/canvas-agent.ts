@@ -158,7 +158,7 @@ const PLAN_SCHEMA = {
                     label: {
                         type: "STRING" as const,
                         description:
-                            'Display label for the generated node (e.g. "Portrait", "Variant 1")',
+                            "Descriptive label for the generated node based on the prompt context (e.g. 'Golden Retriever', 'Sci-fi Cityscape')",
                     },
                     aspectRatio: {
                         type: "STRING" as const,
@@ -209,7 +209,7 @@ const PLAN_SCHEMA = {
                             "Step IDs from this plan whose output should be used as reference. Use for sequential workflows like 'generate portrait then animate it'.",
                     },
                 },
-                required: ["id", "type", "prompt"],
+                required: ["id", "type", "prompt", "label"],
             },
         },
         suggestedActions: {
@@ -325,6 +325,7 @@ export async function* streamAgentResponse(
 Based on the conversation, produce a generation plan:
 - List each generation as a separate step with a unique id (step_0, step_1, ...).
 - For "4 variants of X" → 4 steps with the same prompt, different labels.
+- IMPORTANT: Make sure to give each step a descriptive label that reflects the content being generated (e.g., "Cute Cat", "Sci-Fi Scene") instead of generic labels like "Image" or "Video".
 - For sequential workflows ("generate a portrait then animate it") → step_0 generates the image, step_1 is video with dependsOn: ["step_0"].
 - For no generation → steps: [].
 - Each step that references an existing canvas item should list those items' IDs in referenceNodeIds (generic reference), firstFrameNodeId (video first frame), or lastFrameNodeId (video last frame).
