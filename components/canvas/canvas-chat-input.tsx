@@ -41,6 +41,7 @@ import type {
     NodePayload,
     GenerationStep,
 } from "@/lib/canvas-types";
+import { calculateNodePositions } from "@/lib/canvas-layout";
 
 type CanvasMode = "auto" | "image" | "video";
 
@@ -302,6 +303,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
         (
             step: GenerationStep,
             occupiedRects: PlaceholderRect[],
+            overridePosition?: { x: number; y: number },
         ): { rect: PlaceholderRect; nodeId: string } => {
             const { width, height } = parseAspectRatioDimensions(
                 step.aspectRatio,
@@ -329,13 +331,15 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                 : null;
 
             const center = getViewportCenter();
-            const position = findEmptyPosition(
-                width,
-                height,
-                refRect,
-                occupiedRects,
-                center,
-            );
+            const position =
+                overridePosition ??
+                findEmptyPosition(
+                    width,
+                    height,
+                    refRect,
+                    occupiedRects,
+                    center,
+                );
 
             const nodeId = uuidv4();
             const nodeType =
@@ -523,16 +527,28 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                                     n.height ??
                                                     300,
                                             }));
+
+                                    // Compute organized positions for new nodes
+                                    const computedPositions =
+                                        calculateNodePositions(
+                                            steps,
+                                            useCanvasStore.getState().nodes,
+                                            getViewportCenter(),
+                                        );
+
                                     steps.forEach((s) => {
                                         setPlanStepStatus(
                                             assistantMsgId,
                                             s.id,
                                             "pending",
                                         );
+                                        const overridePosition =
+                                            computedPositions.get(s.id);
                                         const { rect, nodeId } =
                                             addPlaceholderNode(
                                                 s,
                                                 occupiedRects,
+                                                overridePosition,
                                             );
                                         stepNodeMap.set(s.id, nodeId);
                                         occupiedRects.push(rect);
@@ -670,6 +686,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             setIsChatLoading,
             setPlanStepStatus,
             addPlaceholderNode,
+            getViewportCenter,
         ],
     );
 
