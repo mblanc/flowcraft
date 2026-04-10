@@ -106,7 +106,30 @@ function PlanCard({
     );
 }
 
-function CanvasChatMessageComponent({ message }: { message: ChatMessage }) {
+function TypingDots() {
+    return (
+        <div className="flex items-center gap-1 py-0.5">
+            {[0, 150, 300].map((delay) => (
+                <span
+                    key={delay}
+                    className="bg-muted-foreground/50 size-1.5 animate-bounce rounded-full"
+                    style={{
+                        animationDelay: `${delay}ms`,
+                        animationDuration: "900ms",
+                    }}
+                />
+            ))}
+        </div>
+    );
+}
+
+function CanvasChatMessageComponent({
+    message,
+    isLiveAssistant = false,
+}: {
+    message: ChatMessage;
+    isLiveAssistant?: boolean;
+}) {
     const isUser = message.role === "user";
     const isSystem = message.role === "system";
     const isChatLoading = useCanvasStore((s) => s.isChatLoading);
@@ -141,7 +164,7 @@ function CanvasChatMessageComponent({ message }: { message: ChatMessage }) {
         >
             <div
                 className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-full",
+                    "relative flex size-7 shrink-0 items-center justify-center rounded-full",
                     isUser
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground",
@@ -151,6 +174,9 @@ function CanvasChatMessageComponent({ message }: { message: ChatMessage }) {
                     <User className="size-3.5" />
                 ) : (
                     <Bot className="size-3.5" />
+                )}
+                {isLiveAssistant && (
+                    <span className="bg-primary absolute -right-0.5 -bottom-0.5 size-2 animate-pulse rounded-full" />
                 )}
             </div>
 
@@ -187,6 +213,8 @@ function CanvasChatMessageComponent({ message }: { message: ChatMessage }) {
                 >
                     {isUser ? (
                         <p className="whitespace-pre-wrap">{message.content}</p>
+                    ) : message.content === "" && isLiveAssistant ? (
+                        <TypingDots />
                     ) : (
                         <div className="prose prose-sm dark:prose-invert max-w-none [&_ol]:my-1 [&_p]:my-1 [&_pre]:my-2 [&_ul]:my-1">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -247,4 +275,6 @@ function CanvasChatMessageComponent({ message }: { message: ChatMessage }) {
     );
 }
 
-export const CanvasChatMessage = memo(CanvasChatMessageComponent);
+export const CanvasChatMessage = memo(
+    CanvasChatMessageComponent,
+) as typeof CanvasChatMessageComponent;

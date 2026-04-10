@@ -8,11 +8,24 @@ import type { ChatAttachment } from "@/lib/canvas-types";
 
 export const maxDuration = 300;
 
+interface MediaDefaults {
+    model?: string;
+    aspectRatio?: string;
+    resolution?: string;
+}
+
+interface VideoDefaultsBody extends MediaDefaults {
+    duration?: number;
+    generateAudio?: boolean;
+}
+
 interface ChatRequestBody {
     message: string;
     attachments?: ChatAttachment[];
     mode: "auto" | "image" | "video";
     model?: string;
+    imageDefaults?: MediaDefaults;
+    videoDefaults?: VideoDefaultsBody;
 }
 
 function formatSSE(event: string, data: unknown): string {
@@ -114,6 +127,8 @@ export async function POST(
                     model: body.model,
                     history: canvas.messages,
                     canvasNodes: canvas.nodes,
+                    imageDefaults: body.imageDefaults,
+                    videoDefaults: body.videoDefaults,
                 });
 
                 for await (const event of agentStream) {

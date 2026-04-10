@@ -25,8 +25,12 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+    CanvasAgentSettingsDialog,
+    DEFAULT_AGENT_SETTINGS,
+    type AgentSettings,
+} from "./canvas-agent-settings-dialog";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
-import { MODELS } from "@/lib/constants";
 import { CanvasAttachmentBar } from "./canvas-attachment-bar";
 import {
     CanvasMentionDropdown,
@@ -50,17 +54,6 @@ const MODES: { id: CanvasMode; label: string; icon: typeof Sparkles }[] = [
     { id: "image", label: "Image", icon: Image },
     { id: "video", label: "Video", icon: Video },
 ];
-
-const REASONING_MODELS = [
-    { id: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW, label: "Gemini 3 Flash" },
-    { id: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW, label: "Gemini 3.1 Pro" },
-    {
-        id: MODELS.TEXT.GEMINI_3_1_FLASH_LITE_PREVIEW,
-        label: "Gemini 3.1 Flash Lite",
-    },
-];
-
-const DEFAULT_MODEL = MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
 
 interface SSEEvent {
     event: string;
@@ -100,7 +93,9 @@ interface CanvasChatInputProps {
 export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     const [input, setInput] = useState("");
     const [mode, setMode] = useState<CanvasMode>("auto");
-    const [model, setModel] = useState<string>(DEFAULT_MODEL);
+    const [agentSettings, setAgentSettings] = useState<AgentSettings>(
+        DEFAULT_AGENT_SETTINGS,
+    );
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const abortRef = useRef<AbortController | null>(null);
 
@@ -417,7 +412,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     attachmentsToSend.length > 0
                         ? attachmentsToSend
                         : undefined,
-                model,
+                model: agentSettings.llmModel,
                 createdAt: new Date().toISOString(),
             };
 
@@ -437,7 +432,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                 id: assistantMsgId,
                 role: "assistant",
                 content: "",
-                model,
+                model: agentSettings.llmModel,
                 createdAt: new Date().toISOString(),
             };
             addMessage(assistantMessage);
@@ -456,7 +451,29 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                 ? attachmentsToSend
                                 : undefined,
                         mode,
-                        model,
+                        model: agentSettings.llmModel,
+                        imageDefaults: {
+                            model: agentSettings.imageModel,
+                            ...(agentSettings.imageAspectRatio !== "auto" && {
+                                aspectRatio: agentSettings.imageAspectRatio,
+                            }),
+                            ...(agentSettings.imageResolution !== "auto" && {
+                                resolution: agentSettings.imageResolution,
+                            }),
+                        },
+                        videoDefaults: {
+                            model: agentSettings.videoModel,
+                            generateAudio: agentSettings.videoGenerateAudio,
+                            ...(agentSettings.videoAspectRatio !== "auto" && {
+                                aspectRatio: agentSettings.videoAspectRatio,
+                            }),
+                            ...(agentSettings.videoResolution !== "auto" && {
+                                resolution: agentSettings.videoResolution,
+                            }),
+                            ...(agentSettings.videoDuration !== "auto" && {
+                                duration: Number(agentSettings.videoDuration),
+                            }),
+                        },
                     }),
                     signal: abortController.signal,
                 });
@@ -678,7 +695,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             input,
             isChatLoading,
             canvasId,
-            model,
+            agentSettings,
             mode,
             allAttachments,
             addMessage,
@@ -843,38 +860,10 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
 
                         <div className="bg-border h-4 w-px" />
 
-                        <TooltipProvider delayDuration={300}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div>
-                                        <Select
-                                            value={model}
-                                            onValueChange={setModel}
-                                        >
-                                            <SelectTrigger
-                                                size="sm"
-                                                className="h-7 max-w-[140px] border-none bg-transparent px-2 text-xs shadow-none"
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {REASONING_MODELS.map((m) => (
-                                                    <SelectItem
-                                                        key={m.id}
-                                                        value={m.id}
-                                                    >
-                                                        {m.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                    Reasoning model
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        <CanvasAgentSettingsDialog
+                            settings={agentSettings}
+                            onSettingsChange={setAgentSettings}
+                        />
                     </div>
 
                     <Button

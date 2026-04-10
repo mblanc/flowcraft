@@ -16,6 +16,17 @@ import type {
     GenerationStep,
 } from "@/lib/canvas-types";
 
+export interface MediaDefaults {
+    model?: string;
+    aspectRatio?: string;
+    resolution?: string;
+}
+
+export interface VideoDefaults extends MediaDefaults {
+    duration?: number;
+    generateAudio?: boolean;
+}
+
 export interface AgentInput {
     message: string;
     attachments?: ChatAttachment[];
@@ -23,6 +34,8 @@ export interface AgentInput {
     model?: string;
     history: ChatMessage[];
     canvasNodes: CanvasNode[];
+    imageDefaults?: MediaDefaults;
+    videoDefaults?: VideoDefaults;
 }
 
 export type AgentEvent =
@@ -48,8 +61,8 @@ Guidelines:
 - When iterating on an existing item, acknowledge which item you're working from (e.g. "Based on Image 1, I'll..."). The referenced item will be passed as input to the generation model automatically.
 - When the user asks to "animate" or "make a video from" an image, generate a video using the image as a reference.
 - If the user specifies aspect ratio (e.g. "square", "portrait", "9:16", "vertical"), resolution (e.g. "1080p", "4K"), or duration (e.g. "8 seconds"), extract and apply those settings.
-- Suggest follow-up creative directions the user might want to explore.
 - Do NOT use markdown image or video syntax. Media will be generated separately and placed on the canvas.
+- IMPORTANT: Never end your response with a question. Do not ask the user for clarification or confirmation. Just state what you will create and proceed.
 - IMPORTANT: Reply ONLY with natural, conversational language. Do NOT output any JSON objects, ReAct formats, or tool call syntaxes. The actual media generation is automatically handled behind the scenes.`;
 
 function getModeInstruction(mode: "auto" | "image" | "video"): string {
@@ -331,9 +344,9 @@ Based on the conversation, produce a generation plan:
 - Each step that references an existing canvas item should list those items' IDs in referenceNodeIds (generic reference), firstFrameNodeId (video first frame), or lastFrameNodeId (video last frame).
 - IMPORTANT: You must ONLY use Node IDs that are explicitly listed in the 'Current canvas items' list above. Do NOT invent, assume, or generate any other IDs.
 
-For aspect ratio, map: "square" → "1:1", "portrait"/"vertical" → "9:16", "landscape"/"wide" → "16:9". Default "16:9".
-For resolution: images use "512", "1K", "2K", or "4K" (default "1K"); videos use "720p", "1080p", or "4K" (default "720p"). Map user language: "low"/"small" → "512", "HD" → "2K", "1080p" → "1080p", "4K"/"ultra" → "4K".
-For video duration: 4, 6, or 8 seconds. Omit if unspecified.
+For aspect ratio: ONLY include if the user explicitly mentioned it. Map: "square"→"1:1", "portrait"/"vertical"→"9:16", "landscape"/"wide"→"16:9". Otherwise omit.
+For resolution: ONLY include if the user explicitly mentioned it. Map: "HD"→"2K", "1080p"→"1080p", "4K"/"ultra"→"4K". Otherwise omit.
+For video duration: ONLY include if the user explicitly mentioned a duration. Otherwise omit.
 For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music/narration. Default false.
 
 ${modeInstruction}${attachmentContext}
@@ -383,18 +396,48 @@ Also suggest 2-3 follow-up actions the user might want.`;
 
             if (parsed.steps && parsed.steps.length > 0) {
                 const steps: GenerationStep[] = parsed.steps.map((s, index) => {
+                    const isVideo = s.type === "video";
+                    const typeDefaults = isVideo
+                        ? input.videoDefaults
+                        : input.imageDefaults;
+
                     const step: GenerationStep = {
                         id: s.id,
                         type: s.type,
                         prompt: s.prompt,
                         ...(s.label ? { label: s.label } : {}),
-                        ...(s.aspectRatio
-                            ? { aspectRatio: s.aspectRatio }
-                            : { aspectRatio: "16:9" }),
-                        ...(s.resolution ? { resolution: s.resolution } : {}),
-                        ...(s.model ? { model: s.model } : {}),
-                        ...(s.duration ? { duration: s.duration } : {}),
-                        generateAudio: s.generateAudio ?? false,
+                        aspectRatio:
+                            s.aspectRatio ??
+                            typeDefaults?.aspectRatio ??
+                            "16:9",
+                        ...((s.resolution ?? typeDefaults?.resolution)
+                            ? {
+                                  resolution:
+                                      s.resolution ?? typeDefaults?.resolution,
+                              }
+                            : {}),
+                        ...((s.model ?? typeDefaults?.model)
+                            ? { model: s.model ?? typeDefaults?.model }
+                            : {}),
+                        ...(isVideo &&
+                        (s.duration ??
+                            (input.videoDefaults as VideoDefaults | undefined)
+                                ?.duration)
+                            ? {
+                                  duration:
+                                      s.duration ??
+                                      (
+                                          input.videoDefaults as
+                                              | VideoDefaults
+                                              | undefined
+                                      )?.duration,
+                              }
+                            : {}),
+                        generateAudio:
+                            s.generateAudio ??
+                            (input.videoDefaults as VideoDefaults | undefined)
+                                ?.generateAudio ??
+                            false,
                         ...(s.dependsOn && s.dependsOn.length > 0
                             ? { dependsOn: s.dependsOn }
                             : {}),
