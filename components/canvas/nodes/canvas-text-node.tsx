@@ -101,7 +101,7 @@ export const CanvasTextNode = memo(
                 >
                     {/* Top Toolbar Capsule */}
                     {selected && (
-                        <div className="bg-background/95 pointer-events-auto absolute -top-[60px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border px-1.5 py-1.5 shadow-md backdrop-blur-md">
+                        <div className="bg-background/95 pointer-events-auto absolute -top-[80px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border px-1.5 py-1.5 shadow-md backdrop-blur-md">
                             <Button
                                 variant="ghost"
                                 size="icon"

@@ -323,9 +323,12 @@ export class GeminiService {
                 aspectRatio: aspectRatio as string,
                 imageSize: resolution as string,
             },
-            thinkingConfig: {
-                thinkingLevel: ThinkingLevel.LOW,
-            },
+            thinkingConfig:
+                selectedModel !== MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE
+                    ? {
+                          thinkingLevel: ThinkingLevel.LOW,
+                      }
+                    : undefined,
         };
 
         if (groundingGoogleSearch || groundingImageSearch) {
@@ -430,11 +433,18 @@ export class GeminiService {
             };
         }
 
-        if (images && images.length > 0) {
+        const hasExplicitFrames =
+            firstFrame?.startsWith("gs://") || lastFrame?.startsWith("gs://");
+
+        if (images && images.length > 0 && !hasExplicitFrames) {
             videoRequest.config!.referenceImages = images.map((image) => ({
                 image: { gcsUri: image.url, mimeType: "image/png" },
                 referenceType: VideoGenerationReferenceType.ASSET,
             }));
+        } else if (images && images.length > 0 && hasExplicitFrames) {
+            logger.info(
+                "[GeminiService] Ignoring reference images because firstFrame/lastFrame is set",
+            );
         }
 
         logger.info(

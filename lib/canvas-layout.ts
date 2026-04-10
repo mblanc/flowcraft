@@ -18,7 +18,15 @@ const DEFAULT_NODE_HEIGHT = 300;
 
 /**
  * Calculates organized positions for new generation steps.
- * Implements Strategy 2 with Downward collision avoidance.
+ *
+ * Layout rules:
+ * - Nodes at the same dependency depth share a vertical column (left-to-right).
+ * - Siblings within a column are spaced using the full subtree height so that
+ *   descendants never overlap with adjacent subtrees.
+ * - Multiple roots that all reference the same existing canvas node are treated
+ *   as a group and vertically centered on that reference node.
+ * - After ideal positions are computed, the whole group is shifted down until
+ *   it no longer overlaps any existing canvas node.
  */
 export function calculateNodePositions(
     steps: GenerationStep[],
@@ -35,20 +43,19 @@ export function calculateNodePositions(
     });
 
     // 1. Build dependency graph
+    // Each node is assigned to exactly ONE layout parent (first entry in dependsOn)
+    // to keep the layout a proper tree and avoid duplicate placement.
     const childrenMap = new Map<string, string[]>();
     const parentsMap = new Map<string, string[]>();
 
     steps.forEach((step) => {
-        if (step.dependsOn) {
-            step.dependsOn.forEach((parentId) => {
-                const children = childrenMap.get(parentId) || [];
-                children.push(step.id);
-                childrenMap.set(parentId, children);
-
-                const parents = parentsMap.get(step.id) || [];
-                parents.push(parentId);
-                parentsMap.set(step.id, parents);
-            });
+        if (step.dependsOn && step.dependsOn.length > 0) {
+            parentsMap.set(step.id, step.dependsOn);
+            // Use only the first parent for layout placement
+            const primaryParent = step.dependsOn[0];
+            const children = childrenMap.get(primaryParent) ?? [];
+            children.push(step.id);
+            childrenMap.set(primaryParent, children);
         }
     });
 
@@ -69,93 +76,125 @@ export function calculateNodePositions(
             DEFAULT_NODE_HEIGHT,
     }));
 
-    // Temporary storage for calculated positions before collision avoidance
+    // Ideal positions computed before collision avoidance
     const idealPositions = new Map<string, { x: number; y: number }>();
 
-    // Helper to layout a subtree
-    function layoutNode(
-        stepId: string,
-        startX: number,
-        centerY: number,
-    ): number {
-        const size = nodeSizes.get(stepId) || {
+    // 3. Subtree height cache — computes the full recursive height a subtree
+    //    needs vertically so that siblings are spaced without overlap.
+    const subtreeHeightCache = new Map<string, number>();
+
+    function computeSubtreeHeight(stepId: string): number {
+        if (subtreeHeightCache.has(stepId))
+            return subtreeHeightCache.get(stepId)!;
+        const size = nodeSizes.get(stepId) ?? {
             width: DEFAULT_NODE_WIDTH,
             height: DEFAULT_NODE_HEIGHT,
         };
-        const x = startX;
-        const y = centerY - size.height / 2;
-
-        idealPositions.set(stepId, { x, y });
-
-        const children = childrenMap.get(stepId) || [];
+        const children = childrenMap.get(stepId) ?? [];
         if (children.length === 0) {
+            subtreeHeightCache.set(stepId, size.height);
             return size.height;
         }
-
-        const childX = x + size.width + GAP_X;
-        let totalChildHeight = 0;
-        const childSizes: number[] = [];
-
-        children.forEach((childId) => {
-            const chSize = nodeSizes.get(childId) || {
-                width: DEFAULT_NODE_WIDTH,
-                height: DEFAULT_NODE_HEIGHT,
-            };
-            childSizes.push(chSize.height);
-            totalChildHeight += chSize.height;
-        });
-        totalChildHeight += (children.length - 1) * GAP_Y;
-
-        let currentY = centerY - totalChildHeight / 2;
-
-        children.forEach((childId, index) => {
-            const childH = childSizes[index];
-            layoutNode(childId, childX, currentY + childH / 2);
-            currentY += childH + GAP_Y;
-        });
-
-        return Math.max(size.height, totalChildHeight);
+        const childrenTotal =
+            children.reduce((sum, c) => sum + computeSubtreeHeight(c), 0) +
+            (children.length - 1) * GAP_Y;
+        const h = Math.max(size.height, childrenTotal);
+        subtreeHeightCache.set(stepId, h);
+        return h;
     }
 
-    // Layout each root
-    let rootY = viewportCenter.y;
-    roots.forEach((root) => {
-        // Find anchor from reference nodes if available
-        let anchorX = viewportCenter.x;
-        let anchorY = rootY;
+    // 4. Recursive layout — places a node and all its descendants.
+    //    startX: left edge of this node's column
+    //    centerY: vertical center of the slot allocated to this subtree
+    function layoutNode(stepId: string, startX: number, centerY: number): void {
+        const size = nodeSizes.get(stepId) ?? {
+            width: DEFAULT_NODE_WIDTH,
+            height: DEFAULT_NODE_HEIGHT,
+        };
+        idealPositions.set(stepId, {
+            x: startX,
+            y: centerY - size.height / 2,
+        });
 
-        const refNodeId = root.referenceNodeIds?.[0] || root.firstFrameNodeId;
-        const refNode = refNodeId
-            ? existingNodes.find((n) => n.id === refNodeId)
-            : null;
+        const children = childrenMap.get(stepId) ?? [];
+        if (children.length === 0) return;
+
+        const childX = startX + size.width + GAP_X;
+
+        // Use subtree heights so each child's slot is large enough to contain
+        // that child plus all its descendants without overlapping siblings.
+        const totalChildrenH =
+            children.reduce((sum, c) => sum + computeSubtreeHeight(c), 0) +
+            (children.length - 1) * GAP_Y;
+
+        let currentY = centerY - totalChildrenH / 2;
+
+        children.forEach((childId) => {
+            const childSlotH = computeSubtreeHeight(childId);
+            layoutNode(childId, childX, currentY + childSlotH / 2);
+            currentY += childSlotH + GAP_Y;
+        });
+    }
+
+    // 5. Group roots by their reference anchor node so that multiple independent
+    //    steps referencing the same existing node are vertically centered on it
+    //    rather than all being placed at the same Y.
+    const rootGroups = new Map<string, GenerationStep[]>();
+    roots.forEach((root) => {
+        const refKey =
+            root.referenceNodeIds?.[0] ?? root.firstFrameNodeId ?? "__free__";
+        const group = rootGroups.get(refKey) ?? [];
+        group.push(root);
+        rootGroups.set(refKey, group);
+    });
+
+    let freeRootY = viewportCenter.y;
+
+    rootGroups.forEach((group, refKey) => {
+        const refNode =
+            refKey !== "__free__"
+                ? (existingNodes.find((n) => n.id === refKey) ?? null)
+                : null;
+
+        const totalGroupH =
+            group.reduce((sum, r) => sum + computeSubtreeHeight(r.id), 0) +
+            (group.length - 1) * GAP_Y;
+
+        let anchorX: number;
+        let groupCenterY: number;
 
         if (refNode) {
             anchorX =
                 refNode.position.x +
-                (refNode.width || DEFAULT_NODE_WIDTH) +
+                (refNode.width ?? DEFAULT_NODE_WIDTH) +
                 GAP_X;
-            anchorY =
+            groupCenterY =
                 refNode.position.y +
-                (refNode.height || DEFAULT_NODE_HEIGHT) / 2;
+                (refNode.height ?? DEFAULT_NODE_HEIGHT) / 2;
+        } else {
+            anchorX = viewportCenter.x;
+            groupCenterY = freeRootY + totalGroupH / 2;
+            freeRootY += totalGroupH + GAP_Y;
         }
 
-        const subtreeHeight = layoutNode(root.id, anchorX, anchorY);
-        // If no ref node, shift the next root down to avoid stacking
-        if (!refNode) {
-            rootY += subtreeHeight + GAP_Y;
-        }
+        let currentY = groupCenterY - totalGroupH / 2;
+        group.forEach((root) => {
+            const rootSlotH = computeSubtreeHeight(root.id);
+            layoutNode(root.id, anchorX, currentY + rootSlotH / 2);
+            currentY += rootSlotH + GAP_Y;
+        });
     });
 
-    // 3. Collision avoidance (Strategy 2: Subgraph Shifting Downwards)
+    // 6. Collision avoidance — shift the entire new group downward until it no
+    //    longer overlaps any existing canvas node.
     if (idealPositions.size > 0) {
-        // Calculate bounding box of raw ideal positions
         let minX = Infinity;
         let minY = Infinity;
         let maxX = -Infinity;
         let maxY = -Infinity;
 
         idealPositions.forEach((pos, id) => {
-            const size = nodeSizes.get(id) || {
+            const size = nodeSizes.get(id) ?? {
                 width: DEFAULT_NODE_WIDTH,
                 height: DEFAULT_NODE_HEIGHT,
             };
@@ -171,7 +210,6 @@ export function calculateNodePositions(
         const shiftedX = minX;
         let shiftedY = minY;
 
-        // Shift down until the entire bounding box fits
         let hasCollision = true;
         let attempts = 0;
         const MAX_ATTEMPTS = 100;
@@ -188,7 +226,6 @@ export function calculateNodePositions(
             for (const occ of occupiedRects) {
                 if (rectsOverlap(groupRect, occ)) {
                     hasCollision = true;
-                    // Shift down by a step (e.g., 50px or a full node height + gap)
                     shiftedY += 50;
                     break;
                 }
@@ -196,13 +233,11 @@ export function calculateNodePositions(
             attempts++;
         }
 
-        const deltaX = shiftedX - minX;
         const deltaY = shiftedY - minY;
 
-        // Apply final shifted positions
         idealPositions.forEach((pos, id) => {
             positions.set(id, {
-                x: pos.x + deltaX,
+                x: pos.x,
                 y: pos.y + deltaY,
             });
         });
@@ -211,7 +246,7 @@ export function calculateNodePositions(
     return positions;
 }
 
-// ─── Utilities adapted from canvas-chat-input ────────────────────────────────
+// ─── Utilities ───────────────────────────────────────────────────────────────
 
 const BASE_AREA = 90_000; // ~300×300 px²
 
