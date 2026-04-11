@@ -428,6 +428,7 @@ export function CanvasChatInput({
             );
 
             const stepNodeMap = new Map<string, string>();
+            let lastImageSourceUrl: string | null = null;
 
             plan.steps.forEach((s) => {
                 setPlanStepStatus(messageId, s.id, "pending");
@@ -493,6 +494,12 @@ export function CanvasChatInput({
                                         payload.stepId,
                                         "done",
                                     );
+                                    if (
+                                        node.type === "canvas-image" &&
+                                        node.sourceUrl
+                                    ) {
+                                        lastImageSourceUrl = node.sourceUrl;
+                                    }
                                     const nodeId = stepNodeMap.get(
                                         payload.stepId,
                                     );
@@ -554,6 +561,18 @@ export function CanvasChatInput({
                                     );
 
                                 case "done":
+                                    if (lastImageSourceUrl) {
+                                        fetch(`/api/canvases/${canvasId}`, {
+                                            method: "PATCH",
+                                            headers: {
+                                                "Content-Type":
+                                                    "application/json",
+                                            },
+                                            body: JSON.stringify({
+                                                thumbnail: lastImageSourceUrl,
+                                            }),
+                                        }).catch(() => {});
+                                    }
                                     break;
                             }
                         } catch (parseErr) {

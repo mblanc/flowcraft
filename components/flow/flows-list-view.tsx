@@ -93,9 +93,22 @@ export function FlowsListView({
                     const canvasResponse = await fetch("/api/canvases");
                     if (canvasResponse.ok) {
                         const data = await canvasResponse.json();
-                        setCanvases(data.canvases || []);
+                        const canvasList: Canvas[] = data.canvases || [];
+                        setCanvases(canvasList);
+
+                        const urls: Record<string, string> = {};
+                        const canvasUrls = await Promise.all(
+                            canvasList.map((canvas) =>
+                                fetchThumbnailUrl(canvas.id, canvas.thumbnail),
+                            ),
+                        );
+                        canvasUrls.forEach((result) => {
+                            if (result) urls[result[0]] = result[1];
+                        });
+                        setThumbnailUrls(urls);
+                    } else {
+                        setThumbnailUrls({});
                     }
-                    setThumbnailUrls({});
                 } else {
                     const [flowsResponse, customNodesResponse] =
                         await Promise.all([
