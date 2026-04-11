@@ -44,6 +44,7 @@ import type {
     GeneratedMediaRef,
     NodePayload,
     GenerationStep,
+    AgentPlan,
 } from "@/lib/canvas-types";
 import { calculateNodePositions } from "@/lib/canvas-layout";
 
@@ -88,9 +89,16 @@ function parseSSEEvents(
 
 interface CanvasChatInputProps {
     getViewportCenter: () => { x: number; y: number };
+    executePlanStreamRef?: React.RefObject<
+        | ((messageId: string, plan: AgentPlan) => Promise<void>)
+        | null
+    >;
 }
 
-export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
+export function CanvasChatInput({
+    getViewportCenter,
+    executePlanStreamRef,
+}: CanvasChatInputProps) {
     const [input, setInput] = useState("");
     const [mode, setMode] = useState<CanvasMode>("auto");
     const [agentSettings, setAgentSettings] = useState<AgentSettings>(
@@ -127,6 +135,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     const setPendingActionPrompt = useCanvasStore(
         (s) => s.setPendingActionPrompt,
     );
+    const setPlanStatus = useCanvasStore((s) => s.setPlanStatus);
 
     // Build mention items from all canvas nodes
     const mentionItems: MentionItem[] = useMemo(
@@ -396,6 +405,203 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
         [getViewportCenter, addNode, getNextLabel, nodes],
     );
 
+    const executePlanStream = useCallback(
+        async (messageId: string, plan: AgentPlan) => {
+            if (!canvasId) return;
+
+            setPlanStatus(messageId, "approved");
+
+            // Seed occupied rects and create placeholder nodes
+            const occupiedRects: PlaceholderRect[] = useCanvasStore
+                .getState()
+                .nodes.map((n) => ({
+                    x: n.position.x,
+                    y: n.position.y,
+                    w: (n.data as { width?: number }).width ?? n.width ?? 300,
+                    h: (n.data as { height?: number }).height ?? n.height ?? 300,
+                }));
+
+            const computedPositions = calculateNodePositions(
+                plan.steps,
+                useCanvasStore.getState().nodes,
+                getViewportCenter(),
+            );
+
+            const stepNodeMap = new Map<string, string>();
+
+            plan.steps.forEach((s) => {
+                setPlanStepStatus(messageId, s.id, "pending");
+                const overridePosition = computedPositions.get(s.id);
+                const { rect, nodeId } = addPlaceholderNode(
+                    s,
+                    occupiedRects,
+                    overridePosition,
+                );
+                stepNodeMap.set(s.id, nodeId);
+                occupiedRects.push(rect);
+            });
+
+            try {
+                const res = await fetch(
+                    `/api/canvases/${canvasId}/execute-plan`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ plan, messageId }),
+                    },
+                );
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(
+                        err.error ||
+                            `Execute plan request failed (${res.status})`,
+                    );
+                }
+
+                const reader = res.body?.getReader();
+                if (!reader) throw new Error("No response stream");
+
+                const decoder = new TextDecoder();
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const { events, remaining } = parseSSEEvents(chunk, buffer);
+                    buffer = remaining;
+
+                    for (const sse of events) {
+                        try {
+                            const payload = JSON.parse(sse.data);
+
+                            switch (sse.event) {
+                                case "step_start":
+                                    setPlanStepStatus(
+                                        messageId,
+                                        payload.stepId,
+                                        "generating",
+                                    );
+                                    break;
+
+                                case "step_done": {
+                                    const node = payload.node as NodePayload;
+                                    setPlanStepStatus(
+                                        messageId,
+                                        payload.stepId,
+                                        "done",
+                                    );
+                                    const nodeId = stepNodeMap.get(
+                                        payload.stepId,
+                                    );
+                                    if (nodeId) {
+                                        useCanvasStore
+                                            .getState()
+                                            .updateNodeData(nodeId, {
+                                                sourceUrl: node.sourceUrl,
+                                                label: node.label,
+                                                mimeType: node.mimeType,
+                                                status: "ready",
+                                                ...(node.type === "canvas-video"
+                                                    ? { progress: 100 }
+                                                    : {}),
+                                            });
+                                        const currentMsg = useCanvasStore
+                                            .getState()
+                                            .messages.find(
+                                                (m) => m.id === messageId,
+                                            );
+                                        const existingRefs: GeneratedMediaRef[] =
+                                            currentMsg?.generatedMedia ?? [];
+                                        updateMessage(messageId, {
+                                            generatedMedia: [
+                                                ...existingRefs,
+                                                { nodeId, type: node.type },
+                                            ],
+                                        });
+                                    }
+                                    break;
+                                }
+
+                                case "step_error": {
+                                    const nodeId = stepNodeMap.get(
+                                        payload.stepId,
+                                    );
+                                    setPlanStepStatus(
+                                        messageId,
+                                        payload.stepId,
+                                        "error",
+                                    );
+                                    if (nodeId) {
+                                        useCanvasStore
+                                            .getState()
+                                            .updateNodeData(nodeId, {
+                                                status: "error",
+                                                error: payload.message,
+                                            });
+                                    }
+                                    toast.error(
+                                        `Generation failed: ${payload.message}`,
+                                    );
+                                    break;
+                                }
+
+                                case "error":
+                                    throw new Error(
+                                        payload.message || "Stream error",
+                                    );
+
+                                case "done":
+                                    break;
+                            }
+                        } catch (parseErr) {
+                            if (
+                                parseErr instanceof Error &&
+                                parseErr.message !== "Stream error"
+                            ) {
+                                console.warn(
+                                    "Execute-plan SSE parse error:",
+                                    parseErr,
+                                );
+                            } else {
+                                throw parseErr;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                if (
+                    error instanceof DOMException &&
+                    error.name === "AbortError"
+                ) {
+                    return;
+                }
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to execute plan";
+                toast.error(message);
+            }
+        },
+        [
+            canvasId,
+            setPlanStatus,
+            setPlanStepStatus,
+            addPlaceholderNode,
+            updateMessage,
+            getViewportCenter,
+        ],
+    );
+
+    // Keep the ref in sync so the plan approval widget can call executePlanStream
+    useEffect(() => {
+        if (executePlanStreamRef) {
+            executePlanStreamRef.current = executePlanStream;
+        }
+    }, [executePlanStreamRef, executePlanStream]);
+
     const handleSend = useCallback(
         async (overrideMessage?: string) => {
             const text = overrideMessage ?? input.trim();
@@ -415,6 +621,17 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                 model: agentSettings.llmModel,
                 createdAt: new Date().toISOString(),
             };
+
+            // Auto-cancel any pending plan from a previous message
+            const currentMessages = useCanvasStore.getState().messages;
+            const pendingPlanMsg = currentMessages.find(
+                (m) =>
+                    m.role === "assistant" &&
+                    m.planStatus === "pending_approval",
+            );
+            if (pendingPlanMsg) {
+                setPlanStatus(pendingPlanMsg.id, "cancelled");
+            }
 
             addMessage(userMessage);
             if (!isActionPrompt) {
@@ -491,8 +708,6 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                 const decoder = new TextDecoder();
                 let buffer = "";
                 let accumulatedText = "";
-                // Maps stepId → canvas nodeId for this generation run
-                const stepNodeMap = new Map<string, string>();
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -517,129 +732,11 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                 case "plan": {
                                     const steps =
                                         payload.steps as GenerationStep[];
+                                    // Set pending_approval — execution deferred until user confirms
                                     updateMessage(assistantMsgId, {
                                         plan: { steps },
+                                        planStatus: "pending_approval",
                                     });
-                                    // Seed occupied rects with all current canvas nodes
-                                    const occupiedRects: PlaceholderRect[] =
-                                        useCanvasStore
-                                            .getState()
-                                            .nodes.map((n) => ({
-                                                x: n.position.x,
-                                                y: n.position.y,
-                                                w:
-                                                    (
-                                                        n.data as {
-                                                            width?: number;
-                                                        }
-                                                    ).width ??
-                                                    n.width ??
-                                                    300,
-                                                h:
-                                                    (
-                                                        n.data as {
-                                                            height?: number;
-                                                        }
-                                                    ).height ??
-                                                    n.height ??
-                                                    300,
-                                            }));
-
-                                    // Compute organized positions for new nodes
-                                    const computedPositions =
-                                        calculateNodePositions(
-                                            steps,
-                                            useCanvasStore.getState().nodes,
-                                            getViewportCenter(),
-                                        );
-
-                                    steps.forEach((s) => {
-                                        setPlanStepStatus(
-                                            assistantMsgId,
-                                            s.id,
-                                            "pending",
-                                        );
-                                        const overridePosition =
-                                            computedPositions.get(s.id);
-                                        const { rect, nodeId } =
-                                            addPlaceholderNode(
-                                                s,
-                                                occupiedRects,
-                                                overridePosition,
-                                            );
-                                        stepNodeMap.set(s.id, nodeId);
-                                        occupiedRects.push(rect);
-                                    });
-                                    break;
-                                }
-
-                                case "step_start":
-                                    setPlanStepStatus(
-                                        assistantMsgId,
-                                        payload.stepId,
-                                        "generating",
-                                    );
-                                    break;
-
-                                case "step_done": {
-                                    const node = payload.node as NodePayload;
-                                    setPlanStepStatus(
-                                        assistantMsgId,
-                                        payload.stepId,
-                                        "done",
-                                    );
-                                    const nodeId = stepNodeMap.get(
-                                        payload.stepId,
-                                    );
-                                    if (nodeId) {
-                                        useCanvasStore
-                                            .getState()
-                                            .updateNodeData(nodeId, {
-                                                sourceUrl: node.sourceUrl,
-                                                label: node.label,
-                                                mimeType: node.mimeType,
-                                                status: "ready",
-                                                ...(node.type === "canvas-video"
-                                                    ? { progress: 100 }
-                                                    : {}),
-                                            });
-                                        const currentMsg = useCanvasStore
-                                            .getState()
-                                            .messages.find(
-                                                (m) => m.id === assistantMsgId,
-                                            );
-                                        const existingRefs: GeneratedMediaRef[] =
-                                            currentMsg?.generatedMedia ?? [];
-                                        updateMessage(assistantMsgId, {
-                                            generatedMedia: [
-                                                ...existingRefs,
-                                                { nodeId, type: node.type },
-                                            ],
-                                        });
-                                    }
-                                    break;
-                                }
-
-                                case "step_error": {
-                                    const nodeId = stepNodeMap.get(
-                                        payload.stepId,
-                                    );
-                                    setPlanStepStatus(
-                                        assistantMsgId,
-                                        payload.stepId,
-                                        "error",
-                                    );
-                                    if (nodeId) {
-                                        useCanvasStore
-                                            .getState()
-                                            .updateNodeData(nodeId, {
-                                                status: "error",
-                                                error: payload.message,
-                                            });
-                                    }
-                                    toast.error(
-                                        `Generation failed: ${payload.message}`,
-                                    );
                                     break;
                                 }
 
@@ -702,6 +799,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             updateMessage,
             setIsChatLoading,
             setPlanStepStatus,
+            setPlanStatus,
             addPlaceholderNode,
             getViewportCenter,
         ],

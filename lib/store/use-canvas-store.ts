@@ -6,6 +6,7 @@ import type {
     CanvasDocument,
     CanvasNode,
     ChatMessage,
+    PlanStatus,
     StepStatus,
 } from "@/lib/canvas-types";
 
@@ -59,6 +60,7 @@ export interface CanvasStore {
         stepId: string,
         status: StepStatus,
     ) => void;
+    setPlanStatus: (messageId: string, status: PlanStatus) => void;
 
     // Node ID generation
     getNextLabel: (
@@ -216,6 +218,14 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
                     [stepId]: status,
                 },
             },
+        })),
+
+    setPlanStatus: (messageId, status) =>
+        set((state) => ({
+            messages: state.messages.map((m) =>
+                m.id === messageId ? { ...m, planStatus: status } : m,
+            ),
+            lastModified: Date.now(),
         })),
 
     getNextLabel: (type) => {

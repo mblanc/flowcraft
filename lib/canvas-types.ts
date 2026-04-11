@@ -110,6 +110,8 @@ export interface NodePayload {
     referenceNodeIds?: string[];
 }
 
+export type PlanStatus = "pending_approval" | "approved" | "cancelled";
+
 export interface ChatMessage {
     id: string;
     role: "user" | "assistant" | "system";
@@ -118,6 +120,7 @@ export interface ChatMessage {
     actions?: ChatAction[];
     generatedMedia?: GeneratedMediaRef[];
     plan?: AgentPlan;
+    planStatus?: PlanStatus;
     model?: string;
     createdAt: string;
 }

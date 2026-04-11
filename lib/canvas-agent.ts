@@ -2,7 +2,6 @@ import {
     Content,
     createPartFromText,
     createPartFromUri,
-    ThinkingLevel,
 } from "@google/genai";
 import { geminiService } from "@/lib/services/gemini.service";
 import { MODELS } from "@/lib/constants";
@@ -143,9 +142,14 @@ function buildContents(input: AgentInput): Content[] {
     return contents;
 }
 
-const PLAN_SCHEMA = {
+const AGENT_SCHEMA = {
     type: "OBJECT" as const,
     properties: {
+        conversationalText: {
+            type: "STRING" as const,
+            description:
+                "Your natural language reply to the user. Briefly acknowledge what you will create and how many steps the plan involves. Do not ask questions.",
+        },
         steps: {
             type: "ARRAY" as const,
             description:
@@ -245,7 +249,7 @@ const PLAN_SCHEMA = {
             description: "2-3 suggested follow-up actions for the user",
         },
     },
-    required: ["steps", "suggestedActions"],
+    required: ["conversationalText", "steps", "suggestedActions"],
 };
 
 export function applyVideoFallback(
@@ -283,62 +287,14 @@ export async function* streamAgentResponse(
     const model = input.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
     const canvasSummary = buildCanvasContextSummary(input.canvasNodes);
     const modeInstruction = getModeInstruction(input.mode);
-    const systemInstruction = SYSTEM_PROMPT + modeInstruction + canvasSummary;
 
-    const contents = buildContents(input);
+    const systemInstruction = `${SYSTEM_PROMPT}${modeInstruction}${canvasSummary}
 
-    logger.info(
-        `[CanvasAgent] Streaming response. Mode=${input.mode}, Model=${model}, History=${input.history.length} messages, Attachments=${input.attachments?.length ?? 0}`,
-    );
+You MUST respond with a JSON object matching the schema. The conversationalText field is your natural language reply. The steps array lists what to generate (empty if nothing visual is needed). The suggestedActions array provides 2-3 follow-up ideas.
 
-    // Phase A: Stream conversational text
-    let fullText = "";
-    try {
-        for await (const delta of geminiService.generateTextStream({
-            contents,
-            systemInstruction,
-            model,
-            config: {
-                thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.HIGH,
-                },
-            },
-        })) {
-            fullText += delta;
-            yield { type: "text", delta };
-        }
-        logger.debug(`[CanvasAgent] Phase A complete: ${fullText}`);
-    } catch (error) {
-        logger.error("[CanvasAgent] Streaming error:", error);
-        if (!fullText) {
-            yield {
-                type: "text",
-                delta: "Sorry, I encountered an error processing your request.",
-            };
-        }
-        yield { type: "done" };
-        return;
-    }
-
-    // Phase B: Structured plan detection
-    try {
-        const planContents: Content[] = [
-            ...contents.slice(0, -1),
-            contents[contents.length - 1],
-            { role: "model", parts: [{ text: fullText }] },
-        ];
-
-        const hasAttachments =
-            input.attachments && input.attachments.length > 0;
-        const attachmentContext = hasAttachments
-            ? `\n\nThe user has shared ${input.attachments!.length} canvas item(s) as reference. Incorporate these into your plan using referenceNodeIds, firstFrameNodeId, or lastFrameNodeId as appropriate.`
-            : "";
-
-        const planSystemPrompt = `You are analyzing a conversation between a user and a creative media assistant on a visual canvas.
-Based on the conversation, produce a generation plan:
-- List each generation as a separate step with a unique id (step_0, step_1, ...).
+Guidelines for steps:
 - For "4 variants of X" → 4 steps with the same prompt, different labels.
-- IMPORTANT: Make sure to give each step a descriptive label that reflects the content being generated (e.g., "Cute Cat", "Sci-Fi Scene") instead of generic labels like "Image" or "Video".
+- Give each step a descriptive label that reflects the content (e.g., "Cute Cat", "Sci-Fi Scene") instead of generic labels like "Image" or "Video".
 - For sequential workflows ("generate a portrait then animate it") → step_0 generates the image, step_1 is video with dependsOn: ["step_0"].
 - For no generation → steps: [].
 - Each step that references an existing canvas item should list those items' IDs in referenceNodeIds (generic reference), firstFrameNodeId (video first frame), or lastFrameNodeId (video last frame).
@@ -347,185 +303,196 @@ Based on the conversation, produce a generation plan:
 For aspect ratio: ONLY include if the user explicitly mentioned it. Map: "square"→"1:1", "portrait"/"vertical"→"9:16", "landscape"/"wide"→"16:9". Otherwise omit.
 For resolution: ONLY include if the user explicitly mentioned it. Map: "HD"→"2K", "1080p"→"1080p", "4K"/"ultra"→"4K". Otherwise omit.
 For video duration: ONLY include if the user explicitly mentioned a duration. Otherwise omit.
-For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music/narration. Default false.
+For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music/narration. Default false.`;
 
-${modeInstruction}${attachmentContext}
+    const contents = buildContents(input);
 
-Also suggest 2-3 follow-up actions the user might want.`;
+    logger.info(
+        `[CanvasAgent] Single-pass response. Mode=${input.mode}, Model=${model}, History=${input.history.length} messages, Attachments=${input.attachments?.length ?? 0}`,
+    );
 
-        const planResponse = await geminiService.generateStructured({
-            contents: planContents,
-            systemInstruction: planSystemPrompt,
+    try {
+        const response = await geminiService.generateStructured({
+            contents,
+            systemInstruction,
             model,
-            responseSchema: PLAN_SCHEMA,
-            config: {
-                thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.HIGH,
-                },
-            },
+            responseSchema: AGENT_SCHEMA,
         });
 
-        const planText = planResponse.candidates?.[0]?.content?.parts
+        const responseText = response.candidates?.[0]?.content?.parts
             ?.filter((p) => p.text)
             .map((p) => p.text)
             .join("");
 
-        logger.debug(`[CanvasAgent] Phase B raw plan: ${planText}`);
-
-        if (planText) {
-            const parsed = JSON.parse(planText) as {
-                steps: Array<{
-                    id: string;
-                    type: "image" | "video";
-                    prompt: string;
-                    label?: string;
-                    aspectRatio?: string;
-                    resolution?: string;
-                    model?: string;
-                    duration?: number;
-                    generateAudio?: boolean;
-                    referenceNodeIds?: string[];
-                    firstFrameNodeId?: string;
-                    lastFrameNodeId?: string;
-                    dependsOn?: string[];
-                }>;
-                suggestedActions?: Array<{ label: string; prompt: string }>;
+        if (!responseText) {
+            yield {
+                type: "text",
+                delta: "Sorry, I encountered an error processing your request.",
             };
+            yield { type: "done" };
+            return;
+        }
 
-            const attachments = input.attachments ?? [];
+        logger.debug(`[CanvasAgent] Raw response: ${responseText}`);
 
-            if (parsed.steps && parsed.steps.length > 0) {
-                const steps: GenerationStep[] = parsed.steps.map((s, index) => {
-                    const isVideo = s.type === "video";
-                    const typeDefaults = isVideo
-                        ? input.videoDefaults
-                        : input.imageDefaults;
+        const parsed = JSON.parse(responseText) as {
+            conversationalText: string;
+            steps: Array<{
+                id: string;
+                type: "image" | "video";
+                prompt: string;
+                label?: string;
+                aspectRatio?: string;
+                resolution?: string;
+                model?: string;
+                duration?: number;
+                generateAudio?: boolean;
+                referenceNodeIds?: string[];
+                firstFrameNodeId?: string;
+                lastFrameNodeId?: string;
+                dependsOn?: string[];
+            }>;
+            suggestedActions?: Array<{ label: string; prompt: string }>;
+        };
 
-                    const step: GenerationStep = {
-                        id: s.id,
-                        type: s.type,
-                        prompt: s.prompt,
-                        ...(s.label ? { label: s.label } : {}),
-                        aspectRatio:
-                            s.aspectRatio ??
-                            typeDefaults?.aspectRatio ??
-                            "16:9",
-                        ...((s.resolution ?? typeDefaults?.resolution)
-                            ? {
-                                  resolution:
-                                      s.resolution ?? typeDefaults?.resolution,
-                              }
-                            : {}),
-                        ...((s.model ?? typeDefaults?.model)
-                            ? { model: s.model ?? typeDefaults?.model }
-                            : {}),
-                        ...(isVideo &&
-                        (s.duration ??
-                            (input.videoDefaults as VideoDefaults | undefined)
-                                ?.duration)
-                            ? {
-                                  duration:
-                                      s.duration ??
-                                      (
-                                          input.videoDefaults as
-                                              | VideoDefaults
-                                              | undefined
-                                      )?.duration,
-                              }
-                            : {}),
-                        generateAudio:
-                            s.generateAudio ??
-                            (input.videoDefaults as VideoDefaults | undefined)
-                                ?.generateAudio ??
-                            false,
-                        ...(s.dependsOn && s.dependsOn.length > 0
-                            ? { dependsOn: s.dependsOn }
-                            : {}),
-                    };
+        // Emit conversational text
+        if (parsed.conversationalText) {
+            yield { type: "text", delta: parsed.conversationalText };
+        }
 
-                    // Use Node IDs directly if provided by LLM and valid
-                    if (s.referenceNodeIds && s.referenceNodeIds.length > 0) {
-                        const validIds = s.referenceNodeIds.filter(
-                            (id) =>
-                                input.canvasNodes.some((n) => n.id === id) ||
-                                attachments.some((a) => a.nodeId === id),
-                        );
-                        if (validIds.length > 0) {
-                            step.referenceNodeIds = validIds;
-                        }
-                        if (validIds.length < s.referenceNodeIds.length) {
-                            logger.warn(
-                                `[CanvasAgent] Ignored some hallucinated referenceNodeIds`,
-                            );
-                        }
-                    }
+        const attachments = input.attachments ?? [];
 
-                    if (s.firstFrameNodeId) {
-                        const isValid =
-                            input.canvasNodes.some(
-                                (n) => n.id === s.firstFrameNodeId,
-                            ) ||
-                            attachments.some(
-                                (a) => a.nodeId === s.firstFrameNodeId,
-                            );
-                        if (isValid) {
-                            step.firstFrameNodeId = s.firstFrameNodeId;
-                        } else {
-                            logger.warn(
-                                `[CanvasAgent] Ignored hallucinated firstFrameNodeId: ${s.firstFrameNodeId}`,
-                            );
-                        }
-                    }
+        // Emit plan if there are steps
+        if (parsed.steps && parsed.steps.length > 0) {
+            const steps: GenerationStep[] = parsed.steps.map((s, index) => {
+                const isVideo = s.type === "video";
+                const typeDefaults = isVideo
+                    ? input.videoDefaults
+                    : input.imageDefaults;
 
-                    if (s.lastFrameNodeId) {
-                        const isValid =
-                            input.canvasNodes.some(
-                                (n) => n.id === s.lastFrameNodeId,
-                            ) ||
-                            attachments.some(
-                                (a) => a.nodeId === s.lastFrameNodeId,
-                            );
-                        if (isValid) {
-                            step.lastFrameNodeId = s.lastFrameNodeId;
-                        } else {
-                            logger.warn(
-                                `[CanvasAgent] Ignored hallucinated lastFrameNodeId: ${s.lastFrameNodeId}`,
-                            );
-                        }
-                    }
+                const step: GenerationStep = {
+                    id: s.id,
+                    type: s.type,
+                    prompt: s.prompt,
+                    ...(s.label ? { label: s.label } : {}),
+                    aspectRatio:
+                        s.aspectRatio ?? typeDefaults?.aspectRatio ?? "16:9",
+                    ...((s.resolution ?? typeDefaults?.resolution)
+                        ? {
+                              resolution:
+                                  s.resolution ?? typeDefaults?.resolution,
+                          }
+                        : {}),
+                    ...((s.model ?? typeDefaults?.model)
+                        ? { model: s.model ?? typeDefaults?.model }
+                        : {}),
+                    ...(isVideo &&
+                    (s.duration ??
+                        (input.videoDefaults as VideoDefaults | undefined)
+                            ?.duration)
+                        ? {
+                              duration:
+                                  s.duration ??
+                                  (
+                                      input.videoDefaults as
+                                          | VideoDefaults
+                                          | undefined
+                                  )?.duration,
+                          }
+                        : {}),
+                    generateAudio:
+                        s.generateAudio ??
+                        (input.videoDefaults as VideoDefaults | undefined)
+                            ?.generateAudio ??
+                        false,
+                    ...(s.dependsOn && s.dependsOn.length > 0
+                        ? { dependsOn: s.dependsOn }
+                        : {}),
+                };
 
-                    // Programmatic fallback for video when LLM didn't specify frames
-                    applyVideoFallback(
-                        step,
-                        s.type,
-                        attachments,
-                        index,
-                        parsed.steps.length,
+                // Validate referenced node IDs against known canvas nodes
+                if (s.referenceNodeIds && s.referenceNodeIds.length > 0) {
+                    const validIds = s.referenceNodeIds.filter(
+                        (id) =>
+                            input.canvasNodes.some((n) => n.id === id) ||
+                            attachments.some((a) => a.nodeId === id),
                     );
+                    if (validIds.length > 0) {
+                        step.referenceNodeIds = validIds;
+                    }
+                    if (validIds.length < s.referenceNodeIds.length) {
+                        logger.warn(
+                            `[CanvasAgent] Ignored some hallucinated referenceNodeIds`,
+                        );
+                    }
+                }
 
-                    return step;
-                });
+                if (s.firstFrameNodeId) {
+                    const isValid =
+                        input.canvasNodes.some(
+                            (n) => n.id === s.firstFrameNodeId,
+                        ) ||
+                        attachments.some((a) => a.nodeId === s.firstFrameNodeId);
+                    if (isValid) {
+                        step.firstFrameNodeId = s.firstFrameNodeId;
+                    } else {
+                        logger.warn(
+                            `[CanvasAgent] Ignored hallucinated firstFrameNodeId: ${s.firstFrameNodeId}`,
+                        );
+                    }
+                }
 
-                yield { type: "plan", plan: { steps } };
-            }
+                if (s.lastFrameNodeId) {
+                    const isValid =
+                        input.canvasNodes.some(
+                            (n) => n.id === s.lastFrameNodeId,
+                        ) ||
+                        attachments.some((a) => a.nodeId === s.lastFrameNodeId);
+                    if (isValid) {
+                        step.lastFrameNodeId = s.lastFrameNodeId;
+                    } else {
+                        logger.warn(
+                            `[CanvasAgent] Ignored hallucinated lastFrameNodeId: ${s.lastFrameNodeId}`,
+                        );
+                    }
+                }
 
-            if (
-                parsed.suggestedActions &&
-                Array.isArray(parsed.suggestedActions) &&
-                parsed.suggestedActions.length > 0
-            ) {
-                const actions: ChatAction[] = parsed.suggestedActions
-                    .slice(0, 3)
-                    .map((a: { label: string; prompt: string }, i: number) => ({
-                        id: String(i + 1),
-                        label: a.label,
-                        prompt: a.prompt,
-                    }));
-                yield { type: "actions", actions };
-            }
+                // Programmatic fallback for video when LLM didn't specify frames
+                applyVideoFallback(
+                    step,
+                    s.type,
+                    attachments,
+                    index,
+                    parsed.steps.length,
+                );
+
+                return step;
+            });
+
+            yield { type: "plan", plan: { steps } };
+        }
+
+        // Emit suggested actions
+        if (
+            parsed.suggestedActions &&
+            Array.isArray(parsed.suggestedActions) &&
+            parsed.suggestedActions.length > 0
+        ) {
+            const actions: ChatAction[] = parsed.suggestedActions
+                .slice(0, 3)
+                .map((a: { label: string; prompt: string }, i: number) => ({
+                    id: String(i + 1),
+                    label: a.label,
+                    prompt: a.prompt,
+                }));
+            yield { type: "actions", actions };
         }
     } catch (error) {
-        logger.warn("[CanvasAgent] Plan detection failed:", error);
+        logger.error("[CanvasAgent] Error:", error);
+        yield {
+            type: "text",
+            delta: "Sorry, I encountered an error processing your request.",
+        };
     }
 
     yield { type: "done" };
