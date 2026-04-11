@@ -60,14 +60,6 @@ export class CanvasService {
         };
     }
 
-    private async isAdmin(email: string): Promise<boolean> {
-        if (!email) return false;
-        const adminEmails = config.ADMIN_EMAILS.split(",").map((e: string) =>
-            e.trim().toLowerCase(),
-        );
-        return adminEmails.includes(email.toLowerCase());
-    }
-
     async listCanvases(userId: string): Promise<CanvasDocument[]> {
         logger.debug(`[CanvasService] Listing canvases for user: ${userId}`);
         const ref = this.firestore.collection(COLLECTIONS.CANVASES);
@@ -77,12 +69,7 @@ export class CanvasService {
         const snapshot = await query.get();
         return snapshot.docs.map((doc) => this.transformDoc(doc));
     }
-
-    async getCanvas(
-        canvasId: string,
-        userId: string,
-        userEmail?: string,
-    ): Promise<CanvasDocument> {
+    async getCanvas(canvasId: string, userId: string): Promise<CanvasDocument> {
         logger.debug(
             `[CanvasService] Getting canvas: ${canvasId} for user: ${userId}`,
         );
@@ -96,10 +83,8 @@ export class CanvasService {
         }
 
         const canvas = this.transformDoc(doc);
-        const isOwner = canvas.userId === userId;
-        const isAdminUser = userEmail ? await this.isAdmin(userEmail) : false;
 
-        if (!isOwner && !isAdminUser) {
+        if (canvas.userId !== userId) {
             throw new Error("Unauthorized");
         }
 
@@ -145,7 +130,6 @@ export class CanvasService {
         canvasId: string,
         userId: string,
         data: CanvasUpdateRequest,
-        userEmail?: string,
     ): Promise<CanvasDocument> {
         logger.info(
             `[CanvasService] Updating canvas: ${canvasId} for user: ${userId}`,
@@ -160,10 +144,7 @@ export class CanvasService {
         }
 
         const current = this.transformDoc(doc);
-        const isOwner = current.userId === userId;
-        const isAdminUser = userEmail ? await this.isAdmin(userEmail) : false;
-
-        if (!isOwner && !isAdminUser) {
+        if (current.userId !== userId) {
             throw new Error("Unauthorized");
         }
 
@@ -181,7 +162,6 @@ export class CanvasService {
     async deleteCanvas(
         canvasId: string,
         userId: string,
-        userEmail?: string,
     ): Promise<{ success: true }> {
         logger.info(
             `[CanvasService] Deleting canvas: ${canvasId} for user: ${userId}`,
@@ -195,8 +175,7 @@ export class CanvasService {
             throw new Error("Canvas not found");
         }
 
-        const isAdminUser = userEmail ? await this.isAdmin(userEmail) : false;
-        if (doc.data()?.userId !== userId && !isAdminUser) {
+        if (doc.data()?.userId !== userId) {
             throw new Error("Unauthorized");
         }
 

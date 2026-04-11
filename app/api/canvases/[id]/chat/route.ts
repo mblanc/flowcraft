@@ -84,11 +84,7 @@ export async function POST(
 
     let canvas;
     try {
-        canvas = await canvasService.getCanvas(
-            canvasId,
-            session.user.id,
-            session.user.email ?? undefined,
-        );
+        canvas = await canvasService.getCanvas(canvasId, session.user.id);
     } catch (error) {
         if (error instanceof Error) {
             if (error.message === "Canvas not found") {
