@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Plus, Minus, MessageSquare } from "lucide-react";
 import { CanvasChatMessages } from "./canvas-chat-messages";
 import { CanvasChatInput } from "./canvas-chat-input";
@@ -16,6 +16,7 @@ import {
     DialogTrigger,
     DialogClose,
 } from "@/components/ui/dialog";
+import type { AgentPlan } from "@/lib/canvas-types";
 
 interface CanvasChatPanelProps {
     getViewportCenter: () => { x: number; y: number };
@@ -24,6 +25,19 @@ interface CanvasChatPanelProps {
 export function CanvasChatPanel({ getViewportCenter }: CanvasChatPanelProps) {
     const [isOpen, setIsOpen] = useState(true);
     const clearMessages = useCanvasStore((s) => s.clearMessages);
+
+    // Ref set by CanvasChatInput so plan approval widget can trigger execution
+    const executePlanStreamRef = useRef<
+        | ((messageId: string, plan: AgentPlan) => Promise<void>)
+        | null
+    >(null);
+
+    const handleExecutePlan = useCallback(
+        (messageId: string, plan: AgentPlan) => {
+            executePlanStreamRef.current?.(messageId, plan);
+        },
+        [],
+    );
 
     const handleClearChat = () => {
         clearMessages();
@@ -94,11 +108,14 @@ export function CanvasChatPanel({ getViewportCenter }: CanvasChatPanelProps) {
             </div>
 
             {/* Messages */}
-            <CanvasChatMessages />
+            <CanvasChatMessages onExecutePlan={handleExecutePlan} />
 
             {/* Input */}
             <div className="rounded-b-2xl">
-                <CanvasChatInput getViewportCenter={getViewportCenter} />
+                <CanvasChatInput
+                    getViewportCenter={getViewportCenter}
+                    executePlanStreamRef={executePlanStreamRef}
+                />
             </div>
         </div>
     );

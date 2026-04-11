@@ -13,11 +13,15 @@ import {
     Loader2,
     Clock,
     X,
+    Play,
+    Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
+    AgentPlan,
     ChatMessage,
     GenerationStep,
+    PlanStatus,
     StepStatus,
 } from "@/lib/canvas-types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
@@ -52,57 +56,266 @@ function StepStatusIcon({ status }: { status: StepStatus | undefined }) {
     }
 }
 
-function PlanCard({
+const STEP_TYPE_ICON = {
+    image: Image,
+    video: Video,
+} as const;
+
+/** Small pill for a single metadata value */
+function MetaChip({ label }: { label: string }) {
+    return (
+        <span className="bg-background text-muted-foreground rounded border px-1.5 py-0.5 text-[10px] leading-none">
+            {label}
+        </span>
+    );
+}
+
+function StepCard({
+    step,
+    stepIndex,
+    steps,
+    status,
+    isApproved,
+}: {
+    step: GenerationStep;
+    stepIndex: number;
+    steps: GenerationStep[];
+    status: StepStatus | undefined;
+    isApproved: boolean;
+}) {
+    const TypeIcon = STEP_TYPE_ICON[step.type];
+
+    // Build metadata chips
+    const chips: string[] = [];
+    if (step.aspectRatio) chips.push(step.aspectRatio);
+    if (step.resolution) chips.push(step.resolution);
+    if (step.model) chips.push(step.model.split("/").pop() ?? step.model);
+    if (step.type === "video" && step.duration) chips.push(`${step.duration}s`);
+    if (step.generateAudio) chips.push("audio");
+
+    // Resolve dependency labels
+    const depLabels: string[] = (step.dependsOn ?? []).map((depId) => {
+        const depStep = steps.find((s) => s.id === depId);
+        return depStep?.label ?? depId;
+    });
+    if (depLabels.length > 0) chips.push(`from: ${depLabels.join(", ")}`);
+
+    return (
+        <div
+            className={cn(
+                "space-y-1.5",
+                status === "error" && "opacity-60",
+            )}
+        >
+            {/* Header row */}
+            <div className="flex items-start gap-2">
+                <div className="mt-0.5 shrink-0">
+                    {isApproved ? (
+                        <StepStatusIcon status={status} />
+                    ) : (
+                        <TypeIcon className="text-muted-foreground size-3" />
+                    )}
+                </div>
+                <div className="min-w-0 flex-1">
+                    <span
+                        className={cn(
+                            "block truncate font-medium leading-none",
+                            status === "done" && "text-foreground",
+                            status === "generating" &&
+                                "text-blue-600 dark:text-blue-400",
+                            status === "error" && "text-red-500 line-through",
+                            !status && "text-muted-foreground",
+                        )}
+                    >
+                        {step.label ??
+                            (step.type === "image" ? "Image" : "Video")}{" "}
+                        <span className="font-normal opacity-50">
+                            #{stepIndex + 1}
+                        </span>
+                    </span>
+
+                    {/* Prompt preview */}
+                    <p className="text-muted-foreground/70 mt-0.5 line-clamp-2 text-[10px] leading-relaxed">
+                        {step.prompt}
+                    </p>
+                </div>
+                {status === "generating" && (
+                    <span className="text-muted-foreground shrink-0 text-[10px]">
+                        generating…
+                    </span>
+                )}
+            </div>
+
+            {/* Metadata chips */}
+            {chips.length > 0 && (
+                <div className="flex flex-wrap gap-1 pl-5">
+                    {chips.map((chip) => (
+                        <MetaChip key={chip} label={chip} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function PlanApprovalCard({
     steps,
     messageId,
+    planStatus,
+    onProceed,
+    onCancel,
 }: {
     steps: GenerationStep[];
     messageId: string;
+    planStatus: PlanStatus | undefined;
+    onProceed?: (messageId: string, plan: AgentPlan) => void;
+    onCancel?: (messageId: string) => void;
 }) {
     const stepStatuses =
         useCanvasStore((s) => s.planStepStatuses[messageId]) ?? {};
+    const setPlanStatus = useCanvasStore((s) => s.setPlanStatus);
 
     const doneCount = steps.filter((s) => stepStatuses[s.id] === "done").length;
+    const isPending = planStatus === "pending_approval";
+    const isApproved = planStatus === "approved";
+    const isCancelled = planStatus === "cancelled";
+
+    const handleProceed = useCallback(() => {
+        onProceed?.(messageId, { steps });
+    }, [onProceed, messageId, steps]);
+
+    const handleCancel = useCallback(() => {
+        setPlanStatus(messageId, "cancelled");
+        onCancel?.(messageId);
+    }, [setPlanStatus, messageId, onCancel]);
 
     return (
-        <div className="bg-muted/60 mt-1.5 rounded-lg border p-2.5 text-xs">
-            <p className="text-muted-foreground mb-2 font-medium">
-                {doneCount === steps.length && steps.length > 0
-                    ? `${steps.length} generation${steps.length > 1 ? "s" : ""} complete`
-                    : `${steps.length} generation${steps.length > 1 ? "s" : ""} planned`}
-            </p>
-            <ul className="space-y-1.5">
-                {steps.map((step) => {
-                    const status = stepStatuses[step.id] as
-                        | StepStatus
-                        | undefined;
-                    return (
-                        <li key={step.id} className="flex items-center gap-2">
-                            <StepStatusIcon status={status} />
-                            <span
-                                className={cn(
-                                    "truncate",
-                                    status === "done" && "text-foreground",
-                                    status === "generating" &&
-                                        "text-blue-600 dark:text-blue-400",
-                                    status === "error" &&
-                                        "text-red-500 line-through",
-                                    !status && "text-muted-foreground",
-                                )}
-                            >
-                                {step.label ??
-                                    (step.type === "image" ? "Image" : "Video")}
-                            </span>
-                            {status === "generating" && (
-                                <span className="text-muted-foreground shrink-0">
-                                    generating…
-                                </span>
-                            )}
-                        </li>
-                    );
-                })}
-            </ul>
+        <div
+            className={cn(
+                "bg-muted/60 mt-1.5 rounded-lg border text-xs",
+                isCancelled && "opacity-50",
+            )}
+        >
+            {/* Card header */}
+            <div className="px-3 pt-2.5 pb-2">
+                <p className="text-muted-foreground font-medium">
+                    {isCancelled
+                        ? "Plan cancelled"
+                        : isApproved &&
+                            doneCount === steps.length &&
+                            steps.length > 0
+                          ? `${steps.length} generation${steps.length > 1 ? "s" : ""} complete`
+                          : `${steps.length} generation${steps.length > 1 ? "s" : ""} planned`}
+                </p>
+            </div>
+
+            {/* Steps separated by dividers */}
+            {steps.map((step, idx) => {
+                const status = isApproved
+                    ? (stepStatuses[step.id] as StepStatus | undefined)
+                    : undefined;
+                return (
+                    <div key={step.id}>
+                        <div className="border-t" />
+                        <div className="px-3 py-2.5">
+                            <StepCard
+                                step={step}
+                                stepIndex={idx}
+                                steps={steps}
+                                status={status}
+                                isApproved={isApproved}
+                            />
+                        </div>
+                    </div>
+                );
+            })}
+
+            {/* Proceed / Cancel buttons */}
+            {isPending && (
+                <div className="flex gap-2 border-t px-3 py-2.5">
+                    <Button
+                        size="sm"
+                        className="h-7 gap-1.5 rounded-lg px-3 text-xs"
+                        onClick={handleProceed}
+                    >
+                        <Play className="size-3" />
+                        Proceed
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground h-7 gap-1.5 rounded-lg px-3 text-xs"
+                        onClick={handleCancel}
+                    >
+                        <Ban className="size-3" />
+                        Cancel
+                    </Button>
+                </div>
+            )}
         </div>
+    );
+}
+
+function SuggestedActions({
+    actions,
+    disabled,
+    onAction,
+}: {
+    actions: { id: string; label: string; prompt: string }[];
+    disabled: boolean;
+    onAction: (prompt: string) => void;
+}) {
+    return (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+            {actions.map((action) => (
+                <Button
+                    key={action.id}
+                    variant="outline"
+                    size="sm"
+                    disabled={disabled}
+                    onClick={() => onAction(action.prompt)}
+                    className="h-7 gap-1.5 rounded-full px-3 text-xs"
+                >
+                    <Zap className="size-3" />
+                    {action.label}
+                </Button>
+            ))}
+        </div>
+    );
+}
+
+/** Shows suggested actions only once every plan step is done */
+function PlanCompletedActions({
+    actions,
+    steps,
+    messageId,
+    disabled,
+    onAction,
+}: {
+    actions: { id: string; label: string; prompt: string }[];
+    steps: GenerationStep[];
+    messageId: string;
+    disabled: boolean;
+    onAction: (prompt: string) => void;
+}) {
+    const stepStatuses =
+        useCanvasStore((s) => s.planStepStatuses[messageId]) ?? {};
+    const allDone =
+        steps.length > 0 &&
+        steps.every(
+            (s) =>
+                stepStatuses[s.id] === "done" ||
+                stepStatuses[s.id] === "error",
+        );
+
+    if (!allDone) return null;
+
+    return (
+        <SuggestedActions
+            actions={actions}
+            disabled={disabled}
+            onAction={onAction}
+        />
     );
 }
 
@@ -126,9 +339,11 @@ function TypingDots() {
 function CanvasChatMessageComponent({
     message,
     isLiveAssistant = false,
+    onExecutePlan,
 }: {
     message: ChatMessage;
     isLiveAssistant?: boolean;
+    onExecutePlan?: (messageId: string, plan: AgentPlan) => void;
 }) {
     const isUser = message.role === "user";
     const isSystem = message.role === "system";
@@ -225,9 +440,11 @@ function CanvasChatMessageComponent({
                 </div>
 
                 {!isUser && message.plan && message.plan.steps.length > 0 && (
-                    <PlanCard
+                    <PlanApprovalCard
                         steps={message.plan.steps}
                         messageId={message.id}
+                        planStatus={message.planStatus}
+                        onProceed={onExecutePlan}
                     />
                 )}
 
@@ -249,23 +466,30 @@ function CanvasChatMessageComponent({
                         </div>
                     )}
 
-                {!isUser && message.actions && message.actions.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                        {message.actions.map((action) => (
-                            <Button
-                                key={action.id}
-                                variant="outline"
-                                size="sm"
-                                disabled={isChatLoading}
-                                onClick={() => handleActionClick(action.prompt)}
-                                className="h-7 gap-1.5 rounded-full px-3 text-xs"
-                            >
-                                <Zap className="size-3" />
-                                {action.label}
-                            </Button>
-                        ))}
-                    </div>
-                )}
+                {!isUser &&
+                    message.actions &&
+                    message.actions.length > 0 &&
+                    // If there's a plan, only show actions once all generations are done
+                    !message.plan && (
+                        <SuggestedActions
+                            actions={message.actions}
+                            disabled={isChatLoading}
+                            onAction={handleActionClick}
+                        />
+                    )}
+                {!isUser &&
+                    message.actions &&
+                    message.actions.length > 0 &&
+                    message.plan &&
+                    message.planStatus === "approved" && (
+                        <PlanCompletedActions
+                            actions={message.actions}
+                            steps={message.plan.steps}
+                            messageId={message.id}
+                            disabled={isChatLoading}
+                            onAction={handleActionClick}
+                        />
+                    )}
 
                 <span className="text-muted-foreground px-1 text-[10px]">
                     {formatTime(message.createdAt)}
@@ -275,6 +499,4 @@ function CanvasChatMessageComponent({
     );
 }
 
-export const CanvasChatMessage = memo(
-    CanvasChatMessageComponent,
-) as typeof CanvasChatMessageComponent;
+export const CanvasChatMessage = memo(CanvasChatMessageComponent) as typeof CanvasChatMessageComponent;

@@ -1,34 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
-import { streamAgentResponse } from "@/lib/canvas-agent";
+import { executePlan } from "@/lib/canvas-generation";
 import logger from "@/app/logger";
-import type { ChatAttachment } from "@/lib/canvas-types";
+import type { AgentPlan } from "@/lib/canvas-types";
 
 export const maxDuration = 300;
 
-interface MediaDefaults {
-    model?: string;
-    aspectRatio?: string;
-    resolution?: string;
-}
-
-interface VideoDefaultsBody extends MediaDefaults {
-    duration?: number;
-    generateAudio?: boolean;
-}
-
-interface ChatRequestBody {
-    message: string;
-    attachments?: ChatAttachment[];
-    mode: "auto" | "image" | "video";
-    model?: string;
-    imageDefaults?: MediaDefaults;
-    videoDefaults?: VideoDefaultsBody;
+interface ExecutePlanRequestBody {
+    plan: AgentPlan;
+    messageId: string;
 }
 
 function formatSSE(event: string, data: unknown): string {
     return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+function buildNodeUriMap(canvas: {
+    nodes: { id: string; data: Record<string, unknown> }[];
+}): Map<string, string> {
+    const map = new Map<string, string>();
+    for (const node of canvas.nodes) {
+        const uri = node.data.sourceUrl as string | undefined;
+        if (uri?.startsWith("gs://")) {
+            map.set(node.id, uri);
+        }
+    }
+    return map;
 }
 
 export async function POST(
@@ -42,7 +40,7 @@ export async function POST(
 
     const { id: canvasId } = await params;
 
-    let body: ChatRequestBody;
+    let body: ExecutePlanRequestBody;
     try {
         body = await req.json();
     } catch {
@@ -52,16 +50,16 @@ export async function POST(
         );
     }
 
-    if (!body.message || typeof body.message !== "string") {
+    if (!body.plan?.steps || !Array.isArray(body.plan.steps)) {
         return NextResponse.json(
-            { error: "message is required" },
+            { error: "plan.steps is required" },
             { status: 400 },
         );
     }
 
-    if (!["auto", "image", "video"].includes(body.mode)) {
+    if (!body.messageId || typeof body.messageId !== "string") {
         return NextResponse.json(
-            { error: "mode must be auto, image, or video" },
+            { error: "messageId is required" },
             { status: 400 },
         );
     }
@@ -84,13 +82,14 @@ export async function POST(
                 );
             }
         }
-        logger.error("[ChatAPI] Error fetching canvas:", error);
+        logger.error("[ExecutePlanAPI] Error fetching canvas:", error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 },
         );
     }
 
+    const nodeUriMap = buildNodeUriMap(canvas);
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
@@ -98,68 +97,56 @@ export async function POST(
             const encode = (payload: string) => encoder.encode(payload);
 
             try {
-                const agentStream = streamAgentResponse({
-                    message: body.message,
-                    attachments: body.attachments,
-                    mode: body.mode,
-                    model: body.model,
-                    history: canvas.messages,
-                    canvasNodes: canvas.nodes,
-                    imageDefaults: body.imageDefaults,
-                    videoDefaults: body.videoDefaults,
-                });
-
-                for await (const event of agentStream) {
-                    switch (event.type) {
-                        case "text":
+                for await (const stepEvent of executePlan(
+                    body.plan,
+                    nodeUriMap,
+                    session.user.id!,
+                    canvasId,
+                    canvas.name,
+                )) {
+                    switch (stepEvent.type) {
+                        case "step_start":
                             controller.enqueue(
                                 encode(
-                                    formatSSE("text", { delta: event.delta }),
-                                ),
-                            );
-                            break;
-
-                        case "plan":
-                            // Send the plan to the client for approval — execution
-                            // is triggered separately via /execute-plan when user confirms.
-                            controller.enqueue(
-                                encode(
-                                    formatSSE("plan", {
-                                        steps: event.plan.steps,
+                                    formatSSE("step_start", {
+                                        stepId: stepEvent.stepId,
                                     }),
                                 ),
                             );
                             break;
-
-                        case "actions":
+                        case "step_done":
                             controller.enqueue(
                                 encode(
-                                    formatSSE("actions", {
-                                        actions: event.actions,
+                                    formatSSE("step_done", {
+                                        stepId: stepEvent.stepId,
+                                        node: stepEvent.node,
                                     }),
                                 ),
                             );
                             break;
-
-                        case "done":
-                            controller.enqueue(encode(formatSSE("done", {})));
-                            break;
-
-                        default:
-                            logger.warn(
-                                `[ChatAPI] Unknown event type: ${(event as { type: string }).type}`,
+                        case "step_error":
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("step_error", {
+                                        stepId: stepEvent.stepId,
+                                        message: stepEvent.message,
+                                    }),
+                                ),
                             );
+                            break;
                     }
                 }
+
+                controller.enqueue(encode(formatSSE("done", {})));
             } catch (error) {
-                logger.error("[ChatAPI] Stream error:", error);
+                logger.error("[ExecutePlanAPI] Stream error:", error);
                 controller.enqueue(
                     encode(
                         formatSSE("error", {
                             message:
                                 error instanceof Error
                                     ? error.message
-                                    : "Stream failed",
+                                    : "Execution failed",
                         }),
                     ),
                 );
