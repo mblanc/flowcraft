@@ -7,7 +7,7 @@ import {
     applyEdgeChanges,
 } from "@xyflow/react";
 import type { StateCreator } from "zustand";
-import { createNode } from "@/lib/node-factory";
+import { createNode, getUniqueNodeName } from "@/lib/node-factory";
 import type { NodeData } from "@/lib/types";
 import { migrateNodes } from "@/lib/migration";
 import type { FlowState, GraphSlice } from "./types";
@@ -142,15 +142,10 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             node.data = { ...node.data, ...data } as NodeData;
         }
 
-        const existingNames = new Set(get().nodes.map((n) => n.data.name));
-        const baseName = node.data.name;
-        let candidate = `${baseName}1`;
-        let counter = 1;
-        while (existingNames.has(candidate)) {
-            counter += 1;
-            candidate = `${baseName}${counter}`;
-        }
-        node.data = { ...node.data, name: candidate } as NodeData;
+        node.data = {
+            ...node.data,
+            name: getUniqueNodeName(get().nodes, node.data.name),
+        } as NodeData;
 
         const updatedNodes = [...get().nodes, node];
         const nodesById = { ...get().nodesById, [node.id]: node };
