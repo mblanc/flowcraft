@@ -101,12 +101,7 @@ function StepCard({
     if (depLabels.length > 0) chips.push(`from: ${depLabels.join(", ")}`);
 
     return (
-        <div
-            className={cn(
-                "space-y-1.5",
-                status === "error" && "opacity-60",
-            )}
-        >
+        <div className={cn("space-y-1.5", status === "error" && "opacity-60")}>
             {/* Header row */}
             <div className="flex items-start gap-2">
                 <div className="mt-0.5 shrink-0">
@@ -119,7 +114,7 @@ function StepCard({
                 <div className="min-w-0 flex-1">
                     <span
                         className={cn(
-                            "block truncate font-medium leading-none",
+                            "block truncate leading-none font-medium",
                             status === "done" && "text-foreground",
                             status === "generating" &&
                                 "text-blue-600 dark:text-blue-400",
@@ -304,8 +299,7 @@ function PlanCompletedActions({
         steps.length > 0 &&
         steps.every(
             (s) =>
-                stepStatuses[s.id] === "done" ||
-                stepStatuses[s.id] === "error",
+                stepStatuses[s.id] === "done" || stepStatuses[s.id] === "error",
         );
 
     if (!allDone) return null;
@@ -499,4 +493,6 @@ function CanvasChatMessageComponent({
     );
 }
 
-export const CanvasChatMessage = memo(CanvasChatMessageComponent) as typeof CanvasChatMessageComponent;
+export const CanvasChatMessage = memo(
+    CanvasChatMessageComponent,
+) as typeof CanvasChatMessageComponent;

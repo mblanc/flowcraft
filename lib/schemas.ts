@@ -54,6 +54,7 @@ export const BaseNodeDataSchema = z.object({
     error: z.string().optional(),
     batchTotal: z.number().optional(),
     batchProgress: z.number().optional(),
+    resolvedPrompt: z.string().optional(),
 });
 
 export const LLMDataSchema = BaseNodeDataSchema.extend({

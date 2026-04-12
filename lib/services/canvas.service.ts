@@ -1,6 +1,5 @@
 import { getFirestore } from "@/lib/firestore";
 import { COLLECTIONS } from "@/lib/constants";
-import { config } from "@/lib/config";
 import logger from "@/app/logger";
 import type {
     DocumentSnapshot,

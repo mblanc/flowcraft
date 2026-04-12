@@ -90,8 +90,7 @@ function parseSSEEvents(
 interface CanvasChatInputProps {
     getViewportCenter: () => { x: number; y: number };
     executePlanStreamRef?: React.RefObject<
-        | ((messageId: string, plan: AgentPlan) => Promise<void>)
-        | null
+        ((messageId: string, plan: AgentPlan) => Promise<void>) | null
     >;
 }
 
@@ -418,7 +417,10 @@ export function CanvasChatInput({
                     x: n.position.x,
                     y: n.position.y,
                     w: (n.data as { width?: number }).width ?? n.width ?? 300,
-                    h: (n.data as { height?: number }).height ?? n.height ?? 300,
+                    h:
+                        (n.data as { height?: number }).height ??
+                        n.height ??
+                        300,
                 }));
 
             const computedPositions = calculateNodePositions(
@@ -817,10 +819,7 @@ export function CanvasChatInput({
             addMessage,
             updateMessage,
             setIsChatLoading,
-            setPlanStepStatus,
             setPlanStatus,
-            addPlaceholderNode,
-            getViewportCenter,
         ],
     );
 

@@ -375,6 +375,7 @@ export class WorkflowEngine {
                     | string
                     | undefined) ?? node.data.type,
             prompt:
+                (r.resolvedPrompt as string | undefined) ??
                 (r.prompt as string | undefined) ??
                 ((node.data as Record<string, unknown>).prompt as
                     | string
