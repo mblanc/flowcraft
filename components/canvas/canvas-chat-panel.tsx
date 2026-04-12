@@ -28,8 +28,7 @@ export function CanvasChatPanel({ getViewportCenter }: CanvasChatPanelProps) {
 
     // Ref set by CanvasChatInput so plan approval widget can trigger execution
     const executePlanStreamRef = useRef<
-        | ((messageId: string, plan: AgentPlan) => Promise<void>)
-        | null
+        ((messageId: string, plan: AgentPlan) => Promise<void>) | null
     >(null);
 
     const handleExecutePlan = useCallback(

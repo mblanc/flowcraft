@@ -1,8 +1,4 @@
-import {
-    Content,
-    createPartFromText,
-    createPartFromUri,
-} from "@google/genai";
+import { Content, createPartFromText, createPartFromUri } from "@google/genai";
 import { geminiService } from "@/lib/services/gemini.service";
 import { MODELS } from "@/lib/constants";
 import logger from "@/app/logger";
@@ -432,7 +428,9 @@ For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music
                         input.canvasNodes.some(
                             (n) => n.id === s.firstFrameNodeId,
                         ) ||
-                        attachments.some((a) => a.nodeId === s.firstFrameNodeId);
+                        attachments.some(
+                            (a) => a.nodeId === s.firstFrameNodeId,
+                        );
                     if (isValid) {
                         step.firstFrameNodeId = s.firstFrameNodeId;
                     } else {

@@ -41,3 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 .ipynb_checkpoints/
+
+# agents
+.agent/
+.agents/
+.claude/
+.cursor/
+.gemini/

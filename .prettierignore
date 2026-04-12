@@ -2,7 +2,7 @@ node_modules
  .next
  .next-e2e
  .husky
- coverage
+ .coverage
  .prettierignore
  .stylelintignore
  .eslintignore
@@ -14,3 +14,4 @@ node_modules
  test-results
  junit.xml
  docs
+ .agents
