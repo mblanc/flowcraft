@@ -84,6 +84,7 @@ function StepCard({
     isApproved: boolean;
 }) {
     const TypeIcon = STEP_TYPE_ICON[step.type];
+    const nodes = useCanvasStore((s) => s.nodes);
 
     // Build metadata chips
     const chips: string[] = [];
@@ -99,6 +100,23 @@ function StepCard({
         return depStep?.label ?? depId;
     });
     if (depLabels.length > 0) chips.push(`from: ${depLabels.join(", ")}`);
+
+    // Resolve reference node labels
+    const refLabels: string[] = (step.referenceNodeIds ?? []).map((refId) => {
+        const node = nodes.find((n) => n.id === refId);
+        return node?.data.label ?? "Unknown Node";
+    });
+    if (refLabels.length > 0) chips.push(`ref: ${refLabels.join(", ")}`);
+
+    // Resolve first/last frame labels
+    if (step.firstFrameNodeId) {
+        const node = nodes.find((n) => n.id === step.firstFrameNodeId);
+        chips.push(`start: ${node?.data.label ?? "Unknown Node"}`);
+    }
+    if (step.lastFrameNodeId) {
+        const node = nodes.find((n) => n.id === step.lastFrameNodeId);
+        chips.push(`end: ${node?.data.label ?? "Unknown Node"}`);
+    }
 
     return (
         <div className={cn("space-y-1.5", status === "error" && "opacity-60")}>
