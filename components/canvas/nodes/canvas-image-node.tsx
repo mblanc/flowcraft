@@ -12,12 +12,14 @@ import {
     Info,
     Trash2,
     X,
+    RefreshCw,
 } from "lucide-react";
 import type { CanvasImageData } from "@/lib/canvas-types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import { useCanvasNodeResize } from "@/hooks/use-canvas-node-resize";
 import { useSignedUrl } from "@/hooks/use-signed-url";
+import { useRegenerateNode } from "@/hooks/use-regenerate-node";
 import { MediaViewer } from "@/components/nodes/media-viewer";
 import { CanvasNodeContextMenu } from "@/components/canvas/canvas-node-context-menu";
 import { Button } from "@/components/ui/button";
@@ -123,6 +125,8 @@ export const CanvasImageNode = memo(
             setIsRenaming(true);
         }, [d.label]);
 
+        const { regenerate } = useRegenerateNode(id);
+
         const handleDownload = useCallback(() => {
             if (!displayUrl) return;
             const a = document.createElement("a");
@@ -174,6 +178,21 @@ export const CanvasImageNode = memo(
                             >
                                 <DownloadIcon className="h-4 w-4" />
                             </Button>
+                            {d.prompt && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        regenerate();
+                                    }}
+                                    title="Regenerate"
+                                    disabled={isGenerating}
+                                >
+                                    <RefreshCw className="h-4 w-4" />
+                                </Button>
+                            )}
                             <Button
                                 variant="ghost"
                                 size="icon"
