@@ -7,7 +7,7 @@ export default function AgentsPage() {
         <FlowsListView
             activeTab="canvas"
             title="Agents"
-            description="Collaborative canvas sessions for agent-driven media creation"
+            description="Collaborative canvas for agent-driven media"
         />
     );
 }

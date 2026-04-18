@@ -87,10 +87,10 @@ export function NodeTitle({ name, onRename, className }: NodeTitleProps) {
 
     return (
         <span
-            title="Click to rename"
-            onClick={startEditing}
+            title="Double-click to rename"
+            onDoubleClick={startEditing}
             className={cn(
-                "cursor-text truncate text-sm font-semibold select-none",
+                "cursor-default truncate text-sm font-semibold select-none",
                 className,
             )}
         >

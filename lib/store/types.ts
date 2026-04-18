@@ -74,6 +74,7 @@ export interface GraphSlice {
         data?: Partial<NodeData>,
     ) => void;
     selectNode: (nodeId: string | null) => void;
+    deleteNode: (nodeId: string) => void;
     removeEdges: (edgeIds: string[]) => void;
 
     // --- Load / reset ---

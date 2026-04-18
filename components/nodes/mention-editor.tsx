@@ -17,7 +17,7 @@ export interface MentionNode {
 }
 
 interface MentionEditorProps {
-    value: string;
+    value: string | undefined;
     onChange: (value: string) => void;
     onBlur?: () => void;
     availableNodes: MentionNode[];
@@ -29,7 +29,8 @@ const escapeHtml = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /** Converts stored `@[nodeId]` string → display HTML with mention chips. */
-function valueToHtml(value: string, nodes: MentionNode[]): string {
+function valueToHtml(value: string | undefined, nodes: MentionNode[]): string {
+    if (!value) return "";
     const nodeMap = new Map(nodes.map((n) => [n.id, n.name]));
     let result = "";
     let lastIndex = 0;

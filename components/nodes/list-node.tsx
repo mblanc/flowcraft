@@ -28,6 +28,7 @@ import {
 import logger from "@/app/logger";
 import { MediaViewer } from "@/components/nodes/media-viewer";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
+import { NodeActionBar } from "@/components/nodes/node-action-bar";
 import { toast } from "sonner";
 import { isGcsUri, parseGcsUri } from "@/lib/gcs-uri";
 
@@ -55,6 +56,7 @@ export const ListNode = memo(
         );
         const [isUploading, setIsUploading] = useState<number | null>(null);
         const [isMediaOpen, setIsMediaOpen] = useState(false);
+        const [isHovered, setIsHovered] = useState(false);
         const [mediaIndex, setMediaIndex] = useState(0);
         const fileInputRef = useRef<HTMLInputElement>(null);
         const uploadIndexRef = useRef<number | null>(null);
@@ -201,9 +203,23 @@ export const ListNode = memo(
         return (
             <div
                 ref={nodeRef}
-                className={cn("node-container", selected && "selected")}
+                className={cn(
+                    "node-container relative",
+                    selected && "selected",
+                )}
                 style={{ width: dimensions.width }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                onFocusCapture={() => useFlowStore.getState().selectNode(id)}
             >
+                <NodeActionBar
+                    isVisible={selected || isHovered}
+                    onDelete={() => useFlowStore.getState().deleteNode(id)}
+                    onSettings={() => {
+                        useFlowStore.getState().selectNode(id);
+                        useFlowStore.getState().setIsConfigSidebarOpen(true);
+                    }}
+                />
                 {"executing" in data && data.executing && (
                     <div
                         className="border-beam-glow"

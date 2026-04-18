@@ -8,44 +8,42 @@ import { useSyncedState } from "@/hooks/use-synced-state";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { TextData } from "@/lib/types";
-import { FileText, Maximize2 } from "lucide-react";
+import { FileText, GripHorizontal } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/nodes/node-title";
+import { NodeActionBar } from "@/components/nodes/node-action-bar";
 import { cn } from "@/lib/utils";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "../ui/textarea";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 export const TextNode = memo(
     ({ data, selected, id }: NodeProps<Node<TextData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const selectNode = useFlowStore((state) => state.selectNode);
+        const deleteNode = useFlowStore((state) => state.deleteNode);
         const [localText, setLocalText] = useSyncedState(data.text);
         const { dimensions, handleResizeStart } = useNodeResize(
             id,
             data.width,
             data.height,
             {
-                defaultWidth: 300,
-                defaultHeight: 150,
-                minWidth: 220,
-                minHeight: 100,
+                defaultWidth: 280,
+                defaultHeight: 200,
+                minWidth: 200,
+                minHeight: 120,
             },
         );
         const [isModalOpen, setIsModalOpen] = useState(false);
+        const [isHovered, setIsHovered] = useState(false);
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const nodeRef = useRef<HTMLDivElement>(null);
 
-        // Prevent canvas zoom when scrolling inside textarea (works for mouse wheel and touchpad)
+        // Prevent canvas zoom when scrolling inside textarea
         useEffect(() => {
             const textarea = textareaRef.current;
             const container = nodeRef.current;
@@ -57,32 +55,23 @@ export const TextNode = memo(
                 const isInsideTextarea =
                     target === textarea || textarea.contains(target);
 
-                // If wheel event is on textarea, inside it, or textarea is focused, prevent canvas zoom
                 if (isInsideTextarea || isTextareaFocused) {
                     e.stopPropagation();
                     e.stopImmediatePropagation();
-                    // Allow native scrolling behavior by not preventing default
                     return false;
                 }
             };
 
-            // Use capture phase to intercept before React Flow processes it
-            // This catches events in the capture phase before they bubble up
-            // Also handle at the textarea level with both capture and bubble phases
             const options = { capture: true, passive: false };
             container.addEventListener("wheel", handleWheel, options);
             textarea.addEventListener("wheel", handleWheel, options);
-            // Also add non-capture listener for extra safety
             textarea.addEventListener("wheel", handleWheel, { passive: false });
 
-            // Also handle focus/blur to track when textarea is active
             let focusedHandler: ((e: WheelEvent) => void) | null = null;
 
             const handleFocus = () => {
-                // Add a more aggressive wheel handler when focused
                 focusedHandler = (e: WheelEvent) => {
                     const target = e.target as HTMLElement;
-                    // Only stop if event is on textarea or inside container
                     if (
                         target === textarea ||
                         textarea.contains(target) ||
@@ -138,109 +127,116 @@ export const TextNode = memo(
             updateNodeData(id, { text: localText });
         };
 
+        const handleDelete = () => deleteNode(id);
+
+        const handleDownload = () => {
+            if (!localText) return;
+            const blob = new Blob([localText], { type: "text/plain" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `${data.name || "text"}.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        };
+
         const handleWheel = (e: React.WheelEvent<HTMLTextAreaElement>) => {
-            // Stop propagation to prevent canvas zoom when scrolling text
             e.stopPropagation();
         };
 
         return (
             <div
                 ref={nodeRef}
-                className={cn("node-container", selected && "selected")}
-                style={{ width: dimensions.width }}
+                className="relative"
+                style={{ width: dimensions.width, height: dimensions.height }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                onFocusCapture={() => {
+                    selectNode(id);
+                }}
             >
-                {"executing" in data && data.executing && (
-                    <div
-                        className="border-beam-glow"
-                        style={
-                            {
-                                "--beam-color": "var(--color-port-string)",
-                            } as React.CSSProperties
-                        }
+                {/* Floating title */}
+                <div className="pointer-events-auto absolute -top-7 left-2 z-20 flex items-center">
+                    <NodeTitle
+                        name={data.name}
+                        onRename={(n) => updateNodeData(id, { name: n })}
+                        className="text-foreground text-xs"
                     />
-                )}
+                </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-purple-500/10">
-                        <FileText className="h-5 w-5 text-purple-400" />
-                    </div>
+                {/* Action bar — visible on hover or selection */}
+                <NodeActionBar
+                    isVisible={selected || isHovered}
+                    onFullscreen={() => setIsModalOpen(true)}
+                    onDownload={localText ? handleDownload : undefined}
+                    onDelete={handleDelete}
+                />
 
-                    <div className="min-w-0 flex-1 text-left">
-                        <div className="flex items-center justify-between gap-2">
-                            <NodeTitle
-                                name={data.name}
-                                onRename={(n) =>
-                                    updateNodeData(id, { name: n })
-                                }
-                                className="text-foreground mb-1"
-                            />
-                            <div className="flex items-center gap-1">
-                                <Dialog
-                                    open={isModalOpen}
-                                    onOpenChange={setIsModalOpen}
-                                >
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <DialogTrigger asChild>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                    }}
-                                                    className="flex h-8 w-8 items-center justify-center rounded-full text-purple-400 transition-colors hover:bg-purple-500/20"
-                                                >
-                                                    <Maximize2 className="h-4 w-4" />
-                                                </button>
-                                            </DialogTrigger>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Expand text editor</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <DialogContent className="flex h-[90vh] max-w-[90vw] flex-col overflow-hidden p-0">
-                                        <DialogHeader className="border-b p-4">
-                                            <DialogTitle className="flex items-center gap-2">
-                                                <FileText className="h-5 w-5 text-purple-400" />
-                                                <NodeTitle
-                                                    name={data.name}
-                                                    onRename={(n) =>
-                                                        updateNodeData(id, {
-                                                            name: n,
-                                                        })
-                                                    }
-                                                />
-                                            </DialogTitle>
-                                        </DialogHeader>
-                                        <div className="flex-1 overflow-hidden p-4">
-                                            <Textarea
-                                                value={localText}
-                                                onChange={handleTextChange}
-                                                onBlur={handleBlur}
-                                                placeholder="Enter text..."
-                                                className="nowheel nopan h-full w-full resize-none border-none bg-transparent p-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
-                                            />
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                        </div>
-                        <div
-                            onWheel={(e) => {
-                                e.stopPropagation();
-                                e.nativeEvent.stopImmediatePropagation();
-                            }}
-                            className="nodrag"
-                        >
+                {/* Fullscreen dialog */}
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent className="flex h-[90vh] max-w-[90vw] flex-col overflow-hidden p-0">
+                        <DialogHeader className="border-b p-4">
+                            <DialogTitle className="flex items-center gap-2">
+                                <FileText className="text-muted-foreground h-5 w-5" />
+                                <NodeTitle
+                                    name={data.name}
+                                    onRename={(n) =>
+                                        updateNodeData(id, { name: n })
+                                    }
+                                />
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="flex-1 overflow-hidden p-4">
                             <Textarea
-                                ref={textareaRef}
                                 value={localText}
                                 onChange={handleTextChange}
                                 onBlur={handleBlur}
-                                onWheel={handleWheel}
                                 placeholder="Enter text..."
-                                className="nowheel nopan nodrag w-full resize-none overflow-y-auto border-none bg-transparent px-2 py-1 text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
-                                style={{ height: dimensions.height - 80 }}
+                                className="nowheel nopan h-full w-full resize-none border-none bg-transparent p-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
                             />
                         </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Media box */}
+                <div
+                    className={cn(
+                        "bg-card relative flex h-full w-full flex-col overflow-hidden rounded-lg border transition-[border-color,border-width] duration-150",
+                        selected
+                            ? "border-primary border-2"
+                            : "border-border border",
+                    )}
+                >
+                    {/* Drag header */}
+                    <div className="border-border flex shrink-0 cursor-grab items-center justify-center border-b py-1 active:cursor-grabbing">
+                        <GripHorizontal className="text-muted-foreground/40 h-3 w-3" />
+                    </div>
+
+                    {"executing" in data && data.executing && (
+                        <div
+                            className="border-beam-glow"
+                            style={
+                                {
+                                    "--beam-color": "var(--color-port-string)",
+                                } as React.CSSProperties
+                            }
+                        />
+                    )}
+                    <div
+                        onWheel={(e) => {
+                            e.stopPropagation();
+                            e.nativeEvent.stopImmediatePropagation();
+                        }}
+                        className="min-h-0 flex-1"
+                    >
+                        <Textarea
+                            ref={textareaRef}
+                            value={localText}
+                            onChange={handleTextChange}
+                            onBlur={handleBlur}
+                            onWheel={handleWheel}
+                            placeholder="Enter text..."
+                            className="nowheel nopan nodrag h-full w-full resize-none overflow-y-auto border-none bg-transparent px-3 py-2 text-xs leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
                     </div>
                 </div>
 

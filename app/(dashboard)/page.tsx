@@ -20,40 +20,35 @@ const dashboardBoxes = [
         description: "Visual workflow builder for AI content generation",
         href: "/flows",
         icon: Workflow,
-        color: "from-blue-500 to-indigo-600",
-        shadow: "shadow-blue-500/20",
+        accent: true,
     },
     {
         name: "Agents",
-        description: "Collaborative canvas for agent-driven media Creation",
+        description: "Collaborative canvas for agent-driven media",
         href: "/agents",
         icon: Bot,
-        color: "from-purple-500 to-pink-600",
-        shadow: "shadow-purple-500/20",
+        accent: false,
     },
     {
         name: "Community",
         description: "Discover and share workflow templates",
         href: "/community",
         icon: Globe,
-        color: "from-emerald-500 to-teal-600",
-        shadow: "shadow-emerald-500/20",
+        accent: false,
     },
     {
-        name: "Shared with Me",
+        name: "Shared with me",
         description: "Access workflows shared by your team",
         href: "/shared",
         icon: Users,
-        color: "from-amber-500 to-orange-600",
-        shadow: "shadow-amber-500/20",
+        accent: false,
     },
     {
         name: "Library",
         description: "Manage your generated assets and media",
         href: "/library",
         icon: BookImage,
-        color: "from-slate-700 to-slate-900",
-        shadow: "shadow-slate-500/20",
+        accent: false,
     },
 ];
 
@@ -62,7 +57,7 @@ export default function HomePage() {
     const { data: session, status } = useSession();
 
     if (status === "loading") {
-        return null; // Layout handles the skeleton if needed, or just let it load
+        return null;
     }
 
     if (status === "unauthenticated") {
@@ -71,93 +66,105 @@ export default function HomePage() {
     }
 
     return (
-        <div className="space-y-12">
-            <header className="space-y-4">
-                <h1 className="text-foreground text-4xl font-extrabold tracking-tight sm:text-5xl">
-                    Welcome back,{" "}
-                    <span className="text-primary italic">
-                        {session?.user?.name?.split(" ")[0]}
-                    </span>
+        <div className="space-y-16">
+            <header className="space-y-2">
+                <h1
+                    className="text-foreground text-4xl font-bold sm:text-5xl"
+                    style={{ letterSpacing: "-0.02em" }}
+                >
+                    Welcome back, {session?.user?.name?.split(" ")[0]}.
                 </h1>
-                <p className="text-muted-foreground max-w-2xl text-lg">
+                <p className="text-muted-foreground max-w-xl text-base">
                     Build, create, and manage your AI workflows in one place.
                 </p>
             </header>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 {dashboardBoxes.map((box) => (
                     <div
                         key={box.name}
                         onClick={() => router.push(box.href)}
                         className={cn(
-                            "group border-border/50 bg-card relative flex cursor-pointer flex-col overflow-hidden rounded-3xl border p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl",
-                            box.shadow,
+                            "group relative flex cursor-pointer flex-col rounded-lg border p-5 transition-shadow duration-150 hover:shadow-sm",
+                            box.accent
+                                ? "border-primary/40 bg-card"
+                                : "border-border bg-card",
                         )}
+                        style={{ minHeight: 160 }}
                     >
                         <div
                             className={cn(
-                                "mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br transition-all duration-300 group-hover:rotate-6",
-                                box.color,
+                                "mb-auto flex h-9 w-9 items-center justify-center rounded-md transition-transform duration-150 group-hover:rotate-6",
+                                box.accent ? "bg-primary/10" : "bg-muted",
                             )}
                         >
-                            <box.icon className="h-7 w-7 text-white" />
+                            <box.icon
+                                className={cn(
+                                    "h-5 w-5",
+                                    box.accent
+                                        ? "text-primary"
+                                        : "text-muted-foreground",
+                                )}
+                            />
                         </div>
 
-                        <div className="space-y-2">
-                            <h2 className="text-foreground text-xl font-bold tracking-tight">
+                        <div className="mt-8 space-y-1">
+                            <h2
+                                className={cn(
+                                    "text-sm font-semibold",
+                                    box.accent
+                                        ? "text-primary"
+                                        : "text-foreground",
+                                )}
+                            >
                                 {box.name}
                             </h2>
-                            <p className="text-muted-foreground text-sm leading-relaxed">
+                            <p className="text-muted-foreground text-xs leading-relaxed">
                                 {box.description}
                             </p>
                         </div>
-
-                        <div className="mt-8 flex items-center justify-between">
-                            <div className="bg-muted group-hover:bg-primary/10 flex h-8 w-8 items-center justify-center rounded-full transition-colors">
-                                <ArrowRight className="text-muted-foreground group-hover:text-primary h-4 w-4 transition-transform group-hover:translate-x-1" />
-                            </div>
-                        </div>
-
-                        {/* Hover Gradient Glow */}
-                        <div
-                            className={cn(
-                                "absolute -top-4 -right-4 -z-10 h-32 w-32 rounded-full bg-gradient-to-br opacity-0 transition-opacity duration-300 group-hover:opacity-10",
-                                box.color,
-                            )}
-                        />
                     </div>
                 ))}
             </div>
 
-            {/* Quick Actions / Recent Items Section */}
-            <section className="space-y-6">
+            <section className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-foreground text-2xl font-bold tracking-tight">
-                        Recent Projects
+                    <h2
+                        className="text-foreground text-base font-semibold"
+                        style={{ letterSpacing: "-0.01em" }}
+                    >
+                        Recent flows
                     </h2>
                     <Button
                         variant="ghost"
-                        className="text-primary hover:bg-primary/5"
+                        size="sm"
+                        className="text-primary hover:bg-primary/5 gap-1 text-xs"
                         onClick={() => router.push("/flows")}
                     >
-                        View All <ArrowRight className="ml-2 h-4 w-4" />
+                        View all <ArrowRight className="h-3 w-3" />
                     </Button>
                 </div>
-                <div className="border-border grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div className="border-border/50 bg-muted/40 hover:bg-muted/60 flex h-48 flex-col items-center justify-center rounded-3xl border-2 border-dashed transition-colors">
-                        <div className="bg-primary/10 mb-4 rounded-full p-4">
-                            <Plus className="text-primary h-8 w-8" />
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div
+                        onClick={() => router.push("/flows")}
+                        className="border-border hover:border-primary/40 flex h-32 cursor-pointer flex-col items-start justify-between rounded-lg border border-dashed p-5 transition-colors duration-150"
+                    >
+                        <div className="bg-primary/10 flex h-9 w-9 items-center justify-center rounded-md">
+                            <Plus className="text-primary h-4 w-4" />
                         </div>
-                        <p className="text-muted-foreground font-medium">
-                            Create a new Flow
+                        <p className="text-foreground text-sm font-medium">
+                            Create a new flow
                         </p>
                     </div>
-                    <div className="border-border/50 bg-muted/40 hover:bg-muted/60 flex h-48 flex-col items-center justify-center rounded-3xl border-2 border-dashed transition-colors">
-                        <div className="mb-4 rounded-full bg-purple-500/10 p-4">
-                            <Bot className="h-8 w-8 text-purple-500" />
+                    <div
+                        onClick={() => router.push("/agents")}
+                        className="border-border hover:border-primary/40 flex h-32 cursor-pointer flex-col items-start justify-between rounded-lg border border-dashed p-5 transition-colors duration-150"
+                    >
+                        <div className="bg-muted flex h-9 w-9 items-center justify-center rounded-md">
+                            <Bot className="text-muted-foreground h-4 w-4" />
                         </div>
-                        <p className="text-muted-foreground font-medium">
-                            Start a new Agent Session
+                        <p className="text-foreground text-sm font-medium">
+                            Start a new agent session
                         </p>
                     </div>
                 </div>

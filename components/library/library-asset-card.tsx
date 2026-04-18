@@ -13,7 +13,7 @@ export function LibraryAssetCard({ asset, onClick }: LibraryAssetCardProps) {
 
     return (
         <div
-            className="group border-border bg-card relative mb-3 cursor-pointer break-inside-avoid overflow-hidden rounded-lg border transition-shadow hover:shadow-lg"
+            className="group border-border bg-card relative mb-3 cursor-pointer break-inside-avoid overflow-hidden rounded-lg border transition-shadow duration-150 hover:shadow-sm"
             onClick={onClick}
         >
             {asset.type === "image" ? (

@@ -10,6 +10,8 @@ vi.mock("@xyflow/react", () => ({
     Handle: ({ type, position }: any) => (
         <div data-testid={`handle-${type}-${position}`} />
     ),
+    NodeToolbar: ({ children, isVisible }: any) =>
+        isVisible ? <div data-testid="node-toolbar">{children}</div> : null,
     Position: {
         Left: "left",
         Right: "right",
