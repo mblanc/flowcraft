@@ -46,11 +46,11 @@ const MEDIA_TYPE_ICON = {
 function StepStatusIcon({ status }: { status: StepStatus | undefined }) {
     switch (status) {
         case "done":
-            return <Check className="size-3 text-green-500" />;
+            return <Check className="text-primary size-3" />;
         case "generating":
-            return <Loader2 className="size-3 animate-spin text-blue-500" />;
+            return <Loader2 className="text-primary size-3 animate-spin" />;
         case "error":
-            return <X className="size-3 text-red-500" />;
+            return <X className="text-destructive size-3" />;
         default:
             return <Clock className="text-muted-foreground size-3" />;
     }
@@ -116,9 +116,9 @@ function StepCard({
                         className={cn(
                             "block truncate leading-none font-medium",
                             status === "done" && "text-foreground",
-                            status === "generating" &&
-                                "text-blue-600 dark:text-blue-400",
-                            status === "error" && "text-red-500 line-through",
+                            status === "generating" && "text-primary",
+                            status === "error" &&
+                                "text-destructive line-through",
                             !status && "text-muted-foreground",
                         )}
                     >
@@ -230,7 +230,7 @@ function PlanApprovalCard({
                 <div className="flex gap-2 border-t px-3 py-2.5">
                     <Button
                         size="sm"
-                        className="h-7 gap-1.5 rounded-lg px-3 text-xs"
+                        className="h-7 gap-1.5 rounded-md px-3 text-xs"
                         onClick={handleProceed}
                     >
                         <Play className="size-3" />
@@ -239,7 +239,7 @@ function PlanApprovalCard({
                     <Button
                         size="sm"
                         variant="ghost"
-                        className="text-muted-foreground h-7 gap-1.5 rounded-lg px-3 text-xs"
+                        className="text-muted-foreground h-7 gap-1.5 rounded-md px-3 text-xs"
                         onClick={handleCancel}
                     >
                         <Ban className="size-3" />
@@ -269,7 +269,7 @@ function SuggestedActions({
                     size="sm"
                     disabled={disabled}
                     onClick={() => onAction(action.prompt)}
-                    className="h-7 gap-1.5 rounded-full px-3 text-xs"
+                    className="h-7 gap-1.5 rounded-md px-3 text-xs"
                 >
                     <Zap className="size-3" />
                     {action.label}
@@ -319,7 +319,7 @@ function TypingDots() {
             {[0, 150, 300].map((delay) => (
                 <span
                     key={delay}
-                    className="bg-muted-foreground/50 size-1.5 animate-bounce rounded-full"
+                    className="bg-muted-foreground/50 size-1.5 animate-pulse rounded-full"
                     style={{
                         animationDelay: `${delay}ms`,
                         animationDuration: "900ms",
@@ -357,7 +357,7 @@ function CanvasChatMessageComponent({
     if (isSystem) {
         return (
             <div className="flex justify-center px-4 py-2">
-                <span className="text-muted-foreground text-xs italic">
+                <span className="text-muted-foreground text-xs">
                     {message.content}
                 </span>
             </div>
@@ -414,7 +414,7 @@ function CanvasChatMessageComponent({
 
                 <div
                     className={cn(
-                        "rounded-xl px-3 py-2 text-sm",
+                        "rounded-lg px-3 py-2 text-sm",
                         isUser
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted text-foreground",

@@ -62,49 +62,49 @@ export const nativeItems = [
     {
         type: "text",
         icon: FileText,
-        color: "text-purple-500 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950/20",
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "Text",
     },
     {
         type: "list",
         icon: ListOrdered,
-        color: "text-teal-500 hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-teal-950/20",
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "List",
     },
     {
         type: "file",
         icon: FileUp,
-        color: "text-cyan-500 hover:bg-cyan-50 hover:text-cyan-600 dark:hover:bg-cyan-950/20",
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "File",
     },
     {
         type: "llm",
         icon: Bot,
-        color: "text-primary hover:text-primary/80 hover:bg-primary/10",
+        color: "text-primary hover:bg-primary/10 hover:text-primary",
         label: "LLM",
     },
     {
         type: "image",
         icon: ImageIcon,
-        color: "text-orange-500 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-950/20",
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "Image",
     },
     {
         type: "video",
         icon: Video,
-        color: "text-pink-500 hover:bg-pink-50 hover:text-pink-600 dark:hover:bg-pink-950/20",
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "Video",
     },
     {
         type: "upscale",
         icon: ZoomIn,
-        color: "text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20",
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "Upscale",
     },
     {
         type: "resize",
         icon: Scaling,
-        color: "text-blue-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/20",
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "Resize",
     },
 ] as const;
@@ -113,13 +113,13 @@ export const workflowIOItems = [
     {
         type: "workflow-input",
         icon: LogIn,
-        color: "text-blue-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/20",
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "Input",
     },
     {
         type: "workflow-output",
         icon: LogOut,
-        color: "text-orange-500 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-950/20",
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "Output",
     },
 ] as const;

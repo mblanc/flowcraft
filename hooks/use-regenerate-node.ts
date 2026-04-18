@@ -86,7 +86,8 @@ export function useRegenerateNode(nodeId: string) {
                     let data = "";
                     for (const line of block.split("\n")) {
                         if (line.startsWith("event: ")) event = line.slice(7);
-                        else if (line.startsWith("data: ")) data = line.slice(6);
+                        else if (line.startsWith("data: "))
+                            data = line.slice(6);
                     }
                     if (!event || !data) continue;
 

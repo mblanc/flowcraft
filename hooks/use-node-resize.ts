@@ -7,6 +7,7 @@ interface UseNodeResizeOptions {
     minWidth: number;
     minHeight: number;
     useElementHeight?: boolean;
+    lockedAspectRatio?: number; // width / height — when set, height is derived from width
 }
 
 export function useNodeResize(
@@ -21,6 +22,7 @@ export function useNodeResize(
         minWidth,
         minHeight,
         useElementHeight,
+        lockedAspectRatio,
     } = options;
     const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
@@ -64,17 +66,28 @@ export function useNodeResize(
 
         const handleMouseMove = (e: MouseEvent) => {
             const deltaX = e.clientX - resizeStartRef.current.x;
-            const deltaY = e.clientY - resizeStartRef.current.y;
-            setDimensions({
-                width: Math.max(
-                    minWidth,
-                    resizeStartRef.current.width + deltaX,
-                ),
-                height: Math.max(
-                    minHeight,
-                    resizeStartRef.current.height + deltaY,
-                ),
-            });
+            const newWidth = Math.max(
+                minWidth,
+                resizeStartRef.current.width + deltaX,
+            );
+            if (lockedAspectRatio) {
+                setDimensions({
+                    width: newWidth,
+                    height: Math.max(
+                        minHeight,
+                        Math.round(newWidth / lockedAspectRatio),
+                    ),
+                });
+            } else {
+                const deltaY = e.clientY - resizeStartRef.current.y;
+                setDimensions({
+                    width: newWidth,
+                    height: Math.max(
+                        minHeight,
+                        resizeStartRef.current.height + deltaY,
+                    ),
+                });
+            }
         };
 
         const handleMouseUp = () => {
@@ -100,6 +113,7 @@ export function useNodeResize(
         dimensions.height,
         minWidth,
         minHeight,
+        lockedAspectRatio,
     ]);
 
     return { dimensions, handleResizeStart };

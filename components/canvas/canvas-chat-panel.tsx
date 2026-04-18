@@ -48,7 +48,7 @@ export function CanvasChatPanel({ getViewportCenter }: CanvasChatPanelProps) {
                 <Button
                     size="icon"
                     onClick={() => setIsOpen(true)}
-                    className="bg-card text-foreground border-border hover:bg-accent size-11 rounded-full border shadow-lg"
+                    className="bg-card text-foreground border-border hover:bg-accent size-10 rounded-md border shadow-sm"
                 >
                     <MessageSquare className="size-5" />
                 </Button>
@@ -57,9 +57,9 @@ export function CanvasChatPanel({ getViewportCenter }: CanvasChatPanelProps) {
     }
 
     return (
-        <div className="border-border bg-card absolute top-4 right-4 bottom-4 z-50 flex w-[380px] flex-col rounded-2xl border shadow-xl">
+        <div className="border-border bg-card absolute top-4 right-4 bottom-4 z-50 flex w-[380px] flex-col rounded-lg border shadow-md">
             {/* Header */}
-            <div className="flex h-12 shrink-0 items-center justify-between rounded-t-2xl px-4">
+            <div className="flex h-12 shrink-0 items-center justify-between rounded-t-lg px-4">
                 <h2 className="text-foreground text-sm font-semibold">Chat</h2>
                 <div className="flex items-center gap-1">
                     <Dialog>
@@ -74,7 +74,7 @@ export function CanvasChatPanel({ getViewportCenter }: CanvasChatPanelProps) {
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Clear Chat History?</DialogTitle>
+                                <DialogTitle>Clear chat history?</DialogTitle>
                                 <DialogDescription>
                                     This will permanently clear the chat history
                                     for this canvas.
@@ -110,7 +110,7 @@ export function CanvasChatPanel({ getViewportCenter }: CanvasChatPanelProps) {
             <CanvasChatMessages onExecutePlan={handleExecutePlan} />
 
             {/* Input */}
-            <div className="rounded-b-2xl">
+            <div className="rounded-b-lg">
                 <CanvasChatInput
                     getViewportCenter={getViewportCenter}
                     executePlanStreamRef={executePlanStreamRef}

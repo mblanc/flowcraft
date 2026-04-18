@@ -4,7 +4,9 @@ import { memo } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { WorkflowOutputData } from "@/lib/types";
 import { LogOut } from "lucide-react";
+import { useState } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { NodeActionBar } from "@/components/nodes/node-action-bar";
 import { Input } from "../ui/input";
 import {
     Select,
@@ -18,6 +20,7 @@ import { Label } from "../ui/label";
 export const WorkflowOutputNode = memo(
     ({ data, selected, id }: NodeProps<Node<WorkflowOutputData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const [isHovered, setIsHovered] = useState(false);
 
         const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             updateNodeData(id, { portName: e.target.value });
@@ -31,8 +34,18 @@ export const WorkflowOutputNode = memo(
 
         return (
             <div
-                className={`node-container w-64 transition-all ${selected ? "selected" : ""}`}
+                className={`node-container relative w-64 transition-all ${selected ? "selected" : ""}`}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
             >
+                <NodeActionBar
+                    isVisible={selected || isHovered}
+                    onDelete={() => useFlowStore.getState().deleteNode(id)}
+                    onSettings={() => {
+                        useFlowStore.getState().selectNode(id);
+                        useFlowStore.getState().setIsConfigSidebarOpen(true);
+                    }}
+                />
                 <div className="mb-4 flex items-start gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-orange-500/10">
                         <LogOut className="h-5 w-5 text-orange-400" />

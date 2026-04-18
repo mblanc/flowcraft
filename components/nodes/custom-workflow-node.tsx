@@ -13,6 +13,7 @@ import logger from "@/app/logger";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { shallowEqual } from "@/lib/utils";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
+import { NodeActionBar } from "@/components/nodes/node-action-bar";
 import { isGcsUri } from "@/lib/gcs-uri";
 
 function SubWorkflowOutputPreview({
@@ -186,6 +187,7 @@ export const CustomWorkflowNode = memo(
         } | null>(null);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState<string | null>(null);
+        const [isHovered, setIsHovered] = useState(false);
 
         const { dimensions, handleResizeStart } = useNodeResize(
             id,
@@ -308,9 +310,21 @@ export const CustomWorkflowNode = memo(
 
         return (
             <div
-                className={`node-container custom-workflow-node transition-all ${selected ? "selected" : ""}`}
+                className={`node-container custom-workflow-node relative transition-all ${selected ? "selected" : ""}`}
                 style={{ width: dimensions.width }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
             >
+                <NodeActionBar
+                    isVisible={selected || isHovered || data.executing}
+                    onGenerate={() => executeNode(id)}
+                    onSettings={() => {
+                        useFlowStore.getState().selectNode(id);
+                        useFlowStore.getState().setIsConfigSidebarOpen(true);
+                    }}
+                    onDelete={() => useFlowStore.getState().deleteNode(id)}
+                    isExecuting={data.executing}
+                />
                 {data.executing && (
                     <div
                         className="border-beam-glow"

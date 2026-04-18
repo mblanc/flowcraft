@@ -28,7 +28,7 @@ export function Sidebar() {
     const pathname = usePathname();
 
     return (
-        <aside className="border-border/50 bg-card/30 flex h-screen w-64 flex-col border-r backdrop-blur-xl">
+        <aside className="border-sidebar-border bg-sidebar flex h-screen w-64 flex-col border-r backdrop-blur-xl">
             <div className="flex h-16 items-center px-6">
                 <Link href="/" className="flex items-center gap-2">
                     <Image
@@ -38,7 +38,7 @@ export function Sidebar() {
                         height={32}
                         className="rounded-lg"
                     />
-                    <span className="text-foreground text-lg font-bold tracking-tight">
+                    <span className="text-foreground text-lg font-semibold tracking-tight">
                         FlowCraft
                     </span>
                 </Link>
@@ -52,23 +52,16 @@ export function Sidebar() {
                             key={item.name}
                             href={item.href}
                             className={cn(
-                                "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ease-in-out",
+                                "group relative flex items-center gap-3 rounded-lg px-[14px] py-[10px] text-sm font-medium transition-all duration-150",
                                 isActive
                                     ? "bg-primary/10 text-primary"
-                                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                                    : "text-sidebar-foreground hover:bg-accent hover:text-foreground",
                             )}
                         >
-                            <item.icon
-                                className={cn(
-                                    "h-5 w-5 transition-transform duration-200",
-                                    isActive
-                                        ? "scale-110"
-                                        : "group-hover:scale-110",
-                                )}
-                            />
+                            <item.icon className="h-5 w-5" />
                             {item.name}
                             {isActive && (
-                                <div className="bg-primary absolute left-0 h-6 w-1 rounded-r-full shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+                                <div className="bg-primary absolute left-0 h-6 w-[3px] rounded-r-full" />
                             )}
                         </Link>
                     );
@@ -79,10 +72,10 @@ export function Sidebar() {
                 <Link
                     href="/settings"
                     className={cn(
-                        "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ease-in-out",
+                        "group relative flex items-center gap-3 rounded-lg px-[14px] py-[10px] text-sm font-medium transition-all duration-150",
                         pathname === "/settings"
                             ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            : "text-sidebar-foreground hover:bg-accent hover:text-foreground",
                     )}
                 >
                     <Settings className="h-5 w-5" />

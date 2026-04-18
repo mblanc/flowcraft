@@ -146,17 +146,17 @@ export function CanvasToolbar({ getViewportCenter }: CanvasToolbarProps) {
 
     return (
         <TooltipProvider delayDuration={300}>
-            <div className="border-border bg-card/95 supports-[backdrop-filter]:bg-card/75 absolute top-1/2 left-4 z-20 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full border p-1 shadow-sm backdrop-blur">
+            <div className="border-border bg-card/95 supports-[backdrop-filter]:bg-card/75 absolute top-1/2 left-4 z-20 flex -translate-y-1/2 flex-col items-center gap-1 rounded-xl border p-1 shadow-sm backdrop-blur">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <button
                             onClick={handleAddText}
-                            className="hover:bg-accent flex h-10 w-10 items-center justify-center rounded-full transition-colors"
+                            className="hover:bg-accent flex h-10 w-10 items-center justify-center rounded-md transition-colors duration-150"
                         >
                             <Type className="h-5 w-5" />
                         </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right">Add Text</TooltipContent>
+                    <TooltipContent side="right">Add text</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
@@ -164,7 +164,7 @@ export function CanvasToolbar({ getViewportCenter }: CanvasToolbarProps) {
                         <button
                             onClick={handleImport}
                             disabled={uploading}
-                            className="hover:bg-accent flex h-10 w-10 items-center justify-center rounded-full transition-colors disabled:opacity-50"
+                            className="hover:bg-accent flex h-10 w-10 items-center justify-center rounded-md transition-colors duration-150 disabled:opacity-50"
                         >
                             {uploading ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -173,7 +173,7 @@ export function CanvasToolbar({ getViewportCenter }: CanvasToolbarProps) {
                             )}
                         </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right">Import Media</TooltipContent>
+                    <TooltipContent side="right">Import media</TooltipContent>
                 </Tooltip>
 
                 <input

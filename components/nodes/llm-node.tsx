@@ -2,18 +2,10 @@
 
 import type React from "react";
 
-import { memo, useState } from "react";
+import { memo, useState, useEffect, useRef } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { LLMData } from "@/lib/types";
-import {
-    Bot,
-    Maximize2,
-    Play,
-    Loader2,
-    Settings,
-    ChevronDown,
-    FastForward,
-} from "lucide-react";
+import { Bot, Maximize2 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/nodes/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
@@ -48,16 +40,18 @@ import { BatchTextOutput } from "@/components/nodes/batch-text-output";
 import { useNodeResize } from "@/hooks/use-node-resize";
 import { useSyncedState } from "@/hooks/use-synced-state";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
+import { NodeActionBar } from "@/components/nodes/node-action-bar";
 
 const DEFAULT_WIDTH = 400;
 const DEFAULT_HEIGHT = 300;
-const MIN_WIDTH = 340;
+const MIN_WIDTH = 300;
 const MIN_HEIGHT = 150;
 
 export const LLMNode = memo(
     ({ data, selected, id }: NodeProps<Node<LLMData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const selectNode = useFlowStore((state) => state.selectNode);
+        const deleteNode = useFlowStore((state) => state.deleteNode);
         const { executeNode, runFromNode } = useFlowExecution();
 
         const connectedNodes = useConnectedSourceNodes(id);
@@ -70,8 +64,9 @@ export const LLMNode = memo(
             "instructions",
         );
         const [isModalOpen, setIsModalOpen] = useState(false);
-        const [isRunMenuOpen, setIsRunMenuOpen] = useState(false);
         const [batchOutputIndex, setBatchOutputIndex] = useState(0);
+        const [isHovered, setIsHovered] = useState(false);
+        const nodeRef = useRef<HTMLDivElement>(null);
 
         const { dimensions, handleResizeStart } = useNodeResize(
             id,
@@ -86,10 +81,18 @@ export const LLMNode = memo(
             },
         );
 
+        const wasExecutingRef = useRef(false);
+        useEffect(() => {
+            if (data.executing) {
+                wasExecutingRef.current = true;
+            } else if (wasExecutingRef.current) {
+                wasExecutingRef.current = false;
+                (document.activeElement as HTMLElement)?.blur();
+            }
+        }, [data.executing]);
+
         const handleInstructionsChange = (value: string) => {
             setLocalInstructions(value);
-            // Keep the store in sync immediately so execution always has the
-            // latest instructions even if blur hasn't fired yet.
             updateNodeData(id, { instructions: value });
         };
 
@@ -100,32 +103,73 @@ export const LLMNode = memo(
         };
 
         const handleBlur = () => {
-            // Flush output (instructions are already saved via handleInstructionsChange)
             updateNodeData(id, { output: localOutput });
         };
 
-        const handleExecute = (e: React.MouseEvent) => {
-            e.stopPropagation();
+        const handleExecute = () => {
             executeNode(id);
         };
 
-        const handleRunFromHere = (e: React.MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
+        const handleRunFromHere = () => {
             runFromNode(id);
+        };
+
+        const handleOpenSettings = () => {
+            selectNode(id);
+            useFlowStore.getState().setIsConfigSidebarOpen(true);
+        };
+
+        const handleDelete = () => deleteNode(id);
+
+        const handleDownload = () => {
+            const text = localOutput;
+            if (!text) return;
+            const blob = new Blob([text], { type: "text/plain" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `${data.name || "output"}.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
         };
 
         return (
             <div
-                className={cn(
-                    "node-container flex flex-col",
-                    selected && "selected",
-                )}
+                ref={nodeRef}
+                className="relative"
                 style={{
                     width: dimensions.width,
                     height: dimensions.height,
                 }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                onFocusCapture={() => {
+                    selectNode(id);
+                }}
             >
+                {/* Floating title */}
+                <div className="pointer-events-auto absolute -top-7 left-2 z-20 flex items-center">
+                    <NodeTitle
+                        name={data.name}
+                        onRename={(n) => updateNodeData(id, { name: n })}
+                        className="text-foreground text-xs"
+                    />
+                </div>
+
+                {/* Action bar — visible on hover, selection, or execution */}
+                <NodeActionBar
+                    isVisible={selected || isHovered || data.executing}
+                    onGenerate={handleExecute}
+                    onRunFromHere={handleRunFromHere}
+                    onSettings={handleOpenSettings}
+                    onFullscreen={() => setIsModalOpen(true)}
+                    onDownload={localOutput ? handleDownload : undefined}
+                    onDelete={handleDelete}
+                    isExecuting={data.executing}
+                    batchProgress={data.batchProgress}
+                    batchTotal={data.batchTotal}
+                />
+
+                {/* Beam glow when executing */}
                 {data.executing && (
                     <div
                         className="border-beam-glow"
@@ -136,295 +180,174 @@ export const LLMNode = memo(
                         }
                     />
                 )}
+
+                {/* Batch badge */}
                 {data.batchTotal && data.batchTotal > 0 && !data.executing && (
                     <span className="bg-primary/20 text-primary absolute top-2 right-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-bold">
                         {data.batchTotal}x
                     </span>
                 )}
 
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="prompts-input"
-                    className="bg-blue-500"
-                    style={{ top: 35 }}
-                />
-                <div className="absolute top-[18px] right-full mr-5 text-[10px] font-semibold whitespace-nowrap text-blue-500">
+                {/* Handle labels */}
+                <div
+                    className="text-muted-foreground absolute right-full mr-3 text-[10px] font-medium whitespace-nowrap"
+                    style={{ top: "33%", transform: "translateY(-50%)" }}
+                >
                     Prompts
                 </div>
-
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="file-input"
-                    className="bg-cyan-500"
-                    style={{ top: 65 }}
-                />
-                <div className="absolute top-[48px] right-full mr-5 text-[10px] font-semibold whitespace-nowrap text-cyan-500">
+                <div
+                    className="text-muted-foreground absolute right-full mr-3 text-[10px] font-medium whitespace-nowrap"
+                    style={{ top: "66%", transform: "translateY(-50%)" }}
+                >
                     File(s)
                 </div>
 
-                <div className="flex min-h-0 flex-1 flex-col">
-                    <div className="mb-3 flex items-center gap-3">
-                        <div className="bg-primary/10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md">
-                            <Bot className="text-primary h-5 w-5" />
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between gap-2">
-                                <NodeTitle
-                                    name={data.name}
-                                    onRename={(n) =>
-                                        updateNodeData(id, { name: n })
-                                    }
-                                    className="text-foreground mb-0"
-                                />
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-center space-x-2">
-                                        <Switch
-                                            id={`view-mode-switch-${id}`}
-                                            checked={viewMode === "output"}
-                                            onCheckedChange={(checked) =>
-                                                setViewMode(
-                                                    checked
-                                                        ? "output"
-                                                        : "instructions",
-                                                )
-                                            }
-                                            className="data-[state=checked]:bg-primary h-4 w-7"
-                                        />
-                                        <Label
-                                            htmlFor={`view-mode-switch-${id}`}
-                                            className="cursor-pointer text-[10px]"
-                                        >
-                                            {viewMode === "output"
-                                                ? "Output"
-                                                : "Instructions"}
-                                        </Label>
-                                    </div>
-
-                                    <Dialog
-                                        open={isModalOpen}
-                                        onOpenChange={setIsModalOpen}
-                                    >
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <DialogTrigger asChild>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                        }}
-                                                        className="hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-                                                    >
-                                                        <Maximize2 className="h-4 w-4" />
-                                                    </button>
-                                                </DialogTrigger>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Expand editor</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                        <DialogContent className="flex h-[95vh] max-w-[95vw] flex-col overflow-hidden p-0">
-                                            <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b p-4">
-                                                <DialogTitle className="flex items-center gap-2">
-                                                    <Bot className="text-primary h-5 w-5" />
-                                                    <NodeTitle
-                                                        name={data.name}
-                                                        onRename={(n) =>
-                                                            updateNodeData(id, {
-                                                                name: n,
-                                                            })
-                                                        }
-                                                    />
-                                                </DialogTitle>
-                                                <div className="flex items-center space-x-4 pr-8">
-                                                    <div className="flex items-center space-x-2">
-                                                        <Label
-                                                            htmlFor={`modal-view-mode-switch-${id}`}
-                                                            className="cursor-pointer text-sm"
-                                                        >
-                                                            Instructions
-                                                        </Label>
-                                                        <Switch
-                                                            id={`modal-view-mode-switch-${id}`}
-                                                            checked={
-                                                                viewMode ===
-                                                                "output"
-                                                            }
-                                                            onCheckedChange={(
-                                                                checked,
-                                                            ) =>
-                                                                setViewMode(
-                                                                    checked
-                                                                        ? "output"
-                                                                        : "instructions",
-                                                                )
-                                                            }
-                                                        />
-                                                        <Label
-                                                            htmlFor={`modal-view-mode-switch-${id}`}
-                                                            className="cursor-pointer text-sm"
-                                                        >
-                                                            Output
-                                                        </Label>
-                                                    </div>
-                                                </div>
-                                            </DialogHeader>
-                                            <div className="flex flex-1 flex-col overflow-hidden p-4">
-                                                {viewMode === "instructions" ? (
-                                                    <MentionEditor
-                                                        value={
-                                                            localInstructions
-                                                        }
-                                                        onChange={
-                                                            handleInstructionsChange
-                                                        }
-                                                        onBlur={handleBlur}
-                                                        availableNodes={
-                                                            connectedNodes
-                                                        }
-                                                        placeholder="Enter instructions..."
-                                                        className="h-full w-full flex-1 text-base"
-                                                    />
-                                                ) : (
-                                                    <div className="flex min-h-0 flex-1 flex-col">
-                                                        {data.outputs &&
-                                                        data.outputs.length >
-                                                            1 ? (
-                                                            <BatchTextOutput
-                                                                outputs={
-                                                                    data.outputs
-                                                                }
-                                                                currentIndex={
-                                                                    batchOutputIndex
-                                                                }
-                                                                onIndexChange={
-                                                                    setBatchOutputIndex
-                                                                }
-                                                                className="h-full w-full flex-1"
-                                                            />
-                                                        ) : (
-                                                            <Textarea
-                                                                value={
-                                                                    localOutput
-                                                                }
-                                                                onChange={
-                                                                    handleOutputChange
-                                                                }
-                                                                onBlur={
-                                                                    handleBlur
-                                                                }
-                                                                placeholder="No output yet."
-                                                                className="nowheel nopan h-full w-full flex-1 resize-none border-none bg-transparent p-0 font-mono text-base focus-visible:ring-0 focus-visible:ring-offset-0"
-                                                            />
-                                                        )}
-                                                        {data.error && (
-                                                            <div className="bg-destructive/10 text-destructive mt-2 rounded-md p-2 text-sm">
-                                                                Error:{" "}
-                                                                {data.error}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </DialogContent>
-                                    </Dialog>
-
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
+                {/* Media box */}
+                <div
+                    className={cn(
+                        "bg-card relative flex h-full w-full flex-col overflow-hidden rounded-lg border transition-[border-color,border-width] duration-150",
+                        selected
+                            ? "border-primary border-2"
+                            : "border-border border",
+                    )}
+                >
+                    {/* Mode tabs */}
+                    <div className="border-border flex shrink-0 items-center gap-0.5 border-b px-2 pt-1.5 pb-1">
+                        <button
+                            onClick={() => setViewMode("instructions")}
+                            className={cn(
+                                "rounded px-2 py-0.5 text-[10px] transition-colors duration-150",
+                                viewMode === "instructions"
+                                    ? "bg-muted text-foreground font-medium"
+                                    : "text-muted-foreground hover:text-foreground",
+                            )}
+                        >
+                            Instructions
+                        </button>
+                        <button
+                            onClick={() => setViewMode("output")}
+                            className={cn(
+                                "rounded px-2 py-0.5 text-[10px] transition-colors duration-150",
+                                viewMode === "output"
+                                    ? "bg-muted text-foreground font-medium"
+                                    : "text-muted-foreground hover:text-foreground",
+                            )}
+                        >
+                            Output
+                        </button>
+                        <div className="flex-1" />
+                        {/* Inline expand trigger */}
+                        <Dialog
+                            open={isModalOpen}
+                            onOpenChange={setIsModalOpen}
+                        >
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DialogTrigger asChild>
                                             <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    selectNode(id);
-                                                    useFlowStore
-                                                        .getState()
-                                                        .setIsConfigSidebarOpen(
-                                                            true,
-                                                        );
-                                                }}
-                                                className="hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                                className="text-muted-foreground hover:bg-accent hover:text-foreground flex h-5 w-5 items-center justify-center rounded transition-colors"
                                             >
-                                                <Settings className="h-4 w-4" />
+                                                <Maximize2 className="h-3 w-3" />
                                             </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Settings</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-
-                                    <div className="flex items-center">
-                                        <button
-                                            onClick={handleExecute}
-                                            disabled={data.executing}
-                                            className="hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                                            title="Execute Node"
-                                        >
-                                            {data.executing &&
-                                            data.batchTotal ? (
-                                                <span className="text-[10px] font-medium tabular-nums">
-                                                    {data.batchProgress || 0}/
-                                                    {data.batchTotal}
-                                                </span>
-                                            ) : data.executing ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <Play
-                                                    className="h-4 w-4"
-                                                    fill="currentColor"
-                                                />
-                                            )}
-                                        </button>
-                                        <div className="relative">
-                                            <button
-                                                onClick={() =>
-                                                    setIsRunMenuOpen(
-                                                        !isRunMenuOpen,
+                                        </DialogTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Expand editor</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <DialogContent className="flex h-[95vh] max-w-[95vw] flex-col overflow-hidden p-0">
+                                <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b p-4">
+                                    <DialogTitle className="flex items-center gap-2">
+                                        <Bot className="text-primary h-5 w-5" />
+                                        <NodeTitle
+                                            name={data.name}
+                                            onRename={(n) =>
+                                                updateNodeData(id, { name: n })
+                                            }
+                                        />
+                                    </DialogTitle>
+                                    <div className="flex items-center space-x-4 pr-8">
+                                        <div className="flex items-center space-x-2">
+                                            <Label
+                                                htmlFor={`modal-view-mode-switch-${id}`}
+                                                className="cursor-pointer text-sm"
+                                            >
+                                                Instructions
+                                            </Label>
+                                            <Switch
+                                                id={`modal-view-mode-switch-${id}`}
+                                                checked={viewMode === "output"}
+                                                onCheckedChange={(checked) =>
+                                                    setViewMode(
+                                                        checked
+                                                            ? "output"
+                                                            : "instructions",
                                                     )
                                                 }
-                                                disabled={data.executing}
-                                                className={cn(
-                                                    "hover:bg-primary/20 text-primary flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                                                    isRunMenuOpen &&
-                                                        "bg-primary/20",
-                                                )}
+                                            />
+                                            <Label
+                                                htmlFor={`modal-view-mode-switch-${id}`}
+                                                className="cursor-pointer text-sm"
                                             >
-                                                <ChevronDown
-                                                    className={cn(
-                                                        "h-4 w-4 transition-transform",
-                                                        isRunMenuOpen &&
-                                                            "rotate-180",
-                                                    )}
+                                                Output
+                                            </Label>
+                                        </div>
+                                    </div>
+                                </DialogHeader>
+                                <div className="flex flex-1 flex-col overflow-hidden p-4">
+                                    {viewMode === "instructions" ? (
+                                        <MentionEditor
+                                            value={localInstructions}
+                                            onChange={handleInstructionsChange}
+                                            onBlur={handleBlur}
+                                            availableNodes={connectedNodes}
+                                            placeholder="Enter instructions..."
+                                            className="h-full w-full flex-1 text-base"
+                                        />
+                                    ) : (
+                                        <div className="flex min-h-0 flex-1 flex-col">
+                                            {data.outputs &&
+                                            data.outputs.length > 1 ? (
+                                                <BatchTextOutput
+                                                    outputs={data.outputs}
+                                                    currentIndex={
+                                                        batchOutputIndex
+                                                    }
+                                                    onIndexChange={
+                                                        setBatchOutputIndex
+                                                    }
+                                                    className="h-full w-full flex-1"
                                                 />
-                                            </button>
-                                            {isRunMenuOpen && (
-                                                <div className="bg-card border-border absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border shadow-lg">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            handleRunFromHere(
-                                                                e,
-                                                            );
-                                                            setIsRunMenuOpen(
-                                                                false,
-                                                            );
-                                                        }}
-                                                        disabled={
-                                                            data.executing
-                                                        }
-                                                        className="hover:bg-primary/10 text-primary flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                                                    >
-                                                        <FastForward className="h-3 w-3" />
-                                                        Run from here
-                                                    </button>
+                                            ) : (
+                                                <Textarea
+                                                    value={localOutput}
+                                                    onChange={
+                                                        handleOutputChange
+                                                    }
+                                                    onBlur={handleBlur}
+                                                    placeholder="No output yet."
+                                                    className="nowheel nopan h-full w-full flex-1 resize-none border-none bg-transparent p-0 font-mono text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+                                                />
+                                            )}
+                                            {data.error && (
+                                                <div className="bg-destructive/10 text-destructive mt-2 rounded-md p-2 text-sm">
+                                                    Error: {data.error}
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
-                            </div>
-                        </div>
+                            </DialogContent>
+                        </Dialog>
                     </div>
 
-                    <div className="bg-muted/20 flex min-h-0 flex-1 flex-col rounded-md p-2">
+                    {/* Editor content */}
+                    <div className="min-h-0 flex-1 overflow-hidden p-2">
                         {viewMode === "instructions" ? (
                             <MentionEditor
                                 value={localInstructions}
@@ -435,7 +358,7 @@ export const LLMNode = memo(
                                 className="nopan nodrag h-full w-full flex-1 text-xs"
                             />
                         ) : (
-                            <div className="flex min-h-0 flex-1 flex-col">
+                            <div className="flex h-full min-h-0 flex-col">
                                 {data.outputs && data.outputs.length > 1 ? (
                                     <BatchTextOutput
                                         outputs={data.outputs}
@@ -462,59 +385,65 @@ export const LLMNode = memo(
                     </div>
                 </div>
 
-                <div className="border-border/50 mt-3 pt-3">
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="w-fit">
-                                    <Select
-                                        value={data.model}
-                                        onValueChange={(value) =>
-                                            updateNodeData(id, { model: value })
-                                        }
-                                    >
-                                        <SelectTrigger
-                                            size="sm"
-                                            className="h-7 w-fit rounded-full px-3 text-[10px]"
-                                        >
-                                            <SelectValue placeholder="Model" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem
-                                                value={
-                                                    MODELS.TEXT
-                                                        .GEMINI_3_1_PRO_PREVIEW
-                                                }
-                                            >
-                                                Gemini 3 Pro Preview
-                                            </SelectItem>
-                                            <SelectItem
-                                                value={
-                                                    MODELS.TEXT
-                                                        .GEMINI_3_FLASH_PREVIEW
-                                                }
-                                            >
-                                                Gemini 3 Flash Preview
-                                            </SelectItem>
-                                            <SelectItem
-                                                value={
-                                                    MODELS.TEXT
-                                                        .GEMINI_3_1_FLASH_LITE_PREVIEW
-                                                }
-                                            >
-                                                Gemini 3.1 Flash Lite Preview
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Model</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                {/* Params panel — floating below media box */}
+                <div
+                    className={cn(
+                        "border-border bg-card absolute inset-x-0 z-20 rounded-lg border px-3 py-2 shadow-sm transition-opacity duration-150",
+                        selected || isHovered
+                            ? "opacity-100"
+                            : "pointer-events-none opacity-0",
+                    )}
+                    style={{ top: dimensions.height + 8 }}
+                >
+                    <Select
+                        value={data.model}
+                        onValueChange={(value) =>
+                            updateNodeData(id, { model: value })
+                        }
+                    >
+                        <SelectTrigger
+                            size="sm"
+                            className="h-6 w-fit rounded-md px-2 text-[10px]"
+                        >
+                            <SelectValue placeholder="Model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                value={MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW}
+                            >
+                                Gemini 3 Pro Preview
+                            </SelectItem>
+                            <SelectItem
+                                value={MODELS.TEXT.GEMINI_3_FLASH_PREVIEW}
+                            >
+                                Gemini 3 Flash Preview
+                            </SelectItem>
+                            <SelectItem
+                                value={
+                                    MODELS.TEXT.GEMINI_3_1_FLASH_LITE_PREVIEW
+                                }
+                            >
+                                Gemini 3.1 Flash Lite Preview
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
+                {/* Handles */}
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    id="prompts-input"
+                    className="port-string"
+                    style={{ top: "33%" }}
+                />
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    id="file-input"
+                    className="port-json"
+                    style={{ top: "66%" }}
+                />
                 <Handle
                     type="source"
                     position={Position.Right}

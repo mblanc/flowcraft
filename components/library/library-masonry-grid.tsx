@@ -21,7 +21,7 @@ export function LibraryMasonryGrid({
     if (groups.length === 0) {
         return (
             <div className="text-muted-foreground flex flex-col items-center justify-center py-24 text-center">
-                <p className="text-base font-medium">No assets yet</p>
+                <p className="text-base font-semibold">No assets yet</p>
                 <p className="mt-1 text-sm">
                     Generate images or videos from a flow or canvas to see them
                     here.

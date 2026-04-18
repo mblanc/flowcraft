@@ -896,8 +896,8 @@ export function CanvasChatInput({
     }, [detectMention]);
 
     return (
-        <div className="border-border rounded-b-2xl border-t p-3">
-            <div className="bg-muted/50 rounded-xl border">
+        <div className="border-border rounded-b-lg border-t p-3">
+            <div className="bg-muted/50 rounded-md border">
                 <CanvasAttachmentBar
                     attachments={allAttachments}
                     onRemove={handleRemoveAttachment}
@@ -986,7 +986,7 @@ export function CanvasChatInput({
                         size="icon-sm"
                         onClick={() => handleSend()}
                         disabled={!input.trim() || isChatLoading}
-                        className="shrink-0 rounded-lg"
+                        className="shrink-0 rounded-md"
                     >
                         {isChatLoading ? (
                             <Loader2 className="size-4 animate-spin" />
