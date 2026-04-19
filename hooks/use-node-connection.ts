@@ -15,7 +15,7 @@ import {
 } from "@/lib/node-registry";
 import { isTypeCompatible } from "@/lib/utils";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { createNode } from "@/lib/node-factory";
+import { createNode, getUniqueNodeName } from "@/lib/node-factory";
 import { v4 as uuidv4 } from "uuid";
 import type { CustomNodeItem } from "@/components/flow/flow-constants";
 import { nativeItems } from "@/components/flow/flow-constants";
@@ -133,6 +133,13 @@ export function useNodeConnection(
                 customNode ? "custom-workflow" : type,
                 dropdownPosition,
             );
+
+            // Ensure unique name
+            const currentNodes = useFlowStore.getState().nodes;
+            newNode.data = {
+                ...newNode.data,
+                name: getUniqueNodeName(currentNodes, newNode.data.name),
+            } as NodeData;
             if (customNode) {
                 const inputsRecord: Record<string, string> = {};
                 customNode.inputs?.forEach((p) => {

@@ -4,13 +4,23 @@ import { useEffect, useRef } from "react";
 import { MessageSquare } from "lucide-react";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { CanvasChatMessage } from "./canvas-chat-message";
+import type { AgentPlan } from "@/lib/canvas-types";
 
-export function CanvasChatMessages() {
+interface CanvasChatMessagesProps {
+    onExecutePlan?: (messageId: string, plan: AgentPlan) => void;
+}
+
+export function CanvasChatMessages({ onExecutePlan }: CanvasChatMessagesProps) {
     const messages = useCanvasStore((s) => s.messages);
     const isChatLoading = useCanvasStore((s) => s.isChatLoading);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     const lastMessageContent = messages[messages.length - 1]?.content;
+
+    // ID of the assistant message currently being streamed/planned
+    const liveAssistantId = isChatLoading
+        ? [...messages].reverse().find((m) => m.role === "assistant")?.id
+        : undefined;
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,8 +55,14 @@ export function CanvasChatMessages() {
         <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col gap-1 py-2">
                 {messages.map((message) => (
-                    <CanvasChatMessage key={message.id} message={message} />
+                    <CanvasChatMessage
+                        key={message.id}
+                        message={message}
+                        isLiveAssistant={message.id === liveAssistantId}
+                        onExecutePlan={onExecutePlan}
+                    />
                 ))}
+
                 <div ref={bottomRef} />
             </div>
         </div>

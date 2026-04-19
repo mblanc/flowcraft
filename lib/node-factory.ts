@@ -13,6 +13,7 @@ import {
     type WorkflowInputData,
     type WorkflowOutputData,
     type CustomWorkflowData,
+    type RouterData,
 } from "./types";
 import { MODELS, DEFAULTS } from "./constants";
 
@@ -170,7 +171,38 @@ export function createNode(
                     subWorkflowVersion: "",
                 } as CustomWorkflowData,
             };
+        case "router":
+            return {
+                id,
+                type: "router",
+                position,
+                data: {
+                    type: "router",
+                    name: "Router",
+                } as RouterData,
+            };
         default:
             throw new Error(`Unknown node type: ${type}`);
     }
+}
+/**
+ * Generates a unique name for a node by appending a counter if the base name already exists.
+ * @param existingNodes Current list of nodes in the flow
+ * @param baseName The starting name (e.g., "Image")
+ * @returns A unique name (e.g., "Image 1", "Image 2")
+ */
+export function getUniqueNodeName(
+    existingNodes: Node<NodeData>[],
+    baseName: string,
+): string {
+    const existingNames = new Set(existingNodes.map((n) => n.data.name));
+    let counter = 1;
+    let candidate = `${baseName}${counter}`;
+
+    while (existingNames.has(candidate)) {
+        counter += 1;
+        candidate = `${baseName}${counter}`;
+    }
+
+    return candidate;
 }

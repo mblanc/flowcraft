@@ -42,7 +42,11 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(
                 );
             }
 
-            await libraryService.updateTags(id, session.user!.id!, parsed.data.tags);
+            await libraryService.updateTags(
+                id,
+                session.user!.id!,
+                parsed.data.tags,
+            );
             return NextResponse.json({ success: true });
         } catch (error) {
             if (error instanceof Error) {

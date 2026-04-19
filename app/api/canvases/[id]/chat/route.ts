@@ -1,17 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
+import { styleService } from "@/lib/services/style.service";
+import { STYLE_TEMPLATES } from "@/lib/style-templates";
 import { streamAgentResponse } from "@/lib/canvas-agent";
 import logger from "@/app/logger";
 import type { ChatAttachment } from "@/lib/canvas-types";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
+
+interface MediaDefaults {
+    model?: string;
+    aspectRatio?: string;
+    resolution?: string;
+}
+
+interface VideoDefaultsBody extends MediaDefaults {
+    duration?: number;
+    generateAudio?: boolean;
+}
 
 interface ChatRequestBody {
     message: string;
     attachments?: ChatAttachment[];
     mode: "auto" | "image" | "video";
     model?: string;
+    imageDefaults?: MediaDefaults;
+    videoDefaults?: VideoDefaultsBody;
 }
 
 function formatSSE(event: string, data: unknown): string {
@@ -55,11 +70,7 @@ export async function POST(
 
     let canvas;
     try {
-        canvas = await canvasService.getCanvas(
-            canvasId,
-            session.user.id,
-            session.user.email ?? undefined,
-        );
+        canvas = await canvasService.getCanvas(canvasId, session.user.id);
     } catch (error) {
         if (error instanceof Error) {
             if (error.message === "Canvas not found") {
@@ -82,10 +93,35 @@ export async function POST(
         );
     }
 
+    // Resolve active style content
+    let activeStyle: { name: string; content: string } | null = null;
+    if (canvas.activeStyleId) {
+        const template = STYLE_TEMPLATES.find(
+            (t) => t.id === canvas.activeStyleId,
+        );
+        if (template) {
+            activeStyle = { name: template.name, content: template.content };
+        } else {
+            try {
+                const style = await styleService.getStyle(
+                    canvas.activeStyleId,
+                    session.user.id,
+                );
+                activeStyle = { name: style.name, content: style.content };
+            } catch {
+                logger.warn(
+                    `[ChatAPI] Could not fetch active style: ${canvas.activeStyleId}`,
+                );
+            }
+        }
+    }
+
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
         async start(controller) {
+            const encode = (payload: string) => encoder.encode(payload);
+
             try {
                 const agentStream = streamAgentResponse({
                     message: body.message,
@@ -94,39 +130,57 @@ export async function POST(
                     model: body.model,
                     history: canvas.messages,
                     canvasNodes: canvas.nodes,
+                    imageDefaults: body.imageDefaults,
+                    videoDefaults: body.videoDefaults,
+                    activeStyle,
                 });
 
                 for await (const event of agentStream) {
-                    let ssePayload: string;
                     switch (event.type) {
                         case "text":
-                            ssePayload = formatSSE("text", {
-                                delta: event.delta,
-                            });
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("text", { delta: event.delta }),
+                                ),
+                            );
                             break;
-                        case "media":
-                            ssePayload = formatSSE("media", event.media);
+
+                        case "plan":
+                            // Send the plan to the client for approval — execution
+                            // is triggered separately via /execute-plan when user confirms.
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("plan", {
+                                        steps: event.plan.steps,
+                                    }),
+                                ),
+                            );
                             break;
+
                         case "actions":
-                            ssePayload = formatSSE("actions", {
-                                actions: event.actions,
-                            });
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("actions", {
+                                        actions: event.actions,
+                                    }),
+                                ),
+                            );
                             break;
+
                         case "done":
-                            ssePayload = formatSSE("done", {});
+                            controller.enqueue(encode(formatSSE("done", {})));
                             break;
+
                         default:
                             logger.warn(
                                 `[ChatAPI] Unknown event type: ${(event as { type: string }).type}`,
                             );
-                            continue;
                     }
-                    controller.enqueue(encoder.encode(ssePayload));
                 }
             } catch (error) {
                 logger.error("[ChatAPI] Stream error:", error);
                 controller.enqueue(
-                    encoder.encode(
+                    encode(
                         formatSSE("error", {
                             message:
                                 error instanceof Error
@@ -135,7 +189,7 @@ export async function POST(
                         }),
                     ),
                 );
-                controller.enqueue(encoder.encode(formatSSE("done", {})));
+                controller.enqueue(encode(formatSSE("done", {})));
             } finally {
                 controller.close();
             }

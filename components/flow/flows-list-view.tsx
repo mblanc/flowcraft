@@ -93,9 +93,22 @@ export function FlowsListView({
                     const canvasResponse = await fetch("/api/canvases");
                     if (canvasResponse.ok) {
                         const data = await canvasResponse.json();
-                        setCanvases(data.canvases || []);
+                        const canvasList: Canvas[] = data.canvases || [];
+                        setCanvases(canvasList);
+
+                        const urls: Record<string, string> = {};
+                        const canvasUrls = await Promise.all(
+                            canvasList.map((canvas) =>
+                                fetchThumbnailUrl(canvas.id, canvas.thumbnail),
+                            ),
+                        );
+                        canvasUrls.forEach((result) => {
+                            if (result) urls[result[0]] = result[1];
+                        });
+                        setThumbnailUrls(urls);
+                    } else {
+                        setThumbnailUrls({});
                     }
-                    setThumbnailUrls({});
                 } else {
                     const [flowsResponse, customNodesResponse] =
                         await Promise.all([
@@ -335,12 +348,6 @@ export function FlowsListView({
               ? `/custom-node/${item.id}`
               : `/flow/${item.id}`;
 
-        const iconBg = isCanvas
-            ? "bg-blue-600"
-            : isCustomNode
-              ? "bg-purple-500"
-              : "bg-primary";
-
         const IconComponent = isCanvas
             ? PanelRight
             : isCustomNode
@@ -350,33 +357,31 @@ export function FlowsListView({
         return (
             <div
                 key={item.id}
-                className="group border-border bg-card relative cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+                className="group border-border bg-card relative cursor-pointer overflow-hidden rounded-lg border transition-shadow duration-150 hover:shadow-sm"
                 onClick={() => router.push(path)}
             >
-                <div className="bg-muted flex aspect-video items-center justify-center">
+                <div className="bg-muted flex aspect-video items-center justify-center overflow-hidden">
                     {thumbnailUrls[item.id] ? (
                         <Image
                             src={thumbnailUrls[item.id]}
                             alt={item.name}
                             width={400}
                             height={250}
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            className="h-full w-full object-cover"
                             unoptimized
                         />
                     ) : (
                         <div className="text-muted-foreground text-center">
-                            <div
-                                className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl shadow-lg ${iconBg}`}
-                            >
-                                <IconComponent className="h-5 w-5 text-white" />
+                            <div className="bg-muted border-border mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-md border">
+                                <IconComponent className="text-muted-foreground h-5 w-5" />
                             </div>
-                            <p className="text-xs font-medium">No preview</p>
+                            <p className="text-xs">No preview</p>
                         </div>
                     )}
                 </div>
-                <div className="p-5">
-                    <div className="mb-2 flex items-center gap-2">
-                        <h3 className="text-foreground group-hover:text-primary flex-1 truncate font-bold transition-colors">
+                <div className="p-4">
+                    <div className="mb-1.5 flex items-center gap-2">
+                        <h3 className="text-foreground group-hover:text-primary flex-1 truncate text-sm font-semibold transition-colors duration-150">
                             {item.name}
                         </h3>
                     </div>
@@ -387,7 +392,7 @@ export function FlowsListView({
                         </div>
                     </div>
                 </div>
-                <div className="absolute top-3 right-3 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                     {!isCustomNode &&
                         !isCanvas &&
                         (activeTab === "shared" ||
@@ -397,10 +402,10 @@ export function FlowsListView({
                                     e.stopPropagation();
                                     handleCloneFlow(item.id);
                                 }}
-                                title="Clone Flow"
-                                className="bg-background/90 hover:bg-background border-border rounded-xl border p-2 shadow-sm backdrop-blur-sm"
+                                title="Clone flow"
+                                className="bg-background/90 hover:bg-background border-border rounded-md border p-1.5 backdrop-blur-sm transition-colors duration-150"
                             >
-                                <Copy className="text-primary h-4 w-4" />
+                                <Copy className="text-primary h-3.5 w-3.5" />
                             </button>
                         )}
                     {(activeTab === "my" || activeTab === "canvas") && (
@@ -410,9 +415,9 @@ export function FlowsListView({
                                 onDelete(item.id);
                             }}
                             title="Delete"
-                            className="bg-background/90 hover:bg-background border-border rounded-xl border p-2 shadow-sm backdrop-blur-sm"
+                            className="bg-background/90 hover:bg-background border-border rounded-md border p-1.5 backdrop-blur-sm transition-colors duration-150"
                         >
-                            <Trash2 className="text-destructive h-4 w-4" />
+                            <Trash2 className="text-destructive h-3.5 w-3.5" />
                         </button>
                     )}
                 </div>
@@ -445,19 +450,19 @@ export function FlowsListView({
         }
 
         return (
-            <div className="border-border/50 bg-muted/30 flex h-64 flex-col items-center justify-center rounded-3xl border-2 border-dashed">
-                <div className="max-w-md text-center">
-                    <h3 className="text-foreground mb-2 text-xl font-bold">
+            <div className="border-border flex h-56 flex-col items-center justify-center rounded-lg border border-dashed">
+                <div className="max-w-sm text-center">
+                    <h3 className="text-foreground mb-1.5 text-base font-semibold">
                         {titleStr}
                     </h3>
-                    <p className="text-muted-foreground mb-6">
+                    <p className="text-muted-foreground mb-6 text-sm">
                         {descriptionStr}
                     </p>
                     {isMyTab && (
                         <Button
                             onClick={onCreate}
                             disabled={creating}
-                            className="rounded-xl px-8"
+                            className="rounded-md"
                         >
                             {creating ? (
                                 <>
@@ -467,7 +472,7 @@ export function FlowsListView({
                             ) : (
                                 <>
                                     <Plus className="mr-2 h-4 w-4" />
-                                    Create {isFlow ? "Flow" : "Custom Node"}
+                                    Create {isFlow ? "flow" : "custom node"}
                                 </>
                             )}
                         </Button>
@@ -482,13 +487,16 @@ export function FlowsListView({
     }
 
     return (
-        <div className="space-y-12">
+        <div className="space-y-16">
             <header className="flex items-end justify-between">
                 <div>
-                    <h1 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
+                    <h1
+                        className="text-foreground text-3xl font-bold sm:text-4xl"
+                        style={{ letterSpacing: "-0.02em" }}
+                    >
                         {title || "Dashboard"}
                     </h1>
-                    <p className="text-muted-foreground mt-2 text-lg">
+                    <p className="text-muted-foreground mt-1.5 text-sm">
                         {description || "Manage your projects and resources"}
                     </p>
                 </div>
@@ -496,52 +504,52 @@ export function FlowsListView({
                     <Button
                         onClick={handleCreateFlow}
                         disabled={creatingFlow}
-                        className="shadow-primary/20 rounded-xl shadow-lg"
+                        className="rounded-md"
                     >
                         {creatingFlow ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                             <Plus className="mr-2 h-4 w-4" />
                         )}
-                        New Flow
+                        New flow
                     </Button>
                 )}
                 {activeTab === "canvas" && (
                     <Button
                         onClick={handleCreateCanvas}
                         disabled={creatingCanvas}
-                        className="shadow-primary/20 rounded-xl shadow-lg"
+                        className="rounded-md"
                     >
                         {creatingCanvas ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                             <Plus className="mr-2 h-4 w-4" />
                         )}
-                        New Canvas
+                        New canvas
                     </Button>
                 )}
             </header>
 
             {loading ? (
-                <div className="flex h-96 items-center justify-center">
-                    <Loader2 className="text-primary h-12 w-12 animate-spin" />
+                <div className="flex h-64 items-center justify-center">
+                    <Loader2 className="text-primary h-8 w-8 animate-spin" />
                 </div>
             ) : activeTab === "canvas" ? (
                 <section>
                     {canvases.length === 0 ? (
-                        <div className="border-border/50 bg-muted/30 flex h-64 flex-col items-center justify-center rounded-3xl border-2 border-dashed">
-                            <div className="max-w-md text-center">
-                                <h3 className="text-foreground mb-2 text-xl font-bold">
+                        <div className="border-border flex h-56 flex-col items-center justify-center rounded-lg border border-dashed">
+                            <div className="max-w-sm text-center">
+                                <h3 className="text-foreground mb-1.5 text-base font-semibold">
                                     No canvases yet
                                 </h3>
-                                <p className="text-muted-foreground mb-6">
+                                <p className="text-muted-foreground mb-6 text-sm">
                                     Create your first canvas to start generating
                                     media with AI
                                 </p>
                                 <Button
                                     onClick={handleCreateCanvas}
                                     disabled={creatingCanvas}
-                                    className="rounded-xl px-8"
+                                    className="rounded-md"
                                 >
                                     {creatingCanvas ? (
                                         <>
@@ -551,14 +559,14 @@ export function FlowsListView({
                                     ) : (
                                         <>
                                             <Plus className="mr-2 h-4 w-4" />
-                                            Create Canvas
+                                            Create canvas
                                         </>
                                     )}
                                 </Button>
                             </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {canvases.map((canvas) =>
                                 renderCard(
                                     canvas,
@@ -571,17 +579,19 @@ export function FlowsListView({
                 </section>
             ) : (
                 <div className="space-y-12">
-                    {/* Flows Section */}
                     <section>
-                        <div className="mb-6 flex items-center gap-2">
-                            <h3 className="text-foreground text-xl font-bold">
+                        <div className="mb-4 flex items-center gap-2">
+                            <h3
+                                className="text-foreground text-base font-semibold"
+                                style={{ letterSpacing: "-0.01em" }}
+                            >
                                 {activeTab === "my"
-                                    ? "My Flows"
+                                    ? "My flows"
                                     : activeTab === "shared"
-                                      ? "Shared with Me"
-                                      : "Community Flows"}
+                                      ? "Shared with me"
+                                      : "Community flows"}
                             </h3>
-                            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-semibold">
+                            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
                                 {flows.length}
                             </span>
                         </div>
@@ -592,7 +602,7 @@ export function FlowsListView({
                                 creatingFlow,
                             )
                         ) : (
-                            <div className="grid grid-cols-1 gap-8 text-sm md:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-6 text-sm md:grid-cols-2 lg:grid-cols-3">
                                 {flows.map((flow) =>
                                     renderCard(flow, "flow", handleDeleteFlow),
                                 )}
@@ -600,14 +610,16 @@ export function FlowsListView({
                         )}
                     </section>
 
-                    {/* Custom Nodes Section - Only show in My Flows for now */}
                     {activeTab === "my" && (
                         <section>
-                            <div className="mb-6 flex items-center gap-2">
-                                <h3 className="text-foreground text-xl font-bold">
-                                    Custom Nodes
+                            <div className="mb-4 flex items-center gap-2">
+                                <h3
+                                    className="text-foreground text-base font-semibold"
+                                    style={{ letterSpacing: "-0.01em" }}
+                                >
+                                    Custom nodes
                                 </h3>
-                                <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-semibold">
+                                <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
                                     {customNodes.length}
                                 </span>
                             </div>
@@ -618,7 +630,7 @@ export function FlowsListView({
                                     creatingNode,
                                 )
                             ) : (
-                                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                                     {customNodes.map((node) =>
                                         renderCard(
                                             node,

@@ -6,8 +6,8 @@ export default function SharedPage() {
     return (
         <FlowsListView
             activeTab="shared"
-            title="Shared with Me"
-            description="View and access workflows that have been shared with you"
+            title="Shared with me"
+            description="Workflows shared with you by your team"
         />
     );
 }

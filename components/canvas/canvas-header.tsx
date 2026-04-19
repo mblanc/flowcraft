@@ -66,8 +66,8 @@ export function CanvasHeader() {
                     </Button>
                 )}
                 <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600">
-                        <PanelRight className="h-4 w-4 text-white" />
+                    <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-md">
+                        <PanelRight className="text-primary h-4 w-4" />
                     </div>
                     {canvasId ? (
                         <div className="flex items-center gap-2">

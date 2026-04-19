@@ -7,7 +7,7 @@ import {
     applyEdgeChanges,
 } from "@xyflow/react";
 import type { StateCreator } from "zustand";
-import { createNode } from "@/lib/node-factory";
+import { createNode, getUniqueNodeName } from "@/lib/node-factory";
 import type { NodeData } from "@/lib/types";
 import { migrateNodes } from "@/lib/migration";
 import type { FlowState, GraphSlice } from "./types";
@@ -72,9 +72,18 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             changes,
             get().nodes,
         ) as Node<NodeData>[];
-        const nodesById = buildNodesById(updatedNodes);
+
+        // Prevent selecting nodes that are currently executing
+        const sanitizedNodes = updatedNodes.map((node) => {
+            if (node.selected && node.data.executing) {
+                return { ...node, selected: false };
+            }
+            return node;
+        });
+
+        const nodesById = buildNodesById(sanitizedNodes);
         set({
-            nodes: updatedNodes,
+            nodes: sanitizedNodes,
             nodesById,
             selectedNode: deriveSelectedNode(nodesById, get().selectedNodeId),
             lastModified: Date.now(),
@@ -105,21 +114,35 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
         const existing = nodesById[nodeId];
         if (!existing) return;
 
-        const isExecuting = data.executing === true;
+        // Is it executing AFTER this update?
+        // It's executing if data says so explicitly, or if it was already executing and data doesn't say it finished.
+        const isExecuting =
+            data.executing !== undefined
+                ? data.executing
+                : !!existing.data.executing;
+
         const updatedNode: Node<NodeData> = {
             ...existing,
-            selected: isExecuting ? false : existing.selected,
+            // Force deselection if it is/was executing.
+            // If it's finishing (data.executing === false), we also keep it deselected.
+            selected:
+                isExecuting || data.executing === false
+                    ? false
+                    : existing.selected,
             data: { ...existing.data, ...data } as NodeData,
         };
 
         const newNodesById = { ...nodesById, [nodeId]: updatedNode };
-        // Array still needed by React Flow – map over existing with O(1) hit
         const updatedNodes = nodes.map((n) =>
             n.id === nodeId ? updatedNode : n,
         ) as Node<NodeData>[];
 
+        // If it is executing or just finished, it shouldn't be the selectedNodeId.
         const newSelectedNodeId =
-            isExecuting && selectedNodeId === nodeId ? null : selectedNodeId;
+            (isExecuting || data.executing === false) &&
+            selectedNodeId === nodeId
+                ? null
+                : selectedNodeId;
 
         set({
             nodes: updatedNodes,
@@ -142,15 +165,10 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             node.data = { ...node.data, ...data } as NodeData;
         }
 
-        const existingNames = new Set(get().nodes.map((n) => n.data.name));
-        const baseName = node.data.name;
-        let candidate = `${baseName}1`;
-        let counter = 1;
-        while (existingNames.has(candidate)) {
-            counter += 1;
-            candidate = `${baseName}${counter}`;
-        }
-        node.data = { ...node.data, name: candidate } as NodeData;
+        node.data = {
+            ...node.data,
+            name: getUniqueNodeName(get().nodes, node.data.name),
+        } as NodeData;
 
         const updatedNodes = [...get().nodes, node];
         const nodesById = { ...get().nodesById, [node.id]: node };
@@ -161,14 +179,41 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
         const { nodes } = get();
         const updatedNodes = nodes.map((n) => ({
             ...n,
-            selected: n.id === nodeId,
+            // Prevent selecting nodes that are currently executing
+            selected: n.id === nodeId && !n.data.executing,
         })) as Node<NodeData>[];
         const nodesById = buildNodesById(updatedNodes);
+        // Only set selectedNodeId if the node exists and is NOT executing
+        const finalSelectedId =
+            nodeId && nodesById[nodeId] && !nodesById[nodeId].data.executing
+                ? nodeId
+                : null;
+
         set({
             nodes: updatedNodes,
             nodesById,
-            selectedNodeId: nodeId,
-            selectedNode: deriveSelectedNode(nodesById, nodeId),
+            selectedNodeId: finalSelectedId,
+            selectedNode: deriveSelectedNode(nodesById, finalSelectedId),
+            lastModified: Date.now(),
+        });
+    },
+
+    deleteNode: (nodeId) => {
+        const { nodes, edges, selectedNodeId } = get();
+        const updatedNodes = nodes.filter(
+            (n) => n.id !== nodeId,
+        ) as Node<NodeData>[];
+        const updatedEdges = edges.filter(
+            (e) => e.source !== nodeId && e.target !== nodeId,
+        );
+        const nodesById = buildNodesById(updatedNodes);
+        const newSelectedId = selectedNodeId === nodeId ? null : selectedNodeId;
+        set({
+            nodes: updatedNodes,
+            nodesById,
+            edges: updatedEdges,
+            selectedNodeId: newSelectedId,
+            selectedNode: deriveSelectedNode(nodesById, newSelectedId),
             lastModified: Date.now(),
         });
     },

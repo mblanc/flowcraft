@@ -10,7 +10,6 @@ export const GET = withAuth<{ params: Promise<{ id: string }> }>(
             const canvas = await canvasService.getCanvas(
                 canvasId,
                 session.user!.id!,
-                session.user!.email!,
             );
             return NextResponse.json(canvas);
         } catch (error) {
@@ -47,7 +46,6 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(
                 canvasId,
                 session.user!.id!,
                 body,
-                session.user!.email!,
             );
             return NextResponse.json(updatedCanvas);
         } catch (error) {
@@ -81,7 +79,6 @@ export const DELETE = withAuth<{ params: Promise<{ id: string }> }>(
             const result = await canvasService.deleteCanvas(
                 canvasId,
                 session.user!.id!,
-                session.user!.email!,
             );
             return NextResponse.json(result);
         } catch (error) {

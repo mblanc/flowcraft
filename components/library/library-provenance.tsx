@@ -72,9 +72,7 @@ function MediaInputThumbnail({
 }) {
     const { displayUrl } = useSignedUrl(url);
     if (!displayUrl) {
-        return (
-            <div className="bg-muted h-10 w-10 animate-pulse rounded" />
-        );
+        return <div className="bg-muted h-10 w-10 animate-pulse rounded" />;
     }
     if (mimeType?.startsWith("video/")) {
         return (

@@ -2,7 +2,7 @@
 
 > **Status:** Draft
 > **Last updated:** 2026-03-29
-> **Access:** Admin-only (initial release)
+> **Access:** All users
 
 ---
 
@@ -18,14 +18,14 @@ Canvas is a new top-level feature that provides a free-form creative workspace w
 
 ### 2.1 Navigation
 
-A new **"Canvas"** tab is added to the dashboard (`/flows` page) **after** the Community tab. The tab is **only rendered when `session.user.isAdmin === true`**.
+A new **"Agents"** link is added to the sidebar navigation. The feature is available to all authenticated users.
 
-| Tab            | Value        | Icon             | Visibility     |
-| -------------- | ------------ | ---------------- | -------------- |
-| My Flows       | `my`         | `Workflow`       | All users      |
-| Shared with me | `shared`     | `Users`          | All users      |
-| Community      | `community`  | `Globe`          | All users      |
-| **Canvas**     | **`canvas`** | **`PanelRight`** | **Admin only** |
+| Tab            | Value        | Icon       | Visibility |
+| -------------- | ------------ | ---------- | ---------- |
+| My Flows       | `my`         | `Workflow` | All users  |
+| Shared with me | `shared`     | `Users`    | All users  |
+| Community      | `community`  | `Globe`    | All users  |
+| **Agents**     | **`canvas`** | **`Bot`**  | All users  |
 
 ### 2.2 Routes
 
@@ -190,7 +190,7 @@ interface GeneratedMediaRef {
 
 ### 4.1 Header
 
-- **Back button**: Returns to `/flows?tab=canvas`
+- **Back button**: Returns to `/agents`
 - **Canvas name**: Inline-editable text, auto-saves on blur
 - **Auto-save indicator**: Shows "Saving...", "Saved", or "Error" status
 
@@ -522,7 +522,7 @@ The feature will be built atomically in the following order:
 
 1. **Firestore collection & service**: `canvas.service.ts` with CRUD operations
 2. **API routes**: `/api/canvases` (list, create), `/api/canvases/[id]` (get, update, delete)
-3. **Dashboard tab**: Add "Canvas" tab (admin-only) to `/flows` page with listing, create, delete
+3. **Dashboard access**: Register `/agents` route (accessible to all users)
 4. **Canvas editor page**: `/canvas/[id]` with basic layout (header + empty React Flow canvas)
 5. **Zustand store**: `use-canvas-store.ts` with core state management
 6. **Auto-save**: Debounced persistence
@@ -570,7 +570,7 @@ The feature will be built atomically in the following order:
 
 - Canvas sharing (`sharedWith`, `sharedWithEmails`)
 - Community canvas templates
-- Opening canvas feature to non-admin users
+- Opening canvas feature to non-authenticated users (guest mode)
 - Post-processing (upscale, resize) from canvas
 - Audio generation
 - Canvas ↔ Flow integration
@@ -590,7 +590,7 @@ The feature will be built atomically in the following order:
 | Chat persistence | Part of canvas document      | Keeps data co-located, simpler queries                                        |
 | Agent LLM        | Gemini 3.1 Flash (default)   | Fast, capable, already integrated via Vertex AI                               |
 | Media storage    | GCS (existing bucket)        | Reuses existing upload/signed-URL infrastructure                              |
-| Admin gating     | `session.user.isAdmin` check | Existing pattern from `auth.ts` — env-based `ADMIN_EMAILS`                    |
+| Admin gating     | None                         | Feature is now available to all users                                         |
 | Auto-save        | Debounced PATCH (500ms)      | Same pattern as flow editor, prevents data loss                               |
 | @mentions        | Custom mention dropdown      | Similar to existing `mention-editor` in flow nodes                            |
 
@@ -599,7 +599,7 @@ The feature will be built atomically in the following order:
 ## 13. Security Considerations
 
 - All canvas API routes protected by `withAuth` (existing pattern)
-- Canvas ownership enforced: only owner can read/update/delete their canvases (admin can access all, consistent with flows)
+- Canvas ownership enforced: only owner can read/update/delete their canvases
 - Media uploads go through existing GCS upload pipeline with size limits
 - Chat messages are sanitized before rendering (XSS prevention)
 - Rate limiting on `/api/canvases/[id]/chat` to prevent generation abuse (future)

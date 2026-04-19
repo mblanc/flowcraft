@@ -8,10 +8,19 @@ import {
     useEffect,
     type KeyboardEvent,
 } from "react";
-import { SendHorizonal, Sparkles, Image, Video, Loader2 } from "lucide-react";
+import {
+    SendHorizonal,
+    Sparkles,
+    Image,
+    Video,
+    Loader2,
+    Palette,
+    Check,
+} from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
     Select,
     SelectContent,
@@ -25,8 +34,22 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+    CanvasAgentSettingsDialog,
+    DEFAULT_AGENT_SETTINGS,
+    type AgentSettings,
+} from "./canvas-agent-settings-dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { StyleDocument } from "@/lib/style-types";
+import { STYLE_TEMPLATES } from "@/lib/style-templates";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
-import { MODELS } from "@/lib/constants";
 import { CanvasAttachmentBar } from "./canvas-attachment-bar";
 import {
     CanvasMentionDropdown,
@@ -38,8 +61,11 @@ import type {
     CanvasImageData,
     CanvasVideoData,
     GeneratedMediaRef,
+    NodePayload,
+    GenerationStep,
+    AgentPlan,
 } from "@/lib/canvas-types";
-import type { MediaToGenerate } from "@/lib/canvas-agent";
+import { calculateNodePositions } from "@/lib/canvas-layout";
 
 type CanvasMode = "auto" | "image" | "video";
 
@@ -48,14 +74,6 @@ const MODES: { id: CanvasMode; label: string; icon: typeof Sparkles }[] = [
     { id: "image", label: "Image", icon: Image },
     { id: "video", label: "Video", icon: Video },
 ];
-
-const REASONING_MODELS = [
-    { id: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW, label: "Gemini 3 Flash" },
-    { id: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW, label: "Gemini 3.1 Pro" },
-    { id: MODELS.TEXT.GEMINI_2_5_FLASH, label: "Gemini 2.5 Flash" },
-];
-
-const DEFAULT_MODEL = MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
 
 interface SSEEvent {
     event: string;
@@ -90,12 +108,20 @@ function parseSSEEvents(
 
 interface CanvasChatInputProps {
     getViewportCenter: () => { x: number; y: number };
+    executePlanStreamRef?: React.RefObject<
+        ((messageId: string, plan: AgentPlan) => Promise<void>) | null
+    >;
 }
 
-export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
+export function CanvasChatInput({
+    getViewportCenter,
+    executePlanStreamRef,
+}: CanvasChatInputProps) {
     const [input, setInput] = useState("");
     const [mode, setMode] = useState<CanvasMode>("auto");
-    const [model, setModel] = useState<string>(DEFAULT_MODEL);
+    const [agentSettings, setAgentSettings] = useState<AgentSettings>(
+        DEFAULT_AGENT_SETTINGS,
+    );
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const abortRef = useRef<AbortController | null>(null);
 
@@ -113,26 +139,27 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
         new Set(),
     );
 
+    // Style picker state
+    const [userStyles, setUserStyles] = useState<StyleDocument[]>([]);
+    const [activeStyleName, setActiveStyleName] = useState<string | null>(null);
+
     const canvasId = useCanvasStore((s) => s.canvasId);
-    const canvasName = useCanvasStore((s) => s.canvasName);
     const nodes = useCanvasStore((s) => s.nodes);
     const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
+    const activeStyleId = useCanvasStore((s) => s.activeStyleId);
+    const setActiveStyleId = useCanvasStore((s) => s.setActiveStyleId);
     const addMessage = useCanvasStore((s) => s.addMessage);
     const updateMessage = useCanvasStore((s) => s.updateMessage);
     const isChatLoading = useCanvasStore((s) => s.isChatLoading);
     const setIsChatLoading = useCanvasStore((s) => s.setIsChatLoading);
     const addNode = useCanvasStore((s) => s.addNode);
-    const updateNodeData = useCanvasStore((s) => s.updateNodeData);
     const getNextLabel = useCanvasStore((s) => s.getNextLabel);
-    const getNextNodeId = useCanvasStore((s) => s.getNextNodeId);
-    const addGeneratingNodeId = useCanvasStore((s) => s.addGeneratingNodeId);
-    const removeGeneratingNodeId = useCanvasStore(
-        (s) => s.removeGeneratingNodeId,
-    );
+    const setPlanStepStatus = useCanvasStore((s) => s.setPlanStepStatus);
     const pendingActionPrompt = useCanvasStore((s) => s.pendingActionPrompt);
     const setPendingActionPrompt = useCanvasStore(
         (s) => s.setPendingActionPrompt,
     );
+    const setPlanStatus = useCanvasStore((s) => s.setPlanStatus);
 
     // Build mention items from all canvas nodes
     const mentionItems: MentionItem[] = useMemo(
@@ -208,6 +235,72 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     useEffect(() => {
         setDismissedNodeIds(new Set());
     }, [selectedNodeIds]);
+
+    // Fetch user styles for the picker
+    useEffect(() => {
+        void fetch("/api/styles")
+            .then((r) => {
+                if (!r.ok) throw new Error("Failed to load styles");
+                return r.json();
+            })
+            .then((data: { styles: StyleDocument[] }) =>
+                setUserStyles(data.styles ?? []),
+            )
+            .catch(() => toast.error("Failed to load styles"));
+    }, []);
+
+    // Resolve active style name from ID
+    useEffect(() => {
+        if (!activeStyleId) {
+            setActiveStyleName(null);
+            return;
+        }
+        const template = STYLE_TEMPLATES.find((t) => t.id === activeStyleId);
+        if (template) {
+            setActiveStyleName(template.name);
+            return;
+        }
+        const userStyle = userStyles.find((s) => s.id === activeStyleId);
+        if (userStyle) {
+            setActiveStyleName(userStyle.name);
+            return;
+        }
+        void fetch(`/api/styles/${activeStyleId}`)
+            .then((r) => r.json())
+            .then((s: { name: string }) => setActiveStyleName(s.name))
+            .catch(() => setActiveStyleName(null));
+    }, [activeStyleId, userStyles]);
+
+    const handleSelectStyle = useCallback(
+        async (styleId: string) => {
+            try {
+                const res = await fetch(`/api/canvases/${canvasId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ activeStyleId: styleId }),
+                });
+                if (!res.ok) throw new Error("Failed to set style");
+                setActiveStyleId(styleId);
+            } catch {
+                toast.error("Failed to apply style");
+            }
+        },
+        [canvasId, setActiveStyleId],
+    );
+
+    const handleClearStyle = useCallback(async () => {
+        try {
+            const res = await fetch(`/api/canvases/${canvasId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ activeStyleId: null }),
+            });
+            if (!res.ok) throw new Error("Failed to clear style");
+            setActiveStyleId(null);
+        } catch {
+            toast.error("Failed to clear style");
+        }
+    }, [canvasId, setActiveStyleId]);
 
     const handleRemoveAttachment = useCallback(
         (nodeId: string) => {
@@ -297,35 +390,77 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
         [input, closeMention],
     );
 
-    const generateMedia = useCallback(
-        async (media: MediaToGenerate, assistantMsgId: string) => {
-            const nodeType =
-                media.type === "image" ? "canvas-image" : "canvas-video";
-            const nodeId = getNextNodeId(nodeType);
-            const label = getNextLabel(nodeType);
-            const center = getViewportCenter();
+    /** Create a placeholder node for a generation step, collision-aware.
+     *  Returns { rect, nodeId } — nodeId is a fresh uuid, NOT step.id,
+     *  so multiple runs never produce duplicate canvas node IDs. */
+    const addPlaceholderNode = useCallback(
+        (
+            step: GenerationStep,
+            occupiedRects: PlaceholderRect[],
+            overridePosition?: { x: number; y: number },
+        ): { rect: PlaceholderRect; nodeId: string } => {
+            const { width, height } = parseAspectRatioDimensions(
+                step.aspectRatio,
+            );
 
-            if (media.type === "image") {
+            // Find the reference node to position near
+            const refNodeId =
+                step.referenceNodeIds?.[0] ?? step.firstFrameNodeId;
+            const refNode = refNodeId
+                ? nodes.find((n) => n.id === refNodeId)
+                : null;
+            const refRect: PlaceholderRect | null = refNode
+                ? {
+                      x: refNode.position.x,
+                      y: refNode.position.y,
+                      w:
+                          (refNode.data as { width?: number }).width ??
+                          refNode.width ??
+                          300,
+                      h:
+                          (refNode.data as { height?: number }).height ??
+                          refNode.height ??
+                          300,
+                  }
+                : null;
+
+            const center = getViewportCenter();
+            const position =
+                overridePosition ??
+                findEmptyPosition(
+                    width,
+                    height,
+                    refRect,
+                    occupiedRects,
+                    center,
+                );
+
+            const nodeId = uuidv4();
+            const nodeType =
+                step.type === "image" ? "canvas-image" : "canvas-video";
+            const label = step.label ?? getNextLabel(nodeType);
+
+            if (step.type === "image") {
                 const data: CanvasImageData = {
                     type: "canvas-image",
                     label,
                     sourceUrl: "",
                     mimeType: "image/png",
-                    prompt: media.prompt,
-                    width: 300,
-                    height: 300,
-                    aspectRatio: media.config.aspectRatio,
-                    model: media.config.model,
+                    prompt: step.prompt,
+                    width,
+                    height,
+                    aspectRatio: step.aspectRatio,
+                    model: step.model,
                     status: "generating",
-                    referenceNodeIds: media.referenceNodeIds,
+                    referenceNodeIds: step.referenceNodeIds,
                 };
                 addNode({
                     id: nodeId,
                     type: "canvas-image",
-                    position: { x: center.x - 150, y: center.y - 150 },
+                    position,
                     data,
-                    width: 300,
-                    height: 300,
+                    width,
+                    height,
                 });
             } else {
                 const data: CanvasVideoData = {
@@ -333,265 +468,251 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     label,
                     sourceUrl: "",
                     mimeType: "video/mp4",
-                    prompt: media.prompt,
-                    aspectRatio: media.config.aspectRatio,
-                    model: media.config.model,
+                    prompt: step.prompt,
+                    width,
+                    height,
+                    aspectRatio: step.aspectRatio,
+                    model: step.model,
                     status: "generating",
                     progress: 0,
-                    referenceNodeIds: media.referenceNodeIds,
+                    referenceNodeIds: step.referenceNodeIds,
                 };
                 addNode({
                     id: nodeId,
                     type: "canvas-video",
-                    position: { x: center.x - 180, y: center.y - 140 },
+                    position,
                     data,
-                    width: 360,
-                    height: 280,
+                    width,
+                    height,
                 });
             }
 
-            addGeneratingNodeId(nodeId);
-
-            const generatedRef: GeneratedMediaRef = {
+            return {
+                rect: { x: position.x, y: position.y, w: width, h: height },
                 nodeId,
-                type: nodeType,
             };
-            updateMessage(assistantMsgId, {
-                generatedMedia: [generatedRef],
+        },
+        [getViewportCenter, addNode, getNextLabel, nodes],
+    );
+
+    const executePlanStream = useCallback(
+        async (messageId: string, plan: AgentPlan) => {
+            if (!canvasId) return;
+
+            setPlanStatus(messageId, "approved");
+
+            // Seed occupied rects and create placeholder nodes
+            const occupiedRects: PlaceholderRect[] = useCanvasStore
+                .getState()
+                .nodes.map((n) => ({
+                    x: n.position.x,
+                    y: n.position.y,
+                    w: (n.data as { width?: number }).width ?? n.width ?? 300,
+                    h:
+                        (n.data as { height?: number }).height ??
+                        n.height ??
+                        300,
+                }));
+
+            const computedPositions = calculateNodePositions(
+                plan.steps,
+                useCanvasStore.getState().nodes,
+                getViewportCenter(),
+            );
+
+            const stepNodeMap = new Map<string, string>();
+            let lastImageSourceUrl: string | null = null;
+
+            plan.steps.forEach((s) => {
+                setPlanStepStatus(messageId, s.id, "pending");
+                const overridePosition = computedPositions.get(s.id);
+                const { rect, nodeId } = addPlaceholderNode(
+                    s,
+                    occupiedRects,
+                    overridePosition,
+                );
+                stepNodeMap.set(s.id, nodeId);
+                occupiedRects.push(rect);
             });
 
             try {
-                if (media.type === "image") {
-                    const referenceImages =
-                        media.referenceNodeIds
-                            ?.map((nid) => {
-                                const n = useCanvasStore
-                                    .getState()
-                                    .nodes.find((node) => node.id === nid);
-                                if (
-                                    n &&
-                                    n.type === "canvas-image" &&
-                                    "sourceUrl" in n.data &&
-                                    n.data.sourceUrl
-                                ) {
-                                    return {
-                                        url: n.data.sourceUrl as string,
-                                        type:
-                                            ("mimeType" in n.data
-                                                ? (n.data.mimeType as string)
-                                                : null) || "image/png",
-                                    };
-                                }
-                                return null;
-                            })
-                            ?.filter(Boolean) ?? [];
-
-                    const res = await fetch("/api/generate-image", {
+                const res = await fetch(
+                    `/api/canvases/${canvasId}/execute-plan`,
+                    {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            prompt: media.prompt,
-                            images: referenceImages,
-                            aspectRatio: media.config.aspectRatio || "16:9",
-                            model: media.config.model,
-                            resolution: media.config.resolution,
-                        }),
-                    });
+                        body: JSON.stringify({ plan, messageId }),
+                    },
+                );
 
-                    if (!res.ok) {
-                        const err = await res.json().catch(() => ({}));
-                        throw new Error(
-                            err.error ||
-                                `Image generation failed (${res.status})`,
-                        );
-                    }
-
-                    const { imageUrl } = await res.json();
-                    updateNodeData(nodeId, {
-                        sourceUrl: imageUrl,
-                        status: "ready",
-                    });
-
-                    // Save to library (fire-and-forget)
-                    if (canvasId) {
-                        fetch("/api/library", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                type: "image",
-                                gcsUri: imageUrl,
-                                mimeType: "image/png",
-                                aspectRatio: media.config.aspectRatio,
-                                model: media.config.model,
-                                provenance: {
-                                    sourceType: "canvas",
-                                    sourceId: canvasId,
-                                    sourceName: canvasName,
-                                    prompt: media.prompt,
-                                    mediaInputs: referenceImages.length
-                                        ? referenceImages.map((img) => ({
-                                              url: (img as { url: string }).url,
-                                              mimeType: (img as { type: string }).type,
-                                          }))
-                                        : undefined,
-                                },
-                            }),
-                        }).catch((err) => {
-                            console.error("Failed to save image to library:", err);
-                        });
-                    }
-                } else {
-                    const referenceImages =
-                        media.referenceNodeIds
-                            ?.map((nid) => {
-                                const n = useCanvasStore
-                                    .getState()
-                                    .nodes.find((node) => node.id === nid);
-                                if (
-                                    n &&
-                                    n.type === "canvas-image" &&
-                                    "sourceUrl" in n.data &&
-                                    n.data.sourceUrl
-                                ) {
-                                    return {
-                                        url: n.data.sourceUrl as string,
-                                        type:
-                                            ("mimeType" in n.data
-                                                ? (n.data.mimeType as string)
-                                                : null) || "image/png",
-                                    };
-                                }
-                                return null;
-                            })
-                            ?.filter(Boolean) ?? [];
-
-                    const firstFrameNode = media.firstFrameNodeId
-                        ? useCanvasStore
-                              .getState()
-                              .nodes.find(
-                                  (n) => n.id === media.firstFrameNodeId,
-                              )
-                        : null;
-                    const firstFrameUrl =
-                        firstFrameNode &&
-                        "sourceUrl" in firstFrameNode.data &&
-                        firstFrameNode.data.sourceUrl
-                            ? (firstFrameNode.data.sourceUrl as string)
-                            : undefined;
-
-                    const lastFrameNode = media.lastFrameNodeId
-                        ? useCanvasStore
-                              .getState()
-                              .nodes.find((n) => n.id === media.lastFrameNodeId)
-                        : null;
-                    const lastFrameUrl =
-                        lastFrameNode &&
-                        "sourceUrl" in lastFrameNode.data &&
-                        lastFrameNode.data.sourceUrl
-                            ? (lastFrameNode.data.sourceUrl as string)
-                            : undefined;
-
-                    const res = await fetch("/api/generate-video", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            prompt: media.prompt,
-                            aspectRatio: media.config.aspectRatio || "16:9",
-                            duration: media.config.duration || 4,
-                            model: media.config.model,
-                            resolution: media.config.resolution,
-                            generateAudio: media.config.generateAudio ?? false,
-                            firstFrame: firstFrameUrl,
-                            lastFrame: lastFrameUrl,
-                            images: referenceImages,
-                        }),
-                    });
-
-                    if (!res.ok) {
-                        const err = await res.json().catch(() => ({}));
-                        throw new Error(
-                            err.error ||
-                                `Video generation failed (${res.status})`,
-                        );
-                    }
-
-                    const { videoUrl } = await res.json();
-                    updateNodeData(nodeId, {
-                        sourceUrl: videoUrl,
-                        status: "ready",
-                        progress: 100,
-                    });
-
-                    // Save to library (fire-and-forget)
-                    if (canvasId) {
-                        const allVideoMediaInputs = [
-                            ...(firstFrameUrl
-                                ? [{ url: firstFrameUrl, mimeType: "image/png" }]
-                                : []),
-                            ...(lastFrameUrl
-                                ? [{ url: lastFrameUrl, mimeType: "image/png" }]
-                                : []),
-                            ...referenceImages.map((img) => ({
-                                url: (img as { url: string }).url,
-                                mimeType: (img as { type: string }).type,
-                            })),
-                        ];
-                        fetch("/api/library", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                type: "video",
-                                gcsUri: videoUrl,
-                                mimeType: "video/mp4",
-                                aspectRatio: media.config.aspectRatio,
-                                model: media.config.model,
-                                duration: media.config.duration,
-                                provenance: {
-                                    sourceType: "canvas",
-                                    sourceId: canvasId,
-                                    sourceName: canvasName,
-                                    prompt: media.prompt,
-                                    mediaInputs: allVideoMediaInputs.length
-                                        ? allVideoMediaInputs
-                                        : undefined,
-                                },
-                            }),
-                        }).catch((err) => {
-                            console.error("Failed to save video to library:", err);
-                        });
-                    }
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(
+                        err.error ||
+                            `Execute plan request failed (${res.status})`,
+                    );
                 }
 
-                toast.success(
-                    `${media.type === "image" ? "Image" : "Video"} generated successfully`,
-                );
+                const reader = res.body?.getReader();
+                if (!reader) throw new Error("No response stream");
+
+                const decoder = new TextDecoder();
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const { events, remaining } = parseSSEEvents(chunk, buffer);
+                    buffer = remaining;
+
+                    for (const sse of events) {
+                        try {
+                            const payload = JSON.parse(sse.data);
+
+                            switch (sse.event) {
+                                case "step_start":
+                                    setPlanStepStatus(
+                                        messageId,
+                                        payload.stepId,
+                                        "generating",
+                                    );
+                                    break;
+
+                                case "step_done": {
+                                    const node = payload.node as NodePayload;
+                                    setPlanStepStatus(
+                                        messageId,
+                                        payload.stepId,
+                                        "done",
+                                    );
+                                    if (
+                                        node.type === "canvas-image" &&
+                                        node.sourceUrl
+                                    ) {
+                                        lastImageSourceUrl = node.sourceUrl;
+                                    }
+                                    const nodeId = stepNodeMap.get(
+                                        payload.stepId,
+                                    );
+                                    if (nodeId) {
+                                        useCanvasStore
+                                            .getState()
+                                            .updateNodeData(nodeId, {
+                                                sourceUrl: node.sourceUrl,
+                                                label: node.label,
+                                                mimeType: node.mimeType,
+                                                status: "ready",
+                                                ...(node.type === "canvas-video"
+                                                    ? { progress: 100 }
+                                                    : {}),
+                                            });
+                                        const currentMsg = useCanvasStore
+                                            .getState()
+                                            .messages.find(
+                                                (m) => m.id === messageId,
+                                            );
+                                        const existingRefs: GeneratedMediaRef[] =
+                                            currentMsg?.generatedMedia ?? [];
+                                        updateMessage(messageId, {
+                                            generatedMedia: [
+                                                ...existingRefs,
+                                                { nodeId, type: node.type },
+                                            ],
+                                        });
+                                    }
+                                    break;
+                                }
+
+                                case "step_error": {
+                                    const nodeId = stepNodeMap.get(
+                                        payload.stepId,
+                                    );
+                                    setPlanStepStatus(
+                                        messageId,
+                                        payload.stepId,
+                                        "error",
+                                    );
+                                    if (nodeId) {
+                                        useCanvasStore
+                                            .getState()
+                                            .updateNodeData(nodeId, {
+                                                status: "error",
+                                                error: payload.message,
+                                            });
+                                    }
+                                    toast.error(
+                                        `Generation failed: ${payload.message}`,
+                                    );
+                                    break;
+                                }
+
+                                case "error":
+                                    throw new Error(
+                                        payload.message || "Stream error",
+                                    );
+
+                                case "done":
+                                    if (lastImageSourceUrl) {
+                                        fetch(`/api/canvases/${canvasId}`, {
+                                            method: "PATCH",
+                                            headers: {
+                                                "Content-Type":
+                                                    "application/json",
+                                            },
+                                            body: JSON.stringify({
+                                                thumbnail: lastImageSourceUrl,
+                                            }),
+                                        }).catch(() => {});
+                                    }
+                                    break;
+                            }
+                        } catch (parseErr) {
+                            if (
+                                parseErr instanceof Error &&
+                                parseErr.message !== "Stream error"
+                            ) {
+                                console.warn(
+                                    "Execute-plan SSE parse error:",
+                                    parseErr,
+                                );
+                            } else {
+                                throw parseErr;
+                            }
+                        }
+                    }
+                }
             } catch (error) {
+                if (
+                    error instanceof DOMException &&
+                    error.name === "AbortError"
+                ) {
+                    return;
+                }
                 const message =
                     error instanceof Error
                         ? error.message
-                        : "Generation failed";
-                updateNodeData(nodeId, {
-                    status: "error",
-                    error: message,
-                });
+                        : "Failed to execute plan";
                 toast.error(message);
-            } finally {
-                removeGeneratingNodeId(nodeId);
             }
         },
         [
-            addNode,
-            updateNodeData,
-            updateMessage,
-            getNextNodeId,
-            getNextLabel,
-            getViewportCenter,
-            addGeneratingNodeId,
-            removeGeneratingNodeId,
             canvasId,
-            canvasName,
+            setPlanStatus,
+            setPlanStepStatus,
+            addPlaceholderNode,
+            updateMessage,
+            getViewportCenter,
         ],
     );
+
+    // Keep the ref in sync so the plan approval widget can call executePlanStream
+    useEffect(() => {
+        if (executePlanStreamRef) {
+            executePlanStreamRef.current = executePlanStream;
+        }
+    }, [executePlanStreamRef, executePlanStream]);
 
     const handleSend = useCallback(
         async (overrideMessage?: string) => {
@@ -599,33 +720,30 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             if (!text || isChatLoading || !canvasId) return;
 
             const isActionPrompt = !!overrideMessage;
-            const cleanedText = text;
             const attachmentsToSend = isActionPrompt ? [] : [...allAttachments];
-
-            if (!isActionPrompt) {
-                for (const nodeId of mentionedNodeIds) {
-                    const node = nodes.find((n) => n.id === nodeId);
-                    if (
-                        node &&
-                        node.type === "canvas-text" &&
-                        !attachmentsToSend.some((a) => a.nodeId === nodeId)
-                    ) {
-                        // Text nodes stay as @Label in the message for the LLM
-                    }
-                }
-            }
 
             const userMessage: ChatMessage = {
                 id: uuidv4(),
                 role: "user",
-                content: cleanedText,
+                content: text,
                 attachments:
                     attachmentsToSend.length > 0
                         ? attachmentsToSend
                         : undefined,
-                model,
+                model: agentSettings.llmModel,
                 createdAt: new Date().toISOString(),
             };
+
+            // Auto-cancel any pending plan from a previous message
+            const currentMessages = useCanvasStore.getState().messages;
+            const pendingPlanMsg = currentMessages.find(
+                (m) =>
+                    m.role === "assistant" &&
+                    m.planStatus === "pending_approval",
+            );
+            if (pendingPlanMsg) {
+                setPlanStatus(pendingPlanMsg.id, "cancelled");
+            }
 
             addMessage(userMessage);
             if (!isActionPrompt) {
@@ -643,7 +761,7 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                 id: assistantMsgId,
                 role: "assistant",
                 content: "",
-                model,
+                model: agentSettings.llmModel,
                 createdAt: new Date().toISOString(),
             };
             addMessage(assistantMessage);
@@ -656,13 +774,35 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        message: cleanedText,
+                        message: text,
                         attachments:
                             attachmentsToSend.length > 0
                                 ? attachmentsToSend
                                 : undefined,
                         mode,
-                        model,
+                        model: agentSettings.llmModel,
+                        imageDefaults: {
+                            model: agentSettings.imageModel,
+                            ...(agentSettings.imageAspectRatio !== "auto" && {
+                                aspectRatio: agentSettings.imageAspectRatio,
+                            }),
+                            ...(agentSettings.imageResolution !== "auto" && {
+                                resolution: agentSettings.imageResolution,
+                            }),
+                        },
+                        videoDefaults: {
+                            model: agentSettings.videoModel,
+                            generateAudio: agentSettings.videoGenerateAudio,
+                            ...(agentSettings.videoAspectRatio !== "auto" && {
+                                aspectRatio: agentSettings.videoAspectRatio,
+                            }),
+                            ...(agentSettings.videoResolution !== "auto" && {
+                                resolution: agentSettings.videoResolution,
+                            }),
+                            ...(agentSettings.videoDuration !== "auto" && {
+                                duration: Number(agentSettings.videoDuration),
+                            }),
+                        },
                     }),
                     signal: abortController.signal,
                 });
@@ -680,7 +820,6 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                 const decoder = new TextDecoder();
                 let buffer = "";
                 let accumulatedText = "";
-                let pendingMedia: MediaToGenerate | null = null;
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -702,9 +841,16 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                                     });
                                     break;
 
-                                case "media":
-                                    pendingMedia = payload as MediaToGenerate;
+                                case "plan": {
+                                    const steps =
+                                        payload.steps as GenerationStep[];
+                                    // Set pending_approval — execution deferred until user confirms
+                                    updateMessage(assistantMsgId, {
+                                        plan: { steps },
+                                        planStatus: "pending_approval",
+                                    });
                                     break;
+                                }
 
                                 case "actions":
                                     if (payload.actions) {
@@ -734,10 +880,6 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
                         }
                     }
                 }
-
-                if (pendingMedia) {
-                    generateMedia(pendingMedia, assistantMsgId);
-                }
             } catch (error) {
                 if (
                     error instanceof DOMException &&
@@ -762,15 +904,13 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
             input,
             isChatLoading,
             canvasId,
-            model,
+            agentSettings,
             mode,
             allAttachments,
-            mentionedNodeIds,
-            nodes,
             addMessage,
             updateMessage,
             setIsChatLoading,
-            generateMedia,
+            setPlanStatus,
         ],
     );
 
@@ -847,11 +987,17 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
     }, [detectMention]);
 
     return (
-        <div className="border-border rounded-b-2xl border-t p-3">
-            <div className="bg-muted/50 rounded-xl border">
+        <div className="border-border rounded-b-lg border-t p-3">
+            <div className="bg-muted/50 rounded-md border">
                 <CanvasAttachmentBar
                     attachments={allAttachments}
                     onRemove={handleRemoveAttachment}
+                    activeStyle={
+                        activeStyleId && activeStyleName
+                            ? { id: activeStyleId, name: activeStyleName }
+                            : null
+                    }
+                    onClearStyle={handleClearStyle}
                 />
 
                 <div className="relative">
@@ -927,45 +1073,106 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
 
                         <div className="bg-border h-4 w-px" />
 
-                        <TooltipProvider delayDuration={300}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div>
-                                        <Select
-                                            value={model}
-                                            onValueChange={setModel}
-                                        >
-                                            <SelectTrigger
+                        <CanvasAgentSettingsDialog
+                            settings={agentSettings}
+                            onSettingsChange={setAgentSettings}
+                        />
+
+                        <div className="bg-border h-4 w-px" />
+
+                        <DropdownMenu>
+                            <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="ghost"
                                                 size="sm"
-                                                className="h-7 max-w-[140px] border-none bg-transparent px-2 text-xs shadow-none"
+                                                className={cn(
+                                                    "h-7 gap-1.5 border-none px-2 text-xs shadow-none",
+                                                    activeStyleId
+                                                        ? "text-violet-600 dark:text-violet-400"
+                                                        : "",
+                                                )}
                                             >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {REASONING_MODELS.map((m) => (
-                                                    <SelectItem
-                                                        key={m.id}
-                                                        value={m.id}
-                                                    >
-                                                        {m.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                    Reasoning model
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                                                <Palette className="size-3.5" />
+                                                {activeStyleName ?? "Style"}
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        Visual style guide
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <DropdownMenuContent align="start" className="w-52">
+                                {userStyles.length > 0 && (
+                                    <>
+                                        <DropdownMenuLabel className="text-xs">
+                                            My Styles
+                                        </DropdownMenuLabel>
+                                        {userStyles.map((s) => (
+                                            <DropdownMenuItem
+                                                key={s.id}
+                                                onClick={() =>
+                                                    handleSelectStyle(s.id)
+                                                }
+                                                className="gap-2"
+                                            >
+                                                {activeStyleId === s.id && (
+                                                    <Check className="size-3.5" />
+                                                )}
+                                                {activeStyleId !== s.id && (
+                                                    <span className="size-3.5" />
+                                                )}
+                                                <span className="truncate">
+                                                    {s.name}
+                                                </span>
+                                            </DropdownMenuItem>
+                                        ))}
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
+                                <DropdownMenuLabel className="text-xs">
+                                    Templates
+                                </DropdownMenuLabel>
+                                {STYLE_TEMPLATES.map((t) => (
+                                    <DropdownMenuItem
+                                        key={t.id}
+                                        onClick={() => handleSelectStyle(t.id)}
+                                        className="gap-2"
+                                    >
+                                        {activeStyleId === t.id && (
+                                            <Check className="size-3.5" />
+                                        )}
+                                        {activeStyleId !== t.id && (
+                                            <span className="size-3.5" />
+                                        )}
+                                        <span className="truncate">
+                                            {t.name}
+                                        </span>
+                                    </DropdownMenuItem>
+                                ))}
+                                {activeStyleId && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onClick={handleClearStyle}
+                                            className="text-muted-foreground"
+                                        >
+                                            Clear style
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     <Button
                         size="icon-sm"
                         onClick={() => handleSend()}
                         disabled={!input.trim() || isChatLoading}
-                        className="shrink-0 rounded-lg"
+                        className="shrink-0 rounded-md"
                     >
                         {isChatLoading ? (
                             <Loader2 className="size-4 animate-spin" />
@@ -981,4 +1188,107 @@ export function CanvasChatInput({ getViewportCenter }: CanvasChatInputProps) {
 
 function escapeRegex(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// ─── Placeholder positioning utilities ───────────────────────────────────────
+
+interface PlaceholderRect {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
+const GAP = 20;
+const BASE_AREA = 90_000; // ~300×300 px²
+
+function parseAspectRatioDimensions(aspectRatio?: string): {
+    width: number;
+    height: number;
+} {
+    if (!aspectRatio) return { width: 300, height: 300 };
+    const [wStr, hStr] = aspectRatio.split(":");
+    const wRatio = parseFloat(wStr);
+    const hRatio = parseFloat(hStr);
+    if (!wRatio || !hRatio) return { width: 300, height: 300 };
+    const width = Math.round(Math.sqrt(BASE_AREA * (wRatio / hRatio)));
+    const height = Math.round(BASE_AREA / width);
+    return { width, height };
+}
+
+function rectsOverlap(a: PlaceholderRect, b: PlaceholderRect): boolean {
+    return !(
+        a.x + a.w + GAP <= b.x ||
+        b.x + b.w + GAP <= a.x ||
+        a.y + a.h + GAP <= b.y ||
+        b.y + b.h + GAP <= a.y
+    );
+}
+
+function isPositionFree(
+    candidate: PlaceholderRect,
+    occupied: PlaceholderRect[],
+): boolean {
+    return !occupied.some((r) => rectsOverlap(candidate, r));
+}
+
+/**
+ * Find an empty canvas position for a new placeholder node.
+ * Tries positions around the reference rect first (right, below, left, above),
+ * then spirals outward in a grid from the anchor point.
+ */
+function findEmptyPosition(
+    w: number,
+    h: number,
+    ref: PlaceholderRect | null,
+    occupied: PlaceholderRect[],
+    viewportCenter: { x: number; y: number },
+): { x: number; y: number } {
+    const anchor = ref
+        ? { x: ref.x + ref.w / 2, y: ref.y + ref.h / 2 }
+        : viewportCenter;
+
+    // Priority candidates around the reference rect
+    if (ref) {
+        const candidates = [
+            // Right
+            { x: ref.x + ref.w + GAP, y: ref.y + (ref.h - h) / 2 },
+            // Below
+            { x: ref.x + (ref.w - w) / 2, y: ref.y + ref.h + GAP },
+            // Left
+            { x: ref.x - w - GAP, y: ref.y + (ref.h - h) / 2 },
+            // Above
+            { x: ref.x + (ref.w - w) / 2, y: ref.y - h - GAP },
+        ];
+        for (const pos of candidates) {
+            const rect = { x: pos.x, y: pos.y, w, h };
+            if (isPositionFree(rect, occupied)) return pos;
+        }
+    }
+
+    // Spiral outward in a grid from the anchor
+    const step = Math.max(w, h) + GAP;
+    for (let ring = 0; ring <= 20; ring++) {
+        if (ring === 0) {
+            const pos = { x: anchor.x - w / 2, y: anchor.y - h / 2 };
+            if (isPositionFree({ x: pos.x, y: pos.y, w, h }, occupied))
+                return pos;
+            continue;
+        }
+        // Walk the perimeter of the ring
+        for (let dx = -ring; dx <= ring; dx++) {
+            for (let dy = -ring; dy <= ring; dy++) {
+                if (Math.abs(dx) !== ring && Math.abs(dy) !== ring) continue;
+                const pos = {
+                    x: anchor.x - w / 2 + dx * step,
+                    y: anchor.y - h / 2 + dy * step,
+                };
+                if (isPositionFree({ x: pos.x, y: pos.y, w, h }, occupied))
+                    return pos;
+            }
+        }
+    }
+
+    // Absolute fallback (should never reach here)
+    return { x: anchor.x - w / 2, y: anchor.y - h / 2 };
 }

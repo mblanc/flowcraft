@@ -1,19 +1,13 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Open_Sans } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
 import { Suspense } from "react";
+
 import "./globals.css";
 
 import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ui/theme-provider";
-
-const openSans = Open_Sans({
-    weight: ["300", "400", "500", "600", "700"],
-    subsets: ["latin"],
-    variable: "--font-open-sans",
-    display: "swap",
-});
 
 export const metadata: Metadata = {
     title: "FlowCraft",
@@ -29,7 +23,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <body className={`font-sans ${openSans.variable}`}>
+            <body className={`font-sans ${GeistSans.variable}`}>
                 <NextAuthSessionProvider>
                     <ThemeProvider
                         attribute="class"

@@ -68,6 +68,7 @@ export interface GenerateImageOptions {
     resolution?: string;
     groundingGoogleSearch?: boolean;
     groundingImageSearch?: boolean;
+    systemInstruction?: string;
 }
 
 export interface GenerateVideoOptions {
@@ -80,6 +81,7 @@ export interface GenerateVideoOptions {
     model?: string;
     generateAudio?: boolean;
     resolution?: string;
+    styleInstruction?: string;
 }
 
 export interface UpscaleImageOptions {
@@ -210,6 +212,12 @@ export class GeminiService {
         logger.info(
             `[GeminiService] Streaming text with model: ${selectedModel}`,
         );
+        logger.debug(
+            `[GeminiService] System Instruction: ${JSON.stringify(options.systemInstruction, null, 2)}`,
+        );
+        logger.debug(
+            `[GeminiService] Contents: ${JSON.stringify(options.contents, null, 2)}`,
+        );
 
         const stream = await this.ai.models.generateContentStream({
             model: selectedModel,
@@ -217,6 +225,11 @@ export class GeminiService {
             config: {
                 ...options.config,
                 systemInstruction: options.systemInstruction,
+                httpOptions: {
+                    retryOptions: {
+                        attempts: 3,
+                    },
+                },
             },
         });
 
@@ -236,6 +249,7 @@ export class GeminiService {
         systemInstruction?: ContentUnion;
         model?: string;
         responseSchema: Record<string, unknown>;
+        config?: GenerateContentConfig;
     }): Promise<GenerateContentResponse> {
         const selectedModel =
             options.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
@@ -243,11 +257,18 @@ export class GeminiService {
         logger.info(
             `[GeminiService] Generating structured output with model: ${selectedModel}`,
         );
+        logger.debug(
+            `[GeminiService] System Instruction: ${JSON.stringify(options.systemInstruction, null, 2)}`,
+        );
+        logger.debug(
+            `[GeminiService] Contents: ${JSON.stringify(options.contents, null, 2)}`,
+        );
 
         return this.ai.models.generateContent({
             model: selectedModel,
             contents: options.contents,
             config: {
+                ...options.config,
                 systemInstruction: options.systemInstruction,
                 responseMimeType: "application/json",
                 responseSchema: options.responseSchema,
@@ -267,6 +288,7 @@ export class GeminiService {
             resolution,
             groundingGoogleSearch,
             groundingImageSearch,
+            systemInstruction,
         } = options;
         const selectedModel =
             model || MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW;
@@ -304,9 +326,13 @@ export class GeminiService {
                 aspectRatio: aspectRatio as string,
                 imageSize: resolution as string,
             },
-            thinkingConfig: {
-                thinkingLevel: ThinkingLevel.LOW,
-            },
+            thinkingConfig:
+                selectedModel !== MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE
+                    ? {
+                          thinkingLevel: ThinkingLevel.LOW,
+                      }
+                    : undefined,
+            ...(systemInstruction ? { systemInstruction } : {}),
         };
 
         if (groundingGoogleSearch || groundingImageSearch) {
@@ -377,6 +403,7 @@ export class GeminiService {
             model,
             generateAudio,
             resolution,
+            styleInstruction,
         } = options;
 
         const selectedModel = model || MODELS.VIDEO.VEO_3_1_LITE;
@@ -384,14 +411,18 @@ export class GeminiService {
             `[GeminiService] Generating video with model: ${selectedModel}, ${resolution}`,
         );
 
+        const effectivePrompt = styleInstruction
+            ? `${styleInstruction}\n\n${prompt}`
+            : prompt;
+
         const videoRequest: GenerateVideosParameters = {
             model: selectedModel,
-            source: { prompt },
+            source: { prompt: effectivePrompt },
             config: {
                 numberOfVideos: 1,
                 durationSeconds: duration || DEFAULTS.VIDEO_DURATION,
                 aspectRatio: aspectRatio || DEFAULTS.ASPECT_RATIO,
-                generateAudio: generateAudio !== false,
+                generateAudio: !!generateAudio,
                 resolution: (resolution as string) || "720p",
                 outputGcsUri: config.GCS_STORAGE_URI,
             },
@@ -411,11 +442,18 @@ export class GeminiService {
             };
         }
 
-        if (images && images.length > 0) {
+        const hasExplicitFrames =
+            firstFrame?.startsWith("gs://") || lastFrame?.startsWith("gs://");
+
+        if (images && images.length > 0 && !hasExplicitFrames) {
             videoRequest.config!.referenceImages = images.map((image) => ({
                 image: { gcsUri: image.url, mimeType: "image/png" },
                 referenceType: VideoGenerationReferenceType.ASSET,
             }));
+        } else if (images && images.length > 0 && hasExplicitFrames) {
+            logger.info(
+                "[GeminiService] Ignoring reference images because firstFrame/lastFrame is set",
+            );
         }
 
         logger.info(

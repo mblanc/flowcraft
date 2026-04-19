@@ -68,9 +68,7 @@ export async function executeVideoNode(
     ];
     return {
         videoUrl: data.videoUrl,
-        firstFrame,
-        lastFrame,
-        prompt: finalPrompt || undefined,
+        resolvedPrompt: finalPrompt || undefined,
         ...(mediaInputs.length ? { mediaInputs } : {}),
     };
 }

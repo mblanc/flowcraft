@@ -7,7 +7,7 @@ export default function CommunityPage() {
         <FlowsListView
             activeTab="community"
             title="Community"
-            description="Explore and discover workflow templates shared by the community"
+            description="Discover and use workflow templates shared by the community"
         />
     );
 }

@@ -7,7 +7,20 @@ import type {
     ChatMessage,
     CanvasNode,
     ChatAction,
+    AgentPlan,
+    GenerationStep,
 } from "@/lib/canvas-types";
+
+export interface MediaDefaults {
+    model?: string;
+    aspectRatio?: string;
+    resolution?: string;
+}
+
+export interface VideoDefaults extends MediaDefaults {
+    duration?: number;
+    generateAudio?: boolean;
+}
 
 export interface AgentInput {
     message: string;
@@ -16,26 +29,14 @@ export interface AgentInput {
     model?: string;
     history: ChatMessage[];
     canvasNodes: CanvasNode[];
-}
-
-export interface MediaToGenerate {
-    type: "image" | "video";
-    prompt: string;
-    referenceNodeIds?: string[];
-    firstFrameNodeId?: string;
-    lastFrameNodeId?: string;
-    config: {
-        aspectRatio?: string;
-        resolution?: string;
-        model?: string;
-        duration?: number;
-        generateAudio?: boolean;
-    };
+    imageDefaults?: MediaDefaults;
+    videoDefaults?: VideoDefaults;
+    activeStyle?: { name: string; content: string } | null;
 }
 
 export type AgentEvent =
     | { type: "text"; delta: string }
-    | { type: "media"; media: MediaToGenerate }
+    | { type: "plan"; plan: AgentPlan }
     | { type: "actions"; actions: ChatAction[] }
     | { type: "done" };
 
@@ -47,27 +48,35 @@ Your capabilities:
 - Edit and iterate on existing canvas images by using them as reference
 - Discuss and refine creative ideas
 - Understand natural-language generation config (aspect ratio, resolution, duration)
+- Plan multi-step generation workflows (e.g. "generate 4 variants", "make a portrait then animate it")
 
 Guidelines:
 - Be concise and helpful. Focus on the creative task at hand.
-- When the user asks you to create something visual, respond with a brief acknowledgment of what you'll generate.
+- When the user asks you to create something visual, respond with a brief acknowledgment of what you'll generate and how many steps the plan involves.
 - When the user shares canvas items (via selection or @mention), they will be attached as multimodal content. ALWAYS reference these items by their exact label (e.g. "Image 1", "Video 2") in your response.
 - When iterating on an existing item, acknowledge which item you're working from (e.g. "Based on Image 1, I'll..."). The referenced item will be passed as input to the generation model automatically.
 - When the user asks to "animate" or "make a video from" an image, generate a video using the image as a reference.
 - If the user specifies aspect ratio (e.g. "square", "portrait", "9:16", "vertical"), resolution (e.g. "1080p", "4K"), or duration (e.g. "8 seconds"), extract and apply those settings.
-- Suggest follow-up creative directions the user might want to explore.
 - Do NOT use markdown image or video syntax. Media will be generated separately and placed on the canvas.
+- IMPORTANT: Never end your response with a question. Do not ask the user for clarification or confirmation. Just state what you will create and proceed.
 - IMPORTANT: Reply ONLY with natural, conversational language. Do NOT output any JSON objects, ReAct formats, or tool call syntaxes. The actual media generation is automatically handled behind the scenes.`;
 
 function getModeInstruction(mode: "auto" | "image" | "video"): string {
     switch (mode) {
         case "image":
-            return "\n\nIMPORTANT: The user has selected IMAGE mode. You MUST generate an image based on their request. Craft an appropriate image generation prompt.";
+            return "\n\nIMPORTANT: The user has selected IMAGE mode. You MUST generate at least one image based on their request.";
         case "video":
-            return "\n\nIMPORTANT: The user has selected VIDEO mode. You MUST generate a video based on their request. Craft an appropriate video generation prompt.";
+            return "\n\nIMPORTANT: The user has selected VIDEO mode. You MUST generate at least one video based on their request.";
         default:
-            return "\n\nThe user is in AUTO mode. Decide whether their request requires generating an image, a video, or just a text response. If they ask for something visual, generate the appropriate media.";
+            return "\n\nThe user is in AUTO mode. Decide whether their request requires generating images, videos, or just a text response. If they ask for something visual, generate the appropriate media.";
     }
+}
+
+function buildStyleInstruction(
+    style: { name: string; content: string } | null | undefined,
+): string {
+    if (!style) return "";
+    return `\n\n## Active Style Guide: ${style.name}\n\nYou MUST apply the following visual style to EVERY media generation step you plan, whether image or video. Weave these constraints (lighting, mood, composition, color, medium, negative constraints) directly into the prompts you write for each step. Never generate media that violates the style's negative constraints.\n\n${style.content}`;
 }
 
 function buildCanvasContextSummary(nodes: CanvasNode[]): string {
@@ -75,7 +84,7 @@ function buildCanvasContextSummary(nodes: CanvasNode[]): string {
 
     const items = nodes.map((n) => {
         const d = n.data;
-        let desc = `- ${d.label} (${n.type.replace("canvas-", "")})`;
+        let desc = `- ${d.label} (id: ${n.id}, type: ${n.type.replace("canvas-", "")})`;
         if ("prompt" in d && d.prompt) desc += ` — prompt: "${d.prompt}"`;
         if ("status" in d) desc += ` [${d.status}]`;
         return desc;
@@ -115,7 +124,7 @@ function buildContents(input: AgentInput): Content[] {
                             ? "video/mp4"
                             : "image/png");
                     attachmentLabels.push(
-                        `[${att.label} (${node.type.replace("canvas-", "")})]`,
+                        `[${att.label} (id: ${att.nodeId}, type: ${node.type.replace("canvas-", "")})]`,
                     );
                     userParts.push(createPartFromUri(sourceUrl, mimeType));
                 }
@@ -137,59 +146,92 @@ function buildContents(input: AgentInput): Content[] {
     return contents;
 }
 
-const INTENT_SCHEMA = {
+const AGENT_SCHEMA = {
     type: "OBJECT" as const,
     properties: {
-        shouldGenerate: {
-            type: "BOOLEAN" as const,
-            description:
-                "Whether media should be generated based on the conversation",
-        },
-        mediaType: {
-            type: "STRING" as const,
-            enum: ["image", "video", "none"],
-            description: "Type of media to generate",
-        },
-        generationPrompt: {
+        conversationalText: {
             type: "STRING" as const,
             description:
-                "Detailed prompt for generating the media. Be specific and descriptive. If no media, leave empty.",
+                "Your natural language reply to the user. Briefly acknowledge what you will create and how many steps the plan involves. Do not ask questions.",
         },
-        aspectRatio: {
-            type: "STRING" as const,
+        steps: {
+            type: "ARRAY" as const,
             description:
-                "Aspect ratio for the media (e.g. '16:9', '1:1', '9:16'). Default to '16:9'.",
-        },
-        resolution: {
-            type: "STRING" as const,
-            enum: ["720p", "1080p", "4k"],
-            description:
-                "Resolution if explicitly specified by the user. Omit if not mentioned.",
-        },
-        duration: {
-            type: "NUMBER" as const,
-            description:
-                "Video duration in seconds (4, 6, or 8). Only for video generation. Omit if not mentioned.",
-        },
-        generateAudio: {
-            type: "BOOLEAN" as const,
-            description:
-                "For video only: whether to generate audio/sound alongside the video. Default false. Set to true only if the user explicitly requests audio, sound, music, or narration.",
-        },
-        generationModel: {
-            type: "STRING" as const,
-            description:
-                "Override generation model if the user explicitly requests a specific one. Omit if not mentioned.",
-        },
-        firstFrameLabel: {
-            type: "STRING" as const,
-            description:
-                "For video only: exact label of the canvas item to use as the first frame (e.g., 'Image 1'). Omit if unspecified.",
-        },
-        lastFrameLabel: {
-            type: "STRING" as const,
-            description:
-                "For video only: exact label of the canvas item to use as the last frame. Omit if unspecified.",
+                "List of generation steps. Empty array if no media generation needed.",
+            items: {
+                type: "OBJECT" as const,
+                properties: {
+                    id: {
+                        type: "STRING" as const,
+                        description:
+                            'Unique step identifier within this plan (e.g. "step_0", "step_1")',
+                    },
+                    type: {
+                        type: "STRING" as const,
+                        enum: ["image", "video"],
+                        description: "Type of media to generate",
+                    },
+                    prompt: {
+                        type: "STRING" as const,
+                        description:
+                            "Detailed generation prompt. Be specific and descriptive.",
+                    },
+                    label: {
+                        type: "STRING" as const,
+                        description:
+                            "Descriptive label for the generated node based on the prompt context (e.g. 'Golden Retriever', 'Sci-fi Cityscape')",
+                    },
+                    aspectRatio: {
+                        type: "STRING" as const,
+                        description:
+                            "Aspect ratio (e.g. '16:9', '1:1', '9:16'). Default '16:9'.",
+                    },
+                    resolution: {
+                        type: "STRING" as const,
+                        enum: ["512", "1K", "2K", "4K", "720p", "1080p"],
+                        description:
+                            "Resolution if explicitly specified by the user. Default 1K for images, 720p for videos.",
+                    },
+                    model: {
+                        type: "STRING" as const,
+                        description:
+                            "Override generation model if the user explicitly requests one.",
+                    },
+                    duration: {
+                        type: "NUMBER" as const,
+                        description:
+                            "Video duration in seconds (4, 6, or 8). Only for video.",
+                    },
+                    generateAudio: {
+                        type: "BOOLEAN" as const,
+                        description:
+                            "For video: generate audio. Set true only if user explicitly requests audio/sound/music/narration. Default false.",
+                    },
+                    referenceNodeIds: {
+                        type: "ARRAY" as const,
+                        items: { type: "STRING" as const },
+                        description:
+                            "IDs of existing canvas items to use as generic references. For image editing and style transfer.",
+                    },
+                    firstFrameNodeId: {
+                        type: "STRING" as const,
+                        description:
+                            "For video: exact ID of the canvas item to use as first frame.",
+                    },
+                    lastFrameNodeId: {
+                        type: "STRING" as const,
+                        description:
+                            "For video: exact ID of the canvas item to use as last frame.",
+                    },
+                    dependsOn: {
+                        type: "ARRAY" as const,
+                        items: { type: "STRING" as const },
+                        description:
+                            "Step IDs from this plan whose output should be used as reference. Use for sequential workflows like 'generate portrait then animate it'.",
+                    },
+                },
+                required: ["id", "type", "prompt", "label"],
+            },
         },
         suggestedActions: {
             type: "ARRAY" as const,
@@ -211,13 +253,37 @@ const INTENT_SCHEMA = {
             description: "2-3 suggested follow-up actions for the user",
         },
     },
-    required: [
-        "shouldGenerate",
-        "mediaType",
-        "generationPrompt",
-        "suggestedActions",
-    ],
+    required: ["conversationalText", "steps", "suggestedActions"],
 };
+
+export function applyVideoFallback(
+    step: GenerationStep,
+    type: string,
+    attachments: ChatAttachment[],
+    index: number,
+    totalSteps: number,
+) {
+    if (
+        type === "video" &&
+        !step.firstFrameNodeId &&
+        !step.lastFrameNodeId &&
+        !step.dependsOn?.length &&
+        attachments.length > 0 &&
+        !step.referenceNodeIds?.length
+    ) {
+        if (attachments.length === 1) {
+            step.firstFrameNodeId = attachments[0].nodeId;
+        } else if (attachments.length === 2) {
+            step.firstFrameNodeId = attachments[0].nodeId;
+            step.lastFrameNodeId = attachments[1].nodeId;
+        } else if (totalSteps === attachments.length) {
+            // Map 1-to-1 if counts match
+            step.firstFrameNodeId = attachments[index].nodeId;
+        } else {
+            step.referenceNodeIds = attachments.map((a) => a.nodeId);
+        }
+    }
+}
 
 export async function* streamAgentResponse(
     input: AgentInput,
@@ -225,187 +291,216 @@ export async function* streamAgentResponse(
     const model = input.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
     const canvasSummary = buildCanvasContextSummary(input.canvasNodes);
     const modeInstruction = getModeInstruction(input.mode);
-    const systemInstruction = SYSTEM_PROMPT + modeInstruction + canvasSummary;
+
+    const styleInstruction = buildStyleInstruction(input.activeStyle);
+
+    const systemInstruction = `${SYSTEM_PROMPT}${modeInstruction}${canvasSummary}${styleInstruction}
+
+You MUST respond with a JSON object matching the schema. The conversationalText field is your natural language reply. The steps array lists what to generate (empty if nothing visual is needed). The suggestedActions array provides 2-3 follow-up ideas.
+
+Guidelines for steps:
+- For "4 variants of X" → 4 steps with the same prompt, different labels.
+- Give each step a descriptive label that reflects the content (e.g., "Cute Cat", "Sci-Fi Scene") instead of generic labels like "Image" or "Video".
+- For sequential workflows ("generate a portrait then animate it") → step_0 generates the image, step_1 is video with dependsOn: ["step_0"].
+- For no generation → steps: [].
+- Each step that references an existing canvas item should list those items' IDs in referenceNodeIds (generic reference), firstFrameNodeId (video first frame), or lastFrameNodeId (video last frame).
+- IMPORTANT: You must ONLY use Node IDs that are explicitly listed in the 'Current canvas items' list above. Do NOT invent, assume, or generate any other IDs.
+
+For aspect ratio: ONLY include if the user explicitly mentioned it. Map: "square"→"1:1", "portrait"/"vertical"→"9:16", "landscape"/"wide"→"16:9". Otherwise omit.
+For resolution: ONLY include if the user explicitly mentioned it. Map: "HD"→"2K", "1080p"→"1080p", "4K"/"ultra"→"4K". Otherwise omit.
+For video duration: ONLY include if the user explicitly mentioned a duration. Otherwise omit.
+For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music/narration. Default false.`;
 
     const contents = buildContents(input);
 
     logger.info(
-        `[CanvasAgent] Streaming response. Mode=${input.mode}, Model=${model}, History=${input.history.length} messages, Attachments=${input.attachments?.length ?? 0}`,
+        `[CanvasAgent] Single-pass response. Mode=${input.mode}, Model=${model}, History=${input.history.length} messages, Attachments=${input.attachments?.length ?? 0}`,
     );
 
-    // Phase A: Stream conversational text
-    let fullText = "";
     try {
-        for await (const delta of geminiService.generateTextStream({
+        const response = await geminiService.generateStructured({
             contents,
-            systemInstruction: systemInstruction,
+            systemInstruction,
             model,
-        })) {
-            fullText += delta;
-            yield { type: "text", delta };
-        }
-        logger.debug(`[CanvasAgent] Phase A complete: ${fullText}`);
-    } catch (error) {
-        logger.error("[CanvasAgent] Streaming error:", error);
-        if (!fullText) {
-            yield {
-                type: "text",
-                delta: "Sorry, I encountered an error processing your request.",
-            };
-        }
-        yield { type: "done" };
-        return;
-    }
-
-    // Phase B: Structured intent detection for media generation + suggested actions
-    try {
-        const intentContents: Content[] = [
-            ...contents.slice(0, -1),
-            contents[contents.length - 1],
-            { role: "model", parts: [{ text: fullText }] },
-        ];
-
-        const hasAttachments =
-            input.attachments && input.attachments.length > 0;
-        const attachmentContext = hasAttachments
-            ? `\n\nThe user has shared ${input.attachments!.length} canvas item(s) as reference. These MUST be used as reference material for the generation. When crafting the generation prompt, incorporate details from the referenced items. For example:
-- If an image is shared and the user wants edits → generate an image with the edit instructions (the original is passed as reference automatically).
-- If an image is shared and the user wants a video → generate a video. If the user explicitly asks to use an image as the first or last frame, set firstFrameLabel and lastFrameLabel to the exact label of the image.
-- If a video is shared and the user wants changes → generate a new video with the updated instructions.`
-            : "";
-
-        const intentSystemPrompt = `You are analyzing a conversation between a user and a creative media assistant on a visual canvas.
-Based on the conversation, determine:
-1. Whether media (image or video) should be generated
-2. If so, craft a detailed generation prompt
-3. Extract any generation configuration the user specified (aspect ratio, resolution, duration)
-4. Suggest 2-3 follow-up actions the user might want
-
-${modeInstruction}${attachmentContext}
-
-For aspect ratio, map natural language: "square" → "1:1", "portrait"/"vertical" → "9:16", "landscape"/"wide"/"horizontal" → "16:9", "cinematic"/"ultrawide" → "21:9". Default to "16:9" if unspecified.
-For resolution, accept "720p", "1080p", or "4k". Default to unspecified (let the system choose).
-For video duration, accept 4, 6, or 8 seconds. Default to unspecified.
-For audio, set generateAudio to true ONLY if the user explicitly asks for audio, sound, music, voiceover, or narration with the video. Default to false.
-
-If the user is asking a question, making conversation, or the assistant already declined to generate, set shouldGenerate to false and mediaType to "none".`;
-
-        const intentResponse = await geminiService.generateStructured({
-            contents: intentContents,
-            systemInstruction: intentSystemPrompt,
-            model,
-            responseSchema: INTENT_SCHEMA,
+            responseSchema: AGENT_SCHEMA,
         });
 
-        const intentText = intentResponse.candidates?.[0]?.content?.parts
+        const responseText = response.candidates?.[0]?.content?.parts
             ?.filter((p) => p.text)
             .map((p) => p.text)
             .join("");
 
-        logger.debug(`[CanvasAgent] Phase B raw intent: ${intentText}`);
+        if (!responseText) {
+            yield {
+                type: "text",
+                delta: "Sorry, I encountered an error processing your request.",
+            };
+            yield { type: "done" };
+            return;
+        }
 
-        if (intentText) {
-            const intent = JSON.parse(intentText);
+        logger.debug(`[CanvasAgent] Raw response: ${responseText}`);
 
-            if (
-                intent.shouldGenerate &&
-                intent.mediaType !== "none" &&
-                intent.generationPrompt
-            ) {
-                let referenceNodeIds = input.attachments
-                    ?.map((a) => a.nodeId)
-                    .filter(Boolean);
+        const parsed = JSON.parse(responseText) as {
+            conversationalText: string;
+            steps: Array<{
+                id: string;
+                type: "image" | "video";
+                prompt: string;
+                label?: string;
+                aspectRatio?: string;
+                resolution?: string;
+                model?: string;
+                duration?: number;
+                generateAudio?: boolean;
+                referenceNodeIds?: string[];
+                firstFrameNodeId?: string;
+                lastFrameNodeId?: string;
+                dependsOn?: string[];
+            }>;
+            suggestedActions?: Array<{ label: string; prompt: string }>;
+        };
 
-                let firstFrameNodeId: string | undefined;
-                let lastFrameNodeId: string | undefined;
+        // Emit conversational text
+        if (parsed.conversationalText) {
+            yield { type: "text", delta: parsed.conversationalText };
+        }
 
-                if (
-                    intent.mediaType === "video" &&
-                    referenceNodeIds &&
-                    referenceNodeIds.length > 0
-                ) {
-                    if (intent.firstFrameLabel) {
-                        const att = input.attachments?.find(
-                            (a) =>
-                                a.label?.toLowerCase() ===
-                                intent.firstFrameLabel?.toLowerCase(),
-                        );
-                        if (att) firstFrameNodeId = att.nodeId;
+        const attachments = input.attachments ?? [];
+
+        // Emit plan if there are steps
+        if (parsed.steps && parsed.steps.length > 0) {
+            const steps: GenerationStep[] = parsed.steps.map((s, index) => {
+                const isVideo = s.type === "video";
+                const typeDefaults = isVideo
+                    ? input.videoDefaults
+                    : input.imageDefaults;
+
+                const step: GenerationStep = {
+                    id: s.id,
+                    type: s.type,
+                    prompt: s.prompt,
+                    ...(s.label ? { label: s.label } : {}),
+                    aspectRatio:
+                        s.aspectRatio ?? typeDefaults?.aspectRatio ?? "16:9",
+                    ...((s.resolution ?? typeDefaults?.resolution)
+                        ? {
+                              resolution:
+                                  s.resolution ?? typeDefaults?.resolution,
+                          }
+                        : {}),
+                    ...((s.model ?? typeDefaults?.model)
+                        ? { model: s.model ?? typeDefaults?.model }
+                        : {}),
+                    ...(isVideo &&
+                    (s.duration ??
+                        (input.videoDefaults as VideoDefaults | undefined)
+                            ?.duration)
+                        ? {
+                              duration:
+                                  s.duration ??
+                                  (
+                                      input.videoDefaults as
+                                          | VideoDefaults
+                                          | undefined
+                                  )?.duration,
+                          }
+                        : {}),
+                    generateAudio:
+                        s.generateAudio ??
+                        (input.videoDefaults as VideoDefaults | undefined)
+                            ?.generateAudio ??
+                        false,
+                    ...(s.dependsOn && s.dependsOn.length > 0
+                        ? { dependsOn: s.dependsOn }
+                        : {}),
+                };
+
+                // Validate referenced node IDs against known canvas nodes
+                if (s.referenceNodeIds && s.referenceNodeIds.length > 0) {
+                    const validIds = s.referenceNodeIds.filter(
+                        (id) =>
+                            input.canvasNodes.some((n) => n.id === id) ||
+                            attachments.some((a) => a.nodeId === id),
+                    );
+                    if (validIds.length > 0) {
+                        step.referenceNodeIds = validIds;
                     }
-                    if (intent.lastFrameLabel) {
-                        const att = input.attachments?.find(
-                            (a) =>
-                                a.label?.toLowerCase() ===
-                                intent.lastFrameLabel?.toLowerCase(),
+                    if (validIds.length < s.referenceNodeIds.length) {
+                        logger.warn(
+                            `[CanvasAgent] Ignored some hallucinated referenceNodeIds`,
                         );
-                        if (att) lastFrameNodeId = att.nodeId;
-                    }
-
-                    // Fallback programmatic logic if LLM didn't specify explicitly
-                    if (!firstFrameNodeId && !lastFrameNodeId) {
-                        if (referenceNodeIds.length === 1) {
-                            firstFrameNodeId = referenceNodeIds[0];
-                            referenceNodeIds = []; // Consumed
-                        } else if (referenceNodeIds.length === 2) {
-                            firstFrameNodeId = referenceNodeIds[0];
-                            lastFrameNodeId = referenceNodeIds[1];
-                            referenceNodeIds = []; // Consumed
-                        } else {
-                            // more -> always references images
-                            // If there are 3+, keep them all as references, do not set first/last frame
-                        }
-                    } else {
-                        // User explicitly assigned frames, and they are incompatible with generic references.
-                        // Clear the remaining references so we don't mix them.
-                        referenceNodeIds = [];
                     }
                 }
 
-                yield {
-                    type: "media",
-                    media: {
-                        type: intent.mediaType as "image" | "video",
-                        prompt: intent.generationPrompt,
-                        referenceNodeIds:
-                            referenceNodeIds && referenceNodeIds.length > 0
-                                ? referenceNodeIds
-                                : undefined,
-                        firstFrameNodeId,
-                        lastFrameNodeId,
-                        config: {
-                            aspectRatio: intent.aspectRatio || "16:9",
-                            ...(intent.resolution
-                                ? { resolution: intent.resolution }
-                                : {}),
-                            ...(intent.generationModel
-                                ? { model: intent.generationModel }
-                                : {}),
-                            ...(intent.duration
-                                ? { duration: intent.duration }
-                                : {}),
-                            generateAudio: intent.generateAudio === true,
-                        },
-                    },
-                };
-            }
+                if (s.firstFrameNodeId) {
+                    const isValid =
+                        input.canvasNodes.some(
+                            (n) => n.id === s.firstFrameNodeId,
+                        ) ||
+                        attachments.some(
+                            (a) => a.nodeId === s.firstFrameNodeId,
+                        );
+                    if (isValid) {
+                        step.firstFrameNodeId = s.firstFrameNodeId;
+                    } else {
+                        logger.warn(
+                            `[CanvasAgent] Ignored hallucinated firstFrameNodeId: ${s.firstFrameNodeId}`,
+                        );
+                    }
+                }
 
-            if (
-                intent.suggestedActions &&
-                Array.isArray(intent.suggestedActions) &&
-                intent.suggestedActions.length > 0
-            ) {
-                const actions: ChatAction[] = intent.suggestedActions
-                    .slice(0, 3)
-                    .map((a: { label: string; prompt: string }, i: number) => ({
-                        id: String(i + 1),
-                        label: a.label,
-                        prompt: a.prompt,
-                    }));
-                yield { type: "actions", actions };
-            }
+                if (s.lastFrameNodeId) {
+                    const isValid =
+                        input.canvasNodes.some(
+                            (n) => n.id === s.lastFrameNodeId,
+                        ) ||
+                        attachments.some((a) => a.nodeId === s.lastFrameNodeId);
+                    if (isValid) {
+                        step.lastFrameNodeId = s.lastFrameNodeId;
+                    } else {
+                        logger.warn(
+                            `[CanvasAgent] Ignored hallucinated lastFrameNodeId: ${s.lastFrameNodeId}`,
+                        );
+                    }
+                }
+
+                // Programmatic fallback for video when LLM didn't specify frames
+                applyVideoFallback(
+                    step,
+                    s.type,
+                    attachments,
+                    index,
+                    parsed.steps.length,
+                );
+
+                return step;
+            });
+
+            yield { type: "plan", plan: { steps } };
+        }
+
+        // Emit suggested actions
+        if (
+            parsed.suggestedActions &&
+            Array.isArray(parsed.suggestedActions) &&
+            parsed.suggestedActions.length > 0
+        ) {
+            const actions: ChatAction[] = parsed.suggestedActions
+                .slice(0, 3)
+                .map((a: { label: string; prompt: string }, i: number) => ({
+                    id: String(i + 1),
+                    label: a.label,
+                    prompt: a.prompt,
+                }));
+            yield { type: "actions", actions };
         }
     } catch (error) {
-        logger.warn("[CanvasAgent] Intent detection failed:", error);
+        logger.error("[CanvasAgent] Error:", error);
+        yield {
+            type: "text",
+            delta: "Sorry, I encountered an error processing your request.",
+        };
     }
 
     yield { type: "done" };

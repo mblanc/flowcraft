@@ -96,10 +96,9 @@ export default function LibraryPage() {
             const searchParam = debouncedSearch
                 ? `&search=${encodeURIComponent(debouncedSearch)}`
                 : `&limit=${PAGE_LIMIT}`;
-            const res = await fetch(
-                `/api/library?type=${type}${searchParam}`,
-                { signal: controller.signal },
-            );
+            const res = await fetch(`/api/library?type=${type}${searchParam}`, {
+                signal: controller.signal,
+            });
             if (!res.ok) {
                 toast.error("Failed to load library");
                 return;
@@ -235,20 +234,23 @@ export default function LibraryPage() {
     if (status === "loading") {
         return (
             <div className="flex h-64 items-center justify-center">
-                <Loader2 className="text-primary h-12 w-12 animate-spin" />
+                <Loader2 className="text-primary h-8 w-8 animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-16">
             <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
+                    <h1
+                        className="text-foreground text-3xl font-bold sm:text-4xl"
+                        style={{ letterSpacing: "-0.02em" }}
+                    >
                         Library
                     </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Explore your generated assets and media
+                    <p className="text-muted-foreground mt-1.5 text-sm">
+                        Your generated images and videos
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -259,7 +261,7 @@ export default function LibraryPage() {
                 </div>
             </header>
 
-            <div className="border-border/50 bg-card/50 sticky top-0 z-10 -mx-4 flex items-center justify-between border-y px-4 py-3 backdrop-blur-sm sm:mx-0 sm:rounded-2xl sm:border">
+            <div className="border-border bg-card/50 sticky top-0 z-10 -mx-4 flex items-center justify-between border-y px-4 py-3 backdrop-blur-sm sm:mx-0 sm:rounded-lg sm:border">
                 <LibraryTabs activeTab={activeTab} onChange={setActiveTab} />
                 <div className="text-muted-foreground text-sm font-medium">
                     {assets.length} items
@@ -269,7 +271,7 @@ export default function LibraryPage() {
             <main>
                 {loading ? (
                     <div className="flex justify-center py-24">
-                        <Loader2 className="text-primary h-12 w-12 animate-spin" />
+                        <Loader2 className="text-primary h-8 w-8 animate-spin" />
                     </div>
                 ) : (
                     <>

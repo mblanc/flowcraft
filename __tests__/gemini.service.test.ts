@@ -292,6 +292,56 @@ describe("GeminiService", () => {
             delaySpy.mockRestore();
         });
 
+        it("should prioritize firstFrame/lastFrame over reference images", async () => {
+            mockAi.models.generateVideos.mockResolvedValue({
+                done: false,
+                name: "ops/456",
+            });
+            mockAi.operations.get.mockResolvedValue({
+                done: true,
+                response: {
+                    generatedVideos: [
+                        { video: { uri: "gs://video-frames.mp4" } },
+                    ],
+                },
+            });
+
+            const delaySpy = vi
+                .spyOn(global, "setTimeout")
+                .mockImplementation((cb) => {
+                    cb();
+                    return 0 as any;
+                });
+
+            await geminiService.generateVideo({
+                prompt: "Animate this scene",
+                firstFrame: "gs://first.png",
+                lastFrame: "gs://last.png",
+                images: [{ url: "gs://ref.png", type: "image/png" }],
+            });
+
+            expect(mockAi.models.generateVideos).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    source: expect.objectContaining({
+                        image: {
+                            gcsUri: "gs://first.png",
+                            mimeType: "image/png",
+                        },
+                    }),
+                    config: expect.objectContaining({
+                        lastFrame: {
+                            gcsUri: "gs://last.png",
+                            mimeType: "image/png",
+                        },
+                    }),
+                }),
+            );
+
+            const calledWith = mockAi.models.generateVideos.mock.calls[0][0];
+            expect(calledWith.config.referenceImages).toBeUndefined();
+            delaySpy.mockRestore();
+        });
+
         it("should throw if times out", async () => {
             mockAi.models.generateVideos.mockResolvedValue({ done: false });
             mockAi.operations.get.mockResolvedValue({ done: false });

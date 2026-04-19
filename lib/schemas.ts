@@ -54,6 +54,7 @@ export const BaseNodeDataSchema = z.object({
     error: z.string().optional(),
     batchTotal: z.number().optional(),
     batchProgress: z.number().optional(),
+    resolvedPrompt: z.string().optional(),
 });
 
 export const LLMDataSchema = BaseNodeDataSchema.extend({
@@ -97,6 +98,9 @@ export const ImageDataSchema = BaseNodeDataSchema.extend({
     groundingImageSearch: z.boolean().default(false),
     width: z.number().optional(),
     height: z.number().optional(),
+    mediaInputs: z
+        .array(z.object({ url: z.string(), mimeType: z.string().optional() }))
+        .optional(),
 });
 
 export const VideoDataSchema = BaseNodeDataSchema.extend({
@@ -118,9 +122,12 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
         ]),
     ),
     generateAudio: z.boolean(),
-    resolution: z.enum(["720p", "1080p", "4k"]),
+    resolution: z.enum(["720p", "1080p", "4K"]),
     width: z.number().optional(),
     height: z.number().optional(),
+    mediaInputs: z
+        .array(z.object({ url: z.string(), mimeType: z.string().optional() }))
+        .optional(),
 });
 
 export const FileDataSchema = BaseNodeDataSchema.extend({
@@ -186,6 +193,12 @@ export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({
     results: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
 });
 
+export const RouterDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("router"),
+    value: z.unknown().optional(),
+    valueMediaType: z.enum(["image", "video", "pdf"]).optional(),
+});
+
 export const NodeDataSchema = z.discriminatedUnion("type", [
     LLMDataSchema,
     TextDataSchema,
@@ -198,6 +211,7 @@ export const NodeDataSchema = z.discriminatedUnion("type", [
     WorkflowInputDataSchema,
     WorkflowOutputDataSchema,
     CustomWorkflowDataSchema,
+    RouterDataSchema,
 ]);
 
 export const NodeSchema = z.object({
@@ -336,7 +350,7 @@ export const GenerateVideoSchema = z.object({
             .default(MODELS.VIDEO.VEO_3_1_LITE),
     ),
     generateAudio: z.boolean().optional().default(true),
-    resolution: z.enum(["720p", "1080p", "4k"]).optional().default("720p"),
+    resolution: z.enum(["720p", "1080p", "4K"]).optional().default("720p"),
 });
 
 export const ResizeImageSchema = z.object({
@@ -436,4 +450,5 @@ export type ListData = z.infer<typeof ListDataSchema>;
 export type WorkflowInputData = z.infer<typeof WorkflowInputDataSchema>;
 export type WorkflowOutputData = z.infer<typeof WorkflowOutputDataSchema>;
 export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;
+export type RouterData = z.infer<typeof RouterDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;

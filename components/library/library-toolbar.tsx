@@ -19,7 +19,7 @@ export function LibraryToolbar({
                 placeholder="Search by prompt or tag..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-ring w-full rounded-lg border py-2 pr-4 pl-9 text-sm focus:ring-2 focus:outline-none"
+                className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-ring w-full rounded-md border py-2 pr-4 pl-9 text-sm focus:ring-2 focus:outline-none"
             />
         </div>
     );

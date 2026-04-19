@@ -35,77 +35,29 @@ export function Sidebar() {
     const getNodeTypeInfo = () => {
         switch (selectedNode.data.type) {
             case "llm":
-                return {
-                    title: "Agent Configuration",
-                    icon: Bot,
-                    color: "text-primary",
-                };
+                return { title: "Agent settings", icon: Bot };
             case "text":
-                return {
-                    title: "Text Configuration",
-                    icon: FileText,
-                    color: "text-purple-400",
-                };
+                return { title: "Text settings", icon: FileText };
             case "image":
-                return {
-                    title: "Image Configuration",
-                    icon: ImageIcon,
-                    color: "text-orange-400",
-                };
+                return { title: "Image settings", icon: ImageIcon };
             case "video":
-                return {
-                    title: "Video Configuration",
-                    icon: Video,
-                    color: "text-pink-400",
-                };
+                return { title: "Video settings", icon: Video };
             case "file":
-                return {
-                    title: "File Configuration",
-                    icon: FileUp,
-                    color: "text-cyan-400",
-                };
+                return { title: "File settings", icon: FileUp };
             case "upscale":
-                return {
-                    title: "Upscale Configuration",
-                    icon: ZoomIn,
-                    color: "text-red-400",
-                };
+                return { title: "Upscale settings", icon: ZoomIn };
             case "resize":
-                return {
-                    title: "Resize Configuration",
-                    icon: Scaling,
-                    color: "text-blue-400",
-                };
+                return { title: "Resize settings", icon: Scaling };
             case "list":
-                return {
-                    title: "List Configuration",
-                    icon: ListOrdered,
-                    color: "text-teal-400",
-                };
+                return { title: "List settings", icon: ListOrdered };
             case "workflow-input":
-                return {
-                    title: "Input Configuration",
-                    icon: LogIn,
-                    color: "text-blue-400",
-                };
+                return { title: "Input settings", icon: LogIn };
             case "workflow-output":
-                return {
-                    title: "Output Configuration",
-                    icon: LogOut,
-                    color: "text-orange-400",
-                };
+                return { title: "Output settings", icon: LogOut };
             case "custom-workflow":
-                return {
-                    title: "Custom Node Configuration",
-                    icon: Box,
-                    color: "text-purple-500",
-                };
+                return { title: "Custom node settings", icon: Box };
             default:
-                return {
-                    title: "Configuration",
-                    icon: Bot,
-                    color: "text-primary",
-                };
+                return { title: "Settings", icon: Bot };
         }
     };
 
@@ -115,7 +67,7 @@ export function Sidebar() {
         <div className="border-border bg-card flex w-96 flex-col border-l">
             <div className="border-border flex items-center justify-between border-b px-4 py-3">
                 <div className="flex items-center gap-2">
-                    <nodeInfo.icon className={`h-4 w-4 ${nodeInfo.color}`} />
+                    <nodeInfo.icon className="text-muted-foreground h-4 w-4" />
                     <h3 className="text-sm font-semibold">{nodeInfo.title}</h3>
                 </div>
                 <Button

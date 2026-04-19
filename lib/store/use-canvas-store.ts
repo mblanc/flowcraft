@@ -6,6 +6,8 @@ import type {
     CanvasDocument,
     CanvasNode,
     ChatMessage,
+    PlanStatus,
+    StepStatus,
 } from "@/lib/canvas-types";
 
 export interface CanvasStore {
@@ -15,6 +17,7 @@ export interface CanvasStore {
     nodes: CanvasNode[];
     viewport: { x: number; y: number; zoom: number };
     messages: ChatMessage[];
+    activeStyleId: string | null;
 
     // UI state
     selectedNodeIds: string[];
@@ -45,10 +48,21 @@ export interface CanvasStore {
     setSaveStatus: (status: "saved" | "saving" | "error") => void;
     addGeneratingNodeId: (id: string) => void;
     removeGeneratingNodeId: (id: string) => void;
+    clearMessages: () => void;
+    setActiveStyleId: (id: string | null) => void;
 
     // Action prompt (set by suggested-action buttons, consumed by chat input)
     pendingActionPrompt: string | null;
     setPendingActionPrompt: (prompt: string | null) => void;
+
+    // Per-message step statuses for plan cards (ephemeral, not persisted)
+    planStepStatuses: Record<string, Record<string, StepStatus>>;
+    setPlanStepStatus: (
+        messageId: string,
+        stepId: string,
+        status: StepStatus,
+    ) => void;
+    setPlanStatus: (messageId: string, status: PlanStatus) => void;
 
     // Node ID generation
     getNextLabel: (
@@ -71,12 +85,14 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     nodes: [],
     viewport: { x: 0, y: 0, zoom: 1 },
     messages: [],
+    activeStyleId: null,
     selectedNodeIds: [],
     isSaving: false,
     saveStatus: "saved" as const,
     isChatLoading: false,
     generatingNodeIds: [],
     pendingActionPrompt: null,
+    planStepStatuses: {},
     lastModified: 0,
 
     setCanvas: (canvas) =>
@@ -86,6 +102,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
             nodes: canvas.nodes,
             viewport: canvas.viewport,
             messages: canvas.messages,
+            activeStyleId: canvas.activeStyleId ?? null,
             selectedNodeIds: [],
             lastModified: 0,
         }),
@@ -175,6 +192,10 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
             lastModified: Date.now(),
         })),
 
+    clearMessages: () => set({ messages: [], lastModified: Date.now() }),
+
+    setActiveStyleId: (id) => set({ activeStyleId: id }),
+
     setIsChatLoading: (loading) => set({ isChatLoading: loading }),
 
     setSaveStatus: (status) =>
@@ -193,6 +214,25 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
         })),
 
     setPendingActionPrompt: (prompt) => set({ pendingActionPrompt: prompt }),
+
+    setPlanStepStatus: (messageId, stepId, status) =>
+        set((state) => ({
+            planStepStatuses: {
+                ...state.planStepStatuses,
+                [messageId]: {
+                    ...(state.planStepStatuses[messageId] ?? {}),
+                    [stepId]: status,
+                },
+            },
+        })),
+
+    setPlanStatus: (messageId, status) =>
+        set((state) => ({
+            messages: state.messages.map((m) =>
+                m.id === messageId ? { ...m, planStatus: status } : m,
+            ),
+            lastModified: Date.now(),
+        })),
 
     getNextLabel: (type) => {
         const prefix = TYPE_PREFIX_MAP[type];

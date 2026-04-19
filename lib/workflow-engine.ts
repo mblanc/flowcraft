@@ -9,6 +9,19 @@ import {
 } from "./types";
 import { getNodeDefinition, ExecutionContext } from "./node-registry";
 import type { LibraryAssetProvenance } from "./library-types";
+import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-url-cache";
+
+async function prewarmSignedUrls(result: Partial<NodeData>): Promise<void> {
+    const uris: string[] = [];
+    if ("images" in result && Array.isArray(result.images)) {
+        uris.push(...result.images.filter((u): u is string => !!u?.startsWith("gs://")));
+    }
+    if ("videos" in result && Array.isArray(result.videos)) {
+        uris.push(...result.videos.filter((u): u is string => !!u?.startsWith("gs://")));
+    }
+    if (uris.length === 0) return;
+    await Promise.all(uris.map(fetchAndCacheSignedUrl));
+}
 
 // --- Batch / Unfold helpers ---
 
@@ -227,7 +240,19 @@ export class WorkflowEngine {
     }
 
     async executeNode(nodeId: string) {
+        await this.executeUpstreamRouters(nodeId);
         return this.executeNodeSync(nodeId);
+    }
+
+    private async executeUpstreamRouters(nodeId: string): Promise<void> {
+        const incomingEdges = this.edges.filter((e) => e.target === nodeId);
+        for (const edge of incomingEdges) {
+            const sourceNode = this.nodesMap.get(edge.source);
+            if (sourceNode?.data.type === "router") {
+                await this.executeUpstreamRouters(edge.source);
+                await this.executeNodeSync(edge.source);
+            }
+        }
     }
 
     private async executeNodeSync(nodeId: string) {
@@ -324,6 +349,10 @@ export class WorkflowEngine {
 
             this.executionResults.set(nodeId, result);
 
+            // Pre-warm signed URL cache before updating the node so the first
+            // render after execution resolves the URL synchronously (no placeholder flash).
+            await prewarmSignedUrls(result);
+
             // Fire-and-forget: save generated media to library
             this.saveToLibrary(node, result).catch((err) =>
                 logger.warn(
@@ -375,6 +404,7 @@ export class WorkflowEngine {
                     | string
                     | undefined) ?? node.data.type,
             prompt:
+                (r.resolvedPrompt as string | undefined) ??
                 (r.prompt as string | undefined) ??
                 ((node.data as Record<string, unknown>).prompt as
                     | string

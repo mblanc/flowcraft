@@ -115,8 +115,10 @@ export async function executeImageNode(
 
     return {
         images: [data.imageUrl],
-        prompt: promptSource || undefined,
-        mediaInputs: inputs.images?.length ? inputs.images : undefined,
+        resolvedPrompt: promptSource || undefined,
+        mediaInputs: inputs.images?.length
+            ? inputs.images.map((i) => ({ url: i.url, mimeType: i.type }))
+            : undefined,
     };
 }
 

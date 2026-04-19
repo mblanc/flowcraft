@@ -103,12 +103,12 @@ export function Header() {
                 )}
                 <div className="flex items-center gap-2">
                     <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-md ${isCustomNode ? "bg-purple-500" : "bg-primary"}`}
+                        className={`flex h-8 w-8 items-center justify-center rounded-md ${isCustomNode ? "bg-muted" : "bg-primary/10"}`}
                     >
                         {isCustomNode ? (
-                            <Box className="h-4 w-4 text-white" />
+                            <Box className="text-muted-foreground h-4 w-4" />
                         ) : (
-                            <Workflow className="text-primary-foreground h-4 w-4" />
+                            <Workflow className="text-primary h-4 w-4" />
                         )}
                     </div>
                     {flowId ? (
@@ -188,7 +188,7 @@ export function Header() {
                         size="sm"
                         onClick={handleClone}
                         disabled={isCloning}
-                        className="bg-purple-600 hover:bg-purple-700"
+                        className=""
                     >
                         <Copy className="mr-2 h-4 w-4" />
                         {isCloning ? "Cloning..." : "Remix"}

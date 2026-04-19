@@ -10,6 +10,7 @@ import {
     WorkflowInputData as InferredWorkflowInputData,
     WorkflowOutputData as InferredWorkflowOutputData,
     CustomWorkflowData as InferredCustomWorkflowData,
+    RouterData as InferredRouterData,
     NodeData as InferredNodeData,
     BaseNodeDataSchema,
 } from "./schemas";
@@ -34,7 +35,8 @@ export type NodeType =
     | "list"
     | "workflow-input"
     | "workflow-output"
-    | "custom-workflow";
+    | "custom-workflow"
+    | "router";
 
 export type ContentPart =
     | { kind: "text"; text: string }
@@ -73,6 +75,7 @@ export type ListData = InferredListData;
 export type WorkflowInputData = InferredWorkflowInputData;
 export type WorkflowOutputData = InferredWorkflowOutputData;
 export type CustomWorkflowData = InferredCustomWorkflowData;
+export type RouterData = InferredRouterData;
 export type NodeData = InferredNodeData;
 
 export type BaseNodeData = z.infer<typeof BaseNodeDataSchema> & {
