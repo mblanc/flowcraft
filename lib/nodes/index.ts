@@ -11,6 +11,7 @@ export { listNodeDefinition } from "./list-node";
 export { workflowInputNodeDefinition } from "./workflow-input-node";
 export { workflowOutputNodeDefinition } from "./workflow-output-node";
 export { customWorkflowNodeDefinition } from "./custom-workflow-node";
+export { routerNodeDefinition } from "./router-node";
 
 import { llmNodeDefinition } from "./llm-node";
 import { imageNodeDefinition } from "./image-node";
@@ -23,6 +24,7 @@ import { listNodeDefinition } from "./list-node";
 import { workflowInputNodeDefinition } from "./workflow-input-node";
 import { workflowOutputNodeDefinition } from "./workflow-output-node";
 import { customWorkflowNodeDefinition } from "./custom-workflow-node";
+import { routerNodeDefinition } from "./router-node";
 
 export const allNodeDefinitions: NodeDefinition<NodeData, NodeInputs>[] = [
     llmNodeDefinition,
@@ -36,4 +38,5 @@ export const allNodeDefinitions: NodeDefinition<NodeData, NodeInputs>[] = [
     workflowInputNodeDefinition,
     workflowOutputNodeDefinition,
     customWorkflowNodeDefinition,
+    routerNodeDefinition,
 ] as NodeDefinition<NodeData, NodeInputs>[];

@@ -74,6 +74,7 @@ const VALUE_STRATEGIES: Partial<Record<NodeType, ValueStrategy>> = {
     },
     list: (data) => data.items,
     file: (data) => data.gcsUri,
+    router: (data) => data.value,
 };
 
 export const getSourceValue = (data: NodeData | null): unknown => {
@@ -191,6 +192,11 @@ export function inferMimeType(
 
     const meta = sourceData as Record<string, unknown> | null;
     if (meta) {
+        if (meta.type === "router" && meta.valueMediaType) {
+            if (meta.valueMediaType === "image") return "image/png";
+            if (meta.valueMediaType === "video") return "video/mp4";
+            if (meta.valueMediaType === "pdf") return "application/pdf";
+        }
         if (meta.fileType === "pdf" || meta.portType === "pdf")
             return "application/pdf";
         if (

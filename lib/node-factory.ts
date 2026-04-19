@@ -13,6 +13,7 @@ import {
     type WorkflowInputData,
     type WorkflowOutputData,
     type CustomWorkflowData,
+    type RouterData,
 } from "./types";
 import { MODELS, DEFAULTS } from "./constants";
 
@@ -169,6 +170,16 @@ export function createNode(
                     subWorkflowId: "",
                     subWorkflowVersion: "",
                 } as CustomWorkflowData,
+            };
+        case "router":
+            return {
+                id,
+                type: "router",
+                position,
+                data: {
+                    type: "router",
+                    name: "Router",
+                } as RouterData,
             };
         default:
             throw new Error(`Unknown node type: ${type}`);

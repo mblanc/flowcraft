@@ -9,10 +9,12 @@ import { WorkflowInputNode } from "../nodes/workflow-input-node";
 import { WorkflowOutputNode } from "../nodes/workflow-output-node";
 import { CustomWorkflowNode } from "../nodes/custom-workflow-node";
 import { ListNode } from "../nodes/list-node";
+import { RouterNode } from "../nodes/router-node";
 import type { CustomNodePort } from "@/lib/types";
 import {
     Bot,
     FileText,
+    GitMerge,
     ImageIcon,
     Video,
     FileUp,
@@ -42,6 +44,7 @@ export const nodeTypes = {
     "workflow-input": WorkflowInputNode,
     "workflow-output": WorkflowOutputNode,
     "custom-workflow": CustomWorkflowNode,
+    router: RouterNode,
 };
 
 export const NODE_COLORS: Record<string, string> = {
@@ -56,6 +59,7 @@ export const NODE_COLORS: Record<string, string> = {
     "workflow-input": "#60a5fa", // blue-400
     "workflow-output": "#fb923c", // orange-400
     "custom-workflow": "#3b82f6", // blue-500
+    router: "#6b7280", // gray-500
 };
 
 export const nativeItems = [
@@ -70,6 +74,12 @@ export const nativeItems = [
         icon: ListOrdered,
         color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "List",
+    },
+    {
+        type: "router",
+        icon: GitMerge,
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
+        label: "Router",
     },
     {
         type: "file",

@@ -7,12 +7,14 @@ import { videoNodeDefinition } from "../lib/nodes/video-node";
 import { resizeNodeDefinition } from "../lib/nodes/resize-node";
 import { upscaleNodeDefinition } from "../lib/nodes/upscale-node";
 import { imageNodeDefinition } from "../lib/nodes/image-node";
+import { routerNodeDefinition } from "../lib/nodes/router-node";
 import type { Node, Edge } from "@xyflow/react";
 import type {
     VideoData,
     ImageData,
     ResizeData,
     UpscaleData,
+    RouterData,
     NodeData,
 } from "../lib/types";
 
@@ -385,5 +387,254 @@ describe("imageNodeDefinition.gatherInputs", () => {
             () => null,
         );
         expect(inputs.images).toHaveLength(0);
+    });
+
+    it("collects images through a router with valueMediaType=image (extensionless URL)", () => {
+        const node = makeImageNodeFull();
+        const edges = [edge("e1", "router-1", "img-1", "image-input")];
+        const routerData: NodeData = {
+            type: "router",
+            name: "Router",
+            value: ["gs://bucket/uuid-no-extension"],
+            valueMediaType: "image",
+        } as unknown as NodeData;
+        const inputs = imageNodeDefinition.gatherInputs(
+            node,
+            edges,
+            () => routerData,
+        );
+        expect(inputs.images).toContainEqual({
+            url: "gs://bucket/uuid-no-extension",
+            type: "image/png",
+        });
+    });
+});
+
+function makeRouterNode(id = "router-1"): Node<RouterData> {
+    return {
+        id,
+        type: "router",
+        position: { x: 0, y: 0 },
+        data: { type: "router", name: "Router" } as RouterData,
+    };
+}
+
+describe("routerNodeDefinition.gatherInputs", () => {
+    it("returns value and valueMediaType=image from an image node source", () => {
+        const node = makeRouterNode();
+        const edges = [edge("e1", "img-src", "router-1", "input")];
+        const sourceData: NodeData = {
+            type: "image",
+            name: "I",
+            images: ["gs://bucket/uuid"],
+        } as unknown as NodeData;
+        const inputs = routerNodeDefinition.gatherInputs(
+            node,
+            edges,
+            () => sourceData,
+        );
+        expect(inputs.value).toEqual(["gs://bucket/uuid"]);
+        expect(inputs.valueMediaType).toBe("image");
+    });
+
+    it("returns value and valueMediaType=video from a video node source", () => {
+        const node = makeRouterNode();
+        const edges = [edge("e1", "vid-src", "router-1", "input")];
+        const sourceData: NodeData = {
+            type: "video",
+            name: "V",
+            videoUrl: "gs://bucket/vid",
+        } as unknown as NodeData;
+        const inputs = routerNodeDefinition.gatherInputs(
+            node,
+            edges,
+            () => sourceData,
+        );
+        expect(inputs.value).toBe("gs://bucket/vid");
+        expect(inputs.valueMediaType).toBe("video");
+    });
+
+    it("returns valueMediaType=image from a file node with fileType=image", () => {
+        const node = makeRouterNode();
+        const edges = [edge("e1", "file-src", "router-1", "input")];
+        const sourceData: NodeData = {
+            type: "file",
+            name: "F",
+            fileType: "image",
+            fileUrl: "",
+            fileName: "",
+            gcsUri: "gs://bucket/photo",
+        } as unknown as NodeData;
+        const inputs = routerNodeDefinition.gatherInputs(
+            node,
+            edges,
+            () => sourceData,
+        );
+        expect(inputs.value).toBe("gs://bucket/photo");
+        expect(inputs.valueMediaType).toBe("image");
+    });
+
+    it("propagates valueMediaType through chained routers", () => {
+        const node = makeRouterNode("router-2");
+        const edges = [edge("e1", "router-1", "router-2", "input")];
+        const upstreamRouter: NodeData = {
+            type: "router",
+            name: "Router1",
+            value: ["gs://bucket/uuid"],
+            valueMediaType: "image",
+        } as unknown as NodeData;
+        const inputs = routerNodeDefinition.gatherInputs(
+            node,
+            edges,
+            () => upstreamRouter,
+        );
+        expect(inputs.valueMediaType).toBe("image");
+    });
+
+    it("returns undefined valueMediaType for text source", () => {
+        const node = makeRouterNode();
+        const edges = [edge("e1", "txt-src", "router-1", "input")];
+        const sourceData: NodeData = {
+            type: "text",
+            name: "T",
+            text: "hello",
+        } as unknown as NodeData;
+        const inputs = routerNodeDefinition.gatherInputs(
+            node,
+            edges,
+            () => sourceData,
+        );
+        expect(inputs.valueMediaType).toBeUndefined();
+    });
+
+    it("returns undefined value when no input edge", () => {
+        const node = makeRouterNode();
+        const inputs = routerNodeDefinition.gatherInputs(node, [], () => null);
+        expect(inputs.value).toBeUndefined();
+        expect(inputs.valueMediaType).toBeUndefined();
+    });
+});
+
+// ─── Integration: image1 → router → image2 ──────────────────────────────────
+// Simulates exactly what the workflow engine does:
+//   1. image1.execute() → produces images
+//   2. router.gatherInputs() reads image1's post-execution data
+//   3. router.execute() → produces value + valueMediaType
+//   4. image2.gatherInputs() reads router's post-execution data (merge of initial + execute result)
+//   5. image2's inputs.images must contain image1's output with correct MIME type
+
+describe("image1 → router → image2 execution chain", () => {
+    const IMG1_URL = "gs://bucket/uuid-no-extension"; // extensionless, like real generated URLs
+
+    function mergeExecutionResult(
+        initialData: NodeData,
+        result: Partial<NodeData>,
+    ): NodeData {
+        return { ...initialData, ...result } as NodeData;
+    }
+
+    it("image1 output reaches image2 inputs.images with correct MIME type", async () => {
+        // ── Setup nodes ──
+        const image1Node = makeImageNodeFull("img-1");
+        const routerNode = makeRouterNode("router-1");
+        const image2Node = makeImageNodeFull("img-2");
+
+        const edges: Edge[] = [
+            edge("e1", "img-1", "router-1", "input"),
+            edge("e2", "router-1", "img-2", "image-input"),
+        ];
+
+        // ── Step 1: image1 executes, producing an image URL ──
+        const image1ExecuteResult = { images: [IMG1_URL] };
+        const image1PostExecution = mergeExecutionResult(
+            image1Node.data,
+            image1ExecuteResult,
+        );
+
+        // ── Step 2: router gatherInputs reads image1's post-execution data ──
+        const routerInputs = routerNodeDefinition.gatherInputs(
+            routerNode,
+            edges,
+            (id) => (id === "img-1" ? image1PostExecution : null),
+        );
+
+        expect(routerInputs.value).toEqual([IMG1_URL]);
+        expect(routerInputs.valueMediaType).toBe("image");
+
+        // ── Step 3: router executes ──
+        const routerExecuteResult = await routerNodeDefinition.execute(
+            routerNode,
+            routerInputs,
+        );
+        const routerPostExecution = mergeExecutionResult(
+            routerNode.data,
+            routerExecuteResult as Partial<NodeData>,
+        );
+
+        expect(routerPostExecution).toMatchObject({
+            type: "router",
+            value: [IMG1_URL],
+            valueMediaType: "image",
+        });
+
+        // ── Step 4: image2 gatherInputs reads router's post-execution data ──
+        const image2Inputs = imageNodeDefinition.gatherInputs(
+            image2Node,
+            edges,
+            (id) => (id === "router-1" ? routerPostExecution : null),
+        );
+
+        // ── Step 5: image1's URL must appear in image2's images with correct type ──
+        expect(image2Inputs.images).toContainEqual({
+            url: IMG1_URL,
+            type: "image/png",
+        });
+    });
+
+    it("file node (image type) → router → image2 works the same way", async () => {
+        const routerNode = makeRouterNode("router-1");
+        const image2Node = makeImageNodeFull("img-2");
+
+        const edges: Edge[] = [
+            edge("e1", "file-1", "router-1", "input"),
+            edge("e2", "router-1", "img-2", "image-input"),
+        ];
+
+        const filePostExecution: NodeData = {
+            type: "file",
+            name: "F",
+            fileType: "image",
+            fileUrl: "",
+            fileName: "",
+            gcsUri: IMG1_URL,
+        } as unknown as NodeData;
+
+        const routerInputs = routerNodeDefinition.gatherInputs(
+            routerNode,
+            edges,
+            (id) => (id === "file-1" ? filePostExecution : null),
+        );
+
+        expect(routerInputs.valueMediaType).toBe("image");
+
+        const routerExecuteResult = await routerNodeDefinition.execute(
+            routerNode,
+            routerInputs,
+        );
+        const routerPostExecution = mergeExecutionResult(
+            routerNode.data,
+            routerExecuteResult as Partial<NodeData>,
+        );
+
+        const image2Inputs = imageNodeDefinition.gatherInputs(
+            image2Node,
+            edges,
+            (id) => (id === "router-1" ? routerPostExecution : null),
+        );
+
+        expect(image2Inputs.images).toContainEqual({
+            url: IMG1_URL,
+            type: "image/png",
+        });
     });
 });

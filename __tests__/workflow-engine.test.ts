@@ -11,6 +11,8 @@ import {
     NodeInputs,
 } from "../lib/types";
 import { getNodeDefinition, NodeDefinition } from "../lib/node-registry";
+import { routerNodeDefinition } from "../lib/nodes/router-node";
+import { imageNodeDefinition } from "../lib/nodes/image-node";
 
 // Mock node-registry
 vi.mock("../lib/node-registry", async (importOriginal) => {
@@ -462,6 +464,104 @@ describe("WorkflowEngine", () => {
             const result = engine.executionResults.get("batch-img") as any;
             expect(result.images).toEqual(["out.png", "out.png"]); // two iterations
             expect(mockExecute).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe("executeNode upstream router auto-execution", () => {
+        it("should auto-execute upstream router before target node so image passes through", async () => {
+            const nodes = [
+                {
+                    id: "img1",
+                    data: {
+                        type: "image",
+                        name: "Image1",
+                        images: ["gs://bucket/uuid-no-extension"],
+                        prompt: "p",
+                        aspectRatio: "1:1",
+                        model: "gemini-2.5-flash-image",
+                        resolution: "1K",
+                        groundingGoogleSearch: false,
+                        groundingImageSearch: false,
+                    },
+                },
+                {
+                    id: "router1",
+                    data: { type: "router", name: "Router" },
+                },
+                {
+                    id: "img2",
+                    data: {
+                        type: "image",
+                        name: "Image2",
+                        images: [],
+                        prompt: "q",
+                        aspectRatio: "1:1",
+                        model: "gemini-2.5-flash-image",
+                        resolution: "1K",
+                        groundingGoogleSearch: false,
+                        groundingImageSearch: false,
+                    },
+                },
+            ] as unknown as Node<NodeData>[];
+
+            const edges = [
+                {
+                    id: "e1",
+                    source: "img1",
+                    target: "router1",
+                    targetHandle: "input",
+                    sourceHandle: null,
+                },
+                {
+                    id: "e2",
+                    source: "router1",
+                    target: "img2",
+                    targetHandle: "image-input",
+                    sourceHandle: "output",
+                },
+            ] as Edge[];
+
+            const capturedInputs: Record<string, unknown> = {};
+            vi.mocked(getNodeDefinition).mockImplementation((type) => {
+                if (type === "router")
+                    return routerNodeDefinition as unknown as NodeDefinition<
+                        NodeData,
+                        NodeInputs
+                    >;
+                if (type === "image")
+                    return {
+                        type: "image",
+                        gatherInputs: imageNodeDefinition.gatherInputs,
+                        execute: vi
+                            .fn()
+                            .mockImplementation(async (node, inputs) => {
+                                capturedInputs[node.id] = inputs;
+                                return { images: ["gs://result.png"] };
+                            }),
+                    } as unknown as NodeDefinition<NodeData, NodeInputs>;
+                return undefined;
+            });
+
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
+            await engine.executeNode("img2");
+
+            const img2Inputs = capturedInputs["img2"] as Record<
+                string,
+                unknown
+            >;
+            expect(img2Inputs).toBeDefined();
+            const namedNodes = img2Inputs.namedNodes as Array<{
+                fileValues: { url: string; type: string }[];
+            }>;
+            expect(namedNodes).toBeDefined();
+            const routerEntry = namedNodes.find(
+                (n) => n.fileValues && n.fileValues.length > 0,
+            );
+            expect(routerEntry).toBeDefined();
+            expect(routerEntry!.fileValues[0]).toEqual({
+                url: "gs://bucket/uuid-no-extension",
+                type: "image/png",
+            });
         });
     });
 
