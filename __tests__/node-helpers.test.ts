@@ -110,6 +110,12 @@ describe("getSourceValue", () => {
         );
     });
 
+    it("returns value from router node", () => {
+        expect(
+            getSourceValue(makeData("router", { value: ["gs://img.png"] })),
+        ).toEqual(["gs://img.png"]);
+    });
+
     it("handles workflow-input text port", () => {
         expect(
             getSourceValue(
@@ -224,6 +230,39 @@ describe("inferMimeType", () => {
         expect(inferMimeType("gs://bucket/unknown", null)).toBe(
             "application/octet-stream",
         );
+    });
+
+    it("uses router valueMediaType=image to infer image/png for extensionless URLs", () => {
+        expect(
+            inferMimeType(
+                "gs://bucket/uuid-no-extension",
+                makeData("router", { valueMediaType: "image" }),
+            ),
+        ).toBe("image/png");
+    });
+
+    it("uses router valueMediaType=video to infer video/mp4 for extensionless URLs", () => {
+        expect(
+            inferMimeType(
+                "gs://bucket/uuid-no-extension",
+                makeData("router", { valueMediaType: "video" }),
+            ),
+        ).toBe("video/mp4");
+    });
+
+    it("uses router valueMediaType=pdf to infer application/pdf for extensionless URLs", () => {
+        expect(
+            inferMimeType(
+                "gs://bucket/uuid-no-extension",
+                makeData("router", { valueMediaType: "pdf" }),
+            ),
+        ).toBe("application/pdf");
+    });
+
+    it("falls back to octet-stream for router with no valueMediaType", () => {
+        expect(
+            inferMimeType("gs://bucket/uuid-no-extension", makeData("router")),
+        ).toBe("application/octet-stream");
     });
 });
 

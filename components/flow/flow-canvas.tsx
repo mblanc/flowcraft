@@ -276,8 +276,9 @@ export function FlowCanvas() {
     const flowBackground = useMemo(
         () => (
             <Background
-                color={resolvedTheme === "dark" ? "#ffffff" : "#000000"}
+                color={resolvedTheme === "dark" ? "#aaaaaa" : "#000000"}
                 variant={BackgroundVariant.Dots}
+                gap={20}
             />
         ),
         [resolvedTheme],

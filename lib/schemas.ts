@@ -193,6 +193,12 @@ export const CustomWorkflowDataSchema = BaseNodeDataSchema.extend({
     results: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
 });
 
+export const RouterDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("router"),
+    value: z.unknown().optional(),
+    valueMediaType: z.enum(["image", "video", "pdf"]).optional(),
+});
+
 export const NodeDataSchema = z.discriminatedUnion("type", [
     LLMDataSchema,
     TextDataSchema,
@@ -205,6 +211,7 @@ export const NodeDataSchema = z.discriminatedUnion("type", [
     WorkflowInputDataSchema,
     WorkflowOutputDataSchema,
     CustomWorkflowDataSchema,
+    RouterDataSchema,
 ]);
 
 export const NodeSchema = z.object({
@@ -443,4 +450,5 @@ export type ListData = z.infer<typeof ListDataSchema>;
 export type WorkflowInputData = z.infer<typeof WorkflowInputDataSchema>;
 export type WorkflowOutputData = z.infer<typeof WorkflowOutputDataSchema>;
 export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;
+export type RouterData = z.infer<typeof RouterDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;
