@@ -221,3 +221,9 @@ export async function uploadFile(
         throw error;
     }
 }
+
+export async function deleteFileByUri(gcsUri: string): Promise<void> {
+    const { bucket, path } = parseGcsUri(gcsUri);
+    await storage.bucket(bucket).file(path).delete({ ignoreNotFound: true });
+    logger.debug(`Deleted GCS file: ${gcsUri}`);
+}

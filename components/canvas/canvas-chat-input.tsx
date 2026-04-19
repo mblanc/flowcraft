@@ -8,10 +8,19 @@ import {
     useEffect,
     type KeyboardEvent,
 } from "react";
-import { SendHorizonal, Sparkles, Image, Video, Loader2 } from "lucide-react";
+import {
+    SendHorizonal,
+    Sparkles,
+    Image,
+    Video,
+    Loader2,
+    Palette,
+    Check,
+} from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
     Select,
     SelectContent,
@@ -30,6 +39,16 @@ import {
     DEFAULT_AGENT_SETTINGS,
     type AgentSettings,
 } from "./canvas-agent-settings-dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { StyleDocument } from "@/lib/style-types";
+import { STYLE_TEMPLATES } from "@/lib/style-templates";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { CanvasAttachmentBar } from "./canvas-attachment-bar";
 import {
@@ -120,9 +139,15 @@ export function CanvasChatInput({
         new Set(),
     );
 
+    // Style picker state
+    const [userStyles, setUserStyles] = useState<StyleDocument[]>([]);
+    const [activeStyleName, setActiveStyleName] = useState<string | null>(null);
+
     const canvasId = useCanvasStore((s) => s.canvasId);
     const nodes = useCanvasStore((s) => s.nodes);
     const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
+    const activeStyleId = useCanvasStore((s) => s.activeStyleId);
+    const setActiveStyleId = useCanvasStore((s) => s.setActiveStyleId);
     const addMessage = useCanvasStore((s) => s.addMessage);
     const updateMessage = useCanvasStore((s) => s.updateMessage);
     const isChatLoading = useCanvasStore((s) => s.isChatLoading);
@@ -210,6 +235,72 @@ export function CanvasChatInput({
     useEffect(() => {
         setDismissedNodeIds(new Set());
     }, [selectedNodeIds]);
+
+    // Fetch user styles for the picker
+    useEffect(() => {
+        void fetch("/api/styles")
+            .then((r) => {
+                if (!r.ok) throw new Error("Failed to load styles");
+                return r.json();
+            })
+            .then((data: { styles: StyleDocument[] }) =>
+                setUserStyles(data.styles ?? []),
+            )
+            .catch(() => toast.error("Failed to load styles"));
+    }, []);
+
+    // Resolve active style name from ID
+    useEffect(() => {
+        if (!activeStyleId) {
+            setActiveStyleName(null);
+            return;
+        }
+        const template = STYLE_TEMPLATES.find((t) => t.id === activeStyleId);
+        if (template) {
+            setActiveStyleName(template.name);
+            return;
+        }
+        const userStyle = userStyles.find((s) => s.id === activeStyleId);
+        if (userStyle) {
+            setActiveStyleName(userStyle.name);
+            return;
+        }
+        void fetch(`/api/styles/${activeStyleId}`)
+            .then((r) => r.json())
+            .then((s: { name: string }) => setActiveStyleName(s.name))
+            .catch(() => setActiveStyleName(null));
+    }, [activeStyleId, userStyles]);
+
+    const handleSelectStyle = useCallback(
+        async (styleId: string) => {
+            try {
+                const res = await fetch(`/api/canvases/${canvasId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ activeStyleId: styleId }),
+                });
+                if (!res.ok) throw new Error("Failed to set style");
+                setActiveStyleId(styleId);
+            } catch {
+                toast.error("Failed to apply style");
+            }
+        },
+        [canvasId, setActiveStyleId],
+    );
+
+    const handleClearStyle = useCallback(async () => {
+        try {
+            const res = await fetch(`/api/canvases/${canvasId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ activeStyleId: null }),
+            });
+            if (!res.ok) throw new Error("Failed to clear style");
+            setActiveStyleId(null);
+        } catch {
+            toast.error("Failed to clear style");
+        }
+    }, [canvasId, setActiveStyleId]);
 
     const handleRemoveAttachment = useCallback(
         (nodeId: string) => {
@@ -901,6 +992,12 @@ export function CanvasChatInput({
                 <CanvasAttachmentBar
                     attachments={allAttachments}
                     onRemove={handleRemoveAttachment}
+                    activeStyle={
+                        activeStyleId && activeStyleName
+                            ? { id: activeStyleId, name: activeStyleName }
+                            : null
+                    }
+                    onClearStyle={handleClearStyle}
                 />
 
                 <div className="relative">
@@ -980,6 +1077,95 @@ export function CanvasChatInput({
                             settings={agentSettings}
                             onSettingsChange={setAgentSettings}
                         />
+
+                        <div className="bg-border h-4 w-px" />
+
+                        <DropdownMenu>
+                            <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className={cn(
+                                                    "h-7 gap-1.5 border-none px-2 text-xs shadow-none",
+                                                    activeStyleId
+                                                        ? "text-violet-600 dark:text-violet-400"
+                                                        : "",
+                                                )}
+                                            >
+                                                <Palette className="size-3.5" />
+                                                {activeStyleName ?? "Style"}
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        Visual style guide
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <DropdownMenuContent align="start" className="w-52">
+                                {userStyles.length > 0 && (
+                                    <>
+                                        <DropdownMenuLabel className="text-xs">
+                                            My Styles
+                                        </DropdownMenuLabel>
+                                        {userStyles.map((s) => (
+                                            <DropdownMenuItem
+                                                key={s.id}
+                                                onClick={() =>
+                                                    handleSelectStyle(s.id)
+                                                }
+                                                className="gap-2"
+                                            >
+                                                {activeStyleId === s.id && (
+                                                    <Check className="size-3.5" />
+                                                )}
+                                                {activeStyleId !== s.id && (
+                                                    <span className="size-3.5" />
+                                                )}
+                                                <span className="truncate">
+                                                    {s.name}
+                                                </span>
+                                            </DropdownMenuItem>
+                                        ))}
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
+                                <DropdownMenuLabel className="text-xs">
+                                    Templates
+                                </DropdownMenuLabel>
+                                {STYLE_TEMPLATES.map((t) => (
+                                    <DropdownMenuItem
+                                        key={t.id}
+                                        onClick={() => handleSelectStyle(t.id)}
+                                        className="gap-2"
+                                    >
+                                        {activeStyleId === t.id && (
+                                            <Check className="size-3.5" />
+                                        )}
+                                        {activeStyleId !== t.id && (
+                                            <span className="size-3.5" />
+                                        )}
+                                        <span className="truncate">
+                                            {t.name}
+                                        </span>
+                                    </DropdownMenuItem>
+                                ))}
+                                {activeStyleId && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onClick={handleClearStyle}
+                                            className="text-muted-foreground"
+                                        >
+                                            Clear style
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     <Button

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
+import { styleService } from "@/lib/services/style.service";
+import { STYLE_TEMPLATES } from "@/lib/style-templates";
 import { executePlan } from "@/lib/canvas-generation";
 import logger from "@/app/logger";
 import type { AgentPlan } from "@/lib/canvas-types";
@@ -89,6 +91,29 @@ export async function POST(
         );
     }
 
+    // Resolve active style content for generation injection
+    let activeStyleContent: string | undefined;
+    if (canvas.activeStyleId) {
+        const template = STYLE_TEMPLATES.find(
+            (t) => t.id === canvas.activeStyleId,
+        );
+        if (template) {
+            activeStyleContent = template.content;
+        } else {
+            try {
+                const style = await styleService.getStyle(
+                    canvas.activeStyleId,
+                    session.user.id,
+                );
+                activeStyleContent = style.content;
+            } catch {
+                logger.warn(
+                    `[ExecutePlanAPI] Could not fetch active style: ${canvas.activeStyleId}`,
+                );
+            }
+        }
+    }
+
     const nodeUriMap = buildNodeUriMap(canvas);
     const encoder = new TextEncoder();
 
@@ -103,6 +128,7 @@ export async function POST(
                     session.user.id!,
                     canvasId,
                     canvas.name,
+                    activeStyleContent,
                 )) {
                     switch (stepEvent.type) {
                         case "step_start":

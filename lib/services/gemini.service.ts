@@ -68,6 +68,7 @@ export interface GenerateImageOptions {
     resolution?: string;
     groundingGoogleSearch?: boolean;
     groundingImageSearch?: boolean;
+    systemInstruction?: string;
 }
 
 export interface GenerateVideoOptions {
@@ -80,6 +81,7 @@ export interface GenerateVideoOptions {
     model?: string;
     generateAudio?: boolean;
     resolution?: string;
+    styleInstruction?: string;
 }
 
 export interface UpscaleImageOptions {
@@ -286,6 +288,7 @@ export class GeminiService {
             resolution,
             groundingGoogleSearch,
             groundingImageSearch,
+            systemInstruction,
         } = options;
         const selectedModel =
             model || MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW;
@@ -329,6 +332,7 @@ export class GeminiService {
                           thinkingLevel: ThinkingLevel.LOW,
                       }
                     : undefined,
+            ...(systemInstruction ? { systemInstruction } : {}),
         };
 
         if (groundingGoogleSearch || groundingImageSearch) {
@@ -399,6 +403,7 @@ export class GeminiService {
             model,
             generateAudio,
             resolution,
+            styleInstruction,
         } = options;
 
         const selectedModel = model || MODELS.VIDEO.VEO_3_1_LITE;
@@ -406,9 +411,13 @@ export class GeminiService {
             `[GeminiService] Generating video with model: ${selectedModel}, ${resolution}`,
         );
 
+        const effectivePrompt = styleInstruction
+            ? `${styleInstruction}\n\n${prompt}`
+            : prompt;
+
         const videoRequest: GenerateVideosParameters = {
             model: selectedModel,
-            source: { prompt },
+            source: { prompt: effectivePrompt },
             config: {
                 numberOfVideos: 1,
                 durationSeconds: duration || DEFAULTS.VIDEO_DURATION,

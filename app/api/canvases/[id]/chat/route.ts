@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
+import { styleService } from "@/lib/services/style.service";
+import { STYLE_TEMPLATES } from "@/lib/style-templates";
 import { streamAgentResponse } from "@/lib/canvas-agent";
 import logger from "@/app/logger";
 import type { ChatAttachment } from "@/lib/canvas-types";
@@ -91,6 +93,29 @@ export async function POST(
         );
     }
 
+    // Resolve active style content
+    let activeStyle: { name: string; content: string } | null = null;
+    if (canvas.activeStyleId) {
+        const template = STYLE_TEMPLATES.find(
+            (t) => t.id === canvas.activeStyleId,
+        );
+        if (template) {
+            activeStyle = { name: template.name, content: template.content };
+        } else {
+            try {
+                const style = await styleService.getStyle(
+                    canvas.activeStyleId,
+                    session.user.id,
+                );
+                activeStyle = { name: style.name, content: style.content };
+            } catch {
+                logger.warn(
+                    `[ChatAPI] Could not fetch active style: ${canvas.activeStyleId}`,
+                );
+            }
+        }
+    }
+
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
@@ -107,6 +132,7 @@ export async function POST(
                     canvasNodes: canvas.nodes,
                     imageDefaults: body.imageDefaults,
                     videoDefaults: body.videoDefaults,
+                    activeStyle,
                 });
 
                 for await (const event of agentStream) {

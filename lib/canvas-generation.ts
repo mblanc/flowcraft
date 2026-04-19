@@ -80,6 +80,7 @@ function resolveReferences(
 async function executeImageStep(
     step: GenerationStep,
     ctx: ExecutionContext,
+    styleContent?: string,
 ): Promise<NodePayload> {
     const { referenceUrls } = resolveReferences(step, ctx);
 
@@ -89,6 +90,7 @@ async function executeImageStep(
         aspectRatio: step.aspectRatio,
         resolution: step.resolution,
         model: step.model,
+        systemInstruction: styleContent,
     });
 
     const extension = mimeType.split("/")[1] || "png";
@@ -119,6 +121,7 @@ async function executeImageStep(
 async function executeVideoStep(
     step: GenerationStep,
     ctx: ExecutionContext,
+    styleContent?: string,
 ): Promise<NodePayload> {
     const { referenceUrls, firstFrameUrl, lastFrameUrl } = resolveReferences(
         step,
@@ -138,6 +141,7 @@ async function executeVideoStep(
         model: step.model,
         generateAudio: step.generateAudio,
         resolution: step.resolution,
+        styleInstruction: styleContent,
     });
 
     return {
@@ -191,6 +195,7 @@ export async function* executePlan(
     userId: string,
     canvasId: string,
     canvasName: string,
+    activeStyleContent?: string,
 ): AsyncGenerator<StepEvent> {
     const ctx: ExecutionContext = {
         completedStepUris: new Map(),
@@ -214,8 +219,16 @@ export async function* executePlan(
                 try {
                     const node =
                         step.type === "image"
-                            ? await executeImageStep(step, ctx)
-                            : await executeVideoStep(step, ctx);
+                            ? await executeImageStep(
+                                  step,
+                                  ctx,
+                                  activeStyleContent,
+                              )
+                            : await executeVideoStep(
+                                  step,
+                                  ctx,
+                                  activeStyleContent,
+                              );
 
                     // Record URI so dependent steps can reference it
                     ctx.completedStepUris.set(step.id, node.sourceUrl);
