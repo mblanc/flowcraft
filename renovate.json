@@ -1,0 +1,216 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended",
+        ":dependencyDashboard",
+        ":semanticCommits",
+        ":maintainLockFilesWeekly"
+    ],
+    "timezone": "Europe/Paris",
+    "schedule": [
+        "before 6am"
+    ],
+    "prConcurrentLimit": 10,
+    "prHourlyLimit": 4,
+    "rangeStrategy": "bump",
+    "rebaseWhen": "conflicted",
+    "labels": [
+        "dependencies"
+    ],
+    "packageRules": [
+        {
+            "description": "Group all non-major updates and auto-merge if CI passes",
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "pin",
+                "digest"
+            ],
+            "groupName": "all non-major dependencies",
+            "automerge": true,
+            "platformAutomerge": true
+        },
+        {
+            "description": "Major updates — one PR per package, manual review",
+            "matchUpdateTypes": [
+                "major"
+            ],
+            "automerge": false,
+            "labels": [
+                "dependencies",
+                "major-update"
+            ]
+        },
+        {
+            "description": "React core — must stay in sync",
+            "matchPackageNames": [
+                "react",
+                "react-dom"
+            ],
+            "groupName": "React core"
+        },
+        {
+            "description": "Next.js Ecosystem",
+            "matchPackageNames": [
+                "next",
+                "next-auth",
+                "next-themes"
+            ],
+            "groupName": "Next.js framework"
+        },
+        {
+            "description": "Google Cloud & AI SDKs — batch weekly",
+            "matchPackagePatterns": [
+                "^@google-cloud/",
+                "^@google/genai"
+            ],
+            "groupName": "Google Cloud & AI",
+            "schedule": [
+                "before 6am on monday"
+            ]
+        },
+        {
+            "description": "UI/UX & Styling",
+            "matchPackagePatterns": [
+                "^@radix-ui/",
+                "^lucide-react",
+                "^tailwindcss",
+                "^@tailwindcss/",
+                "^tw-animate-css",
+                "^class-variance-authority",
+                "^clsx",
+                "^tailwind-merge",
+                "^tailwindcss-animate",
+                "^cmdk",
+                "^sonner",
+                "^vaul",
+                "^embla-carousel-react",
+                "^react-resizable-panels",
+                "^geist"
+            ],
+            "groupName": "UI & Styling"
+        },
+        {
+            "description": "React Flow canvas library",
+            "matchPackageNames": [
+                "@xyflow/react"
+            ],
+            "groupName": "React Flow"
+        },
+        {
+            "description": "Forms — keep resolver and hook in sync",
+            "matchPackageNames": [
+                "react-hook-form",
+                "@hookform/resolvers"
+            ],
+            "groupName": "forms"
+        },
+        {
+            "description": "Date & Time",
+            "matchPackageNames": [
+                "date-fns",
+                "react-day-picker"
+            ],
+            "groupName": "date & time"
+        },
+        {
+            "description": "Markdown rendering",
+            "matchPackageNames": [
+                "react-markdown",
+                "remark-gfm"
+            ],
+            "groupName": "markdown"
+        },
+        {
+            "description": "Media & Documents",
+            "matchPackageNames": [
+                "sharp",
+                "pdfjs-dist"
+            ],
+            "groupName": "media & documents"
+        },
+        {
+            "description": "Data & State",
+            "matchPackagePatterns": [
+                "^zustand",
+                "^zod"
+            ],
+            "groupName": "state & data"
+        },
+        {
+            "description": "Types packages — safe to batch and auto-merge",
+            "matchPackagePatterns": [
+                "^@types/"
+            ],
+            "groupName": "type definitions",
+            "automerge": true,
+            "platformAutomerge": true
+        },
+        {
+            "description": "Testing libraries",
+            "matchPackagePatterns": [
+                "^@testing-library/"
+            ],
+            "groupName": "testing libraries",
+            "automerge": true,
+            "platformAutomerge": true
+        },
+        {
+            "description": "Tooling & Build",
+            "matchPackageNames": [
+                "eslint",
+                "eslint-config-next",
+                "eslint-config-prettier",
+                "eslint-plugin-jsx-a11y",
+                "eslint-plugin-prettier",
+                "prettier",
+                "prettier-plugin-tailwindcss",
+                "typescript",
+                "vitest",
+                "@vitest/coverage-v8",
+                "@vitejs/plugin-react",
+                "vite",
+                "jsdom",
+                "husky",
+                "lint-staged",
+                "postcss",
+                "autoprefixer"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch"
+            ],
+            "groupName": "tooling",
+            "automerge": true,
+            "platformAutomerge": true
+        },
+        {
+            "description": "Pin GitHub Actions to SHAs for supply-chain safety",
+            "matchManagers": [
+                "github-actions"
+            ],
+            "pinDigests": true
+        }
+    ],
+    "vulnerabilityAlerts": {
+        "labels": [
+            "security"
+        ],
+        "automerge": true,
+        "platformAutomerge": true,
+        "schedule": [
+            "at any time"
+        ]
+    },
+    "lockFileMaintenance": {
+        "enabled": true,
+        "automerge": true,
+        "platformAutomerge": true,
+        "schedule": [
+            "before 6am on monday"
+        ]
+    },
+    "postUpdateOptions": [
+        "npmDedupe"
+    ]
+}
