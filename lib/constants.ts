@@ -89,6 +89,7 @@ export const COLLECTIONS = {
     CUSTOM_NODES: "custom_nodes",
     CANVASES: "canvases",
     LIBRARY_ASSETS: "library_assets",
+    STYLES: "styles",
 } as const;
 
 export const SUPPORTED_MIME_TYPES = {

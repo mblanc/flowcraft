@@ -21,6 +21,7 @@ export interface CanvasUpdateRequest {
     viewport?: { x: number; y: number; zoom: number };
     messages?: ChatMessage[];
     thumbnail?: string;
+    activeStyleId?: string | null;
 }
 
 export class CanvasService {
@@ -48,6 +49,8 @@ export class CanvasService {
             sharedWith: (data?.sharedWith ?? []) as string[],
             sharedWithEmails: (data?.sharedWithEmails ?? []) as string[],
             isTemplate: (data?.isTemplate ?? false) as boolean,
+            activeStyleId:
+                (data?.activeStyleId as string | undefined) ?? undefined,
             createdAt:
                 (data?.createdAt as { toDate?: () => Date })
                     ?.toDate?.()

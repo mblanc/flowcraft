@@ -17,6 +17,7 @@ export interface CanvasStore {
     nodes: CanvasNode[];
     viewport: { x: number; y: number; zoom: number };
     messages: ChatMessage[];
+    activeStyleId: string | null;
 
     // UI state
     selectedNodeIds: string[];
@@ -48,6 +49,7 @@ export interface CanvasStore {
     addGeneratingNodeId: (id: string) => void;
     removeGeneratingNodeId: (id: string) => void;
     clearMessages: () => void;
+    setActiveStyleId: (id: string | null) => void;
 
     // Action prompt (set by suggested-action buttons, consumed by chat input)
     pendingActionPrompt: string | null;
@@ -83,6 +85,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     nodes: [],
     viewport: { x: 0, y: 0, zoom: 1 },
     messages: [],
+    activeStyleId: null,
     selectedNodeIds: [],
     isSaving: false,
     saveStatus: "saved" as const,
@@ -99,6 +102,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
             nodes: canvas.nodes,
             viewport: canvas.viewport,
             messages: canvas.messages,
+            activeStyleId: canvas.activeStyleId ?? null,
             selectedNodeIds: [],
             lastModified: 0,
         }),
@@ -189,6 +193,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
         })),
 
     clearMessages: () => set({ messages: [], lastModified: Date.now() }),
+
+    setActiveStyleId: (id) => set({ activeStyleId: id }),
 
     setIsChatLoading: (loading) => set({ isChatLoading: loading }),
 

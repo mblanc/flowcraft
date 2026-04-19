@@ -31,6 +31,7 @@ export interface AgentInput {
     canvasNodes: CanvasNode[];
     imageDefaults?: MediaDefaults;
     videoDefaults?: VideoDefaults;
+    activeStyle?: { name: string; content: string } | null;
 }
 
 export type AgentEvent =
@@ -69,6 +70,13 @@ function getModeInstruction(mode: "auto" | "image" | "video"): string {
         default:
             return "\n\nThe user is in AUTO mode. Decide whether their request requires generating images, videos, or just a text response. If they ask for something visual, generate the appropriate media.";
     }
+}
+
+function buildStyleInstruction(
+    style: { name: string; content: string } | null | undefined,
+): string {
+    if (!style) return "";
+    return `\n\n## Active Style Guide: ${style.name}\n\nYou MUST apply the following visual style to EVERY media generation step you plan, whether image or video. Weave these constraints (lighting, mood, composition, color, medium, negative constraints) directly into the prompts you write for each step. Never generate media that violates the style's negative constraints.\n\n${style.content}`;
 }
 
 function buildCanvasContextSummary(nodes: CanvasNode[]): string {
@@ -284,7 +292,9 @@ export async function* streamAgentResponse(
     const canvasSummary = buildCanvasContextSummary(input.canvasNodes);
     const modeInstruction = getModeInstruction(input.mode);
 
-    const systemInstruction = `${SYSTEM_PROMPT}${modeInstruction}${canvasSummary}
+    const styleInstruction = buildStyleInstruction(input.activeStyle);
+
+    const systemInstruction = `${SYSTEM_PROMPT}${modeInstruction}${canvasSummary}${styleInstruction}
 
 You MUST respond with a JSON object matching the schema. The conversationalText field is your natural language reply. The steps array lists what to generate (empty if nothing visual is needed). The suggestedActions array provides 2-3 follow-up ideas.
 
