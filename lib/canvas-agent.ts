@@ -307,7 +307,7 @@ Guidelines for steps:
 - IMPORTANT: You must ONLY use Node IDs that are explicitly listed in the 'Current canvas items' list above. Do NOT invent, assume, or generate any other IDs.
 
 For aspect ratio: ONLY include if the user explicitly mentioned it. Map: "square"→"1:1", "portrait"/"vertical"→"9:16", "landscape"/"wide"→"16:9". Otherwise omit.
-For resolution: ONLY include if the user explicitly mentioned it. Map: "HD"→"2K", "1080p"→"1080p", "4K"/"ultra"→"4K". Otherwise omit.
+For resolution: ONLY include if the user explicitly mentioned it. Map: "HD"→"2K" (image) or "1080p" (video), "1080p"→"1080p", "4K"/"ultra"→"4K". Otherwise omit.
 For video duration: ONLY include if the user explicitly mentioned a duration. Otherwise omit.
 For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music/narration. Default false.`;
 

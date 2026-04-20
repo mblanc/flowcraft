@@ -113,6 +113,7 @@ async function executeImageStep(
         mimeType,
         prompt: step.prompt,
         aspectRatio: step.aspectRatio,
+        resolution: step.resolution,
         model: step.model,
         referenceNodeIds: step.referenceNodeIds,
     };
@@ -152,6 +153,7 @@ async function executeVideoStep(
         mimeType: "video/mp4",
         prompt: step.prompt,
         aspectRatio: step.aspectRatio,
+        resolution: step.resolution,
         model: step.model,
         referenceNodeIds: step.referenceNodeIds,
     };
