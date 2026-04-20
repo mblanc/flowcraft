@@ -106,6 +106,7 @@ export interface NodePayload {
     mimeType?: string;
     prompt: string;
     aspectRatio?: string;
+    resolution?: string;
     model?: string;
     referenceNodeIds?: string[];
 }
