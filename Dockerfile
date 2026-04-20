@@ -39,7 +39,7 @@ RUN yarn build
 
 # Production image, copy all the files and run next
 FROM base AS runner
-RUN apk add --update ffmpeg 
+RUN apk add --update libc6-compat ffmpeg 
 WORKDIR /app
 
 ENV NODE_ENV production
@@ -49,7 +49,7 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Set the correct permission for prerender cache
 RUN mkdir .next

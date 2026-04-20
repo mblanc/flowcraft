@@ -14,10 +14,18 @@ import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-url-cache";
 async function prewarmSignedUrls(result: Partial<NodeData>): Promise<void> {
     const uris: string[] = [];
     if ("images" in result && Array.isArray(result.images)) {
-        uris.push(...result.images.filter((u): u is string => !!u?.startsWith("gs://")));
+        uris.push(
+            ...result.images.filter(
+                (u): u is string => !!u?.startsWith("gs://"),
+            ),
+        );
     }
     if ("videos" in result && Array.isArray(result.videos)) {
-        uris.push(...result.videos.filter((u): u is string => !!u?.startsWith("gs://")));
+        uris.push(
+            ...result.videos.filter(
+                (u): u is string => !!u?.startsWith("gs://"),
+            ),
+        );
     }
     if (uris.length === 0) return;
     await Promise.all(uris.map(fetchAndCacheSignedUrl));
