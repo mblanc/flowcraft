@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -48,6 +48,44 @@ export function StyleEditorDialog({
     const [saving, setSaving] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const mdFileInputRef = useRef<HTMLInputElement>(null);
+
+    // Reset form state when the dialog opens or initialStyle changes
+    useEffect(() => {
+        if (open) {
+            setName(initialStyle?.name ?? "");
+            setDescription(initialStyle?.description ?? "");
+            setContent(initialStyle?.content ?? "");
+            setReferenceImageUris(initialStyle?.referenceImageUris ?? []);
+
+            // If there are reference images, fetch their signed URLs
+            const fetchSignedUrls = async (uris: string[]) => {
+                const newSigned: Record<string, string> = {};
+                for (const uri of uris) {
+                    try {
+                        const res = await fetch(
+                            `/api/signed-url?gcsUri=${encodeURIComponent(uri)}`,
+                        );
+                        if (res.ok) {
+                            const { signedUrl } = (await res.json()) as {
+                                signedUrl: string;
+                            };
+                            newSigned[uri] = signedUrl;
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch signed URL for", uri, err);
+                    }
+                }
+                setSignedUrls(newSigned);
+            };
+
+            const uris = initialStyle?.referenceImageUris ?? [];
+            if (uris.length > 0) {
+                void fetchSignedUrls(uris);
+            } else {
+                setSignedUrls({});
+            }
+        }
+    }, [open, initialStyle]);
 
     const handleImageUpload = useCallback(async (files: FileList) => {
         setUploadingImages(true);
