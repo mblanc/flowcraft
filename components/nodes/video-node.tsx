@@ -166,25 +166,25 @@ export const VideoNode = memo(
 
                 {/* Handle labels */}
                 <div
-                    className="text-muted-foreground absolute right-full mr-3 text-[10px] font-medium whitespace-nowrap"
+                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
                     style={{ top: "20%", transform: "translateY(-50%)" }}
                 >
                     Prompt
                 </div>
                 <div
-                    className="text-muted-foreground absolute right-full mr-3 text-[10px] font-medium whitespace-nowrap"
+                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
                     style={{ top: "40%", transform: "translateY(-50%)" }}
                 >
                     First frame
                 </div>
                 <div
-                    className="text-muted-foreground absolute right-full mr-3 text-[10px] font-medium whitespace-nowrap"
+                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
                     style={{ top: "60%", transform: "translateY(-50%)" }}
                 >
                     Last frame
                 </div>
                 <div
-                    className="text-muted-foreground absolute right-full mr-3 text-[10px] font-medium whitespace-nowrap"
+                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
                     style={{ top: "80%", transform: "translateY(-50%)" }}
                 >
                     Image(s)

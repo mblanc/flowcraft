@@ -147,7 +147,7 @@ export const UpscaleNode = memo(
 
                 {/* Handle label */}
                 <div
-                    className="text-muted-foreground absolute right-full mr-3 text-[10px] font-medium whitespace-nowrap"
+                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
                     style={{ top: "50%", transform: "translateY(-50%)" }}
                 >
                     Image
