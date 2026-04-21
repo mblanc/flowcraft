@@ -8,7 +8,7 @@ describe("calculateNodePositions", () => {
             { id: "1", type: "image", prompt: "step 1" },
             { id: "2", type: "image", prompt: "step 2", dependsOn: ["1"] },
         ];
-        const positions = calculateNodePositions(steps, [], { x: 0, y: 0 });
+        const { positions } = calculateNodePositions(steps, [], { x: 0, y: 0 });
 
         const pos1 = positions.get("1")!;
         const pos2 = positions.get("2")!;
@@ -25,7 +25,7 @@ describe("calculateNodePositions", () => {
             { id: "2", type: "image", prompt: "step 2", dependsOn: ["1"] },
             { id: "3", type: "image", prompt: "step 3", dependsOn: ["1"] },
         ];
-        const positions = calculateNodePositions(steps, [], { x: 0, y: 0 });
+        const { positions } = calculateNodePositions(steps, [], { x: 0, y: 0 });
 
         const pos2 = positions.get("2")!;
         const pos3 = positions.get("3")!;
@@ -58,15 +58,15 @@ describe("calculateNodePositions", () => {
                 height: 300,
             },
         ];
-        const positions = calculateNodePositions(steps, existingNodes, {
+        const { positions } = calculateNodePositions(steps, existingNodes, {
             x: 0,
             y: 0,
         });
 
         const pos1 = positions.get("1")!;
         expect(pos1).toBeDefined();
-        // Since (0,0) area is occupied by 'old', new node should be shifted down.
-        expect(pos1.y).toBeGreaterThan(-150);
+        // Since (0,0) area is occupied by 'old', new node should be shifted right.
+        expect(pos1.x).toBeGreaterThan(-150);
     });
 
     it("should not overlap when a sibling has a deep subtree", () => {
@@ -97,7 +97,7 @@ describe("calculateNodePositions", () => {
                 dependsOn: ["s2"],
             },
         ];
-        const positions = calculateNodePositions(steps, [], { x: 0, y: 0 });
+        const { positions } = calculateNodePositions(steps, [], { x: 0, y: 0 });
 
         const nodeHeight = 300;
         const gap = 40;
@@ -161,7 +161,7 @@ describe("calculateNodePositions", () => {
                 referenceNodeIds: ["ref"],
             },
         ];
-        const positions = calculateNodePositions(steps, existingNodes, {
+        const { positions } = calculateNodePositions(steps, existingNodes, {
             x: 0,
             y: 0,
         });
@@ -197,7 +197,7 @@ describe("calculateNodePositions", () => {
             { id: "s6", type: "video", prompt: "vid b", dependsOn: ["s3"] },
             { id: "s7", type: "video", prompt: "vid c", dependsOn: ["s4"] },
         ];
-        const positions = calculateNodePositions(steps, [], { x: 0, y: 0 });
+        const { positions } = calculateNodePositions(steps, [], { x: 0, y: 0 });
 
         // Each video should be at the same Y as its source image
         expect(positions.get("s5")!.y).toBe(positions.get("s2")!.y);

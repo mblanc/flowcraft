@@ -72,7 +72,11 @@ export function StyleEditorDialog({
                             newSigned[uri] = signedUrl;
                         }
                     } catch (err) {
-                        console.error("Failed to fetch signed URL for", uri, err);
+                        console.error(
+                            "Failed to fetch signed URL for",
+                            uri,
+                            err,
+                        );
                     }
                 }
                 setSignedUrls(newSigned);

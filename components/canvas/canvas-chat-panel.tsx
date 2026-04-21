@@ -20,9 +20,10 @@ import type { AgentPlan } from "@/lib/canvas-types";
 
 interface CanvasChatPanelProps {
     getViewportCenter: () => { x: number; y: number };
+    centerOnNodes: (x: number, y: number) => void;
 }
 
-export function CanvasChatPanel({ getViewportCenter }: CanvasChatPanelProps) {
+export function CanvasChatPanel({ getViewportCenter, centerOnNodes }: CanvasChatPanelProps) {
     const [isOpen, setIsOpen] = useState(true);
     const clearMessages = useCanvasStore((s) => s.clearMessages);
 
@@ -113,6 +114,7 @@ export function CanvasChatPanel({ getViewportCenter }: CanvasChatPanelProps) {
             <div className="rounded-b-lg">
                 <CanvasChatInput
                     getViewportCenter={getViewportCenter}
+                    centerOnNodes={centerOnNodes}
                     executePlanStreamRef={executePlanStreamRef}
                 />
             </div>

@@ -37,27 +37,24 @@ function StyleCard({ style, onEdit, onDelete }: StyleCardProps) {
     const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
     useEffect(() => {
-        if (style.referenceImageUris.length > 0) {
-            const fetchSignedUrl = async () => {
-                try {
-                    const uri = style.referenceImageUris[0];
-                    const res = await fetch(
-                        `/api/signed-url?gcsUri=${encodeURIComponent(uri)}`,
-                    );
-                    if (res.ok) {
-                        const { signedUrl } = (await res.json()) as {
-                            signedUrl: string;
-                        };
-                        setSignedUrl(signedUrl);
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch signed URL:", error);
+        if (style.referenceImageUris.length === 0) return;
+        const uri = style.referenceImageUris[0];
+        let cancelled = false;
+        fetch(`/api/signed-url?gcsUri=${encodeURIComponent(uri)}`)
+            .then(async (res) => {
+                if (res.ok && !cancelled) {
+                    const { signedUrl } = (await res.json()) as {
+                        signedUrl: string;
+                    };
+                    setSignedUrl(signedUrl);
                 }
-            };
-            void fetchSignedUrl();
-        } else {
-            setSignedUrl(null);
-        }
+            })
+            .catch((error) => {
+                console.error("Failed to fetch signed URL:", error);
+            });
+        return () => {
+            cancelled = true;
+        };
     }, [style.referenceImageUris]);
 
     return (

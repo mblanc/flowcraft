@@ -12,6 +12,7 @@ export const maxDuration = 300;
 interface ExecutePlanRequestBody {
     plan: AgentPlan;
     messageId: string;
+    styleId?: string;
 }
 
 function formatSSE(event: string, data: unknown): string {
@@ -91,24 +92,26 @@ export async function POST(
         );
     }
 
-    // Resolve active style content for generation injection
+    // Resolve active style — use request-body override (for regeneration) or canvas default
+    const resolvedStyleId = body.styleId ?? canvas.activeStyleId;
     let activeStyleContent: string | undefined;
-    if (canvas.activeStyleId) {
-        const template = STYLE_TEMPLATES.find(
-            (t) => t.id === canvas.activeStyleId,
-        );
+    let activeStyleName: string | undefined;
+    if (resolvedStyleId) {
+        const template = STYLE_TEMPLATES.find((t) => t.id === resolvedStyleId);
         if (template) {
             activeStyleContent = template.content;
+            activeStyleName = template.name;
         } else {
             try {
                 const style = await styleService.getStyle(
-                    canvas.activeStyleId,
+                    resolvedStyleId,
                     session.user.id,
                 );
                 activeStyleContent = style.content;
+                activeStyleName = style.name;
             } catch {
                 logger.warn(
-                    `[ExecutePlanAPI] Could not fetch active style: ${canvas.activeStyleId}`,
+                    `[ExecutePlanAPI] Could not fetch active style: ${resolvedStyleId}`,
                 );
             }
         }
@@ -129,6 +132,8 @@ export async function POST(
                     canvasId,
                     canvas.name,
                     activeStyleContent,
+                    resolvedStyleId ?? undefined,
+                    activeStyleName,
                 )) {
                     switch (stepEvent.type) {
                         case "step_start":

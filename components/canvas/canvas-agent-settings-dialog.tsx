@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings } from "lucide-react";
+import { Settings, Sparkles, Image, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -20,8 +20,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MODELS, IMAGE_MODEL_CONFIGS } from "@/lib/constants";
+import type { CanvasMode } from "@/lib/canvas-types";
 
 export interface AgentSettings {
+    mode: CanvasMode;
     llmModel: string;
     imageModel: string;
     imageAspectRatio: string;
@@ -34,6 +36,7 @@ export interface AgentSettings {
 }
 
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
+    mode: "auto",
     llmModel: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW,
     imageModel: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
     imageAspectRatio: "auto",
@@ -70,6 +73,12 @@ const VIDEO_MODELS = [
     { id: MODELS.VIDEO.VEO_3_1_LITE, label: "Veo 3.1 Lite" },
     { id: MODELS.VIDEO.VEO_3_1_FAST, label: "Veo 3.1 Fast" },
     { id: MODELS.VIDEO.VEO_3_1_PRO, label: "Veo 3.1 Pro" },
+];
+
+const MODES: { id: CanvasMode; label: string; icon: typeof Sparkles }[] = [
+    { id: "auto", label: "Auto", icon: Sparkles },
+    { id: "image", label: "Image", icon: Image },
+    { id: "video", label: "Video", icon: Video },
 ];
 
 const VIDEO_ASPECT_RATIOS = ["16:9", "9:16"];
@@ -155,6 +164,41 @@ export function CanvasAgentSettingsDialog({
                 </DialogHeader>
 
                 <div className="space-y-5 py-2">
+                    {/* Mode */}
+                    <div className="space-y-3">
+                        <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                            Generation Mode
+                        </p>
+                        <div className="space-y-1.5">
+                            <Label>Mode</Label>
+                            <Select
+                                value={draft.mode}
+                                onValueChange={(v) =>
+                                    update("mode", v as CanvasMode)
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {MODES.map((m) => {
+                                        const Icon = m.icon;
+                                        return (
+                                            <SelectItem key={m.id} value={m.id}>
+                                                <div className="flex items-center gap-2">
+                                                    <Icon className="size-4" />
+                                                    <span>{m.label}</span>
+                                                </div>
+                                            </SelectItem>
+                                        );
+                                    })}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="border-border border-t" />
+
                     {/* LLM */}
                     <div className="space-y-3">
                         <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">

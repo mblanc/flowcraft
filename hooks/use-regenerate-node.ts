@@ -57,7 +57,11 @@ export function useRegenerateNode(nodeId: string) {
             const res = await fetch(`/api/canvases/${canvasId}/execute-plan`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ plan, messageId }),
+                body: JSON.stringify({
+                    plan,
+                    messageId,
+                    ...(d.styleId ? { styleId: d.styleId } : {}),
+                }),
                 signal: abort.signal,
             });
 
@@ -97,6 +101,8 @@ export function useRegenerateNode(nodeId: string) {
                             sourceUrl: payload.node.sourceUrl,
                             mimeType: payload.node.mimeType,
                             status: "ready",
+                            styleId: payload.node.styleId,
+                            styleName: payload.node.styleName,
                             ...(node.type === "canvas-video"
                                 ? { progress: 100 }
                                 : {}),

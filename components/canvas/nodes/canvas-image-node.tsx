@@ -357,6 +357,16 @@ export const CanvasImageNode = memo(
                                     {Math.round(d.height)}
                                 </span>
                             </div>
+                            {d.styleName && (
+                                <div className="flex flex-col gap-1.5 border-t pt-4">
+                                    <span className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
+                                        Style
+                                    </span>
+                                    <span className="text-foreground text-xs font-medium">
+                                        {d.styleName}
+                                    </span>
+                                </div>
+                            )}
 
                             {d.referenceNodeIds &&
                                 d.referenceNodeIds.length > 0 && (
