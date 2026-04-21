@@ -154,6 +154,11 @@
     overflow: visible !important;
 }
 
+/* Elevate hovered node above non-hovered siblings so params panel and handle labels are always in front */
+.react-flow .react-flow__node:hover {
+    z-index: 999 !important;
+}
+
 /* React Flow custom styles */
 .react-flow {
     background-color: var(--canvas-bg);

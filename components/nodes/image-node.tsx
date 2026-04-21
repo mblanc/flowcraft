@@ -71,7 +71,7 @@ export const ImageNode = memo(
         const imageSource =
             data.images && data.images.length > 0 ? data.images[0] : undefined;
         const { displayUrl: rawDisplayUrl } = useSignedUrl(imageSource);
-        const displayUrl = rawDisplayUrl || "/placeholder.svg";
+        const displayUrl = rawDisplayUrl;
 
         const handleExecute = useCallback(() => {
             executeNode(id);
@@ -92,7 +92,7 @@ export const ImageNode = memo(
         );
 
         const handleDownload = useCallback(() => {
-            if (!displayUrl || displayUrl === "/placeholder.svg") return;
+            if (!displayUrl) return;
             const a = document.createElement("a");
             a.href = displayUrl;
             a.download = `${data.name || "image"}.png`;
@@ -210,13 +210,13 @@ export const ImageNode = memo(
 
                 {/* Handle labels */}
                 <div
-                    className="text-muted-foreground absolute right-full mr-3 text-[10px] font-medium whitespace-nowrap"
+                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
                     style={{ top: "33%", transform: "translateY(-50%)" }}
                 >
                     Prompt
                 </div>
                 <div
-                    className="text-muted-foreground absolute right-full mr-3 text-[10px] font-medium whitespace-nowrap"
+                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
                     style={{ top: "66%", transform: "translateY(-50%)" }}
                 >
                     Image(s)
