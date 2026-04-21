@@ -63,6 +63,13 @@ export function CanvasEditor() {
         });
     }, []);
 
+    const centerOnNodes = useCallback((x: number, y: number) => {
+        const instance = rfInstanceRef.current;
+        if (!instance) return;
+        const { zoom } = instance.getViewport();
+        instance.setCenter(x, y, { zoom, duration: 600 });
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (
@@ -125,7 +132,7 @@ export function CanvasEditor() {
                         <Controls />
                     </ReactFlow>
 
-                    <CanvasChatPanel getViewportCenter={getViewportCenter} />
+                    <CanvasChatPanel getViewportCenter={getViewportCenter} centerOnNodes={centerOnNodes} />
                 </div>
             </div>
         </div>

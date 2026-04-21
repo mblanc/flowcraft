@@ -81,6 +81,8 @@ async function executeImageStep(
     step: GenerationStep,
     ctx: ExecutionContext,
     styleContent?: string,
+    styleId?: string,
+    styleName?: string,
 ): Promise<NodePayload> {
     const { referenceUrls } = resolveReferences(step, ctx);
 
@@ -116,6 +118,8 @@ async function executeImageStep(
         resolution: step.resolution,
         model: step.model,
         referenceNodeIds: step.referenceNodeIds,
+        styleId,
+        styleName,
     };
 }
 
@@ -123,6 +127,8 @@ async function executeVideoStep(
     step: GenerationStep,
     ctx: ExecutionContext,
     styleContent?: string,
+    styleId?: string,
+    styleName?: string,
 ): Promise<NodePayload> {
     const { referenceUrls, firstFrameUrl, lastFrameUrl } = resolveReferences(
         step,
@@ -156,6 +162,8 @@ async function executeVideoStep(
         resolution: step.resolution,
         model: step.model,
         referenceNodeIds: step.referenceNodeIds,
+        styleId,
+        styleName,
     };
 }
 
@@ -198,6 +206,8 @@ export async function* executePlan(
     canvasId: string,
     canvasName: string,
     activeStyleContent?: string,
+    activeStyleId?: string,
+    activeStyleName?: string,
 ): AsyncGenerator<StepEvent> {
     const ctx: ExecutionContext = {
         completedStepUris: new Map(),
@@ -225,11 +235,15 @@ export async function* executePlan(
                                   step,
                                   ctx,
                                   activeStyleContent,
+                                  activeStyleId,
+                                  activeStyleName,
                               )
                             : await executeVideoStep(
                                   step,
                                   ctx,
                                   activeStyleContent,
+                                  activeStyleId,
+                                  activeStyleName,
                               );
 
                     // Record URI so dependent steps can reference it

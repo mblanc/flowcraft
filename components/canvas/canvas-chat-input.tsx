@@ -8,26 +8,12 @@ import {
     useEffect,
     type KeyboardEvent,
 } from "react";
-import {
-    SendHorizonal,
-    Sparkles,
-    Image,
-    Video,
-    Loader2,
-    Palette,
-    Check,
-} from "lucide-react";
+import { SendHorizonal, Loader2, Check } from "lucide-react";
+import { StyleThumbnail } from "./style-thumbnail";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import {
     Tooltip,
     TooltipContent,
@@ -67,14 +53,6 @@ import type {
 } from "@/lib/canvas-types";
 import { calculateNodePositions } from "@/lib/canvas-layout";
 
-type CanvasMode = "auto" | "image" | "video";
-
-const MODES: { id: CanvasMode; label: string; icon: typeof Sparkles }[] = [
-    { id: "auto", label: "Auto", icon: Sparkles },
-    { id: "image", label: "Image", icon: Image },
-    { id: "video", label: "Video", icon: Video },
-];
-
 interface SSEEvent {
     event: string;
     data: string;
@@ -108,6 +86,7 @@ function parseSSEEvents(
 
 interface CanvasChatInputProps {
     getViewportCenter: () => { x: number; y: number };
+    centerOnNodes: (x: number, y: number) => void;
     executePlanStreamRef?: React.RefObject<
         ((messageId: string, plan: AgentPlan) => Promise<void>) | null
     >;
@@ -115,10 +94,10 @@ interface CanvasChatInputProps {
 
 export function CanvasChatInput({
     getViewportCenter,
+    centerOnNodes,
     executePlanStreamRef,
 }: CanvasChatInputProps) {
     const [input, setInput] = useState("");
-    const [mode, setMode] = useState<CanvasMode>("auto");
     const [agentSettings, setAgentSettings] = useState<AgentSettings>(
         DEFAULT_AGENT_SETTINGS,
     );
@@ -142,6 +121,9 @@ export function CanvasChatInput({
     // Style picker state
     const [userStyles, setUserStyles] = useState<StyleDocument[]>([]);
     const [activeStyleName, setActiveStyleName] = useState<string | null>(null);
+    const [activeStyleImageUrl, setActiveStyleImageUrl] = useState<
+        string | null
+    >(null);
 
     const canvasId = useCanvasStore((s) => s.canvasId);
     const nodes = useCanvasStore((s) => s.nodes);
@@ -249,26 +231,53 @@ export function CanvasChatInput({
             .catch(() => toast.error("Failed to load styles"));
     }, []);
 
-    // Resolve active style name from ID
+    // Resolve active style name and image from ID
     useEffect(() => {
         if (!activeStyleId) {
             setActiveStyleName(null);
+            setActiveStyleImageUrl(null);
             return;
         }
-        const template = STYLE_TEMPLATES.find((t) => t.id === activeStyleId);
-        if (template) {
-            setActiveStyleName(template.name);
-            return;
-        }
-        const userStyle = userStyles.find((s) => s.id === activeStyleId);
-        if (userStyle) {
-            setActiveStyleName(userStyle.name);
-            return;
-        }
-        void fetch(`/api/styles/${activeStyleId}`)
-            .then((r) => r.json())
-            .then((s: { name: string }) => setActiveStyleName(s.name))
-            .catch(() => setActiveStyleName(null));
+
+        const resolveStyle = async (styleId: string) => {
+            // 1. Check templates
+            const template = STYLE_TEMPLATES.find((t) => t.id === styleId);
+            if (template) {
+                setActiveStyleName(template.name);
+                setActiveStyleImageUrl(
+                    template.referenceImageUris?.[0] ?? null,
+                );
+                return;
+            }
+
+            // 2. Check user styles
+            const userStyle = userStyles.find((s) => s.id === styleId);
+            if (userStyle) {
+                setActiveStyleName(userStyle.name);
+                setActiveStyleImageUrl(
+                    userStyle.referenceImageUris?.[0] ?? null,
+                );
+                return;
+            }
+
+            // 3. Fetch from API if not found
+            try {
+                const res = await fetch(`/api/styles/${styleId}`);
+                if (res.ok) {
+                    const s: StyleDocument = await res.json();
+                    setActiveStyleName(s.name);
+                    setActiveStyleImageUrl(s.referenceImageUris?.[0] ?? null);
+                } else {
+                    setActiveStyleName(null);
+                    setActiveStyleImageUrl(null);
+                }
+            } catch {
+                setActiveStyleName(null);
+                setActiveStyleImageUrl(null);
+            }
+        };
+
+        void resolveStyle(activeStyleId);
     }, [activeStyleId, userStyles]);
 
     const handleSelectStyle = useCallback(
@@ -514,11 +523,12 @@ export function CanvasChatInput({
                         300,
                 }));
 
-            const computedPositions = calculateNodePositions(
-                plan.steps,
-                useCanvasStore.getState().nodes,
-                getViewportCenter(),
-            );
+            const { positions: computedPositions, center: groupCenter } =
+                calculateNodePositions(
+                    plan.steps,
+                    useCanvasStore.getState().nodes,
+                    getViewportCenter(),
+                );
 
             const stepNodeMap = new Map<string, string>();
             let lastImageSourceUrl: string | null = null;
@@ -534,6 +544,8 @@ export function CanvasChatInput({
                 stepNodeMap.set(s.id, nodeId);
                 occupiedRects.push(rect);
             });
+
+            centerOnNodes(groupCenter.x, groupCenter.y);
 
             try {
                 const res = await fetch(
@@ -604,6 +616,8 @@ export function CanvasChatInput({
                                                 label: node.label,
                                                 mimeType: node.mimeType,
                                                 status: "ready",
+                                                styleId: node.styleId,
+                                                styleName: node.styleName,
                                                 ...(node.type === "canvas-video"
                                                     ? { progress: 100 }
                                                     : {}),
@@ -704,6 +718,7 @@ export function CanvasChatInput({
             addPlaceholderNode,
             updateMessage,
             getViewportCenter,
+            centerOnNodes,
         ],
     );
 
@@ -779,7 +794,7 @@ export function CanvasChatInput({
                             attachmentsToSend.length > 0
                                 ? attachmentsToSend
                                 : undefined,
-                        mode,
+                        mode: agentSettings.mode,
                         model: agentSettings.llmModel,
                         imageDefaults: {
                             model: agentSettings.imageModel,
@@ -905,7 +920,6 @@ export function CanvasChatInput({
             isChatLoading,
             canvasId,
             agentSettings,
-            mode,
             allAttachments,
             addMessage,
             updateMessage,
@@ -994,7 +1008,11 @@ export function CanvasChatInput({
                     onRemove={handleRemoveAttachment}
                     activeStyle={
                         activeStyleId && activeStyleName
-                            ? { id: activeStyleId, name: activeStyleName }
+                            ? {
+                                  id: activeStyleId,
+                                  name: activeStyleName,
+                                  imageUrl: activeStyleImageUrl,
+                              }
                             : null
                     }
                     onClearStyle={handleClearStyle}
@@ -1032,47 +1050,6 @@ export function CanvasChatInput({
 
                 <div className="flex items-center justify-between gap-2 px-2 pb-2">
                     <div className="flex items-center gap-1.5">
-                        <TooltipProvider delayDuration={300}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div>
-                                        <Select
-                                            value={mode}
-                                            onValueChange={(v) =>
-                                                setMode(v as CanvasMode)
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                size="sm"
-                                                className="h-7 gap-1.5 border-none bg-transparent px-2 text-xs shadow-none"
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {MODES.map((m) => {
-                                                    const Icon = m.icon;
-                                                    return (
-                                                        <SelectItem
-                                                            key={m.id}
-                                                            value={m.id}
-                                                        >
-                                                            <Icon className="size-3.5" />
-                                                            {m.label}
-                                                        </SelectItem>
-                                                    );
-                                                })}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                    Generation mode
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-
-                        <div className="bg-border h-4 w-px" />
-
                         <CanvasAgentSettingsDialog
                             settings={agentSettings}
                             onSettingsChange={setAgentSettings}
@@ -1089,14 +1066,20 @@ export function CanvasChatInput({
                                                 variant="ghost"
                                                 size="sm"
                                                 className={cn(
-                                                    "h-7 gap-1.5 border-none px-2 text-xs shadow-none",
+                                                    "h-9 gap-2 border-none px-2 text-xs shadow-none",
                                                     activeStyleId
                                                         ? "text-violet-600 dark:text-violet-400"
                                                         : "",
                                                 )}
                                             >
-                                                <Palette className="size-3.5" />
-                                                {activeStyleName ?? "Style"}
+                                                <StyleThumbnail
+                                                    imageUri={
+                                                        activeStyleImageUrl
+                                                    }
+                                                />
+                                                <span className="max-w-[100px] truncate">
+                                                    {activeStyleName ?? "Style"}
+                                                </span>
                                             </Button>
                                         </DropdownMenuTrigger>
                                     </TooltipTrigger>
@@ -1105,7 +1088,7 @@ export function CanvasChatInput({
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
-                            <DropdownMenuContent align="start" className="w-52">
+                            <DropdownMenuContent align="start" className="w-64">
                                 {userStyles.length > 0 && (
                                     <>
                                         <DropdownMenuLabel className="text-xs">
@@ -1117,14 +1100,19 @@ export function CanvasChatInput({
                                                 onClick={() =>
                                                     handleSelectStyle(s.id)
                                                 }
-                                                className="gap-2"
+                                                className="gap-3 py-2"
                                             >
-                                                {activeStyleId === s.id && (
-                                                    <Check className="size-3.5" />
-                                                )}
-                                                {activeStyleId !== s.id && (
-                                                    <span className="size-3.5" />
-                                                )}
+                                                <div className="flex w-5 items-center justify-center">
+                                                    {activeStyleId === s.id && (
+                                                        <Check className="size-3.5" />
+                                                    )}
+                                                </div>
+                                                <StyleThumbnail
+                                                    imageUri={
+                                                        s
+                                                            .referenceImageUris?.[0]
+                                                    }
+                                                />
                                                 <span className="truncate">
                                                     {s.name}
                                                 </span>
@@ -1140,14 +1128,16 @@ export function CanvasChatInput({
                                     <DropdownMenuItem
                                         key={t.id}
                                         onClick={() => handleSelectStyle(t.id)}
-                                        className="gap-2"
+                                        className="gap-3 py-2"
                                     >
-                                        {activeStyleId === t.id && (
-                                            <Check className="size-3.5" />
-                                        )}
-                                        {activeStyleId !== t.id && (
-                                            <span className="size-3.5" />
-                                        )}
+                                        <div className="flex w-5 items-center justify-center">
+                                            {activeStyleId === t.id && (
+                                                <Check className="size-3.5" />
+                                            )}
+                                        </div>
+                                        <StyleThumbnail
+                                            imageUri={t.referenceImageUris?.[0]}
+                                        />
                                         <span className="truncate">
                                             {t.name}
                                         </span>

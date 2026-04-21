@@ -11,6 +11,8 @@ export interface CanvasImageData {
     status: "ready" | "generating" | "error";
     error?: string;
     referenceNodeIds?: string[];
+    styleId?: string;
+    styleName?: string;
     [key: string]: unknown;
 }
 
@@ -29,6 +31,8 @@ export interface CanvasVideoData {
     referenceNodeIds?: string[];
     width?: number;
     height?: number;
+    styleId?: string;
+    styleName?: string;
     [key: string]: unknown;
 }
 
@@ -109,6 +113,8 @@ export interface NodePayload {
     resolution?: string;
     model?: string;
     referenceNodeIds?: string[];
+    styleId?: string;
+    styleName?: string;
 }
 
 export type PlanStatus = "pending_approval" | "approved" | "cancelled";
@@ -143,3 +149,5 @@ export interface CanvasDocument {
     createdAt: string;
     updatedAt: string;
 }
+
+export type CanvasMode = "auto" | "image" | "video";
