@@ -87,6 +87,8 @@ function buildCanvasContextSummary(nodes: CanvasNode[]): string {
         let desc = `- ${d.label} (id: ${n.id}, type: ${n.type.replace("canvas-", "")})`;
         if ("prompt" in d && d.prompt) desc += ` — prompt: "${d.prompt}"`;
         if ("status" in d) desc += ` [${d.status}]`;
+        if (n.type === "canvas-text" && "content" in d && d.content)
+            desc += `\n  Content: ${(d.content as string).trim()}`;
         return desc;
     });
 
@@ -113,7 +115,22 @@ function buildContents(input: AgentInput): Content[] {
 
         for (const att of input.attachments) {
             const node = input.canvasNodes.find((n) => n.id === att.nodeId);
-            if (node && "sourceUrl" in node.data && node.data.sourceUrl) {
+            if (!node) continue;
+
+            if (
+                node.type === "canvas-text" &&
+                "content" in node.data &&
+                node.data.content
+            ) {
+                attachmentLabels.push(
+                    `[${att.label} (id: ${att.nodeId}, type: text)]`,
+                );
+                userParts.push(
+                    createPartFromText(
+                        `Content of "${att.label}":\n${(node.data.content as string).trim()}`,
+                    ),
+                );
+            } else if ("sourceUrl" in node.data && node.data.sourceUrl) {
                 const sourceUrl = node.data.sourceUrl as string;
                 if (sourceUrl.startsWith("gs://")) {
                     const mimeType =
