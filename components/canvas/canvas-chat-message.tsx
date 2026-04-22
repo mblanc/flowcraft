@@ -8,6 +8,7 @@ import {
     Bot,
     Image,
     Video,
+    Text,
     Zap,
     Check,
     Loader2,
@@ -41,6 +42,7 @@ function formatTime(isoString: string): string {
 const MEDIA_TYPE_ICON = {
     "canvas-image": Image,
     "canvas-video": Video,
+    "canvas-text": Text,
 } as const;
 
 function StepStatusIcon({ status }: { status: StepStatus | undefined }) {

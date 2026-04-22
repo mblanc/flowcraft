@@ -1,8 +1,11 @@
 "use client";
 
 import { memo, useState, useRef, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { type NodeProps } from "@xyflow/react";
 import { Type, Info, Trash2, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { CanvasTextData } from "@/lib/canvas-types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
@@ -10,6 +13,14 @@ import { useCanvasNodeResize } from "@/hooks/use-canvas-node-resize";
 import { CanvasNodeContextMenu } from "@/components/canvas/canvas-node-context-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const CanvasTextEditor = dynamic(
+    () =>
+        import("./canvas-text-editor").then((m) => ({
+            default: m.CanvasTextEditor,
+        })),
+    { ssr: false },
+);
 
 export const CanvasTextNode = memo(
     ({ data, selected, id }: NodeProps) => {
@@ -19,7 +30,6 @@ export const CanvasTextNode = memo(
 
         const [isEditing, setIsEditing] = useState(false);
         const [draft, setDraft] = useState(d.content);
-        const textareaRef = useRef<HTMLTextAreaElement>(null);
 
         const [isInfoOpen, setIsInfoOpen] = useState(false);
         const [isRenaming, setIsRenaming] = useState(false);
@@ -43,14 +53,6 @@ export const CanvasTextNode = memo(
             setPrevContent(d.content);
             if (!isEditing) setDraft(d.content);
         }
-
-        useEffect(() => {
-            if (isEditing && textareaRef.current) {
-                textareaRef.current.focus();
-                textareaRef.current.selectionStart =
-                    textareaRef.current.value.length;
-            }
-        }, [isEditing]);
 
         useEffect(() => {
             if (isRenaming) renameInputRef.current?.select();
@@ -173,11 +175,19 @@ export const CanvasTextNode = memo(
 
                     <div className="bg-card border-border/50 relative h-full w-full overflow-hidden rounded-[24px] border shadow-sm">
                         {isEditing ? (
-                            <textarea
-                                ref={textareaRef}
-                                value={draft}
-                                onChange={(e) => setDraft(e.target.value)}
-                                onBlur={commitContent}
+                            <div
+                                className="nodrag nopan nowheel canvas-text-editor-wrapper h-full w-full overflow-auto"
+                                onBlur={(e) => {
+                                    if (
+                                        !e.currentTarget.contains(
+                                            e.relatedTarget as Node,
+                                        )
+                                    ) {
+                                        commitContent();
+                                    }
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onKeyDown={(e) => {
                                     if (e.key === "Escape") {
                                         setDraft(d.content);
@@ -185,26 +195,22 @@ export const CanvasTextNode = memo(
                                     }
                                     e.stopPropagation();
                                 }}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                className="nodrag nopan nowheel text-foreground h-full w-full resize-none bg-transparent p-5 text-sm outline-none"
-                                style={{
-                                    fontSize: d.fontSize
-                                        ? `${d.fontSize}px`
-                                        : undefined,
-                                }}
-                            />
+                            >
+                                <CanvasTextEditor
+                                    markdown={draft}
+                                    onChange={setDraft}
+                                />
+                            </div>
                         ) : (
                             <div
-                                className="text-foreground h-full cursor-text overflow-auto p-5 text-sm whitespace-pre-wrap"
-                                style={{
-                                    fontSize: d.fontSize
-                                        ? `${d.fontSize}px`
-                                        : undefined,
-                                }}
+                                className="canvas-text-editor-wrapper text-foreground h-full cursor-text overflow-auto p-5 text-sm"
                                 onDoubleClick={() => setIsEditing(true)}
                             >
-                                {d.content || (
+                                {d.content ? (
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {d.content}
+                                    </ReactMarkdown>
+                                ) : (
                                     <span className="text-muted-foreground italic">
                                         Double-click to edit...
                                     </span>

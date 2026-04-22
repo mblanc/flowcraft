@@ -166,18 +166,13 @@ export function CanvasChatInput({
         [mentionItems, mentionQuery],
     );
 
-    // Selection-based attachments (media nodes only, minus dismissed)
+    // Selection-based attachments (all node types, minus dismissed)
     const selectionAttachments: ChatAttachment[] = useMemo(() => {
         return selectedNodeIds
             .filter((id) => !dismissedNodeIds.has(id))
             .map((id) => {
                 const node = nodes.find((n) => n.id === id);
-                if (
-                    !node ||
-                    (node.type !== "canvas-image" &&
-                        node.type !== "canvas-video")
-                )
-                    return null;
+                if (!node) return null;
                 return {
                     nodeId: node.id,
                     label: node.data.label,
@@ -187,18 +182,13 @@ export function CanvasChatInput({
             .filter(Boolean) as ChatAttachment[];
     }, [selectedNodeIds, nodes, dismissedNodeIds]);
 
-    // Mention-based attachments (media nodes only)
+    // Mention-based attachments (all node types)
     const mentionAttachments: ChatAttachment[] = useMemo(() => {
         return Array.from(mentionedNodeIds)
             .filter((id) => !selectionAttachments.some((a) => a.nodeId === id))
             .map((id) => {
                 const node = nodes.find((n) => n.id === id);
-                if (
-                    !node ||
-                    (node.type !== "canvas-image" &&
-                        node.type !== "canvas-video")
-                )
-                    return null;
+                if (!node) return null;
                 return {
                     nodeId: node.id,
                     label: node.data.label,

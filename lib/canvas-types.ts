@@ -61,7 +61,7 @@ export interface CanvasNode {
 export interface ChatAttachment {
     nodeId: string;
     label: string;
-    type: "canvas-image" | "canvas-video";
+    type: "canvas-image" | "canvas-video" | "canvas-text";
     thumbnailUrl?: string;
 }
 

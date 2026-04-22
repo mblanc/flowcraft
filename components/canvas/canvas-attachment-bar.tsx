@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { X, Image, Video } from "lucide-react";
+import { X, Image, Video, Text } from "lucide-react";
 import { StyleThumbnail } from "./style-thumbnail";
 import { cn } from "@/lib/utils";
 import type { ChatAttachment } from "@/lib/canvas-types";
@@ -9,6 +9,7 @@ import type { ChatAttachment } from "@/lib/canvas-types";
 const TYPE_ICON = {
     "canvas-image": Image,
     "canvas-video": Video,
+    "canvas-text": Text,
 } as const;
 
 interface CanvasAttachmentBarProps {
