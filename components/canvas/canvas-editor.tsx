@@ -75,8 +75,7 @@ export function CanvasEditor() {
             if (
                 e.target instanceof HTMLInputElement ||
                 e.target instanceof HTMLTextAreaElement ||
-                (e.target instanceof HTMLElement &&
-                    e.target.isContentEditable)
+                (e.target instanceof HTMLElement && e.target.isContentEditable)
             ) {
                 return;
             }
@@ -134,7 +133,10 @@ export function CanvasEditor() {
                         <Controls />
                     </ReactFlow>
 
-                    <CanvasChatPanel getViewportCenter={getViewportCenter} centerOnNodes={centerOnNodes} />
+                    <CanvasChatPanel
+                        getViewportCenter={getViewportCenter}
+                        centerOnNodes={centerOnNodes}
+                    />
                 </div>
             </div>
         </div>

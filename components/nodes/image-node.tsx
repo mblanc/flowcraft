@@ -428,7 +428,7 @@ export const ImageNode = memo(
                 <MediaViewer
                     isOpen={isImageOpen}
                     onOpenChange={setIsImageOpen}
-                    url={displayUrl}
+                    url={displayUrl || ""}
                     alt={data.name}
                 />
             </div>
