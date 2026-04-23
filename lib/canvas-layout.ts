@@ -32,7 +32,10 @@ export function calculateNodePositions(
     steps: GenerationStep[],
     existingNodes: CanvasNode[],
     viewportCenter: { x: number; y: number },
-): { positions: Map<string, { x: number; y: number }>; center: { x: number; y: number } } {
+): {
+    positions: Map<string, { x: number; y: number }>;
+    center: { x: number; y: number };
+} {
     const positions = new Map<string, { x: number; y: number }>();
     const nodeSizes = new Map<string, { width: number; height: number }>();
 
@@ -243,19 +246,26 @@ export function calculateNodePositions(
         });
     }
 
-    const center = positions.size > 0
-        ? (() => {
-            let cMinX = Infinity, cMinY = Infinity, cMaxX = -Infinity, cMaxY = -Infinity;
-            positions.forEach((pos, id) => {
-                const size = nodeSizes.get(id) ?? { width: DEFAULT_NODE_WIDTH, height: DEFAULT_NODE_HEIGHT };
-                cMinX = Math.min(cMinX, pos.x);
-                cMinY = Math.min(cMinY, pos.y);
-                cMaxX = Math.max(cMaxX, pos.x + size.width);
-                cMaxY = Math.max(cMaxY, pos.y + size.height);
-            });
-            return { x: (cMinX + cMaxX) / 2, y: (cMinY + cMaxY) / 2 };
-        })()
-        : viewportCenter;
+    const center =
+        positions.size > 0
+            ? (() => {
+                  let cMinX = Infinity,
+                      cMinY = Infinity,
+                      cMaxX = -Infinity,
+                      cMaxY = -Infinity;
+                  positions.forEach((pos, id) => {
+                      const size = nodeSizes.get(id) ?? {
+                          width: DEFAULT_NODE_WIDTH,
+                          height: DEFAULT_NODE_HEIGHT,
+                      };
+                      cMinX = Math.min(cMinX, pos.x);
+                      cMinY = Math.min(cMinY, pos.y);
+                      cMaxX = Math.max(cMaxX, pos.x + size.width);
+                      cMaxY = Math.max(cMaxY, pos.y + size.height);
+                  });
+                  return { x: (cMinX + cMaxX) / 2, y: (cMinY + cMaxY) / 2 };
+              })()
+            : viewportCenter;
 
     return { positions, center };
 }

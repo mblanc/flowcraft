@@ -23,7 +23,10 @@ interface CanvasChatPanelProps {
     centerOnNodes: (x: number, y: number) => void;
 }
 
-export function CanvasChatPanel({ getViewportCenter, centerOnNodes }: CanvasChatPanelProps) {
+export function CanvasChatPanel({
+    getViewportCenter,
+    centerOnNodes,
+}: CanvasChatPanelProps) {
     const [isOpen, setIsOpen] = useState(true);
     const clearMessages = useCanvasStore((s) => s.clearMessages);
 
