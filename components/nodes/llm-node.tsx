@@ -9,7 +9,7 @@ import { Bot, Maximize2 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/nodes/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
-import { MODELS } from "@/lib/constants";
+import { MODELS, MODEL_THINKING_LEVELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import {
     Select,
@@ -130,6 +130,23 @@ export const LLMNode = memo(
             a.download = `${data.name || "output"}.txt`;
             a.click();
             URL.revokeObjectURL(a.href);
+        };
+
+        const handleModelChange = (newModel: string) => {
+            const updates: Partial<LLMData> = { model: newModel };
+            const supportedLevels = MODEL_THINKING_LEVELS[newModel];
+            if (supportedLevels) {
+                if (
+                    !data.thinkingLevel ||
+                    !supportedLevels.includes(data.thinkingLevel)
+                ) {
+                    updates.thinkingLevel =
+                        supportedLevels[supportedLevels.length - 1];
+                }
+            } else {
+                updates.thinkingLevel = undefined;
+            }
+            updateNodeData(id, updates);
         };
 
         return (
@@ -388,7 +405,7 @@ export const LLMNode = memo(
                 {/* Params panel — floating below media box */}
                 <div
                     className={cn(
-                        "border-border bg-card absolute inset-x-0 z-20 rounded-lg border px-3 py-2 shadow-sm transition-opacity duration-150",
+                        "border-border bg-card absolute inset-x-0 z-20 flex flex-wrap gap-1.5 rounded-lg border px-3 py-2 shadow-sm transition-opacity duration-150",
                         selected || isHovered
                             ? "opacity-100"
                             : "pointer-events-none opacity-0",
@@ -397,9 +414,7 @@ export const LLMNode = memo(
                 >
                     <Select
                         value={data.model}
-                        onValueChange={(value) =>
-                            updateNodeData(id, { model: value })
-                        }
+                        onValueChange={handleModelChange}
                     >
                         <SelectTrigger
                             size="sm"
@@ -411,22 +426,47 @@ export const LLMNode = memo(
                             <SelectItem
                                 value={MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW}
                             >
-                                Gemini 3 Pro Preview
+                                Gemini 3.1 Pro
+                            </SelectItem>
+                            <SelectItem
+                                value={MODELS.TEXT.GEMINI_3_1_FLASH_LITE}
+                            >
+                                Gemini 3.1 Flash-Lite
                             </SelectItem>
                             <SelectItem
                                 value={MODELS.TEXT.GEMINI_3_FLASH_PREVIEW}
                             >
-                                Gemini 3 Flash Preview
-                            </SelectItem>
-                            <SelectItem
-                                value={
-                                    MODELS.TEXT.GEMINI_3_1_FLASH_LITE_PREVIEW
-                                }
-                            >
-                                Gemini 3.1 Flash Lite Preview
+                                Gemini 3 Flash
                             </SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {MODEL_THINKING_LEVELS[data.model] && (
+                        <Select
+                            value={data.thinkingLevel || ""}
+                            onValueChange={(value) =>
+                                updateNodeData(id, {
+                                    thinkingLevel: value,
+                                })
+                            }
+                        >
+                            <SelectTrigger
+                                size="sm"
+                                className="h-6 w-fit rounded-md px-2 text-[10px]"
+                            >
+                                <SelectValue placeholder="Thinking" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {MODEL_THINKING_LEVELS[data.model].map(
+                                    (level) => (
+                                        <SelectItem key={level} value={level}>
+                                            {level}
+                                        </SelectItem>
+                                    ),
+                                )}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
 
                 {/* Handles */}

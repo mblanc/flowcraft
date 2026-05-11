@@ -57,6 +57,7 @@ export interface GenerateTextOptions {
     outputType?: "text" | "json";
     responseSchema?: string;
     strictMode?: boolean;
+    thinkingLevel?: string;
 }
 
 export interface GenerateImageOptions {
@@ -69,6 +70,7 @@ export interface GenerateImageOptions {
     groundingGoogleSearch?: boolean;
     groundingImageSearch?: boolean;
     systemInstruction?: string;
+    thinkingLevel?: string;
 }
 
 export interface GenerateVideoOptions {
@@ -112,6 +114,7 @@ export class GeminiService {
             outputType,
             responseSchema,
             strictMode,
+            thinkingLevel,
         } = options;
         const selectedModel = model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
 
@@ -173,6 +176,14 @@ export class GeminiService {
                     );
                 }
             }
+        }
+
+        if (thinkingLevel) {
+            const levelKey =
+                thinkingLevel.toUpperCase() as keyof typeof ThinkingLevel;
+            generationConfig.thinkingConfig = {
+                thinkingLevel: ThinkingLevel[levelKey] ?? thinkingLevel,
+            };
         }
 
         logger.info(
@@ -289,6 +300,7 @@ export class GeminiService {
             groundingGoogleSearch,
             groundingImageSearch,
             systemInstruction,
+            thinkingLevel,
         } = options;
         const selectedModel =
             model || MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW;
@@ -320,20 +332,30 @@ export class GeminiService {
         logger.info(
             `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
         );
+        const imageConfigObj: Record<string, unknown> = {
+            imageSize: resolution as string,
+        };
+        if (aspectRatio && aspectRatio !== "Auto") {
+            imageConfigObj.aspectRatio = aspectRatio as string;
+        }
+
         const generateContentConfig: GenerateContentConfig = {
             responseModalities: ["IMAGE"],
-            imageConfig: {
-                aspectRatio: aspectRatio as string,
-                imageSize: resolution as string,
-            },
-            thinkingConfig:
-                selectedModel !== MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE
-                    ? {
-                          thinkingLevel: ThinkingLevel.LOW,
-                      }
-                    : undefined,
+            imageConfig: imageConfigObj as GenerateContentConfig["imageConfig"],
             ...(systemInstruction ? { systemInstruction } : {}),
         };
+
+        if (thinkingLevel) {
+            const levelKey =
+                thinkingLevel.toUpperCase() as keyof typeof ThinkingLevel;
+            generateContentConfig.thinkingConfig = {
+                thinkingLevel: ThinkingLevel[levelKey] ?? thinkingLevel,
+            };
+        } else if (selectedModel !== MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE) {
+            generateContentConfig.thinkingConfig = {
+                thinkingLevel: ThinkingLevel.LOW,
+            };
+        }
 
         if (groundingGoogleSearch || groundingImageSearch) {
             const searchTypes: Record<string, Record<string, unknown>> = {};

@@ -61,6 +61,7 @@ export async function executeImageNode(
                 resolution: node.data.resolution,
                 groundingGoogleSearch: node.data.groundingGoogleSearch,
                 groundingImageSearch: node.data.groundingImageSearch,
+                thinkingLevel: node.data.thinkingLevel,
             }),
         });
 

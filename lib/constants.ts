@@ -6,7 +6,7 @@ export const MODELS = {
     TEXT: {
         GEMINI_3_1_PRO_PREVIEW: "gemini-3.1-pro-preview",
         GEMINI_3_FLASH_PREVIEW: "gemini-3-flash-preview",
-        GEMINI_3_1_FLASH_LITE_PREVIEW: "gemini-3.1-flash-lite-preview",
+        GEMINI_3_1_FLASH_LITE: "gemini-3.1-flash-lite",
     },
     IMAGE: {
         GEMINI_2_5_FLASH_IMAGE: "gemini-2.5-flash-image",
@@ -21,9 +21,18 @@ export const MODELS = {
     },
 } as const;
 
+export const MODEL_THINKING_LEVELS: Record<string, string[]> = {
+    [MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW]: ["LOW", "MEDIUM", "HIGH"],
+    [MODELS.TEXT.GEMINI_3_1_FLASH_LITE]: ["MINIMAL", "LOW", "MEDIUM", "HIGH"],
+    [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW]: ["MINIMAL", "HIGH"],
+    [MODELS.TEXT.GEMINI_3_FLASH_PREVIEW]: ["MINIMAL", "LOW", "MEDIUM", "HIGH"],
+    [MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW]: ["HIGH"],
+};
+
 export const IMAGE_MODEL_CONFIGS = {
     [MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE]: {
         ratios: [
+            "Auto",
             "1:1",
             "3:2",
             "2:3",
@@ -40,6 +49,7 @@ export const IMAGE_MODEL_CONFIGS = {
     },
     [MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW]: {
         ratios: [
+            "Auto",
             "1:1",
             "3:2",
             "2:3",
@@ -56,6 +66,7 @@ export const IMAGE_MODEL_CONFIGS = {
     },
     [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW]: {
         ratios: [
+            "Auto",
             "1:1",
             "1:4",
             "1:8",
@@ -80,6 +91,7 @@ export const BATCH_CONCURRENCY = 3;
 
 export const DEFAULTS = {
     ASPECT_RATIO: "16:9",
+    IMAGE_ASPECT_RATIO: "Auto",
     VIDEO_DURATION: 4,
     IMAGE_RESOLUTION: "1K",
 } as const;

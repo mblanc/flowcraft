@@ -56,6 +56,7 @@ export async function executeLLMNode(
             outputType: node.data.outputType,
             responseSchema: node.data.responseSchema,
             strictMode: node.data.strictMode,
+            thinkingLevel: node.data.thinkingLevel,
         },
         context,
     );
