@@ -12,7 +12,11 @@ import { NodeTitle } from "@/components/nodes/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { MentionEditor } from "@/components/nodes/mention-editor";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
-import { MODELS, IMAGE_MODEL_CONFIGS } from "@/lib/constants";
+import {
+    MODELS,
+    IMAGE_MODEL_CONFIGS,
+    MODEL_THINKING_LEVELS,
+} from "@/lib/constants";
 import {
     Select,
     SelectContent,
@@ -139,6 +143,19 @@ export const ImageNode = memo(
             }
             if (!config.grounding.google) updates.groundingGoogleSearch = false;
             if (!config.grounding.image) updates.groundingImageSearch = false;
+
+            const supportedLevels = MODEL_THINKING_LEVELS[newModel];
+            if (supportedLevels) {
+                if (
+                    !data.thinkingLevel ||
+                    !supportedLevels.includes(data.thinkingLevel)
+                ) {
+                    updates.thinkingLevel =
+                        supportedLevels[supportedLevels.length - 1];
+                }
+            } else {
+                updates.thinkingLevel = undefined;
+            }
 
             updateNodeData(id, updates);
         };
@@ -346,6 +363,35 @@ export const ImageNode = memo(
                                 ))}
                             </SelectContent>
                         </Select>
+                        {MODEL_THINKING_LEVELS[data.model] && (
+                            <Select
+                                value={data.thinkingLevel || ""}
+                                onValueChange={(value) =>
+                                    updateNodeData(id, {
+                                        thinkingLevel: value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className="h-6 w-fit rounded-md px-2 text-[10px]"
+                                >
+                                    <SelectValue placeholder="Thinking" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {MODEL_THINKING_LEVELS[data.model].map(
+                                        (level) => (
+                                            <SelectItem
+                                                key={level}
+                                                value={level}
+                                            >
+                                                {level}
+                                            </SelectItem>
+                                        ),
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        )}
                         <div
                             className={cn(
                                 "flex h-6 items-center gap-1 rounded-md px-1.5 transition-colors",

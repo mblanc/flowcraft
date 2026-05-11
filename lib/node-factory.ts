@@ -37,6 +37,7 @@ export function createNode(
                     outputType: "text",
                     strictMode: false,
                     visualSchema: [],
+                    thinkingLevel: "HIGH",
                 } as LLMData,
             };
         case "text":
@@ -60,11 +61,12 @@ export function createNode(
                     name: "Image",
                     prompt: "",
                     images: [],
-                    aspectRatio: DEFAULTS.ASPECT_RATIO,
+                    aspectRatio: DEFAULTS.IMAGE_ASPECT_RATIO,
                     model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
                     resolution: DEFAULTS.IMAGE_RESOLUTION,
                     groundingGoogleSearch: false,
                     groundingImageSearch: false,
+                    thinkingLevel: "HIGH",
                 } as ImageData,
             };
         case "video":

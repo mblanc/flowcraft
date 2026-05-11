@@ -21,6 +21,7 @@ function migrateVideoModel(val: unknown): unknown {
 const AspectRatio169_916Schema = z.enum(["16:9", "9:16"]);
 
 const ImageDataAspectRatioSchema = z.enum([
+    "Auto",
     "16:9",
     "9:16",
     "1:1",
@@ -78,6 +79,7 @@ export const LLMDataSchema = BaseNodeDataSchema.extend({
             }),
         )
         .optional(),
+    thinkingLevel: z.string().optional(),
 });
 
 export const TextDataSchema = BaseNodeDataSchema.extend({
@@ -101,6 +103,7 @@ export const ImageDataSchema = BaseNodeDataSchema.extend({
     mediaInputs: z
         .array(z.object({ url: z.string(), mimeType: z.string().optional() }))
         .optional(),
+    thinkingLevel: z.string().optional(),
 });
 
 export const VideoDataSchema = BaseNodeDataSchema.extend({
@@ -262,7 +265,7 @@ export const GenerateImageSchema = z
             .optional()
             .default([]),
         aspectRatio: ImageDataAspectRatioSchema.optional().default(
-            DEFAULTS.ASPECT_RATIO,
+            DEFAULTS.IMAGE_ASPECT_RATIO,
         ),
         model: ImageDataModelSchema.optional().default(
             MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
@@ -272,6 +275,7 @@ export const GenerateImageSchema = z
         ),
         groundingGoogleSearch: z.boolean().optional().default(false),
         groundingImageSearch: z.boolean().optional().default(false),
+        thinkingLevel: z.string().optional(),
     })
     .superRefine((data, ctx) => {
         const hasParts = data.parts && data.parts.length > 0;
@@ -305,6 +309,7 @@ export const GenerateTextSchema = z
         outputType: z.enum(["text", "json"]).optional().default("text"),
         responseSchema: z.string().optional(),
         strictMode: z.boolean().optional().default(false),
+        thinkingLevel: z.string().optional(),
     })
     .superRefine((data, ctx) => {
         const hasParts = data.parts && data.parts.length > 0;
