@@ -21,6 +21,7 @@ import {
     DEFAULTS,
     ALL_SUPPORTED_MIME_TYPES,
     SupportedMimeType,
+    MODEL_THINKING_LEVELS,
 } from "../constants";
 import type { ContentPart } from "../types";
 
@@ -345,16 +346,19 @@ export class GeminiService {
             ...(systemInstruction ? { systemInstruction } : {}),
         };
 
-        if (thinkingLevel) {
-            const levelKey =
-                thinkingLevel.toUpperCase() as keyof typeof ThinkingLevel;
-            generateContentConfig.thinkingConfig = {
-                thinkingLevel: ThinkingLevel[levelKey] ?? thinkingLevel,
-            };
-        } else if (selectedModel !== MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE) {
-            generateContentConfig.thinkingConfig = {
-                thinkingLevel: ThinkingLevel.LOW,
-            };
+        const supportedLevels = MODEL_THINKING_LEVELS[selectedModel];
+        if (supportedLevels) {
+            if (thinkingLevel) {
+                const levelKey =
+                    thinkingLevel.toUpperCase() as keyof typeof ThinkingLevel;
+                generateContentConfig.thinkingConfig = {
+                    thinkingLevel: ThinkingLevel[levelKey] ?? thinkingLevel,
+                };
+            } else {
+                generateContentConfig.thinkingConfig = {
+                    thinkingLevel: ThinkingLevel.LOW,
+                };
+            }
         }
 
         if (groundingGoogleSearch || groundingImageSearch) {
