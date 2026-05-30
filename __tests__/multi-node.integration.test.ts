@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { WorkflowEngine } from "../lib/workflow-engine";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../lib/types";
+import { MODELS } from "../lib/constants";
 
 // Mock logger
 vi.mock("../app/logger", () => ({
@@ -38,7 +39,7 @@ describe("WorkflowEngine Multi-Node Integration", () => {
                 data: {
                     type: "llm",
                     name: "Enhance Prompt",
-                    model: "gemini-3-flash",
+                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
                     instructions:
                         "Enhance this concept into a detailed image generation prompt.",
                     outputType: "text",
@@ -54,7 +55,7 @@ describe("WorkflowEngine Multi-Node Integration", () => {
                     name: "Generate Image",
                     prompt: "", // will be filled by input
                     images: [],
-                    model: "gemini-3.1-flash-image-preview",
+                    model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
                     aspectRatio: "16:9",
                     resolution: "1K",
                     groundingGoogleSearch: false,
@@ -173,7 +174,7 @@ describe("WorkflowEngine Multi-Node Integration", () => {
                 data: {
                     type: "llm",
                     name: "Combiner",
-                    model: "gemini-3-flash",
+                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
                     instructions: "Combine the inputs into a story.",
                     outputType: "text",
                     strictMode: false,

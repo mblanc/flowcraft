@@ -5,13 +5,13 @@
 export const MODELS = {
     TEXT: {
         GEMINI_3_1_PRO_PREVIEW: "gemini-3.1-pro-preview",
-        GEMINI_3_FLASH_PREVIEW: "gemini-3-flash-preview",
+        GEMINI_3_5_FLASH: "gemini-3.5-flash",
         GEMINI_3_1_FLASH_LITE: "gemini-3.1-flash-lite",
     },
     IMAGE: {
         GEMINI_2_5_FLASH_IMAGE: "gemini-2.5-flash-image",
-        GEMINI_3_PRO_IMAGE_PREVIEW: "gemini-3-pro-image-preview",
-        GEMINI_3_1_FLASH_IMAGE_PREVIEW: "gemini-3.1-flash-image-preview",
+        GEMINI_3_PRO_IMAGE: "gemini-3-pro-image",
+        GEMINI_3_1_FLASH_IMAGE: "gemini-3.1-flash-image",
         IMAGEN_4_0_UPSCALE: "imagen-4.0-upscale-preview",
     },
     VIDEO: {
@@ -24,8 +24,8 @@ export const MODELS = {
 export const MODEL_THINKING_LEVELS: Record<string, string[]> = {
     [MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW]: ["LOW", "MEDIUM", "HIGH"],
     [MODELS.TEXT.GEMINI_3_1_FLASH_LITE]: ["MINIMAL", "LOW", "MEDIUM", "HIGH"],
-    [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW]: ["MINIMAL", "HIGH"],
-    [MODELS.TEXT.GEMINI_3_FLASH_PREVIEW]: ["MINIMAL", "LOW", "MEDIUM", "HIGH"],
+    [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE]: ["MINIMAL", "HIGH"],
+    [MODELS.TEXT.GEMINI_3_5_FLASH]: ["MINIMAL", "LOW", "MEDIUM", "HIGH"],
 };
 
 export const IMAGE_MODEL_CONFIGS = {
@@ -46,7 +46,7 @@ export const IMAGE_MODEL_CONFIGS = {
         resolutions: ["1K"],
         grounding: { google: true, image: false },
     },
-    [MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW]: {
+    [MODELS.IMAGE.GEMINI_3_PRO_IMAGE]: {
         ratios: [
             "Auto",
             "1:1",
@@ -63,7 +63,7 @@ export const IMAGE_MODEL_CONFIGS = {
         resolutions: ["1K", "2K", "4K"],
         grounding: { google: true, image: false },
     },
-    [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW]: {
+    [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE]: {
         ratios: [
             "Auto",
             "1:1",

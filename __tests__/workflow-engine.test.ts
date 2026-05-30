@@ -13,6 +13,7 @@ import {
 import { getNodeDefinition, NodeDefinition } from "../lib/node-registry";
 import { routerNodeDefinition } from "../lib/nodes/router-node";
 import { imageNodeDefinition } from "../lib/nodes/image-node";
+import { MODELS } from "../lib/constants";
 
 // Mock node-registry
 vi.mock("../lib/node-registry", async (importOriginal) => {
@@ -73,7 +74,7 @@ describe("WorkflowEngine", () => {
                         prompt: "p",
                         images: [],
                         aspectRatio: "16:9",
-                        model: "gemini-2.5-flash-image",
+                        model: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
                         resolution: "1K",
                         groundingGoogleSearch: false,
                         groundingImageSearch: false,
@@ -478,7 +479,7 @@ describe("WorkflowEngine", () => {
                         images: ["gs://bucket/uuid-no-extension"],
                         prompt: "p",
                         aspectRatio: "1:1",
-                        model: "gemini-2.5-flash-image",
+                        model: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
                         resolution: "1K",
                         groundingGoogleSearch: false,
                         groundingImageSearch: false,
@@ -496,7 +497,7 @@ describe("WorkflowEngine", () => {
                         images: [],
                         prompt: "q",
                         aspectRatio: "1:1",
-                        model: "gemini-2.5-flash-image",
+                        model: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
                         resolution: "1K",
                         groundingGoogleSearch: false,
                         groundingImageSearch: false,

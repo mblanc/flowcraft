@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { WorkflowEngine } from "../lib/workflow-engine";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../lib/types";
+import { MODELS } from "../lib/constants";
 
 // Mock logger
 vi.mock("../app/logger", () => ({
@@ -680,7 +681,7 @@ describe("WorkflowEngine Nested Subflows", () => {
                 data: {
                     type: "llm",
                     name: "LLM",
-                    model: "gemini-3-flash-preview",
+                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
                     instructions: "Describe this image",
                     outputType: "text",
                 },
@@ -836,7 +837,7 @@ describe("WorkflowEngine Nested Subflows", () => {
                 data: {
                     type: "llm",
                     name: "LLM",
-                    model: "gemini-3-flash-preview",
+                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
                     instructions: "Describe this image",
                     outputType: "text",
                 },
@@ -1002,7 +1003,7 @@ describe("WorkflowEngine Nested Subflows", () => {
                 data: {
                     type: "llm",
                     name: "LLM",
-                    model: "gemini-3-flash-preview",
+                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
                     instructions: "Describe this image",
                     outputType: "text",
                 },

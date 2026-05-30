@@ -15,6 +15,7 @@ import {
     UpscaleData,
     WorkflowOutputData,
 } from "../lib/types";
+import { MODELS } from "../lib/constants";
 
 describe("NodeRegistry - Node Definitions", () => {
     it("should retrieve workflow-input definition", () => {
@@ -41,7 +42,7 @@ describe("NodeRegistry - Port Type Resolution", () => {
                 prompt: "",
                 images: [],
                 aspectRatio: "1:1",
-                model: "gemini-2.5-flash-image",
+                model: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
                 resolution: "1K",
                 groundingGoogleSearch: false,
                 groundingImageSearch: false,
@@ -125,7 +126,7 @@ describe("NodeRegistry - LLMNode gatherInputs", () => {
                     images: [],
                     aspectRatio: "16:9",
                     duration: 4,
-                    model: "veo-3.1-fast-generate-001",
+                    model: MODELS.VIDEO.VEO_3_1_FAST,
                     generateAudio: true,
                     resolution: "720p",
                 } as VideoData,
@@ -140,7 +141,7 @@ describe("NodeRegistry - LLMNode gatherInputs", () => {
                     prompt: "p",
                     images: ["gs://img-gen"],
                     aspectRatio: "1:1",
-                    model: "gemini-2.5-flash-image",
+                    model: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
                     resolution: "1K",
                     groundingGoogleSearch: false,
                     groundingImageSearch: false,

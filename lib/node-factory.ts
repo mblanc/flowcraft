@@ -32,7 +32,7 @@ export function createNode(
                 data: {
                     type: "llm",
                     name: "LLM",
-                    model: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW,
+                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
                     instructions: "",
                     outputType: "text",
                     strictMode: false,
@@ -62,7 +62,7 @@ export function createNode(
                     prompt: "",
                     images: [],
                     aspectRatio: DEFAULTS.IMAGE_ASPECT_RATIO,
-                    model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
+                    model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
                     resolution: DEFAULTS.IMAGE_RESOLUTION,
                     groundingGoogleSearch: false,
                     groundingImageSearch: false,

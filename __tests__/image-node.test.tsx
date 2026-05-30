@@ -6,6 +6,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import type { NodeProps } from "@xyflow/react";
 import type { ImageData } from "../lib/types";
 import { TooltipProvider } from "../components/ui/tooltip";
+import { MODELS } from "../lib/constants";
 
 vi.mock("../lib/store/use-flow-store", () => ({
     useFlowStore: Object.assign(
@@ -40,7 +41,7 @@ describe("ImageNode Rendering", () => {
         data: {
             type: "image",
             name: "Test Image Node",
-            model: "gemini-3.1-flash-image-preview",
+            model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
             prompt: "a landscape",
             images: [],
             aspectRatio: "1:1",

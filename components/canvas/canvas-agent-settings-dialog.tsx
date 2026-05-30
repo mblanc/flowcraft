@@ -37,8 +37,8 @@ export interface AgentSettings {
 
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
     mode: "auto",
-    llmModel: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW,
-    imageModel: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
+    llmModel: MODELS.TEXT.GEMINI_3_5_FLASH,
+    imageModel: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
     imageAspectRatio: "auto",
     imageResolution: "auto",
     videoModel: MODELS.VIDEO.VEO_3_1_LITE,
@@ -49,7 +49,7 @@ export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
 };
 
 const LLM_MODELS = [
-    { id: MODELS.TEXT.GEMINI_3_FLASH_PREVIEW, label: "Gemini 3 Flash" },
+    { id: MODELS.TEXT.GEMINI_3_5_FLASH, label: "Gemini 3.5 Flash" },
     { id: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW, label: "Gemini 3.1 Pro" },
     {
         id: MODELS.TEXT.GEMINI_3_1_FLASH_LITE,
@@ -59,12 +59,12 @@ const LLM_MODELS = [
 
 const IMAGE_MODELS = [
     {
-        id: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
+        id: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
         label: "Nano Banana 2",
     },
     { id: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE, label: "Nano Banana" },
     {
-        id: MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW,
+        id: MODELS.IMAGE.GEMINI_3_PRO_IMAGE,
         label: "Nano Banana Pro",
     },
 ];
@@ -144,7 +144,7 @@ export function CanvasAgentSettingsDialog({
     const imageModelConfig =
         IMAGE_MODEL_CONFIGS[
             draft.imageModel as keyof typeof IMAGE_MODEL_CONFIGS
-        ] ?? IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW];
+        ] ?? IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE];
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>

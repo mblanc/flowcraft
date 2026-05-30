@@ -305,7 +305,7 @@ export function applyVideoFallback(
 export async function* streamAgentResponse(
     input: AgentInput,
 ): AsyncGenerator<AgentEvent> {
-    const model = input.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
+    const model = input.model || MODELS.TEXT.GEMINI_3_5_FLASH;
     const canvasSummary = buildCanvasContextSummary(input.canvasNodes);
     const modeInstruction = getModeInstruction(input.mode);
 

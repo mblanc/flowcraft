@@ -117,7 +117,7 @@ export class GeminiService {
             strictMode,
             thinkingLevel,
         } = options;
-        const selectedModel = model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
+        const selectedModel = model || MODELS.TEXT.GEMINI_3_5_FLASH;
 
         logger.info(
             `[GeminiService] Generating text with model: ${selectedModel}`,
@@ -218,8 +218,7 @@ export class GeminiService {
         model?: string;
         config?: GenerateContentConfig;
     }): AsyncGenerator<string> {
-        const selectedModel =
-            options.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
+        const selectedModel = options.model || MODELS.TEXT.GEMINI_3_5_FLASH;
 
         logger.info(
             `[GeminiService] Streaming text with model: ${selectedModel}`,
@@ -263,8 +262,7 @@ export class GeminiService {
         responseSchema: Record<string, unknown>;
         config?: GenerateContentConfig;
     }): Promise<GenerateContentResponse> {
-        const selectedModel =
-            options.model || MODELS.TEXT.GEMINI_3_FLASH_PREVIEW;
+        const selectedModel = options.model || MODELS.TEXT.GEMINI_3_5_FLASH;
 
         logger.info(
             `[GeminiService] Generating structured output with model: ${selectedModel}`,
@@ -303,8 +301,7 @@ export class GeminiService {
             systemInstruction,
             thinkingLevel,
         } = options;
-        const selectedModel =
-            model || MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW;
+        const selectedModel = model || MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE;
 
         logger.info(
             `[GeminiService] Generating image with model: ${selectedModel}`,

@@ -40,7 +40,7 @@ export function ImageConfig({
 
     const currentModelConfig =
         IMAGE_MODEL_CONFIGS[data.model as keyof typeof IMAGE_MODEL_CONFIGS] ||
-        IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW];
+        IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE];
 
     useEffect(() => {
         const fetchSignedUrls = async () => {
@@ -146,14 +146,10 @@ export function ImageConfig({
                         <SelectItem value={MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE}>
                             Nano Banana (Gemini 2.5 Flash Image)
                         </SelectItem>
-                        <SelectItem
-                            value={MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW}
-                        >
+                        <SelectItem value={MODELS.IMAGE.GEMINI_3_PRO_IMAGE}>
                             Nano Banana Pro (Gemini 3 Pro Image Preview)
                         </SelectItem>
-                        <SelectItem
-                            value={MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW}
-                        >
+                        <SelectItem value={MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE}>
                             Nano Banana 2 (Gemini 3.1 Flash Image Preview)
                         </SelectItem>
                     </SelectContent>

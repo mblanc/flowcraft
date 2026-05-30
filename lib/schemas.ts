@@ -40,8 +40,8 @@ const ImageDataAspectRatioSchema = z.enum([
 
 const ImageDataModelSchema = z.enum([
     MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
-    MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW,
-    MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
+    MODELS.IMAGE.GEMINI_3_PRO_IMAGE,
+    MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
 ]);
 
 const ImageDataResolutionSchema = z.enum(["512", "1K", "2K", "4K"]);
@@ -268,7 +268,7 @@ export const GenerateImageSchema = z
             DEFAULTS.IMAGE_ASPECT_RATIO,
         ),
         model: ImageDataModelSchema.optional().default(
-            MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW,
+            MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
         ),
         resolution: ImageDataResolutionSchema.optional().default(
             DEFAULTS.IMAGE_RESOLUTION,
@@ -302,10 +302,7 @@ export const GenerateTextSchema = z
             )
             .optional()
             .default([]),
-        model: z
-            .string()
-            .optional()
-            .default(MODELS.TEXT.GEMINI_3_FLASH_PREVIEW),
+        model: z.string().optional().default(MODELS.TEXT.GEMINI_3_5_FLASH),
         outputType: z.enum(["text", "json"]).optional().default("text"),
         responseSchema: z.string().optional(),
         strictMode: z.boolean().optional().default(false),

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { WorkflowEngine } from "../lib/workflow-engine";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData, LLMData, FileData, VideoData } from "../lib/types";
+import { MODELS } from "../lib/constants";
 
 // Mock geminiService
 vi.mock("../lib/services/gemini.service", () => ({
@@ -67,7 +68,7 @@ describe("LLM Multimodal Integration", () => {
                 data: {
                     type: "llm",
                     name: "Summarizer",
-                    model: "gemini-1.5-flash",
+                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
                     instructions: "Summarize the attached PDF.",
                     outputType: "text",
                     strictMode: false,
@@ -123,7 +124,7 @@ describe("LLM Multimodal Integration", () => {
                     images: [],
                     aspectRatio: "16:9",
                     duration: 4,
-                    model: "veo-3.1-fast-generate-001",
+                    model: MODELS.VIDEO.VEO_3_1_FAST,
                     generateAudio: true,
                     resolution: "720p",
                 } as VideoData,
@@ -135,7 +136,7 @@ describe("LLM Multimodal Integration", () => {
                 data: {
                     type: "llm",
                     name: "Analyzer",
-                    model: "gemini-1.5-flash",
+                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
                     instructions: "What happens in this video?",
                     outputType: "text",
                     strictMode: false,
@@ -208,7 +209,7 @@ describe("LLM Multimodal Integration", () => {
                     images: [],
                     aspectRatio: "16:9",
                     duration: 4,
-                    model: "veo-3.1-fast-generate-001",
+                    model: MODELS.VIDEO.VEO_3_1_FAST,
                     generateAudio: true,
                     resolution: "720p",
                 } as VideoData,
@@ -220,7 +221,7 @@ describe("LLM Multimodal Integration", () => {
                 data: {
                     type: "llm",
                     name: "Omni-Analyzer",
-                    model: "gemini-1.5-flash",
+                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
                     instructions: "Analyze everything.",
                     outputType: "text",
                     strictMode: false,

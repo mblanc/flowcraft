@@ -433,9 +433,7 @@ export const LLMNode = memo(
                             >
                                 Gemini 3.1 Flash-Lite
                             </SelectItem>
-                            <SelectItem
-                                value={MODELS.TEXT.GEMINI_3_FLASH_PREVIEW}
-                            >
+                            <SelectItem value={MODELS.TEXT.GEMINI_3_5_FLASH}>
                                 Gemini 3 Flash
                             </SelectItem>
                         </SelectContent>

@@ -17,6 +17,7 @@ import type {
     RouterData,
     NodeData,
 } from "../lib/types";
+import { MODELS } from "../lib/constants";
 
 vi.mock("@/app/logger", () => ({
     default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -36,7 +37,7 @@ function makeVideoNode(id = "vid-1"): Node<VideoData> {
             images: [],
             aspectRatio: "16:9",
             duration: 4,
-            model: "veo-3.1-fast-generate-001",
+            model: MODELS.VIDEO.VEO_3_1_FAST,
             generateAudio: false,
             resolution: "720p",
         } as VideoData,
@@ -54,7 +55,7 @@ function makeImageNodeFull(id = "img-1"): Node<ImageData> {
             prompt: "",
             images: [],
             aspectRatio: "1:1",
-            model: "gemini-2.5-flash-image",
+            model: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
             resolution: "1K",
             groundingGoogleSearch: false,
             groundingImageSearch: false,

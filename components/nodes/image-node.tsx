@@ -163,8 +163,7 @@ export const ImageNode = memo(
         const currentModelConfig =
             IMAGE_MODEL_CONFIGS[
                 data.model as keyof typeof IMAGE_MODEL_CONFIGS
-            ] ||
-            IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE_PREVIEW];
+            ] || IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE];
 
         return (
             <div
@@ -301,17 +300,12 @@ export const ImageNode = memo(
                                     Nano Banana
                                 </SelectItem>
                                 <SelectItem
-                                    value={
-                                        MODELS.IMAGE.GEMINI_3_PRO_IMAGE_PREVIEW
-                                    }
+                                    value={MODELS.IMAGE.GEMINI_3_PRO_IMAGE}
                                 >
                                     Nano Banana Pro
                                 </SelectItem>
                                 <SelectItem
-                                    value={
-                                        MODELS.IMAGE
-                                            .GEMINI_3_1_FLASH_IMAGE_PREVIEW
-                                    }
+                                    value={MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE}
                                 >
                                     Nano Banana 2
                                 </SelectItem>

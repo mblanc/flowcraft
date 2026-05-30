@@ -5,6 +5,7 @@ import { migrateNodes } from "../lib/migration";
 import { executeLLMNode } from "../lib/executors";
 import { Node } from "@xyflow/react";
 import { LLMData } from "../lib/types";
+import { MODELS } from "../lib/constants";
 
 describe("LLMNode Refactoring", () => {
     it("should have LLMDataSchema defined", () => {
@@ -19,7 +20,7 @@ describe("LLMNode Refactoring", () => {
         const validData = {
             name: "Test LLM",
             type: "llm",
-            model: "gemini-2.0-flash",
+            model: MODELS.TEXT.GEMINI_3_5_FLASH,
             instructions: "Be helpful",
             outputType: "json",
             responseSchema: "{}",
@@ -32,7 +33,7 @@ describe("LLMNode Refactoring", () => {
         const data = {
             name: "Test LLM",
             type: "llm",
-            model: "gemini-2.0-flash",
+            model: MODELS.TEXT.GEMINI_3_5_FLASH,
             instructions: "Be helpful",
         };
         const result = LLMDataSchema.parse(data);
@@ -47,7 +48,7 @@ describe("LLMNode Refactoring", () => {
                 data: {
                     type: "agent",
                     name: "Old Agent",
-                    model: "gemini-pro",
+                    model: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW,
                     instructions: "test",
                 },
                 position: { x: 0, y: 0 },
@@ -65,7 +66,7 @@ describe("LLMNode Refactoring", () => {
             data: {
                 type: "llm",
                 name: "Test LLM",
-                model: "gemini-pro",
+                model: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW,
                 instructions: "Generate list",
                 outputType: "json",
                 responseSchema: JSON.stringify({
@@ -118,7 +119,7 @@ describe("LLMNode Refactoring", () => {
             data: {
                 type: "llm",
                 name: "Test LLM",
-                model: "gemini-pro",
+                model: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW,
                 instructions: "combine stories",
                 outputType: "text",
             } as LLMData,
@@ -170,7 +171,7 @@ describe("LLMNode Refactoring", () => {
             data: {
                 type: "llm",
                 name: "Test LLM",
-                model: "gemini-pro",
+                model: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW,
                 instructions: "Hello world",
                 outputType: "text",
             } as LLMData,
@@ -201,7 +202,7 @@ describe("LLMNode Refactoring", () => {
             data: {
                 type: "llm",
                 name: "Test LLM",
-                model: "gemini-pro",
+                model: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW,
                 instructions: "",
                 outputType: "text",
             } as LLMData,
