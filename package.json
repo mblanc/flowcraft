@@ -8,11 +8,11 @@
         "start": "next start",
         "lint": "eslint .",
         "format": "prettier --write --experimental-cli .",
-        "check": "npx tsc --noEmit",
+        "check": "bunx tsc --noEmit",
         "test": "vitest run",
         "test:ui": "vitest --ui",
         "test:coverage": "vitest --coverage",
-        "preflight": "npm run format && npm run check && npm run lint && npm run test",
+        "preflight": "bun run format && bun run check && bun run lint && bun run test",
         "prepare": "husky"
     },
     "dependencies": {

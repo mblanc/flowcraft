@@ -151,6 +151,5 @@
         "automerge": true,
         "platformAutomerge": true,
         "schedule": ["before 6am on monday"]
-    },
-    "postUpdateOptions": ["npmDedupe"]
+    }
 }
