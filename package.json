@@ -68,13 +68,13 @@
         "react-hook-form": "^7.71.2",
         "react-markdown": "^10.1.0",
         "react-resizable-panels": "^4.7.2",
-        "recharts": "3.8.0",
+        "recharts": "3.8.1",
         "remark-gfm": "^4.0.1",
         "sharp": "^0.34.5",
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.5.0",
         "tailwindcss-animate": "^1.0.7",
-        "uuid": "^13.0.0",
+        "uuid": "^13.0.2",
         "vaul": "^1.1.2",
         "winston": "^3.19.0",
         "zod": "4.3.6",
@@ -111,6 +111,6 @@
     "overrides": {
         "@types/react": "19.2.14",
         "@types/react-dom": "19.2.3",
-        "tinyexec": "1.0.2"
+        "tinyexec": "1.2.4"
     }
 }
