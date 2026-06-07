@@ -25,6 +25,7 @@ interface ChatRequestBody {
     attachments?: ChatAttachment[];
     mode: "auto" | "image" | "video";
     model?: string;
+    sessionId?: string;
     imageDefaults?: MediaDefaults;
     videoDefaults?: VideoDefaultsBody;
 }
@@ -129,11 +130,14 @@ export async function POST(
                     attachments: body.attachments,
                     mode: body.mode,
                     model: body.model,
+                    sessionId: body.sessionId,
                     history: canvas.messages,
                     canvasNodes: canvas.nodes,
                     imageDefaults: body.imageDefaults,
                     videoDefaults: body.videoDefaults,
                     activeStyle,
+                    canvasId,
+                    userId: session.user.id,
                 });
 
                 for await (const event of agentStream) {

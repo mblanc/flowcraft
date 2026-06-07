@@ -369,8 +369,9 @@ export class CanvasAgentRunner {
 
         const runner = this.getRunner(model, instruction);
 
-        const sessionId = `${input.userId ?? "anon"}:${input.canvasId ?? "default"}`;
-        const userId = "canvas_user";
+        const userId = input.userId ?? "anon";
+        const sessionId =
+            input.sessionId ?? `${userId}:${input.canvasId ?? "default"}`;
 
         try {
             await this.sessionService.createSession({
