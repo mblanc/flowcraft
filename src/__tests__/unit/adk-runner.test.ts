@@ -165,6 +165,47 @@ describe("extractAgentEvents", () => {
         });
     });
 
+    it("emits text_nodes event from plan_text_nodes call", async () => {
+        const nodes = [
+            {
+                id: "scenario_01",
+                title: "Lumino — Trailer Architecture",
+                content: "# Lumino\n\nShot 01 — The Watcher...",
+                format: "scenario",
+            },
+        ];
+        const adkEvents = [makeFunctionCallEvent("plan_text_nodes", { nodes })];
+        const events = await collect(
+            extractAgentEvents(asAsyncIter(adkEvents), [], []),
+        );
+        const textNodesEvent = events.find((e) => e.type === "text_nodes");
+        expect(textNodesEvent).toMatchObject({
+            type: "text_nodes",
+            nodes: [
+                { id: "scenario_01", title: "Lumino — Trailer Architecture" },
+            ],
+        });
+    });
+
+    it("emits text_nodes before plan when both are in the same stream", async () => {
+        const nodes = [{ id: "s", title: "Scenario", content: "Shot 01..." }];
+        const steps: GenerationStep[] = [
+            { id: "step_0", type: "image", prompt: "A cat", label: "Cat" },
+        ];
+        const adkEvents = [
+            makeFunctionCallEvent("plan_text_nodes", { nodes }),
+            makeFunctionCallEvent("plan_image_generation", { steps }),
+        ];
+        const events = await collect(
+            extractAgentEvents(asAsyncIter(adkEvents), [], []),
+        );
+        const textNodesIdx = events.findIndex((e) => e.type === "text_nodes");
+        const planIdx = events.findIndex((e) => e.type === "plan");
+        expect(textNodesIdx).toBeGreaterThanOrEqual(0);
+        expect(planIdx).toBeGreaterThanOrEqual(0);
+        expect(textNodesIdx).toBeLessThan(planIdx);
+    });
+
     it("always ends with done event", async () => {
         const events = await collect(
             extractAgentEvents(asAsyncIter([]), [], []),

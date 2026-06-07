@@ -9,7 +9,11 @@ import {
 import { ThinkingLevel } from "@google/genai";
 import { config } from "@/lib/config";
 import logger from "@/app/logger";
-import { planProductionTool, suggestActionsTool } from "./tools";
+import {
+    planProductionTool,
+    planTextNodesTool,
+    suggestActionsTool,
+} from "./tools";
 import path from "path";
 
 const PATTERNS_DIR = path.join(
@@ -56,7 +60,12 @@ export class CanvasAgent {
                     includeThoughts: true,
                 },
             },
-            tools: [planProductionTool, suggestActionsTool, skillToolset],
+            tools: [
+                planTextNodesTool,
+                planProductionTool,
+                suggestActionsTool,
+                skillToolset,
+            ],
         });
     }
 
