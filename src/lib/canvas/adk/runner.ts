@@ -1,11 +1,17 @@
 import {
     Gemini,
     LlmAgent,
+    LogLevel,
     Runner,
     StreamingMode,
     getFunctionCalls,
+    setLogLevel,
     type BaseSessionService,
 } from "@google/adk";
+
+if (process.env.ADK_LOG_LEVEL === "debug") {
+    setLogLevel(LogLevel.DEBUG);
+}
 import { createPartFromText, createPartFromUri } from "@google/genai";
 import type { Content } from "@google/genai";
 import type { Event } from "@google/adk";
@@ -252,6 +258,26 @@ export async function* extractAgentEvents(
     let actionsEmitted = false;
 
     for await (const event of adkEvents) {
+        logger.debug(
+            `[CanvasADK] event author=${event.author} partial=${event.partial} errorCode=${(event as unknown as { errorCode?: string }).errorCode} errorMessage=${(event as unknown as { errorMessage?: string }).errorMessage} parts=${JSON.stringify(event.content?.parts?.map((p) => ({ text: p.text?.slice(0, 80), fc: p.functionCall?.name, fr: p.functionResponse?.name })))}`,
+        );
+
+        // Surface ADK error events
+        const adkError = event as unknown as {
+            errorCode?: string;
+            errorMessage?: string;
+        };
+        if (adkError.errorCode || adkError.errorMessage) {
+            logger.error(
+                `[CanvasADK] model error ${adkError.errorCode}: ${adkError.errorMessage}`,
+            );
+            yield {
+                type: "text",
+                delta: `Error: ${adkError.errorMessage ?? adkError.errorCode}`,
+            };
+            continue;
+        }
+
         // Emit text from any model event that carries text parts
         if (event.author !== "user" && event.content?.parts) {
             const text = event.content.parts
