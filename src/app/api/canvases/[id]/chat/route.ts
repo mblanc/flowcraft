@@ -203,6 +203,16 @@ export async function POST(
                             );
                             break;
 
+                        case "text_nodes":
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("text_nodes", {
+                                        nodes: event.nodes,
+                                    }),
+                                ),
+                            );
+                            break;
+
                         case "error":
                             controller.enqueue(
                                 encode(

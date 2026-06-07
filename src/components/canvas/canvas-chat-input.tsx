@@ -913,6 +913,70 @@ export function CanvasChatInput({
                                     }
                                     break;
 
+                                case "text_nodes": {
+                                    const textNodes = payload.nodes as Array<{
+                                        id: string;
+                                        title: string;
+                                        content: string;
+                                        format?: string;
+                                    }>;
+                                    const center = getViewportCenter();
+                                    const existingNodes =
+                                        useCanvasStore.getState().nodes;
+                                    const lowestY =
+                                        existingNodes.length > 0
+                                            ? Math.max(
+                                                  ...existingNodes.map(
+                                                      (n) =>
+                                                          n.position.y +
+                                                          ((
+                                                              n.data as {
+                                                                  height?: number;
+                                                              }
+                                                          ).height ??
+                                                              n.height ??
+                                                              300),
+                                                  ),
+                                              )
+                                            : center.y - 300;
+                                    textNodes.forEach((tn, idx) => {
+                                        const nodeWidth = 480;
+                                        const nodeHeight = 600;
+                                        const gap = 40;
+                                        const position = {
+                                            x:
+                                                existingNodes.length > 0
+                                                    ? center.x - nodeWidth / 2
+                                                    : center.x - nodeWidth / 2,
+                                            y:
+                                                lowestY +
+                                                gap +
+                                                idx * (nodeHeight + gap),
+                                        };
+                                        addNode({
+                                            id: uuidv4(),
+                                            type: "canvas-text",
+                                            position,
+                                            data: {
+                                                type: "canvas-text",
+                                                label: tn.title,
+                                                content: tn.content,
+                                                format: tn.format as
+                                                    | "scenario"
+                                                    | "synopsis"
+                                                    | "brief"
+                                                    | "notes"
+                                                    | undefined,
+                                                width: nodeWidth,
+                                                height: nodeHeight,
+                                            },
+                                            width: nodeWidth,
+                                            height: nodeHeight,
+                                        });
+                                    });
+                                    break;
+                                }
+
                                 case "error":
                                     throw new Error(
                                         payload.message || "Stream error",
@@ -963,6 +1027,8 @@ export function CanvasChatInput({
             updateMessage,
             setIsChatLoading,
             setPlanStatus,
+            addNode,
+            getViewportCenter,
         ],
     );
 
