@@ -6,6 +6,7 @@ import type {
     PlanNode,
     VideoDefaults,
 } from "../types";
+import { IMAGE_MODELS, VIDEO_MODELS } from "./tools";
 
 export function applyVideoFallback(
     step: GenerationStep,
@@ -41,17 +42,8 @@ export function applyVideoFallback(
     return { ...step, referenceNodeIds: attachments.map((a) => a.nodeId) };
 }
 
-export const VALID_IMAGE_MODELS = new Set([
-    "gemini-2.5-flash-image",
-    "gemini-3-pro-image",
-    "gemini-3.1-flash-image",
-]);
-
-export const VALID_VIDEO_MODELS = new Set([
-    "veo-3.1-lite-generate-001",
-    "veo-3.1-fast-generate-001",
-    "veo-3.1-generate-001",
-]);
+export const VALID_IMAGE_MODELS = new Set<string>(IMAGE_MODELS);
+export const VALID_VIDEO_MODELS = new Set<string>(VIDEO_MODELS);
 
 function resolveModel(
     stepModel: string | undefined,
