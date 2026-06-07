@@ -333,7 +333,16 @@ export async function* extractAgentEvents(
 
     for await (const event of adkEvents) {
         logger.debug(
-            `[CanvasADK] event author=${event.author} partial=${event.partial} errorCode=${(event as unknown as { errorCode?: string }).errorCode} errorMessage=${(event as unknown as { errorMessage?: string }).errorMessage} parts=${JSON.stringify(event.content?.parts?.map((p) => ({ text: p.text?.slice(0, 80), fc: p.functionCall?.name, fr: p.functionResponse?.name })))}`,
+            `[CanvasADK] event author=${event.author} partial=${event.partial} errorCode=${(event as unknown as { errorCode?: string }).errorCode} errorMessage=${(event as unknown as { errorMessage?: string }).errorMessage} parts=${JSON.stringify(
+                event.content?.parts?.map((p) => ({
+                    text: p.text?.slice(0, 80),
+                    fc: p.functionCall?.name,
+                    fcArgs: p.functionCall?.args
+                        ? JSON.stringify(p.functionCall.args).slice(0, 200)
+                        : undefined,
+                    fr: p.functionResponse?.name,
+                })),
+            )}`,
         );
 
         // Surface ADK error events
