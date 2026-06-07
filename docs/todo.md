@@ -129,3 +129,10 @@ https://studio.morphic.com/
 
 - The current `sessionId` namespacing (`${userId}:${clientSessionId}`) already prevents cross-user session access.
 - Per-canvas session cap (e.g. 20 sessions max) should be enforced to avoid unbounded Firestore growth.
+
+## Agent & Prompt Engineering Refactoring
+
+- [ ] Standardize `PromptEngineer` as a proper ADK Agent
+    - Convert `PromptEngineer` from a stateless helper class into a first-class `@google/adk` agent.
+    - Register primitive skills (`image-generation`, `video-generation`) as standard ADK skills.
+    - This will allow the prompt engineer to utilize standard tools (e.g., search, file analysis, or tone evaluation tools) to build better prompts.

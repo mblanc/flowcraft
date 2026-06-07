@@ -59,6 +59,7 @@ export interface GenerateTextOptions {
     responseSchema?: string;
     strictMode?: boolean;
     thinkingLevel?: string;
+    systemInstruction?: string;
 }
 
 export interface GenerateImageOptions {
@@ -116,6 +117,7 @@ export class GeminiService {
             responseSchema,
             strictMode,
             thinkingLevel,
+            systemInstruction,
         } = options;
         const selectedModel = model || MODELS.TEXT.GEMINI_3_5_FLASH;
 
@@ -185,6 +187,10 @@ export class GeminiService {
             generationConfig.thinkingConfig = {
                 thinkingLevel: ThinkingLevel[levelKey] ?? thinkingLevel,
             };
+        }
+
+        if (systemInstruction) {
+            generationConfig.systemInstruction = systemInstruction;
         }
 
         logger.info(
