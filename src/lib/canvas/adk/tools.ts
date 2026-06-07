@@ -1,6 +1,18 @@
 import { FunctionTool } from "@google/adk";
 import { z } from "zod";
 
+const IMAGE_MODELS = [
+    "gemini-2.5-flash-image",
+    "gemini-3-pro-image",
+    "gemini-3.1-flash-image",
+] as const;
+
+const VIDEO_MODELS = [
+    "veo-3.1-lite-generate-001",
+    "veo-3.1-fast-generate-001",
+    "veo-3.1-generate-001",
+] as const;
+
 const imageStepSchema = z.object({
     id: z.string(),
     type: z.literal("image"),
@@ -8,7 +20,7 @@ const imageStepSchema = z.object({
     label: z.string(),
     aspectRatio: z.string().optional(),
     resolution: z.string().optional(),
-    model: z.string().optional(),
+    model: z.enum(IMAGE_MODELS).optional(),
     referenceNodeIds: z.array(z.string()).optional(),
     dependsOn: z.array(z.string()).optional(),
 });
@@ -20,7 +32,7 @@ const videoStepSchema = z.object({
     label: z.string(),
     aspectRatio: z.string().optional(),
     resolution: z.string().optional(),
-    model: z.string().optional(),
+    model: z.enum(VIDEO_MODELS).optional(),
     duration: z.number().optional(),
     generateAudio: z.boolean().optional(),
     referenceNodeIds: z.array(z.string()).optional(),

@@ -171,6 +171,34 @@ function validateStepNodeIds(
     return validated;
 }
 
+const VALID_IMAGE_MODELS = new Set([
+    "gemini-2.5-flash-image",
+    "gemini-3-pro-image",
+    "gemini-3.1-flash-image",
+]);
+
+const VALID_VIDEO_MODELS = new Set([
+    "veo-3.1-lite-generate-001",
+    "veo-3.1-fast-generate-001",
+    "veo-3.1-generate-001",
+]);
+
+function resolveModel(
+    stepModel: string | undefined,
+    defaultModel: string | undefined,
+    validModels: Set<string>,
+): string | undefined {
+    const candidate = stepModel ?? defaultModel;
+    if (!candidate) return undefined;
+    if (!validModels.has(candidate)) {
+        logger.warn(`[CanvasADK] Ignored unrecognized model: ${candidate}`);
+        return defaultModel && validModels.has(defaultModel)
+            ? defaultModel
+            : undefined;
+    }
+    return candidate;
+}
+
 function applyTypeDefaults(
     step: GenerationStep,
     imageDefaults?: MediaDefaults,
@@ -178,15 +206,19 @@ function applyTypeDefaults(
 ): GenerationStep {
     const isVideo = step.type === "video";
     const defaults = isVideo ? videoDefaults : imageDefaults;
+    const validModels = isVideo ? VALID_VIDEO_MODELS : VALID_IMAGE_MODELS;
+    const resolvedModel = resolveModel(
+        step.model,
+        defaults?.model,
+        validModels,
+    );
     return {
         ...step,
         aspectRatio: step.aspectRatio ?? defaults?.aspectRatio ?? "16:9",
         ...((step.resolution ?? defaults?.resolution)
             ? { resolution: step.resolution ?? defaults?.resolution }
             : {}),
-        ...((step.model ?? defaults?.model)
-            ? { model: step.model ?? defaults?.model }
-            : {}),
+        ...(resolvedModel ? { model: resolvedModel } : { model: undefined }),
         ...(isVideo
             ? {
                   generateAudio:
