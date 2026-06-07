@@ -72,6 +72,18 @@ describe("Director agent (CanvasAgent)", () => {
         expect(toolNames).toContain("suggest_actions");
     });
 
+    it("includes planTextNodesTool in Director tools", async () => {
+        const agent = await new CanvasAgent().build(
+            MODELS.TEXT.GEMINI_3_5_FLASH,
+            "test instruction",
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const toolNames = (agent.tools as any[]).flatMap((t: any) =>
+            t.name ? [t.name] : [],
+        );
+        expect(toolNames).toContain("plan_text_nodes");
+    });
+
     it("includes a SkillToolset in Director tools", async () => {
         const agent = await new CanvasAgent().build(
             MODELS.TEXT.GEMINI_3_5_FLASH,

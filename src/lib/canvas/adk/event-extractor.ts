@@ -10,6 +10,7 @@ import type {
     GenerationStep,
     MediaDefaults,
     PlanNode,
+    TextNodePayload,
     VideoDefaults,
 } from "../types";
 
@@ -90,6 +91,10 @@ export async function* extractAgentEvents(
                     label: `Loading ${skillName} skill`,
                 };
             }
+            if (call.name === "plan_text_nodes") {
+                yield { type: "agent_action", label: "Writing scenario" };
+            }
+
             if (call.name === "plan_production") {
                 yield { type: "agent_action", label: "Planning production" };
             }
@@ -126,6 +131,14 @@ export async function* extractAgentEvents(
                     videoDefaults,
                 );
                 allSteps.push(...steps);
+            }
+
+            if (call.name === "plan_text_nodes") {
+                const raw =
+                    (call.args as { nodes?: TextNodePayload[] })?.nodes ?? [];
+                if (raw.length > 0) {
+                    yield { type: "text_nodes", nodes: raw };
+                }
             }
 
             if (call.name === "suggest_actions" && !actionsEmitted) {

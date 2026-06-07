@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
     planImageGenerationTool,
     planVideoGenerationTool,
+    planTextNodesTool,
     suggestActionsTool,
 } from "../../lib/canvas/adk/tools";
 
@@ -83,6 +84,37 @@ describe("planVideoGenerationTool", () => {
             toolContext: undefined,
         });
         expect(result).toEqual({ steps });
+    });
+});
+
+describe("planTextNodesTool", () => {
+    it("returns nodes unchanged", async () => {
+        const nodes = [
+            {
+                id: "scenario_01",
+                title: "Lumino — Trailer Architecture",
+                content: "# Lumino\n\nShot 01 — The Watcher...",
+                format: "scenario" as const,
+            },
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (planTextNodesTool as any).runAsync({
+            args: { nodes },
+            toolContext: undefined,
+        });
+        expect(result).toEqual({ nodes });
+    });
+
+    it("accepts nodes without optional format", async () => {
+        const nodes = [
+            { id: "brief_01", title: "Ad Brief", content: "30s ad for shoes." },
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (planTextNodesTool as any).runAsync({
+            args: { nodes },
+            toolContext: undefined,
+        });
+        expect(result).toEqual({ nodes });
     });
 });
 

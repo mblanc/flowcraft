@@ -44,15 +44,28 @@ RULES for plan_production nodes:
 - Keep video nodes ≤10s; split longer sequences with concat nodes.
 - Video duration MUST be exactly 4, 6, or 8 seconds — no other values are valid. Default to 4 when the user has not specified.
 - If the request is genuinely ambiguous, add clarifications[] but still emit a best-effort plan.
-- Never put generation descriptions in conversational text — always emit plan_production.`;
+- Never put generation descriptions in conversational text — always emit plan_production.
+
+SCENARIO-GROUNDED PRODUCTION:
+- For any multi-shot narrative request (film, trailer, ad, short) where no text node (type: text) exists on the canvas yet, call plan_text_nodes FIRST to emit a scenario document, then call plan_production grounded in it.
+- A scenario MUST include: visual style anchor, audio direction summary, and a shot-by-shot plan with section, duration, camera description, and keyframe type for each shot.
+- In plan_production promptIntent fields, reference the scenario content directly (e.g. "Shot 02 — Rain City: wide aerial alley at night, navy and charcoal, slow push …").
+- If a canvas text node is already present, read its content from the canvas context and use it as the grounding source — do NOT emit a new scenario.
+- Do NOT call plan_text_nodes for single-image or single-video requests.`;
 
 export function buildCanvasContext(nodes: AgentInput["canvasNodes"]): string {
     if (nodes.length === 0) return "";
     const items = nodes.map((n) => {
         const d = n.data;
         let desc = `- ${d.label} (id: ${n.id}, type: ${n.type.replace("canvas-", "")})`;
+        if ("format" in d && d.format) desc += ` [format: ${d.format}]`;
         if ("prompt" in d && d.prompt) desc += ` — prompt: "${d.prompt}"`;
         if ("status" in d) desc += ` [${d.status}]`;
+        if (n.type === "canvas-text" && "content" in d && d.content) {
+            const raw = d.content as string;
+            const snippet = raw.slice(0, 800);
+            desc += `\n  Content:\n${snippet}${raw.length > 800 ? "\n  [… truncated]" : ""}`;
+        }
         return desc;
     });
     return `\n\nCurrent canvas items:\n${items.join("\n")}\nIMPORTANT: Only use node IDs that appear in this list.`;

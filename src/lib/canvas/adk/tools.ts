@@ -173,6 +173,34 @@ export const planProductionTool = new FunctionTool({
     },
 });
 
+const textNodeSchema = z.object({
+    id: z
+        .string()
+        .describe(
+            "Unique node id — must not collide with other nodes emitted in this turn",
+        ),
+    title: z
+        .string()
+        .describe(
+            "Short human-readable title, e.g. 'Lumino — Trailer Architecture'",
+        ),
+    content: z.string().describe("Full markdown content of the document"),
+    format: z
+        .enum(["scenario", "synopsis", "brief", "notes"])
+        .optional()
+        .describe(
+            "'scenario' for shot-by-shot plans, 'synopsis' for narrative summaries",
+        ),
+});
+
+export const planTextNodesTool = new FunctionTool({
+    name: "plan_text_nodes",
+    description:
+        "Create one or more text document nodes on the canvas. Use for scenarios, synopses, shot lists, or any structured text that grounds future media generation. Call this BEFORE plan_production when the user requests a film, trailer, or ad from scratch.",
+    parameters: z.object({ nodes: z.array(textNodeSchema) }),
+    execute: async ({ nodes }) => ({ nodes }),
+});
+
 export const suggestActionsTool = new FunctionTool({
     name: "suggest_actions",
     description:

@@ -50,6 +50,7 @@ export interface CanvasTextData {
     type: "canvas-text";
     label: string;
     content: string;
+    format?: "scenario" | "synopsis" | "brief" | "notes";
     fontSize?: number;
     width: number;
     height: number;
@@ -207,12 +208,20 @@ export interface AgentInput {
     sessionId?: string;
 }
 
+export interface TextNodePayload {
+    id: string;
+    title: string;
+    content: string;
+    format?: string;
+}
+
 export type AgentEvent =
     | { type: "text"; delta: string }
     | { type: "thought"; delta: string }
     | { type: "agent_action"; label: string }
     | { type: "plan"; plan: AgentPlan }
     | { type: "actions"; actions: ChatAction[] }
+    | { type: "text_nodes"; nodes: TextNodePayload[] }
     | { type: "error"; message: string }
     | { type: "done" };
 
