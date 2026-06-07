@@ -1,6 +1,7 @@
 import {
     uploadImage,
     uploadFile,
+    uploadTempFile,
     getSignedUrlFromGCS,
     getMimeTypeFromGCS,
     gcsUriToSharp,
@@ -19,6 +20,14 @@ export class StorageService {
         contentType: string,
     ): Promise<string> {
         return uploadFile(buffer, filename, contentType);
+    }
+
+    async uploadTempFile(
+        localPath: string,
+        filename: string,
+        contentType: string,
+    ): Promise<string> {
+        return uploadTempFile(localPath, filename, contentType);
     }
 
     async getSignedUrl(

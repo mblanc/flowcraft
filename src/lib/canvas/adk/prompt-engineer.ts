@@ -7,7 +7,7 @@ import { MODELS } from "@/lib/constants";
 import type { GenerationStep } from "../types";
 import type { CanvasNode } from "../types";
 
-const SKILL_FOR_TYPE: Record<"image" | "video", string> = {
+const SKILL_FOR_TYPE: Partial<Record<"image" | "video" | "concat", string>> = {
     image: "image-generation",
     video: "video-generation",
 };
@@ -56,7 +56,7 @@ export class PromptEngineer {
         canvasNodes: CanvasNode[],
         activeStyle?: { name: string; content: string } | null,
     ): string {
-        const skillName = SKILL_FOR_TYPE[step.type];
+        const skillName = SKILL_FOR_TYPE[step.type] ?? "";
         const skillContent = this.loadSkill(skillName);
 
         const lines: string[] = [];
