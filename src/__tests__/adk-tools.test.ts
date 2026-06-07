@@ -32,7 +32,7 @@ describe("planImageGenerationTool", () => {
                 label: "Sunset",
                 aspectRatio: "16:9",
                 resolution: "2K",
-                model: "imagen-4.0",
+                model: "gemini-3.1-flash-image",
                 referenceNodeIds: ["node_1"],
                 dependsOn: [],
             },
