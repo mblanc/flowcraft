@@ -156,4 +156,73 @@ describe("CanvasTextNode", () => {
         // After double-click, the editor mock should appear
         expect(screen.queryByTestId("text-editor-mock")).toBeTruthy();
     });
+
+    it("opens the expand dialog when the expand button is clicked", () => {
+        const props = makeProps({
+            type: "canvas-text",
+            label: "Expandable Node",
+            content: "Long text content",
+            width: 480,
+            height: 600,
+        });
+        render(
+            <ReactFlowProvider>
+                <CanvasTextNode {...{ ...props, selected: true }} />
+            </ReactFlowProvider>,
+        );
+
+        const expandButton = screen.getByTitle("Expand");
+        expect(expandButton).toBeTruthy();
+        fireEvent.click(expandButton);
+
+        // The dialog title should contain the label
+        expect(screen.getAllByText("Expandable Node").length).toBe(2);
+
+        // Inside the dialog, the CanvasTextEditor should be rendered
+        expect(screen.getByTestId("text-editor-mock")).toBeTruthy();
+    });
+
+    it("calls handleDownload when the download button is clicked", () => {
+        const createObjectURLMock = vi.fn().mockReturnValue("blob:foo");
+        const revokeObjectURLMock = vi.fn();
+        window.URL.createObjectURL = createObjectURLMock;
+        window.URL.revokeObjectURL = revokeObjectURLMock;
+
+        // Mock click on anchor element to prevent navigating in jsdom
+        const clickMock = vi.fn();
+        const createElementOriginal = document.createElement.bind(document);
+        vi.spyOn(document, "createElement").mockImplementation(
+            (tagName: string) => {
+                const el = createElementOriginal(tagName);
+                if (tagName === "a") {
+                    el.click = clickMock;
+                }
+                return el;
+            },
+        );
+
+        const props = makeProps({
+            type: "canvas-text",
+            label: "Downloadable Node",
+            content: "Text to download",
+            width: 480,
+            height: 600,
+        });
+
+        render(
+            <ReactFlowProvider>
+                <CanvasTextNode {...{ ...props, selected: true }} />
+            </ReactFlowProvider>,
+        );
+
+        const downloadButton = screen.getByTitle("Download");
+        expect(downloadButton).toBeTruthy();
+        fireEvent.click(downloadButton);
+
+        expect(createObjectURLMock).toHaveBeenCalled();
+        expect(clickMock).toHaveBeenCalled();
+        expect(revokeObjectURLMock).toHaveBeenCalled();
+
+        vi.restoreAllMocks();
+    });
 });

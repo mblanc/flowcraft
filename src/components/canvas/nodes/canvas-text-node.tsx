@@ -3,7 +3,7 @@
 import { memo, useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { type NodeProps } from "@xyflow/react";
-import { Type, Info, Trash2, X } from "lucide-react";
+import { Type, Info, Trash2, X, Maximize2, Download } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { CanvasTextData } from "@/lib/canvas/types";
@@ -13,6 +13,13 @@ import { useCanvasNodeResize } from "@/hooks/use-canvas-node-resize";
 import { CanvasNodeContextMenu } from "@/components/canvas/canvas-node-context-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { NodeTitle } from "@/components/nodes/node-title";
 
 const CanvasTextEditor = dynamic(
     () =>
@@ -31,6 +38,7 @@ export const CanvasTextNode = memo(
         const [isEditing, setIsEditing] = useState(false);
         const [draft, setDraft] = useState(d.content);
 
+        const [isModalOpen, setIsModalOpen] = useState(false);
         const [isInfoOpen, setIsInfoOpen] = useState(false);
         const [isRenaming, setIsRenaming] = useState(false);
         const [renameDraft, setRenameDraft] = useState(d.label);
@@ -66,6 +74,16 @@ export const CanvasTextNode = memo(
                 });
             }
         }, [selected]);
+
+        const handleDownload = useCallback(() => {
+            if (!d.content) return;
+            const blob = new Blob([d.content], { type: "text/plain" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `${d.label || "text"}.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }, [d.content, d.label]);
 
         const commitContent = useCallback(() => {
             if (draft !== d.content) {
@@ -104,6 +122,30 @@ export const CanvasTextNode = memo(
                     {/* Top Toolbar Capsule */}
                     {selected && (
                         <div className="bg-background/95 pointer-events-auto absolute -top-[80px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border px-1.5 py-1.5 shadow-md backdrop-blur-md">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsModalOpen(true);
+                                }}
+                                title="Expand"
+                            >
+                                <Maximize2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownload();
+                                }}
+                                title="Download"
+                            >
+                                <Download className="h-4 w-4" />
+                            </Button>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -257,6 +299,45 @@ export const CanvasTextNode = memo(
                             </div>
                         </div>
                     )}
+
+                    <Dialog
+                        open={isModalOpen}
+                        onOpenChange={(open) => {
+                            setIsModalOpen(open);
+                            if (!open) {
+                                if (draft !== d.content) {
+                                    updateNodeData(id, { content: draft });
+                                }
+                            }
+                        }}
+                    >
+                        <DialogContent className="flex h-[90vh] max-w-[90vw] flex-col overflow-hidden p-0">
+                            <DialogHeader className="border-b p-4">
+                                <DialogTitle className="flex items-center gap-2">
+                                    <Type className="text-muted-foreground h-5 w-5" />
+                                    <NodeTitle
+                                        name={d.label}
+                                        onRename={(n) =>
+                                            updateNodeData(id, { label: n })
+                                        }
+                                    />
+                                </DialogTitle>
+                            </DialogHeader>
+                            <div
+                                className="nodrag nopan nowheel canvas-text-editor-wrapper flex-1 overflow-auto p-6"
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
+                                    e.stopPropagation();
+                                }}
+                            >
+                                <CanvasTextEditor
+                                    markdown={draft}
+                                    onChange={setDraft}
+                                />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
 
                     <NodeResizeHandle onResizeStart={handleResizeStart} />
                 </div>
