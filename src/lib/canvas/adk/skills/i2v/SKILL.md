@@ -22,7 +22,7 @@ The prompt for `i2v` describes the **motion and camera** applied to the source i
 - **Camera move first**: "Slow dolly in", "Push back", "Aerial tilt down", "Handheld drift left".
 - **Subject motion**: describe what moves and how — "leaves rustling gently", "eyes slowly blink", "smoke rises and disperses".
 - **Atmosphere**: lighting changes, weather, particle effects that add life — "warm golden light fades to dusk".
-- **Pacing**: match duration to motion complexity. 4s for subtle atmosphere; 6–8s for camera moves or multi-beat action.
+- **Duration**: MUST be exactly 4, 6, or 8 seconds — no other values are accepted. Use 4s for subtle atmosphere; 6s for camera moves; 8s for multi-beat action.
 - **Keep it under 10 seconds**: split longer sequences into multiple nodes with `concat`.
 
 ## Model hints

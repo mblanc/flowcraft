@@ -77,6 +77,7 @@ RULES for plan_production nodes:
 - Use edges: depends_on (output feeds next node), style_ref (visual style source), subject_ref (subject/character reference).
 - Reference existing canvas items by their node ID in promptIntent when relevant.
 - Keep video nodes ≤10s; split longer sequences with concat nodes.
+- Video duration MUST be exactly 4, 6, or 8 seconds — no other values are valid.
 - If the request is genuinely ambiguous, add clarifications[] but still emit a best-effort plan.
 - Never put generation descriptions in conversational text — always emit plan_production.`;
 
