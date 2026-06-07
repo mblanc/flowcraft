@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { applyVideoFallback } from "../../lib/canvas/agent";
+import { applyVideoFallback } from "../../lib/canvas/adk/step-mapper";
 import type { GenerationStep, ChatAttachment } from "../../lib/canvas/types";
 
 describe("applyVideoFallback", () => {

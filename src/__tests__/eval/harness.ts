@@ -13,7 +13,7 @@
  */
 
 import type { CanvasAgentRunner } from "../../lib/canvas/adk/runner";
-import type { AgentEvent, AgentInput } from "../../lib/canvas/agent";
+import type { AgentEvent, AgentInput } from "../../lib/canvas/types";
 import type { GenerationStep } from "../../lib/canvas/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

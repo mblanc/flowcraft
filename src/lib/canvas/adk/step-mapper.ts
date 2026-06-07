@@ -1,7 +1,45 @@
 import logger from "@/app/logger";
-import { applyVideoFallback } from "../agent";
-import type { MediaDefaults, VideoDefaults } from "../agent";
-import type { ChatAttachment, GenerationStep, PlanNode } from "../types";
+import type {
+    ChatAttachment,
+    GenerationStep,
+    MediaDefaults,
+    PlanNode,
+    VideoDefaults,
+} from "../types";
+
+export function applyVideoFallback(
+    step: GenerationStep,
+    type: string,
+    attachments: ChatAttachment[],
+    index: number,
+    totalSteps: number,
+): GenerationStep {
+    if (
+        type !== "video" ||
+        step.firstFrameNodeId ||
+        step.lastFrameNodeId ||
+        step.dependsOn?.length ||
+        attachments.length === 0 ||
+        step.referenceNodeIds?.length
+    ) {
+        return step;
+    }
+
+    if (attachments.length === 1) {
+        return { ...step, firstFrameNodeId: attachments[0].nodeId };
+    }
+    if (attachments.length === 2) {
+        return {
+            ...step,
+            firstFrameNodeId: attachments[0].nodeId,
+            lastFrameNodeId: attachments[1].nodeId,
+        };
+    }
+    if (totalSteps === attachments.length) {
+        return { ...step, firstFrameNodeId: attachments[index].nodeId };
+    }
+    return { ...step, referenceNodeIds: attachments.map((a) => a.nodeId) };
+}
 
 export const VALID_IMAGE_MODELS = new Set([
     "gemini-2.5-flash-image",

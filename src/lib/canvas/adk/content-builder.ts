@@ -1,6 +1,6 @@
 import { createPartFromText, createPartFromUri } from "@google/genai";
 import type { Content } from "@google/genai";
-import type { AgentInput } from "../agent";
+import type { AgentInput } from "../types";
 
 export function buildUserContent(input: AgentInput): Content {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

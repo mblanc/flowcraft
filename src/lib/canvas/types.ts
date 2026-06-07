@@ -178,6 +178,44 @@ export interface CanvasDocument {
 
 export type CanvasMode = "auto" | "image" | "video";
 
+export interface MediaDefaults {
+    model?: string;
+    aspectRatio?: string;
+    imageSize?: string;
+}
+
+export interface VideoDefaults {
+    model?: string;
+    aspectRatio?: string;
+    resolution?: string;
+    duration?: number;
+    generateAudio?: boolean;
+}
+
+export interface AgentInput {
+    message: string;
+    attachments?: ChatAttachment[];
+    mode: "auto" | "image" | "video";
+    model?: string;
+    history: ChatMessage[];
+    canvasNodes: CanvasNode[];
+    imageDefaults?: MediaDefaults;
+    videoDefaults?: VideoDefaults;
+    activeStyle?: { name: string; content: string } | null;
+    canvasId?: string;
+    userId?: string;
+    sessionId?: string;
+}
+
+export type AgentEvent =
+    | { type: "text"; delta: string }
+    | { type: "thought"; delta: string }
+    | { type: "agent_action"; label: string }
+    | { type: "plan"; plan: AgentPlan }
+    | { type: "actions"; actions: ChatAction[] }
+    | { type: "error"; message: string }
+    | { type: "done" };
+
 // --- Production Plan types (Agent B / Director architecture) ---
 
 export const MEDIA_OPERATIONS = [

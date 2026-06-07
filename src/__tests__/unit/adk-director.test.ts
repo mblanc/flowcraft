@@ -7,10 +7,12 @@ vi.mock("@/lib/config", () => ({
 vi.mock("@/app/logger", () => ({
     default: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
-import {
-    CanvasAgentRunner,
-    extractAgentEvents,
-} from "../../lib/canvas/adk/runner";
+vi.mock("@google/adk", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@google/adk")>();
+    return { ...actual, loadAllSkillsInDir: vi.fn().mockResolvedValue({}) };
+});
+import { CanvasAgent } from "../../lib/canvas/adk/canvas-agent";
+import { extractAgentEvents } from "../../lib/canvas/adk/runner";
 import type { PlanNode, PlanEdge } from "../../lib/canvas/types";
 import { MODELS } from "../../lib/constants";
 
@@ -37,21 +39,17 @@ async function* asAsyncIter<T>(items: T[]): AsyncGenerator<T> {
     for (const item of items) yield item;
 }
 
-describe("Director agent (buildAgentB)", () => {
-    it("builds an agent named Director", () => {
-        const runner = new CanvasAgentRunner();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const agent = (runner as any).buildAgentB(
+describe("Director agent (CanvasAgent)", () => {
+    it("builds an agent named Director", async () => {
+        const agent = await new CanvasAgent().build(
             MODELS.TEXT.GEMINI_3_5_FLASH,
             "test instruction",
         );
         expect(agent.name).toBe("Director");
     });
 
-    it("includes planProductionTool in Director tools", () => {
-        const runner = new CanvasAgentRunner();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const agent = (runner as any).buildAgentB(
+    it("includes planProductionTool in Director tools", async () => {
+        const agent = await new CanvasAgent().build(
             MODELS.TEXT.GEMINI_3_5_FLASH,
             "test instruction",
         );
@@ -62,10 +60,8 @@ describe("Director agent (buildAgentB)", () => {
         expect(toolNames).toContain("plan_production");
     });
 
-    it("includes suggestActionsTool in Director tools", () => {
-        const runner = new CanvasAgentRunner();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const agent = (runner as any).buildAgentB(
+    it("includes suggestActionsTool in Director tools", async () => {
+        const agent = await new CanvasAgent().build(
             MODELS.TEXT.GEMINI_3_5_FLASH,
             "test instruction",
         );
@@ -76,10 +72,8 @@ describe("Director agent (buildAgentB)", () => {
         expect(toolNames).toContain("suggest_actions");
     });
 
-    it("includes a SkillToolset in Director tools", () => {
-        const runner = new CanvasAgentRunner();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const agent = (runner as any).buildAgentB(
+    it("includes a SkillToolset in Director tools", async () => {
+        const agent = await new CanvasAgent().build(
             MODELS.TEXT.GEMINI_3_5_FLASH,
             "test instruction",
         );
@@ -90,16 +84,6 @@ describe("Director agent (buildAgentB)", () => {
             (t: any) => t.skills !== undefined,
         );
         expect(hasSkillToolset).toBe(true);
-    });
-
-    it("leaves buildAgentA returning CanvasAgentA", () => {
-        const runner = new CanvasAgentRunner();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const agent = (runner as any).buildAgentA(
-            MODELS.TEXT.GEMINI_3_5_FLASH,
-            "test instruction",
-        );
-        expect(agent.name).toBe("CanvasAgentA");
     });
 });
 
