@@ -1,7 +1,7 @@
 /**
  * Eval: "pirate 2 variations + animate"
  *
- * Verifies that both Agent A and Agent B produce a sensible 4-step plan for:
+ * Verifies that the Director produces a sensible 4-step plan for:
  *   "This guy as a pirate from the Caribbean, 2 variations, 9:16, then animate them"
  *
  * Expected plan shape:
@@ -26,7 +26,7 @@ vi.mock("@/lib/config", () => ({
 }));
 
 import { CanvasAgentRunner } from "../../lib/canvas/adk/runner";
-import type { AgentEvent, AgentInput } from "../../lib/canvas/agent";
+import type { AgentEvent, AgentInput } from "../../lib/canvas/types";
 import type { CanvasNode } from "../../lib/canvas/types";
 import { MODELS } from "../../lib/constants";
 
@@ -37,7 +37,6 @@ async function collectEvents(
     input: AgentInput,
 ): Promise<AgentEvent[]> {
     console.log("\n─── REQUEST ──────────────────────────────────────────");
-    console.log(`variant:     ${input.agentVariant ?? "a"}`);
     console.log(`message:     ${input.message}`);
     console.log(
         `attachments: ${JSON.stringify(input.attachments?.map((a) => a.label))}`,
@@ -152,9 +151,9 @@ function assertValidPlanShape(steps: GenerationStep[]) {
 
 const hasCredentials = !!process.env.PROJECT_ID;
 
-// ─── Agent A ─────────────────────────────────────────────────────────────────
+// ─── Director ────────────────────────────────────────────────────────────────
 
-describe.runIf(hasCredentials)("Eval: pirate plan — Agent A", () => {
+describe.runIf(hasCredentials)("Eval: pirate plan — Director", () => {
     it(
         "produces 2 image + 2 video steps, 9:16, valid durations",
         { timeout: 120_000 },
@@ -164,7 +163,6 @@ describe.runIf(hasCredentials)("Eval: pirate plan — Agent A", () => {
             const input: AgentInput = {
                 message: USER_MESSAGE,
                 mode: "auto",
-                agentVariant: "a",
                 model: MODELS.TEXT.GEMINI_3_5_FLASH,
                 history: [],
                 canvasNodes: [refCanvasNode],
@@ -177,98 +175,7 @@ describe.runIf(hasCredentials)("Eval: pirate plan — Agent A", () => {
                 ],
                 imageDefaults: { aspectRatio: "9:16" },
                 videoDefaults: { aspectRatio: "9:16", duration: 6 },
-                canvasId: "eval-agent-a-plan",
-                userId: "eval-user",
-            };
-
-            const events = await collectEvents(runner, input);
-
-            const errorEvents = events.filter((e) => e.type === "error");
-            expect(
-                errorEvents,
-                `ADK errors: ${JSON.stringify(errorEvents)}`,
-            ).toHaveLength(0);
-
-            const steps = getPlan(events);
-            expect(steps.length, "no plan was produced").toBeGreaterThan(0);
-
-            assertValidPlanShape(steps);
-
-            const imageSteps = steps.filter((s) => s.type === "image");
-            const anyRefUsed = imageSteps.some(
-                (s) =>
-                    s.referenceNodeIds?.includes(REF_NODE_ID) ||
-                    s.firstFrameNodeId === REF_NODE_ID,
-            );
-            expect(
-                anyRefUsed,
-                "ref portrait should be referenced by at least one image step",
-            ).toBe(true);
-        },
-    );
-
-    it("emits suggest_actions", { timeout: 120_000 }, async () => {
-        const runner = new CanvasAgentRunner();
-
-        const input: AgentInput = {
-            message: USER_MESSAGE,
-            mode: "auto",
-            agentVariant: "a",
-            model: MODELS.TEXT.GEMINI_3_5_FLASH,
-            history: [],
-            canvasNodes: [refCanvasNode],
-            attachments: [
-                {
-                    nodeId: REF_NODE_ID,
-                    label: "Guy Portrait",
-                    type: "canvas-image",
-                },
-            ],
-            canvasId: "eval-agent-a-actions",
-            userId: "eval-user",
-        };
-
-        const events = await collectEvents(runner, input);
-        const actionsEvent = events.find((e) => e.type === "actions");
-        if (!actionsEvent) {
-            console.warn(
-                "[eval] suggest_actions was not emitted — model may have skipped it",
-            );
-        } else {
-            expect(actionsEvent.type).toBe("actions");
-            if (actionsEvent.type === "actions") {
-                expect(actionsEvent.actions.length).toBeGreaterThan(0);
-            }
-        }
-    });
-});
-
-// ─── Agent B (Director) ───────────────────────────────────────────────────────
-
-describe.runIf(hasCredentials)("Eval: pirate plan — Agent B (Director)", () => {
-    it(
-        "produces 2 image + 2 video steps, 9:16, valid durations",
-        { timeout: 120_000 },
-        async () => {
-            const runner = new CanvasAgentRunner();
-
-            const input: AgentInput = {
-                message: USER_MESSAGE,
-                mode: "auto",
-                agentVariant: "b",
-                model: MODELS.TEXT.GEMINI_3_5_FLASH,
-                history: [],
-                canvasNodes: [refCanvasNode],
-                attachments: [
-                    {
-                        nodeId: REF_NODE_ID,
-                        label: "Guy Portrait",
-                        type: "canvas-image",
-                    },
-                ],
-                imageDefaults: { aspectRatio: "9:16" },
-                videoDefaults: { aspectRatio: "9:16", duration: 6 },
-                canvasId: "eval-agent-b-plan",
+                canvasId: "eval-director-plan",
                 userId: "eval-user",
             };
 
@@ -296,7 +203,6 @@ describe.runIf(hasCredentials)("Eval: pirate plan — Agent B (Director)", () =>
             const input: AgentInput = {
                 message: USER_MESSAGE,
                 mode: "auto",
-                agentVariant: "b",
                 model: MODELS.TEXT.GEMINI_3_5_FLASH,
                 history: [],
                 canvasNodes: [refCanvasNode],
@@ -308,7 +214,7 @@ describe.runIf(hasCredentials)("Eval: pirate plan — Agent B (Director)", () =>
                     },
                 ],
                 videoDefaults: { duration: 6 },
-                canvasId: "eval-agent-b-duration",
+                canvasId: "eval-director-duration",
                 userId: "eval-user",
             };
 
@@ -334,7 +240,6 @@ describe.runIf(hasCredentials)("Eval: pirate plan — Agent B (Director)", () =>
             const input: AgentInput = {
                 message: USER_MESSAGE,
                 mode: "auto",
-                agentVariant: "b",
                 model: MODELS.TEXT.GEMINI_3_5_FLASH,
                 history: [],
                 canvasNodes: [refCanvasNode],
@@ -345,7 +250,7 @@ describe.runIf(hasCredentials)("Eval: pirate plan — Agent B (Director)", () =>
                         type: "canvas-image",
                     },
                 ],
-                canvasId: "eval-agent-b-nodeids",
+                canvasId: "eval-director-nodeids",
                 userId: "eval-user",
             };
 

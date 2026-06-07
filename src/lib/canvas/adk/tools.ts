@@ -37,8 +37,6 @@ const ALL_ASPECT_RATIOS = [
     ...new Set([...IMAGE_ASPECT_RATIOS, ...VIDEO_ASPECT_RATIOS]),
 ] as const;
 
-// Agent A tools (unchanged — used by buildAgentA)
-
 const imageStepSchema = z.object({
     id: z.string(),
     type: z.literal("image"),

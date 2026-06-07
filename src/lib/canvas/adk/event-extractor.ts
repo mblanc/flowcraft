@@ -2,13 +2,15 @@ import { getFunctionCalls } from "@google/adk";
 import type { Event } from "@google/adk";
 import logger from "@/app/logger";
 import { mapPlanNodesToSteps, mapSimpleSteps } from "./step-mapper";
-import type { AgentEvent, MediaDefaults, VideoDefaults } from "../agent";
 import type {
+    AgentEvent,
     AgentPlan,
     ChatAction,
     ChatAttachment,
     GenerationStep,
+    MediaDefaults,
     PlanNode,
+    VideoDefaults,
 } from "../types";
 
 export async function* extractAgentEvents(

@@ -25,7 +25,7 @@ vi.mock("../../lib/store/use-flow-store", () => ({
 }));
 
 // Mock useFlowExecution
-vi.mock("../hooks/use-flow-execution", () => ({
+vi.mock("../../hooks/use-flow-execution", () => ({
     useFlowExecution: () => ({
         executeNode: vi.fn(),
         runFromNode: vi.fn(),
@@ -33,7 +33,7 @@ vi.mock("../hooks/use-flow-execution", () => ({
 }));
 
 // Mock useConnectedSourceNodes
-vi.mock("../hooks/use-connected-source-nodes", () => ({
+vi.mock("../../hooks/use-connected-source-nodes", () => ({
     useConnectedSourceNodes: () => [],
 }));
 

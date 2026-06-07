@@ -3,9 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/app/logger", () => ({
     default: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
-vi.mock("../../lib/canvas/agent", () => ({
-    applyVideoFallback: vi.fn((step: unknown) => step),
-}));
 
 import logger from "@/app/logger";
 import {

@@ -25,7 +25,7 @@ vi.mock("../../lib/store/use-flow-store", () => ({
     ),
 }));
 
-vi.mock("../hooks/use-connected-source-nodes", () => ({
+vi.mock("../../hooks/use-connected-source-nodes", () => ({
     useConnectedSourceNodes: () => [],
 }));
 

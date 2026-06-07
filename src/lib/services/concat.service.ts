@@ -161,14 +161,20 @@ export class ConcatService {
                     (await input.getDurationFromMetadata()) ??
                     0;
 
-                // Pipe video packets with timestamp offset
+                // Pipe video packets with timestamp offset.
+                // clipVideoBase anchors the first packet to exactly timeOffset,
+                // avoiding negative timestamps from clips whose display timestamps
+                // start slightly before 0 (e.g. B-frame offsets like -0.033s).
                 const videoSink = new EncodedPacketSink(videoTrack);
+                let clipVideoBase: number | null = null;
                 let isFirstVideoPacket = i === 0;
                 for await (const packet of videoSink.packets()) {
+                    if (clipVideoBase === null)
+                        clipVideoBase = packet.timestamp;
                     const shifted = new EncodedPacket(
                         packet.data,
                         packet.type,
-                        packet.timestamp + timeOffset,
+                        packet.timestamp - clipVideoBase + timeOffset,
                         packet.duration,
                     );
                     if (isFirstVideoPacket) {
@@ -184,12 +190,15 @@ export class ConcatService {
                 // Pipe audio packets with timestamp offset (if present)
                 if (audioTrack && audioSource && audioConfig) {
                     const audioSink = new EncodedPacketSink(audioTrack);
+                    let clipAudioBase: number | null = null;
                     let isFirstAudioPacket = i === 0;
                     for await (const packet of audioSink.packets()) {
+                        if (clipAudioBase === null)
+                            clipAudioBase = packet.timestamp;
                         const shifted = new EncodedPacket(
                             packet.data,
                             packet.type,
-                            packet.timestamp + timeOffset,
+                            packet.timestamp - clipAudioBase + timeOffset,
                             packet.duration,
                         );
                         if (isFirstAudioPacket) {
