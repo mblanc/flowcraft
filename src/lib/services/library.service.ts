@@ -1,4 +1,4 @@
-import { getFirestore } from "@/lib/firestore";
+import { getFirestore, formatFirestoreTimestamp } from "@/lib/firestore";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 import type {
@@ -27,10 +27,7 @@ export class LibraryService {
             model: data?.model as string | undefined,
             tags: (data?.tags ?? []) as string[],
             provenance: data?.provenance as LibraryAsset["provenance"],
-            createdAt:
-                (data?.createdAt as { toDate?: () => Date })
-                    ?.toDate?.()
-                    ?.toISOString() ?? String(data?.createdAt ?? ""),
+            createdAt: formatFirestoreTimestamp(data?.createdAt),
         };
     }
 

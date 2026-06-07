@@ -1,4 +1,4 @@
-import { getFirestore } from "@/lib/firestore";
+import { getFirestore, formatFirestoreTimestamp } from "@/lib/firestore";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 import type {
@@ -51,14 +51,8 @@ export class CanvasService {
             isTemplate: (data?.isTemplate ?? false) as boolean,
             activeStyleId:
                 (data?.activeStyleId as string | undefined) ?? undefined,
-            createdAt:
-                (data?.createdAt as { toDate?: () => Date })
-                    ?.toDate?.()
-                    ?.toISOString() ?? String(data?.createdAt ?? ""),
-            updatedAt:
-                (data?.updatedAt as { toDate?: () => Date })
-                    ?.toDate?.()
-                    ?.toISOString() ?? String(data?.updatedAt ?? ""),
+            createdAt: formatFirestoreTimestamp(data?.createdAt),
+            updatedAt: formatFirestoreTimestamp(data?.updatedAt),
         };
     }
 

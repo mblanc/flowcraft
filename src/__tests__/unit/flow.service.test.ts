@@ -13,11 +13,15 @@ const { mockCollection, mockDoc, mockGet, mockAdd, mockUpdate, mockDelete } =
         mockDelete: vi.fn(),
     }));
 
-vi.mock("@/lib/firestore", () => ({
-    getFirestore: () => ({
-        collection: mockCollection,
-    }),
-}));
+vi.mock("@/lib/firestore", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@/lib/firestore")>();
+    return {
+        ...actual,
+        getFirestore: () => ({
+            collection: mockCollection,
+        }),
+    };
+});
 
 vi.mock("@/lib/config", () => ({
     config: {

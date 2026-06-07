@@ -1,4 +1,3 @@
-import { getFirestore } from "@/lib/firestore";
 import { FlowCreateRequest, FlowUpdateRequest } from "@/lib/schemas";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
@@ -6,7 +5,11 @@ import {
     DocumentSnapshot,
     QueryDocumentSnapshot,
 } from "@google-cloud/firestore";
-import { FlowDocument } from "@/lib/firestore";
+import {
+    getFirestore,
+    formatFirestoreTimestamp,
+    FlowDocument,
+} from "@/lib/firestore";
 import { config } from "@/lib/config";
 
 export class FlowService {
@@ -28,14 +31,8 @@ export class FlowService {
             sharedWith: data?.sharedWith as FlowDocument["sharedWith"],
             sharedWithEmails: data?.sharedWithEmails as string[] | undefined,
             isTemplate: data?.isTemplate as boolean | undefined,
-            createdAt:
-                (data?.createdAt as { toDate?: () => Date })
-                    ?.toDate?.()
-                    ?.toISOString() ?? String(data?.createdAt ?? ""),
-            updatedAt:
-                (data?.updatedAt as { toDate?: () => Date })
-                    ?.toDate?.()
-                    ?.toISOString() ?? String(data?.updatedAt ?? ""),
+            createdAt: formatFirestoreTimestamp(data?.createdAt),
+            updatedAt: formatFirestoreTimestamp(data?.updatedAt),
         };
     }
 

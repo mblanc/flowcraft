@@ -54,3 +54,31 @@ export interface CustomNodeDocument {
     createdAt: Date;
     updatedAt: Date;
 }
+
+export function formatFirestoreTimestamp(timestamp: unknown): string {
+    if (!timestamp) return "";
+    if (
+        typeof timestamp === "object" &&
+        "toDate" in timestamp &&
+        typeof timestamp.toDate === "function"
+    ) {
+        return (timestamp.toDate() as Date).toISOString();
+    }
+    return String(timestamp);
+}
+
+export function formatFirestoreTimestampToDate(timestamp: unknown): Date {
+    if (!timestamp) return new Date();
+    if (
+        typeof timestamp === "object" &&
+        "toDate" in timestamp &&
+        typeof timestamp.toDate === "function"
+    ) {
+        return timestamp.toDate() as Date;
+    }
+    if (timestamp instanceof Date) {
+        return timestamp;
+    }
+    const parsed = new Date(String(timestamp));
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+}
