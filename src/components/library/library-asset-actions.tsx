@@ -23,9 +23,9 @@ export function LibraryAssetActions({
                 `/api/signed-url?gcsUri=${encodeURIComponent(gcsUri)}`,
             );
             if (!res.ok) throw new Error("Failed to get download URL");
-            const { url } = await res.json();
+            const { signedUrl } = (await res.json()) as { signedUrl: string };
             const a = document.createElement("a");
-            a.href = url;
+            a.href = signedUrl;
             a.download = gcsUri.split("/").pop() ?? "asset";
             a.target = "_blank";
             a.click();
