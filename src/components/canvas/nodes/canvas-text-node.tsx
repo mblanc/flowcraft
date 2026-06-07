@@ -249,6 +249,11 @@ export const CanvasTextNode = memo(
                                 <span className="bg-secondary/80 text-secondary-foreground rounded-full border px-2 py-1 font-medium">
                                     Text
                                 </span>
+                                {d.format && (
+                                    <span className="bg-secondary/80 text-secondary-foreground rounded-full border px-2 py-1 font-medium capitalize">
+                                        {d.format}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     )}
