@@ -165,6 +165,27 @@ export const criteria = {
         name: "has_plan",
         score: (steps) => (steps.length > 0 ? 1 : 0),
     }),
+
+    /** Agent must emit at least one text_nodes event. */
+    hasTextNodes: (): Criterion => ({
+        name: "has_text_nodes",
+        score: (_, events) =>
+            events.some((e) => e.type === "text_nodes") ? 1 : 0,
+    }),
+
+    /** plan_text_nodes must be emitted before any plan event. */
+    textNodesBeforeProduction: (): Criterion => ({
+        name: "text_nodes_before_production",
+        score: (_, events) => {
+            const firstTextIdx = events.findIndex(
+                (e) => e.type === "text_nodes",
+            );
+            const firstPlanIdx = events.findIndex((e) => e.type === "plan");
+            if (firstTextIdx === -1) return 0;
+            if (firstPlanIdx === -1) return 1;
+            return firstTextIdx < firstPlanIdx ? 1 : 0;
+        },
+    }),
 };
 
 // ─── Runner ───────────────────────────────────────────────────────────────────

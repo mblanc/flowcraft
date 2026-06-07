@@ -144,6 +144,26 @@ const evalCases: EvalCase[] = [
         ],
     },
     {
+        id: "director__scenario_grounded_trailer",
+        description:
+            "Multi-shot narrative: agent emits scenario text node before planning media",
+        input: baseInput({
+            message:
+                "Create a 27-second cinematic trailer for a short film about a stray cat finding a home",
+            canvasNodes: [],
+            canvasId: "eval-b-scenario-trailer",
+            userId: "eval-user",
+        }),
+        criteria: [
+            criteria.noErrors(),
+            criteria.hasTextNodes(),
+            criteria.textNodesBeforeProduction(),
+            criteria.minSteps(4),
+            criteria.minStepsOfType("video", 3),
+        ],
+        threshold: 0.75,
+    },
+    {
         id: "director__no_hallucinated_ids",
         description: "Director must not invent canvas node IDs not in context",
         input: baseInput({
