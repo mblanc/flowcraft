@@ -165,6 +165,24 @@ describe("extractAgentEvents", () => {
         });
     });
 
+    it("emits agent_action 'Writing scenario' before text_nodes", async () => {
+        const nodes = [{ id: "s", title: "Scenario", content: "Shot 01..." }];
+        const adkEvents = [makeFunctionCallEvent("plan_text_nodes", { nodes })];
+        const events = await collect(
+            extractAgentEvents(asAsyncIter(adkEvents), [], []),
+        );
+        const actionIdx = events.findIndex(
+            (e) =>
+                e.type === "agent_action" &&
+                (e as { type: "agent_action"; label: string }).label ===
+                    "Writing scenario",
+        );
+        const textNodesIdx = events.findIndex((e) => e.type === "text_nodes");
+        expect(actionIdx).toBeGreaterThanOrEqual(0);
+        expect(textNodesIdx).toBeGreaterThanOrEqual(0);
+        expect(actionIdx).toBeLessThan(textNodesIdx);
+    });
+
     it("emits text_nodes event from plan_text_nodes call", async () => {
         const nodes = [
             {
