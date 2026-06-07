@@ -44,14 +44,7 @@ RULES for plan_production nodes:
 - Keep video nodes ≤10s; split longer sequences with concat nodes.
 - Video duration MUST be exactly 4, 6, or 8 seconds — no other values are valid. Default to 4 when the user has not specified.
 - If the request is genuinely ambiguous, add clarifications[] but still emit a best-effort plan.
-- Never put generation descriptions in conversational text — always emit plan_production.
-
-SCENARIO-GROUNDED PRODUCTION:
-- For any multi-shot narrative request (film, trailer, ad, short) where no text node (type: text) exists on the canvas yet, call plan_text_nodes FIRST to emit a scenario document, then call plan_production grounded in it.
-- A scenario MUST include: visual style anchor, audio direction summary, and a shot-by-shot plan with section, duration, camera description, and keyframe type for each shot.
-- In plan_production promptIntent fields, reference the scenario content directly (e.g. "Shot 02 — Rain City: wide aerial alley at night, navy and charcoal, slow push …").
-- If a canvas text node is already present, read its content from the canvas context and use it as the grounding source — do NOT emit a new scenario.
-- Do NOT call plan_text_nodes for single-image or single-video requests.`;
+- Never put generation descriptions in conversational text — always emit plan_production.`;
 
 export function buildCanvasContext(nodes: AgentInput["canvasNodes"]): string {
     if (nodes.length === 0) return "";
