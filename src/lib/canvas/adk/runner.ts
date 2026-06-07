@@ -575,11 +575,17 @@ export class CanvasAgentRunner {
         );
 
         try {
+            // Agent A streams text in real-time (SSE). Agent B (Director) emits
+            // tool calls across multiple turns — SSE mode closes the stream after
+            // the first turn so the agentic loop never completes. NONE runs the
+            // full loop before returning events.
+            const streamingMode =
+                variant === "b" ? StreamingMode.NONE : StreamingMode.SSE;
             const adkEvents = runner.runAsync({
                 userId,
                 sessionId,
                 newMessage: userContent,
-                runConfig: { streamingMode: StreamingMode.SSE },
+                runConfig: { streamingMode },
             });
 
             yield* extractAgentEvents(
