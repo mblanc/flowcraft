@@ -15,10 +15,11 @@ const SKILL_FOR_TYPE: Partial<Record<"image" | "video" | "concat", string>> = {
 const INSTRUCTION = `You are a media prompt engineer. Your only job is to take a plain-language generation intent and produce a single, fully-structured generation prompt that strictly follows the skill specification provided.
 
 Rules:
-- Follow the unified structure for image generation (General Description followed by Structured Features: SUBJECT, ENVIRONMENT, STYLE & MEDIUM, CHANGES, FORBIDDEN).
+- For standard images: follow the unified structure (General Description followed by Structured Features: SUBJECT, ENVIRONMENT, STYLE & MEDIUM, CHANGES, FORBIDDEN).
+- For CHARACTER IDENTITY BOARD intents: follow the special-case instructions in the skill specification exactly. The intent already contains the correct block format — complete missing sections using the canonical template and output the block as-is.
 - Fill every required section of the template. Never omit FORBIDDEN or CONSTRAINTS.
 - Never describe emotion — describe the physical face or posture that produces it.
-- Never use mood words: cinematic, atmospheric, beautiful, stunning, epic, moody, dramatic, gorgeous.
+- For standard images, avoid vague mood words: atmospheric, beautiful, stunning, epic, moody, dramatic, gorgeous. Exception: CHARACTER IDENTITY BOARD prompts intentionally use "cinematic", "premium", "artbook-like", and "expressive" as format descriptors — preserve them exactly.
 - Name every light source by type, direction, and quality. Never by mood.
 - Output ONLY the final prompt text. No preamble, no explanation, no section headers, no markdown.`;
 
@@ -40,9 +41,24 @@ export class PromptEngineer {
         if (this.skillCache.has(skillName)) {
             return this.skillCache.get(skillName)!;
         }
-        const skillPath = path.join(this.skillsDir, skillName, "SKILL.md");
+        const skillDir = path.join(this.skillsDir, skillName);
+        const skillPath = path.join(skillDir, "SKILL.md");
         try {
-            const content = fs.readFileSync(skillPath, "utf-8");
+            const parts: string[] = [fs.readFileSync(skillPath, "utf-8")];
+            const referencesDir = path.join(skillDir, "references");
+            if (fs.existsSync(referencesDir)) {
+                for (const file of fs.readdirSync(referencesDir).sort()) {
+                    if (file.endsWith(".md")) {
+                        parts.push(
+                            fs.readFileSync(
+                                path.join(referencesDir, file),
+                                "utf-8",
+                            ),
+                        );
+                    }
+                }
+            }
+            const content = parts.join("\n\n---\n\n");
             this.skillCache.set(skillName, content);
             return content;
         } catch {
