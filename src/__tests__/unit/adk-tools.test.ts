@@ -116,6 +116,36 @@ describe("planTextNodesTool", () => {
         });
         expect(result).toEqual({ nodes });
     });
+
+    it("rejects a node missing id", async () => {
+        await expect(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (planTextNodesTool as any).runAsync({
+                args: { nodes: [{ title: "No ID", content: "content" }] },
+                toolContext: undefined,
+            }),
+        ).rejects.toThrow();
+    });
+
+    it("rejects a node missing title", async () => {
+        await expect(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (planTextNodesTool as any).runAsync({
+                args: { nodes: [{ id: "n1", content: "content" }] },
+                toolContext: undefined,
+            }),
+        ).rejects.toThrow();
+    });
+
+    it("rejects a node missing content", async () => {
+        await expect(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (planTextNodesTool as any).runAsync({
+                args: { nodes: [{ id: "n1", title: "Title" }] },
+                toolContext: undefined,
+            }),
+        ).rejects.toThrow();
+    });
 });
 
 describe("suggestActionsTool", () => {
