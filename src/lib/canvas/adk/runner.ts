@@ -2,8 +2,8 @@ import {
     Gemini,
     LlmAgent,
     Runner,
+    StreamingMode,
     getFunctionCalls,
-    isFinalResponse,
     type BaseSessionService,
 } from "@google/adk";
 import { createPartFromText, createPartFromUri } from "@google/genai";
@@ -252,17 +252,8 @@ export async function* extractAgentEvents(
     let actionsEmitted = false;
 
     for await (const event of adkEvents) {
-        // Emit text from partial streaming events
-        if (event.partial && event.content?.parts) {
-            const text = event.content.parts
-                .filter((p) => p.text)
-                .map((p) => p.text)
-                .join("");
-            if (text) yield { type: "text", delta: text };
-        }
-
-        // Emit text from final non-partial response
-        if (isFinalResponse(event) && !event.partial && event.content?.parts) {
+        // Emit text from any model event that carries text parts
+        if (event.author !== "user" && event.content?.parts) {
             const text = event.content.parts
                 .filter((p) => p.text)
                 .map((p) => p.text)
@@ -378,7 +369,7 @@ export class CanvasAgentRunner {
 
         const runner = this.getRunner(model, instruction);
 
-        const sessionId = `${input.canvasNodes.length}_${input.mode}`;
+        const sessionId = `${input.userId ?? "anon"}:${input.canvasId ?? "default"}`;
         const userId = "canvas_user";
 
         try {
@@ -402,6 +393,7 @@ export class CanvasAgentRunner {
                 userId,
                 sessionId,
                 newMessage: userContent,
+                runConfig: { streamingMode: StreamingMode.SSE },
             });
 
             yield* extractAgentEvents(
