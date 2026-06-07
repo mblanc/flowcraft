@@ -1,4 +1,4 @@
-import { getFirestore } from "@/lib/firestore";
+import { getFirestore, formatFirestoreTimestamp } from "@/lib/firestore";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 import type {
@@ -52,14 +52,8 @@ export class StyleService {
             content: data?.content as string,
             referenceImageUris: (data?.referenceImageUris ?? []) as string[],
             isTemplate: (data?.isTemplate ?? false) as boolean,
-            createdAt:
-                (data?.createdAt as { toDate?: () => Date })
-                    ?.toDate?.()
-                    ?.toISOString() ?? String(data?.createdAt ?? ""),
-            updatedAt:
-                (data?.updatedAt as { toDate?: () => Date })
-                    ?.toDate?.()
-                    ?.toISOString() ?? String(data?.updatedAt ?? ""),
+            createdAt: formatFirestoreTimestamp(data?.createdAt),
+            updatedAt: formatFirestoreTimestamp(data?.updatedAt),
         };
     }
 

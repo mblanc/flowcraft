@@ -2,6 +2,7 @@ import {
     getFirestore,
     CustomNodeDocument,
     CustomNodePort,
+    formatFirestoreTimestampToDate,
 } from "@/lib/firestore";
 import {
     CustomNodeCreateRequest,
@@ -48,12 +49,8 @@ export class CustomNodeService {
             thumbnail: data?.thumbnail as string | undefined,
             inputs: data?.inputs as CustomNodePort[],
             outputs: data?.outputs as CustomNodePort[],
-            createdAt:
-                (data?.createdAt as { toDate?: () => Date })?.toDate?.() ||
-                (data?.createdAt as Date),
-            updatedAt:
-                (data?.updatedAt as { toDate?: () => Date })?.toDate?.() ||
-                (data?.updatedAt as Date),
+            createdAt: formatFirestoreTimestampToDate(data?.createdAt),
+            updatedAt: formatFirestoreTimestampToDate(data?.updatedAt),
         };
     }
 
