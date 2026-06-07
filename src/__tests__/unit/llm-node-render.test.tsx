@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { LLMNode } from "../components/nodes/llm-node";
+import { LLMNode } from "../../components/nodes/llm-node";
 import { ReactFlowProvider } from "@xyflow/react";
 import type { NodeProps } from "@xyflow/react";
-import type { LLMData } from "../lib/types";
-import { TooltipProvider } from "../components/ui/tooltip";
+import type { LLMData } from "../../lib/types";
+import { TooltipProvider } from "../../components/ui/tooltip";
 
 // Mock the flow store
-vi.mock("../lib/store/use-flow-store", () => ({
+vi.mock("../../lib/store/use-flow-store", () => ({
     useFlowStore: Object.assign(
         (selector: any) =>
             selector({
