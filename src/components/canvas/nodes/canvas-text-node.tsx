@@ -82,7 +82,9 @@ export const CanvasTextNode = memo(
             a.href = URL.createObjectURL(blob);
             a.download = `${d.label || "text"}.txt`;
             a.click();
-            URL.revokeObjectURL(a.href);
+            setTimeout(() => {
+                URL.revokeObjectURL(a.href);
+            }, 100);
         }, [d.content, d.label]);
 
         const commitContent = useCallback(() => {
