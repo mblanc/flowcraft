@@ -1,25 +1,47 @@
 import { FunctionTool } from "@google/adk";
 import { z } from "zod";
+import { MODELS, IMAGE_MODEL_CONFIGS } from "@/lib/constants";
+
+// Derive valid values directly from constants so there's one source of truth.
 
 const IMAGE_MODELS = [
-    "gemini-2.5-flash-image",
-    "gemini-3-pro-image",
-    "gemini-3.1-flash-image",
+    MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
+    MODELS.IMAGE.GEMINI_3_PRO_IMAGE,
+    MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
 ] as const;
 
 const VIDEO_MODELS = [
-    "veo-3.1-lite-generate-001",
-    "veo-3.1-fast-generate-001",
-    "veo-3.1-generate-001",
+    MODELS.VIDEO.VEO_3_1_LITE,
+    MODELS.VIDEO.VEO_3_1_FAST,
+    MODELS.VIDEO.VEO_3_1_PRO,
 ] as const;
+
+// Union of all aspect ratios across every image model config.
+const IMAGE_ASPECT_RATIOS = [
+    ...new Set(
+        Object.values(IMAGE_MODEL_CONFIGS).flatMap((c) =>
+            c.ratios.filter((r) => r !== "Auto"),
+        ),
+    ),
+] as const;
+
+const VIDEO_ASPECT_RATIOS = ["16:9", "9:16"] as const;
+
+const ALL_ASPECT_RATIOS = [
+    ...new Set([...IMAGE_ASPECT_RATIOS, ...VIDEO_ASPECT_RATIOS]),
+] as const;
+
+const RESOLUTIONS = ["512", "1K", "2K", "4K"] as const;
+
+// Agent A tools (unchanged — used by buildAgentA)
 
 const imageStepSchema = z.object({
     id: z.string(),
     type: z.literal("image"),
     prompt: z.string(),
     label: z.string(),
-    aspectRatio: z.string().optional(),
-    resolution: z.string().optional(),
+    aspectRatio: z.enum(IMAGE_ASPECT_RATIOS).optional(),
+    resolution: z.enum(RESOLUTIONS).optional(),
     model: z.enum(IMAGE_MODELS).optional(),
     referenceNodeIds: z.array(z.string()).optional(),
     dependsOn: z.array(z.string()).optional(),
@@ -30,13 +52,12 @@ const videoStepSchema = z.object({
     type: z.literal("video"),
     prompt: z.string(),
     label: z.string(),
-    aspectRatio: z.string().optional(),
-    resolution: z.string().optional(),
+    aspectRatio: z.enum(VIDEO_ASPECT_RATIOS).optional(),
+    resolution: z.enum(RESOLUTIONS).optional(),
     model: z.enum(VIDEO_MODELS).optional(),
     duration: z
-        .number()
-        .int()
-        .describe("Duration in seconds. Valid values: 4, 6, 8.")
+        .union([z.literal(4), z.literal(6), z.literal(8)])
+        .describe("Duration in seconds. Valid values: 4, 6, or 8.")
         .optional(),
     generateAudio: z.boolean().optional(),
     referenceNodeIds: z.array(z.string()).optional(),
@@ -65,6 +86,8 @@ export const planVideoGenerationTool = new FunctionTool({
     parameters: z.object({ steps: z.array(videoStepSchema) }),
     execute: async ({ steps }) => ({ steps }),
 });
+
+// Director tools (used by buildAgentB)
 
 const MEDIA_OPERATIONS = [
     "t2i",
@@ -95,15 +118,14 @@ const planNodeSchema = z.object({
         .optional()
         .describe("Fully-engineered prompt (filled by PromptEngineer)"),
     label: z.string().optional(),
-    aspectRatio: z.string().optional(),
-    resolution: z.string().optional(),
-    model: z.string().optional(),
+    aspectRatio: z.enum(ALL_ASPECT_RATIOS).optional(),
+    resolution: z.enum(RESOLUTIONS).optional(),
+    model: z
+        .enum([...IMAGE_MODELS, ...VIDEO_MODELS])
+        .optional()
+        .describe("Leave unset to use the canvas default model"),
     duration: z
-        .enum(["4", "6", "8"])
-        .transform(Number)
-        .or(z.literal(4))
-        .or(z.literal(6))
-        .or(z.literal(8))
+        .union([z.literal(4), z.literal(6), z.literal(8)])
         .optional()
         .describe("Video duration in seconds. MUST be exactly 4, 6, or 8."),
     generateAudio: z.boolean().optional(),
