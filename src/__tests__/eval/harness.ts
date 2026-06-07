@@ -154,6 +154,15 @@ export const criteria = {
         },
     }),
 
+    /** Agent must not emit suggested actions. */
+    noSuggestedActions: (): Criterion => ({
+        name: "no_suggested_actions",
+        score: (_, events) => {
+            const e = events.find((ev) => ev.type === "actions");
+            return e ? 0 : 1;
+        },
+    }),
+
     /** Agent must not emit an error event. */
     noErrors: (): Criterion => ({
         name: "no_errors",

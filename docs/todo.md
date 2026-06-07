@@ -91,3 +91,41 @@ Sharing
 # Compete
 
 https://studio.morphic.com/
+
+# Agent Sessions Refactoring
+
+**Goal:** Persistent, resumable Director sessions per canvas with a history UI.
+
+## Context
+
+- Chat messages are already persisted to Firestore as part of the canvas document (auto-saved on every change via `use-canvas-persistence.ts`).
+- ADK sessions are currently held in `InMemorySessionService` — lost on every server restart, no TTL, no eviction, unbounded memory growth.
+- Each canvas currently has one active session ID (a UUID, stored in the Zustand store and rotated on "Clear chat").
+
+## Tasks
+
+- [ ] Replace `InMemorySessionService` with a Firestore-backed implementation
+    - Implement a `FirestoreSessionService` extending `BaseSessionService` from `@google/adk`
+    - Store sessions under `canvases/{canvasId}/adk_sessions/{sessionId}`
+    - Add TTL-based eviction (e.g. delete sessions older than 30 days)
+    - Wire it in via `CanvasAgentRunnerConfig.sessionService` — the injection seam is already in place
+
+- [ ] Persist session metadata alongside messages
+    - When a new session starts, write a session record: `{ id, canvasId, createdAt, firstMessagePreview }`
+    - Store under `canvases/{canvasId}/sessions/{sessionId}` in Firestore
+    - Update the record with `lastMessageAt` and `messageCount` on each turn
+
+- [ ] Session history UI
+    - Add a history drawer/panel to the canvas chat header
+    - List past sessions ordered by `lastMessageAt`, showing date + first message preview
+    - "Resume" loads the session's messages into the store and sets the `sessionId` so the next message continues in that ADK session
+    - "New session" button (the existing `+`) rotates the `sessionId` and clears messages (already implemented)
+
+- [ ] ADK context replay on resume _(stretch)_
+    - Replay stored messages back into the ADK session so the Director remembers the conversation
+    - Alternative: include recent message history in the system prompt context (simpler, already partially done via `canvas.messages` passed to the runner)
+
+## Notes
+
+- The current `sessionId` namespacing (`${userId}:${clientSessionId}`) already prevents cross-user session access.
+- Per-canvas session cap (e.g. 20 sessions max) should be enforced to avoid unbounded Firestore growth.

@@ -587,6 +587,7 @@ function CanvasChatMessageComponent({
                     )}
 
                 {!isUser &&
+                    !isLiveAssistant &&
                     message.actions &&
                     message.actions.length > 0 &&
                     // If there's a plan, only show actions once all generations are done
@@ -598,6 +599,7 @@ function CanvasChatMessageComponent({
                         />
                     )}
                 {!isUser &&
+                    !isLiveAssistant &&
                     message.actions &&
                     message.actions.length > 0 &&
                     message.plan &&

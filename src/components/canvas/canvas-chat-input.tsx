@@ -126,6 +126,7 @@ export function CanvasChatInput({
     >(null);
 
     const canvasId = useCanvasStore((s) => s.canvasId);
+    const sessionId = useCanvasStore((s) => s.sessionId);
     const nodes = useCanvasStore((s) => s.nodes);
     const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
     const activeStyleId = useCanvasStore((s) => s.activeStyleId);
@@ -793,6 +794,7 @@ export function CanvasChatInput({
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         message: text,
+                        sessionId,
                         attachments:
                             attachmentsToSend.length > 0
                                 ? attachmentsToSend
@@ -1023,6 +1025,7 @@ export function CanvasChatInput({
             canvasId,
             agentSettings,
             allAttachments,
+            sessionId,
             addMessage,
             updateMessage,
             setIsChatLoading,

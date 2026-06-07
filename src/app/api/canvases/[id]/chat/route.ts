@@ -4,11 +4,23 @@ import { canvasService } from "@/lib/services/canvas.service";
 import { styleService } from "@/lib/services/style.service";
 import { STYLE_TEMPLATES } from "@/lib/style-templates";
 import { CanvasAgentRunner } from "@/lib/canvas/adk/runner";
+import {
+    IMAGE_MODELS,
+    VIDEO_MODELS,
+    IMAGE_ASPECT_RATIOS,
+    VIDEO_ASPECT_RATIOS,
+} from "@/lib/canvas/adk/tools";
 import type { ChatAttachment } from "@/lib/canvas/types";
-import { MODELS } from "@/lib/constants";
+import { MODELS, IMAGE_SIZES, VIDEO_RESOLUTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 
 const ALLOWED_TEXT_MODELS = new Set(Object.values(MODELS.TEXT));
+const ALLOWED_IMAGE_MODELS = new Set<string>(IMAGE_MODELS);
+const ALLOWED_VIDEO_MODELS = new Set<string>(VIDEO_MODELS);
+const ALLOWED_IMAGE_ASPECT_RATIOS = new Set<string>(IMAGE_ASPECT_RATIOS);
+const ALLOWED_VIDEO_ASPECT_RATIOS = new Set<string>(VIDEO_ASPECT_RATIOS);
+const ALLOWED_IMAGE_SIZES = new Set<string>(IMAGE_SIZES);
+const ALLOWED_VIDEO_RESOLUTIONS = new Set<string>(VIDEO_RESOLUTIONS);
 
 const agentRunner = new CanvasAgentRunner();
 
@@ -21,6 +33,7 @@ interface MediaDefaults {
 }
 
 interface VideoDefaultsBody extends MediaDefaults {
+    resolution?: string;
     duration?: number;
     generateAudio?: boolean;
 }
@@ -79,6 +92,56 @@ export async function POST(
         !ALLOWED_TEXT_MODELS.has(body.model as never)
     ) {
         return NextResponse.json({ error: "Invalid model" }, { status: 400 });
+    }
+
+    const img = body.imageDefaults;
+    if (img) {
+        if (img.model !== undefined && !ALLOWED_IMAGE_MODELS.has(img.model))
+            return NextResponse.json(
+                { error: "Invalid imageDefaults.model" },
+                { status: 400 },
+            );
+        if (
+            img.aspectRatio !== undefined &&
+            !ALLOWED_IMAGE_ASPECT_RATIOS.has(img.aspectRatio)
+        )
+            return NextResponse.json(
+                { error: "Invalid imageDefaults.aspectRatio" },
+                { status: 400 },
+            );
+        if (
+            img.imageSize !== undefined &&
+            !ALLOWED_IMAGE_SIZES.has(img.imageSize)
+        )
+            return NextResponse.json(
+                { error: "Invalid imageDefaults.imageSize" },
+                { status: 400 },
+            );
+    }
+
+    const vid = body.videoDefaults;
+    if (vid) {
+        if (vid.model !== undefined && !ALLOWED_VIDEO_MODELS.has(vid.model))
+            return NextResponse.json(
+                { error: "Invalid videoDefaults.model" },
+                { status: 400 },
+            );
+        if (
+            vid.aspectRatio !== undefined &&
+            !ALLOWED_VIDEO_ASPECT_RATIOS.has(vid.aspectRatio)
+        )
+            return NextResponse.json(
+                { error: "Invalid videoDefaults.aspectRatio" },
+                { status: 400 },
+            );
+        if (
+            vid.resolution !== undefined &&
+            !ALLOWED_VIDEO_RESOLUTIONS.has(vid.resolution)
+        )
+            return NextResponse.json(
+                { error: "Invalid videoDefaults.resolution" },
+                { status: 400 },
+            );
     }
 
     let canvas;
