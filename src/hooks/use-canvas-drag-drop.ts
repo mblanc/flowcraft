@@ -6,6 +6,7 @@ import type { ReactFlowInstance } from "@xyflow/react";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import type { CanvasNode } from "@/lib/canvas/types";
 import logger from "@/app/logger";
+import { uploadFile } from "@/lib/utils";
 
 export function useCanvasDragDrop(rfInstance: ReactFlowInstance | null) {
     const addNode = useCanvasStore((s) => s.addNode);
@@ -66,15 +67,8 @@ export function useCanvasDragDrop(rfInstance: ReactFlowInstance | null) {
 
             addNode(node);
 
-            const formData = new FormData();
-            formData.append("file", file);
-
-            fetch("/api/upload-file", { method: "POST", body: formData })
-                .then((res) => {
-                    if (!res.ok) throw new Error("Upload failed");
-                    return res.json();
-                })
-                .then((data: { gcsUri: string; signedUrl: string }) => {
+            uploadFile(file)
+                .then((data) => {
                     updateNodeData(id, {
                         sourceUrl: data.gcsUri,
                         status: "ready",

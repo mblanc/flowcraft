@@ -8,7 +8,7 @@ import type { FileData } from "@/lib/types";
 import { FileUp, ImageIcon, Video, FileText } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/nodes/node-title";
-import { cn } from "@/lib/utils";
+import { cn, uploadFile } from "@/lib/utils";
 import Image from "next/image";
 import { MediaViewer } from "@/components/nodes/media-viewer";
 import logger from "@/app/logger";
@@ -82,20 +82,8 @@ export const FileNode = memo(
                 return;
             }
 
-            const formData = new FormData();
-            formData.append("file", file);
-
             try {
-                const response = await fetch("/api/upload-file", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    throw new Error("Upload failed");
-                }
-
-                const data = await response.json();
+                const data = await uploadFile(file);
 
                 updateNodeData(id, {
                     fileUrl: data.signedUrl,

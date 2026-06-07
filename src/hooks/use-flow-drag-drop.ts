@@ -12,6 +12,7 @@ import { useShallow } from "zustand/react/shallow";
 import { createNode } from "@/lib/node-factory";
 import logger from "@/app/logger";
 import type { CustomNodeItem } from "@/components/flow/flow-constants";
+import { uploadFile } from "@/lib/utils";
 
 export function useFlowDragDrop(rfInstance: ReactFlowInstance | null) {
     const { addNodeWithType, addNode, updateNodeData } = useFlowStore(
@@ -79,17 +80,7 @@ export function useFlowDragDrop(rfInstance: ReactFlowInstance | null) {
                     } as FileData;
                     addNode(newNode);
 
-                    const formData = new FormData();
-                    formData.append("file", file);
-
-                    fetch("/api/upload-file", {
-                        method: "POST",
-                        body: formData,
-                    })
-                        .then((res) => {
-                            if (!res.ok) throw new Error("Upload failed");
-                            return res.json();
-                        })
+                    uploadFile(file)
                         .then((data) => {
                             updateNodeData(newNode.id, {
                                 fileUrl: data.signedUrl,
