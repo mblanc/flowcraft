@@ -67,7 +67,7 @@ export interface GenerateImageOptions {
     images?: Array<{ url: string; type: string }>;
     aspectRatio?: string;
     model?: string;
-    resolution?: string;
+    imageSize?: string;
     groundingGoogleSearch?: boolean;
     groundingImageSearch?: boolean;
     systemInstruction?: string;
@@ -295,7 +295,7 @@ export class GeminiService {
             images = [],
             aspectRatio,
             model,
-            resolution,
+            imageSize,
             groundingGoogleSearch,
             groundingImageSearch,
             systemInstruction,
@@ -331,7 +331,7 @@ export class GeminiService {
             `[GeminiService] Contents: ${JSON.stringify(contents, null, 2)}`,
         );
         const imageConfigObj: Record<string, unknown> = {
-            imageSize: resolution as string,
+            imageSize: imageSize as string,
         };
         if (aspectRatio && aspectRatio !== "Auto") {
             imageConfigObj.aspectRatio = aspectRatio as string;

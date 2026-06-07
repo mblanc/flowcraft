@@ -58,7 +58,7 @@ export async function executeImageNode(
                 parts,
                 aspectRatio: node.data.aspectRatio,
                 model: node.data.model,
-                resolution: node.data.resolution,
+                imageSize: node.data.imageSize,
                 groundingGoogleSearch: node.data.groundingGoogleSearch,
                 groundingImageSearch: node.data.groundingImageSearch,
                 thinkingLevel: node.data.thinkingLevel,

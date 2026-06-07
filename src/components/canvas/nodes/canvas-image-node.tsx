@@ -7,12 +7,15 @@ import {
     ImageIcon,
     Loader2,
     AlertCircle,
+    Clock,
     Maximize2,
     Download as DownloadIcon,
     Info,
     Trash2,
     X,
     RefreshCw,
+    Copy,
+    Check,
 } from "lucide-react";
 import type { CanvasImageData } from "@/lib/canvas/types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
@@ -61,6 +64,7 @@ export const CanvasImageNode = memo(
         const [isViewerOpen, setIsViewerOpen] = useState(false);
         const [isInfoOpen, setIsInfoOpen] = useState(false);
         const [isRenaming, setIsRenaming] = useState(false);
+        const [isCopied, setIsCopied] = useState(false);
         const [renameDraft, setRenameDraft] = useState(d.label);
         const renameInputRef = useRef<HTMLInputElement>(null);
 
@@ -96,6 +100,7 @@ export const CanvasImageNode = memo(
             d.status === "ready" ? d.sourceUrl : undefined,
         );
 
+        const isPending = d.status === "pending";
         const isGenerating = d.status === "generating";
         const isError = d.status === "error";
 
@@ -188,7 +193,7 @@ export const CanvasImageNode = memo(
                                         regenerate();
                                     }}
                                     title="Regenerate"
-                                    disabled={isGenerating}
+                                    disabled={isPending || isGenerating}
                                 >
                                     <RefreshCw className="h-4 w-4" />
                                 </Button>
@@ -264,6 +269,17 @@ export const CanvasImageNode = memo(
 
                     {/* Image Layer */}
                     <div className="border-border/50 bg-muted/20 relative h-full w-full overflow-hidden rounded-[24px] border shadow-sm">
+                        {isPending && (
+                            <div className="flex h-full items-center justify-center bg-white/50">
+                                <div className="flex flex-col items-center gap-2">
+                                    <Clock className="text-muted-foreground/50 h-8 w-8" />
+                                    <span className="text-muted-foreground/50 text-xs font-medium">
+                                        Queued
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
                         {isGenerating && (
                             <div className="flex h-full items-center justify-center bg-white">
                                 <div className="flex flex-col items-center gap-2">
@@ -333,8 +349,38 @@ export const CanvasImageNode = memo(
                             </div>
 
                             {d.prompt && (
-                                <div className="text-foreground/90 custom-scrollbar max-h-[160px] overflow-y-auto border-l-[3px] border-orange-500/50 pl-3 text-sm leading-relaxed text-balance">
-                                    {d.prompt}
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="text-foreground/90 custom-scrollbar max-h-[160px] overflow-y-auto border-l-[3px] border-orange-500/50 pl-3 text-sm leading-relaxed text-balance">
+                                        {d.prompt}
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-muted-foreground hover:text-foreground h-7 gap-1.5 self-end rounded-full px-2.5 text-xs"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(
+                                                d.prompt!,
+                                            );
+                                            setIsCopied(true);
+                                            setTimeout(
+                                                () => setIsCopied(false),
+                                                2000,
+                                            );
+                                        }}
+                                    >
+                                        {isCopied ? (
+                                            <>
+                                                <Check className="h-3 w-3" />{" "}
+                                                Copied
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy className="h-3 w-3" />{" "}
+                                                Copy prompt
+                                            </>
+                                        )}
+                                    </Button>
                                 </div>
                             )}
 

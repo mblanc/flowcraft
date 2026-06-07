@@ -45,7 +45,7 @@ describe("ImageNode Rendering", () => {
             prompt: "a landscape",
             images: [],
             aspectRatio: "1:1",
-            resolution: "1K",
+            imageSize: "1K",
             groundingGoogleSearch: false,
             groundingImageSearch: false,
         } as ImageData,

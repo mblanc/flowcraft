@@ -1,6 +1,12 @@
 import { FunctionTool } from "@google/adk";
 import { z } from "zod";
-import { MODELS, IMAGE_MODEL_CONFIGS } from "@/lib/constants";
+import {
+    MODELS,
+    IMAGE_MODEL_CONFIGS,
+    IMAGE_SIZES,
+    VIDEO_RESOLUTIONS,
+} from "@/lib/constants";
+import { MEDIA_OPERATIONS, EDGE_ROLES } from "../types";
 
 // Derive valid values directly from constants so there's one source of truth.
 
@@ -31,8 +37,6 @@ const ALL_ASPECT_RATIOS = [
     ...new Set([...IMAGE_ASPECT_RATIOS, ...VIDEO_ASPECT_RATIOS]),
 ] as const;
 
-const RESOLUTIONS = ["512", "1K", "2K", "4K"] as const;
-
 // Agent A tools (unchanged — used by buildAgentA)
 
 const imageStepSchema = z.object({
@@ -41,7 +45,7 @@ const imageStepSchema = z.object({
     prompt: z.string(),
     label: z.string(),
     aspectRatio: z.enum(IMAGE_ASPECT_RATIOS).optional(),
-    resolution: z.enum(RESOLUTIONS).optional(),
+    imageSize: z.enum(IMAGE_SIZES).optional(),
     model: z.enum(IMAGE_MODELS).optional(),
     referenceNodeIds: z.array(z.string()).optional(),
     dependsOn: z.array(z.string()).optional(),
@@ -53,11 +57,11 @@ const videoStepSchema = z.object({
     prompt: z.string(),
     label: z.string(),
     aspectRatio: z.enum(VIDEO_ASPECT_RATIOS).optional(),
-    resolution: z.enum(RESOLUTIONS).optional(),
+    resolution: z.enum(VIDEO_RESOLUTIONS).optional(),
     model: z.enum(VIDEO_MODELS).optional(),
     duration: z
-        .union([z.literal(4), z.literal(6), z.literal(8)])
-        .describe("Duration in seconds. Valid values: 4, 6, or 8.")
+        .enum(["4", "6", "8"])
+        .describe("Duration in seconds.")
         .optional(),
     generateAudio: z.boolean().optional(),
     referenceNodeIds: z.array(z.string()).optional(),
@@ -89,24 +93,12 @@ export const planVideoGenerationTool = new FunctionTool({
 
 // Director tools (used by buildAgentB)
 
-const MEDIA_OPERATIONS = [
-    "t2i",
-    "i2i",
-    "t2v",
-    "i2v",
-    "i2v2",
-    "t2s",
-    "t2m",
-    "sfx",
-    "concat",
-    "edit",
-    "upscale",
-] as const;
-
-const EDGE_ROLES = ["depends_on", "style_ref", "subject_ref"] as const;
-
 const planNodeSchema = z.object({
-    id: z.string(),
+    id: z
+        .string()
+        .describe(
+            "Unique identifier for this node — must be distinct across all nodes in this plan",
+        ),
     operation: z.enum(MEDIA_OPERATIONS),
     promptIntent: z
         .string()
@@ -119,13 +111,20 @@ const planNodeSchema = z.object({
         .describe("Fully-engineered prompt (filled by PromptEngineer)"),
     label: z.string().optional(),
     aspectRatio: z.enum(ALL_ASPECT_RATIOS).optional(),
-    resolution: z.enum(RESOLUTIONS).optional(),
+    imageSize: z
+        .enum(IMAGE_SIZES)
+        .optional()
+        .describe("For image operations only: image output size."),
+    resolution: z
+        .enum(VIDEO_RESOLUTIONS)
+        .optional()
+        .describe("For video operations only: video output resolution."),
     model: z
         .enum([...IMAGE_MODELS, ...VIDEO_MODELS])
         .optional()
         .describe("Leave unset to use the canvas default model"),
     duration: z
-        .union([z.literal(4), z.literal(6), z.literal(8)])
+        .enum(["4", "6", "8"])
         .optional()
         .describe("Video duration in seconds. MUST be exactly 4, 6, or 8."),
     generateAudio: z.boolean().optional(),
@@ -152,11 +151,28 @@ export const planProductionTool = new FunctionTool({
                 "Questions to surface to the user when the intent is ambiguous",
             ),
     }),
-    execute: async ({ nodes, edges, clarifications }) => ({
-        nodes,
-        edges,
-        ...(clarifications ? { clarifications } : {}),
-    }),
+    execute: async ({ nodes, edges, clarifications }) => {
+        const seen = new Set<string>();
+        const deduped = nodes.map((node) => {
+            if (!seen.has(node.id)) {
+                seen.add(node.id);
+                return node;
+            }
+            let suffix = 2;
+            while (seen.has(`${node.id}-${suffix}`)) suffix++;
+            const newId = `${node.id}-${suffix}`;
+            seen.add(newId);
+            return { ...node, id: newId };
+        });
+        // Edges keep their original IDs — first-occurrence nodes retain their IDs,
+        // so existing edge references remain valid after deduplication.
+        const remappedEdges = edges.map((e) => ({ ...e }));
+        return {
+            nodes: deduped,
+            edges: remappedEdges,
+            ...(clarifications ? { clarifications } : {}),
+        };
+    },
 });
 
 export const suggestActionsTool = new FunctionTool({

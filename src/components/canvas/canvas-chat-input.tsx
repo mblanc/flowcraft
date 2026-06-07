@@ -453,7 +453,7 @@ export function CanvasChatInput({
                     height,
                     aspectRatio: step.aspectRatio,
                     model: step.model,
-                    status: "generating",
+                    status: "pending",
                     referenceNodeIds: step.referenceNodeIds,
                 };
                 addNode({
@@ -475,7 +475,7 @@ export function CanvasChatInput({
                     height,
                     aspectRatio: step.aspectRatio,
                     model: step.model,
-                    status: "generating",
+                    status: "pending",
                     progress: 0,
                     referenceNodeIds: step.referenceNodeIds,
                 };
@@ -577,13 +577,24 @@ export function CanvasChatInput({
                             const payload = JSON.parse(sse.data);
 
                             switch (sse.event) {
-                                case "step_start":
+                                case "step_start": {
                                     setPlanStepStatus(
                                         messageId,
                                         payload.stepId,
                                         "generating",
                                     );
+                                    const startNodeId = stepNodeMap.get(
+                                        payload.stepId,
+                                    );
+                                    if (startNodeId) {
+                                        useCanvasStore
+                                            .getState()
+                                            .updateNodeData(startNodeId, {
+                                                status: "generating",
+                                            });
+                                    }
                                     break;
+                                }
 
                                 case "step_done": {
                                     const node = payload.node as NodePayload;
@@ -796,7 +807,7 @@ export function CanvasChatInput({
                                 aspectRatio: agentSettings.imageAspectRatio,
                             }),
                             ...(agentSettings.imageResolution !== "auto" && {
-                                resolution: agentSettings.imageResolution,
+                                imageSize: agentSettings.imageResolution,
                             }),
                         },
                         videoDefaults: {
@@ -829,6 +840,9 @@ export function CanvasChatInput({
                 const decoder = new TextDecoder();
                 let buffer = "";
                 let accumulatedText = "";
+                let cumulativeThought = "";
+                const directorLog: import("@/lib/canvas/types").DirectorLogEntry[] =
+                    [];
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -847,6 +861,38 @@ export function CanvasChatInput({
                                     accumulatedText += payload.delta;
                                     updateMessage(assistantMsgId, {
                                         content: accumulatedText,
+                                    });
+                                    break;
+
+                                case "thought": {
+                                    const full: string = payload.delta;
+                                    const newPart = full.startsWith(
+                                        cumulativeThought,
+                                    )
+                                        ? full
+                                              .slice(cumulativeThought.length)
+                                              .trim()
+                                        : full;
+                                    cumulativeThought = full;
+                                    if (newPart) {
+                                        directorLog.push({
+                                            type: "thought",
+                                            text: newPart,
+                                        });
+                                        updateMessage(assistantMsgId, {
+                                            directorLog: [...directorLog],
+                                        });
+                                    }
+                                    break;
+                                }
+
+                                case "agent_action":
+                                    directorLog.push({
+                                        type: "action",
+                                        label: payload.label,
+                                    });
+                                    updateMessage(assistantMsgId, {
+                                        directorLog: [...directorLog],
                                     });
                                     break;
 
@@ -914,6 +960,7 @@ export function CanvasChatInput({
             isChatLoading,
             canvasId,
             agentSettings,
+            agentVariant,
             allAttachments,
             addMessage,
             updateMessage,

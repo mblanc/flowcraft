@@ -44,7 +44,7 @@ const ImageDataModelSchema = z.enum([
     MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
 ]);
 
-const ImageDataResolutionSchema = z.enum(["512", "1K", "2K", "4K"]);
+const ImageDataSizeSchema = z.enum(["512", "1K", "2K", "4K"]);
 
 // --- Node Data Schemas ---
 
@@ -95,7 +95,7 @@ export const ImageDataSchema = BaseNodeDataSchema.extend({
     images: z.array(z.string()),
     aspectRatio: ImageDataAspectRatioSchema,
     model: ImageDataModelSchema,
-    resolution: ImageDataResolutionSchema,
+    imageSize: ImageDataSizeSchema,
     groundingGoogleSearch: z.boolean().default(false),
     groundingImageSearch: z.boolean().default(false),
     width: z.number().optional(),
@@ -270,7 +270,7 @@ export const GenerateImageSchema = z
         model: ImageDataModelSchema.optional().default(
             MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
         ),
-        resolution: ImageDataResolutionSchema.optional().default(
+        imageSize: ImageDataSizeSchema.optional().default(
             DEFAULTS.IMAGE_RESOLUTION,
         ),
         groundingGoogleSearch: z.boolean().optional().default(false),

@@ -1,4 +1,4 @@
-import type { PlanEdge, PlanNode } from "../types";
+import type { PlanEdge } from "../types";
 
 /**
  * Kahn's algorithm: groups nodes by execution level.
@@ -6,7 +6,10 @@ import type { PlanEdge, PlanNode } from "../types";
  * Only "depends_on" edges create ordering constraints.
  * Throws if the graph contains a cycle.
  */
-export function topoSort(nodes: PlanNode[], edges: PlanEdge[]): PlanNode[][] {
+export function topoSort<T extends { id: string }>(
+    nodes: T[],
+    edges: PlanEdge[],
+): T[][] {
     const depEdges = edges.filter((e) => e.role === "depends_on");
 
     const inDegree = new Map<string, number>();
@@ -23,7 +26,7 @@ export function topoSort(nodes: PlanNode[], edges: PlanEdge[]): PlanNode[][] {
     }
 
     const nodeById = new Map(nodes.map((n) => [n.id, n]));
-    const levels: PlanNode[][] = [];
+    const levels: T[][] = [];
     let frontier = nodes.filter((n) => inDegree.get(n.id) === 0);
 
     let visited = 0;
@@ -31,7 +34,7 @@ export function topoSort(nodes: PlanNode[], edges: PlanEdge[]): PlanNode[][] {
         levels.push(frontier);
         visited += frontier.length;
 
-        const next: PlanNode[] = [];
+        const next: T[] = [];
         for (const node of frontier) {
             for (const toId of adjacency.get(node.id) ?? []) {
                 const deg = (inDegree.get(toId) ?? 1) - 1;

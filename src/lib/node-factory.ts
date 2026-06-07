@@ -63,7 +63,7 @@ export function createNode(
                     images: [],
                     aspectRatio: DEFAULTS.IMAGE_ASPECT_RATIO,
                     model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
-                    resolution: DEFAULTS.IMAGE_RESOLUTION,
+                    imageSize: DEFAULTS.IMAGE_RESOLUTION,
                     groundingGoogleSearch: false,
                     groundingImageSearch: false,
                     thinkingLevel: "HIGH",

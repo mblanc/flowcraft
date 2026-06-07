@@ -3,26 +3,26 @@ import { GenerateImageSchema, GenerateVideoSchema } from "../lib/schemas";
 
 describe("Resolution Schemas", () => {
     describe("GenerateImageSchema", () => {
-        it("should accept valid image resolutions", () => {
+        it("should accept valid image sizes", () => {
             const result = GenerateImageSchema.safeParse({
                 prompt: "test",
-                resolution: "1K",
+                imageSize: "1K",
             });
             expect(result.success).toBe(true);
         });
 
-        it("should reject invalid image resolutions", () => {
+        it("should reject video resolution values as image size", () => {
             const result = GenerateImageSchema.safeParse({
                 prompt: "test",
-                resolution: "720p",
+                imageSize: "720p",
             });
             expect(result.success).toBe(false);
         });
 
-        it("should accept 4K image resolution", () => {
+        it("should accept 4K image size", () => {
             const result = GenerateImageSchema.safeParse({
                 prompt: "test",
-                resolution: "4K",
+                imageSize: "4K",
             });
             expect(result.success).toBe(true);
         });

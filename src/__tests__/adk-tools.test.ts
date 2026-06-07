@@ -31,7 +31,7 @@ describe("planImageGenerationTool", () => {
                 prompt: "A sunset",
                 label: "Sunset",
                 aspectRatio: "16:9",
-                resolution: "2K",
+                imageSize: "2K",
                 model: "gemini-3.1-flash-image",
                 referenceNodeIds: ["node_1"],
                 dependsOn: [],
@@ -54,7 +54,7 @@ describe("planVideoGenerationTool", () => {
                 type: "video" as const,
                 prompt: "A flying bird",
                 label: "Flying Bird",
-                duration: 6,
+                duration: "6",
                 generateAudio: false,
             },
         ];

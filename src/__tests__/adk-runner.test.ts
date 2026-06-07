@@ -172,6 +172,25 @@ describe("extractAgentEvents", () => {
         expect(events[events.length - 1]).toEqual({ type: "done" });
     });
 
+    it("coerces string duration enum to number in plan step", async () => {
+        // The tool schema uses z.enum(["4","6","8"]) — args arrive as strings.
+        const steps = [
+            { id: "s", type: "video", prompt: "x", label: "x", duration: "6" },
+        ];
+        const events = await collect(
+            extractAgentEvents(
+                asAsyncIter([
+                    makeFunctionCallEvent("plan_video_generation", { steps }),
+                ]),
+                [],
+                [],
+            ),
+        );
+        const planEvent = events.find((e) => e.type === "plan");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((planEvent as any)?.plan?.steps?.[0]?.duration).toBe(6);
+    });
+
     it("merges image and video steps into a single plan", async () => {
         const imgSteps: GenerationStep[] = [
             { id: "step_0", type: "image", prompt: "Cat", label: "Cat" },

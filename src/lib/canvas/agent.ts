@@ -14,10 +14,13 @@ import type {
 export interface MediaDefaults {
     model?: string;
     aspectRatio?: string;
-    resolution?: string;
+    imageSize?: string;
 }
 
-export interface VideoDefaults extends MediaDefaults {
+export interface VideoDefaults {
+    model?: string;
+    aspectRatio?: string;
+    resolution?: string;
     duration?: number;
     generateAudio?: boolean;
 }
@@ -40,8 +43,11 @@ export interface AgentInput {
 
 export type AgentEvent =
     | { type: "text"; delta: string }
+    | { type: "thought"; delta: string }
+    | { type: "agent_action"; label: string }
     | { type: "plan"; plan: AgentPlan }
     | { type: "actions"; actions: ChatAction[] }
+    | { type: "error"; message: string }
     | { type: "done" };
 
 const SYSTEM_PROMPT = `You are a creative media assistant inside a visual canvas workspace. You help users generate and iterate on images and videos.
@@ -283,27 +289,33 @@ export function applyVideoFallback(
     attachments: ChatAttachment[],
     index: number,
     totalSteps: number,
-) {
+): GenerationStep {
     if (
-        type === "video" &&
-        !step.firstFrameNodeId &&
-        !step.lastFrameNodeId &&
-        !step.dependsOn?.length &&
-        attachments.length > 0 &&
-        !step.referenceNodeIds?.length
+        type !== "video" ||
+        step.firstFrameNodeId ||
+        step.lastFrameNodeId ||
+        step.dependsOn?.length ||
+        attachments.length === 0 ||
+        step.referenceNodeIds?.length
     ) {
-        if (attachments.length === 1) {
-            step.firstFrameNodeId = attachments[0].nodeId;
-        } else if (attachments.length === 2) {
-            step.firstFrameNodeId = attachments[0].nodeId;
-            step.lastFrameNodeId = attachments[1].nodeId;
-        } else if (totalSteps === attachments.length) {
-            // Map 1-to-1 if counts match
-            step.firstFrameNodeId = attachments[index].nodeId;
-        } else {
-            step.referenceNodeIds = attachments.map((a) => a.nodeId);
-        }
+        return step;
     }
+
+    if (attachments.length === 1) {
+        return { ...step, firstFrameNodeId: attachments[0].nodeId };
+    }
+    if (attachments.length === 2) {
+        return {
+            ...step,
+            firstFrameNodeId: attachments[0].nodeId,
+            lastFrameNodeId: attachments[1].nodeId,
+        };
+    }
+    if (totalSteps === attachments.length) {
+        // Map 1-to-1 if counts match
+        return { ...step, firstFrameNodeId: attachments[index].nodeId };
+    }
+    return { ...step, referenceNodeIds: attachments.map((a) => a.nodeId) };
 }
 
 export async function* streamAgentResponse(
@@ -370,6 +382,7 @@ For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music
                 prompt: string;
                 label?: string;
                 aspectRatio?: string;
+                imageSize?: string;
                 resolution?: string;
                 model?: string;
                 duration?: number;
@@ -404,10 +417,19 @@ For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music
                     ...(s.label ? { label: s.label } : {}),
                     aspectRatio:
                         s.aspectRatio ?? typeDefaults?.aspectRatio ?? "16:9",
-                    ...((s.resolution ?? typeDefaults?.resolution)
+                    ...(!isVideo &&
+                    (s.imageSize ?? input.imageDefaults?.imageSize)
+                        ? {
+                              imageSize:
+                                  s.imageSize ?? input.imageDefaults?.imageSize,
+                          }
+                        : {}),
+                    ...(isVideo &&
+                    (s.resolution ?? input.videoDefaults?.resolution)
                         ? {
                               resolution:
-                                  s.resolution ?? typeDefaults?.resolution,
+                                  s.resolution ??
+                                  input.videoDefaults?.resolution,
                           }
                         : {}),
                     ...((s.model ?? typeDefaults?.model)
@@ -487,15 +509,13 @@ For audio: generateAudio true ONLY if user explicitly asks for audio/sound/music
                 }
 
                 // Programmatic fallback for video when LLM didn't specify frames
-                applyVideoFallback(
+                return applyVideoFallback(
                     step,
                     s.type,
                     attachments,
                     index,
                     parsed.steps.length,
                 );
-
-                return step;
             });
 
             yield { type: "plan", plan: { steps } };

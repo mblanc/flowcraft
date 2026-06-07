@@ -4,15 +4,20 @@ import { canvasService } from "@/lib/services/canvas.service";
 import { styleService } from "@/lib/services/style.service";
 import { STYLE_TEMPLATES } from "@/lib/style-templates";
 import { CanvasAgentRunner } from "@/lib/canvas/adk/runner";
-import logger from "@/app/logger";
 import type { ChatAttachment } from "@/lib/canvas/types";
+import { MODELS } from "@/lib/constants";
+import logger from "@/app/logger";
+
+const ALLOWED_TEXT_MODELS = new Set(Object.values(MODELS.TEXT));
+
+const agentRunner = new CanvasAgentRunner();
 
 export const maxDuration = 300;
 
 interface MediaDefaults {
     model?: string;
     aspectRatio?: string;
-    resolution?: string;
+    imageSize?: string;
 }
 
 interface VideoDefaultsBody extends MediaDefaults {
@@ -70,6 +75,13 @@ export async function POST(
         );
     }
 
+    if (
+        body.model !== undefined &&
+        !ALLOWED_TEXT_MODELS.has(body.model as never)
+    ) {
+        return NextResponse.json({ error: "Invalid model" }, { status: 400 });
+    }
+
     let canvas;
     try {
         canvas = await canvasService.getCanvas(canvasId, session.user.id);
@@ -125,7 +137,6 @@ export async function POST(
             const encode = (payload: string) => encoder.encode(payload);
 
             try {
-                const agentRunner = new CanvasAgentRunner();
                 const agentStream = agentRunner.stream({
                     message: body.message,
                     attachments: body.attachments,
@@ -152,6 +163,26 @@ export async function POST(
                             );
                             break;
 
+                        case "thought":
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("thought", {
+                                        delta: event.delta,
+                                    }),
+                                ),
+                            );
+                            break;
+
+                        case "agent_action":
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("agent_action", {
+                                        label: event.label,
+                                    }),
+                                ),
+                            );
+                            break;
+
                         case "plan":
                             // Send the plan to the client for approval — execution
                             // is triggered separately via /execute-plan when user confirms.
@@ -169,6 +200,16 @@ export async function POST(
                                 encode(
                                     formatSSE("actions", {
                                         actions: event.actions,
+                                    }),
+                                ),
+                            );
+                            break;
+
+                        case "error":
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("error", {
+                                        message: event.message,
                                     }),
                                 ),
                             );

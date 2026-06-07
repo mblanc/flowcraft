@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -16,6 +16,9 @@ import {
     X,
     Play,
     Ban,
+    ChevronRight,
+    Brain,
+    Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
@@ -90,11 +93,24 @@ function StepCard({
 }) {
     const TypeIcon = STEP_TYPE_ICON[step.type] ?? Image;
     const nodes = useCanvasStore((s) => s.nodes);
+    const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopyPrompt = useCallback(
+        (e: React.MouseEvent) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(step.prompt);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        },
+        [step.prompt],
+    );
 
     // Build metadata chips
     const chips: string[] = [];
     if (step.aspectRatio) chips.push(step.aspectRatio);
-    if (step.resolution) chips.push(step.resolution);
+    if (step.type === "image" && step.imageSize) chips.push(step.imageSize);
+    if (step.type === "video" && step.resolution) chips.push(step.resolution);
     if (step.model) chips.push(step.model.split("/").pop() ?? step.model);
     if (step.type === "video" && step.duration) chips.push(`${step.duration}s`);
     if (step.generateAudio) chips.push("audio");
@@ -153,9 +169,39 @@ function StepCard({
                     </span>
 
                     {/* Prompt preview */}
-                    <p className="text-muted-foreground/70 mt-0.5 line-clamp-2 text-[10px] leading-relaxed">
-                        {step.prompt}
-                    </p>
+                    <div className="group/prompt mt-0.5">
+                        <p
+                            className={cn(
+                                "text-muted-foreground/70 cursor-pointer text-[10px] leading-relaxed",
+                                !isPromptExpanded && "line-clamp-2",
+                            )}
+                            onClick={() => setIsPromptExpanded((v) => !v)}
+                            title={
+                                isPromptExpanded
+                                    ? "Click to collapse"
+                                    : "Click to expand"
+                            }
+                        >
+                            {step.prompt}
+                        </p>
+                        {isPromptExpanded && (
+                            <button
+                                type="button"
+                                onClick={handleCopyPrompt}
+                                className="text-muted-foreground/50 hover:text-muted-foreground mt-1 flex items-center gap-1 text-[10px] transition-colors"
+                            >
+                                {isCopied ? (
+                                    <>
+                                        <Check className="size-2.5" /> Copied
+                                    </>
+                                ) : (
+                                    <>
+                                        <Copy className="size-2.5" /> Copy
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
                 </div>
                 {status === "generating" && (
                     <span className="text-muted-foreground shrink-0 text-[10px]">
@@ -336,6 +382,57 @@ function PlanCompletedActions({
     );
 }
 
+function DirectorLog({
+    log,
+}: {
+    log: import("@/lib/canvas/types").DirectorLogEntry[];
+}) {
+    const [openStates, setOpenStates] = useState<Record<number, boolean>>({});
+    const toggle = (i: number) =>
+        setOpenStates((prev) => ({ ...prev, [i]: !prev[i] }));
+
+    return (
+        <div className="flex flex-col gap-1">
+            {log.map((entry, i) =>
+                entry.type === "thought" ? (
+                    <div key={i}>
+                        <button
+                            type="button"
+                            onClick={() => toggle(i)}
+                            className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
+                        >
+                            <Brain className="size-3 shrink-0" />
+                            <span className="line-clamp-1 max-w-[240px] text-left italic">
+                                {entry.text.slice(0, 80).trimEnd()}
+                                {entry.text.length > 80 ? "…" : ""}
+                            </span>
+                            <ChevronRight
+                                className={cn(
+                                    "size-3 shrink-0 transition-transform",
+                                    openStates[i] && "rotate-90",
+                                )}
+                            />
+                        </button>
+                        {openStates[i] && (
+                            <div className="border-muted-foreground/20 text-muted-foreground mt-1 border-l-2 pl-3 text-xs leading-relaxed whitespace-pre-wrap">
+                                {entry.text}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div
+                        key={i}
+                        className="text-muted-foreground flex items-center gap-1.5 text-xs"
+                    >
+                        <Zap className="size-3 shrink-0" />
+                        <span>{entry.label}</span>
+                    </div>
+                ),
+            )}
+        </div>
+    );
+}
+
 function TypingDots() {
     return (
         <div className="flex items-center gap-1 py-0.5">
@@ -434,6 +531,12 @@ function CanvasChatMessageComponent({
                         })}
                     </div>
                 )}
+
+                {!isUser &&
+                    message.directorLog &&
+                    message.directorLog.length > 0 && (
+                        <DirectorLog log={message.directorLog} />
+                    )}
 
                 <div
                     className={cn(

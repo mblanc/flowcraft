@@ -57,7 +57,7 @@ describe("WorkflowEngine Multi-Node Integration", () => {
                     images: [],
                     model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
                     aspectRatio: "16:9",
-                    resolution: "1K",
+                    imageSize: "1K",
                     groundingGoogleSearch: false,
                     groundingImageSearch: false,
                 },
