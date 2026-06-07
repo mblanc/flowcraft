@@ -20,9 +20,9 @@ Use `t2i` when the user wants a still image from a text description, including: 
 
 ## Model hints
 
-- `gemini-3.1-flash-image`: fastest, best for drafts and variations.
-- `gemini-3-pro-image`: highest quality, use for hero shots or final keyframes.
-- Default to `gemini-3.1-flash-image` unless the user requests quality.
+- `gemini-3.1-flash-image` (Nano Banana 2): **default** — fastest, best for drafts and variations.
+- `gemini-3-pro-image`: highest quality; use for hero shots or final keyframes only when the user requests it.
+- Always use the canvas default model unless the user explicitly requests a different one.
 
 ## Common failures
 
