@@ -3,8 +3,10 @@ import {
     LlmAgent,
     LogLevel,
     Runner,
+    SkillToolset,
     StreamingMode,
     getFunctionCalls,
+    loadAllSkillsInDir,
     setLogLevel,
     type BaseSessionService,
 } from "@google/adk";
@@ -19,6 +21,7 @@ import { applyVideoFallback } from "../agent";
 import {
     planImageGenerationTool,
     planVideoGenerationTool,
+    planProductionTool,
     suggestActionsTool,
 } from "./tools";
 import { createSessionService } from "./session";
@@ -36,9 +39,49 @@ import type {
     ChatAction,
     ChatAttachment,
     GenerationStep,
+    PlanNode,
 } from "../types";
+import path from "path";
 
 const APP_NAME = "flowcraft-canvas";
+
+const SKILLS_DIR = path.resolve(__dirname, "skills");
+
+const DIRECTOR_PROMPT = `You are the Director for a visual media canvas. Your role is to plan — never to generate media yourself.
+
+Given a user request and the current canvas context, you will:
+1. Use list_skills and load_skill to understand available capabilities.
+2. Decompose the request into a minimal DAG of typed media operations.
+3. Call plan_production with the full DAG (nodes + edges).
+4. Call suggest_actions with 2-3 follow-up ideas.
+
+PRIMITIVE OPERATIONS you can plan:
+- t2i  — text-to-image
+- i2i  — image-to-image (edit/transform an existing image)
+- t2v  — text-to-video
+- i2v  — image-to-video (animate an existing image)
+- i2v2 — image-to-video-to-image (morph two images)
+- t2s  — text-to-speech
+- t2m  — text-to-music
+- sfx  — sound effects
+- concat — concatenate clips
+- edit — post-production edit
+- upscale — upscale resolution
+
+RULES:
+- Each node must have a clear promptIntent (plain English description of what to produce).
+- Use edges to express: depends_on (output feeds next node), style_ref (visual style source), subject_ref (subject/character reference).
+- Reuse canvas items as inputs — reference their node IDs in promptIntent context.
+- Keep video nodes ≤10s; split longer sequences with concat.
+- Flag genuine ambiguity in clarifications[] rather than guessing.
+- Never describe generation in conversational text — emit the plan_production call instead.`;
+
+function buildDirectorInstruction(
+    canvasContext: string,
+    styleInstruction: string,
+): string {
+    return `${DIRECTOR_PROMPT}${canvasContext}${styleInstruction}`;
+}
 
 const SYSTEM_PROMPT = `You are a creative media assistant inside a visual canvas workspace. You help users generate and iterate on images and videos.
 
@@ -324,6 +367,62 @@ export async function* extractAgentEvents(
                 allSteps.push(...steps);
             }
 
+            if (call.name === "plan_production") {
+                const raw = call.args as {
+                    nodes?: PlanNode[];
+                    edges?: unknown[];
+                };
+                const planNodes = raw.nodes ?? [];
+                const mapped = planNodes.flatMap((node): GenerationStep[] => {
+                    const imageOps = new Set(["t2i", "i2i"]);
+                    const videoOps = new Set(["t2v", "i2v", "i2v2"]);
+                    let type: "image" | "video";
+                    if (imageOps.has(node.operation)) {
+                        type = "image";
+                    } else if (videoOps.has(node.operation)) {
+                        type = "video";
+                    } else {
+                        logger.warn(
+                            `[CanvasADK] plan_production: skipping unsupported operation "${node.operation}" on node ${node.id}`,
+                        );
+                        return [];
+                    }
+                    const step: GenerationStep = {
+                        id: node.id,
+                        type,
+                        prompt: node.prompt ?? node.promptIntent,
+                        ...(node.label ? { label: node.label } : {}),
+                        ...(node.aspectRatio
+                            ? { aspectRatio: node.aspectRatio }
+                            : {}),
+                        ...(node.resolution
+                            ? { resolution: node.resolution }
+                            : {}),
+                        ...(node.model ? { model: node.model } : {}),
+                        ...(type === "video" && node.duration
+                            ? { duration: node.duration }
+                            : {}),
+                        ...(type === "video"
+                            ? {
+                                  generateAudio: node.generateAudio ?? false,
+                              }
+                            : {}),
+                    };
+                    let validated = applyTypeDefaults(
+                        step,
+                        imageDefaults,
+                        videoDefaults,
+                    );
+                    validated = validateStepNodeIds(
+                        validated,
+                        canvasNodeIds,
+                        attachmentNodeIds,
+                    );
+                    return [validated];
+                });
+                allSteps.push(...mapped);
+            }
+
             if (call.name === "suggest_actions" && !actionsEmitted) {
                 const raw =
                     (
@@ -358,9 +457,21 @@ export interface CanvasAgentRunnerConfig {
 
 export class CanvasAgentRunner {
     private readonly sessionService: BaseSessionService;
+    private skillsCache: Record<string, import("@google/adk").Skill> = {};
+
     constructor(runnerConfig: CanvasAgentRunnerConfig = {}) {
         this.sessionService =
             runnerConfig.sessionService ?? createSessionService();
+    }
+
+    private async ensureSkillsLoaded(): Promise<void> {
+        if (Object.keys(this.skillsCache).length === 0) {
+            try {
+                this.skillsCache = await loadAllSkillsInDir(SKILLS_DIR);
+            } catch (err) {
+                logger.warn("[CanvasADK] Could not load skills:", err);
+            }
+        }
     }
 
     private buildAgentA(model: string, instruction: string): LlmAgent {
@@ -382,8 +493,10 @@ export class CanvasAgentRunner {
     }
 
     private buildAgentB(model: string, instruction: string): LlmAgent {
+        // Skills are loaded synchronously from the pre-loaded cache set during stream()
+        const skillToolset = new SkillToolset(this.skillsCache);
         return new LlmAgent({
-            name: "CanvasAgentB",
+            name: "Director",
             model: new Gemini({
                 model,
                 vertexai: true,
@@ -391,11 +504,7 @@ export class CanvasAgentRunner {
                 location: config.LOCATION,
             }),
             instruction,
-            tools: [
-                planImageGenerationTool,
-                planVideoGenerationTool,
-                suggestActionsTool,
-            ],
+            tools: [planProductionTool, suggestActionsTool, skillToolset],
         });
     }
 
@@ -418,19 +527,28 @@ export class CanvasAgentRunner {
 
     async *stream(input: AgentInput): AsyncGenerator<AgentEvent> {
         const model = input.model || MODELS.TEXT.GEMINI_3_5_FLASH;
+        const variant = input.agentVariant ?? "a";
 
-        const instruction = [
-            SYSTEM_PROMPT,
-            getModeInstruction(input.mode),
-            buildCanvasContext(input.canvasNodes),
-            buildStyleInstruction(input.activeStyle),
-        ].join("");
+        const canvasContext = buildCanvasContext(input.canvasNodes);
+        const styleInstruction = buildStyleInstruction(input.activeStyle);
 
-        const runner = this.getRunner(
-            model,
-            instruction,
-            input.agentVariant ?? "a",
-        );
+        let instruction: string;
+        if (variant === "b") {
+            await this.ensureSkillsLoaded();
+            instruction = buildDirectorInstruction(
+                canvasContext,
+                styleInstruction,
+            );
+        } else {
+            instruction = [
+                SYSTEM_PROMPT,
+                getModeInstruction(input.mode),
+                canvasContext,
+                styleInstruction,
+            ].join("");
+        }
+
+        const runner = this.getRunner(model, instruction, variant);
 
         const userId = input.userId ?? "anon";
         const sessionId =
