@@ -88,21 +88,7 @@ Never skip this section. Provide at least three entries to prevent hallucination
 
 ## Special Case: Character Identity Boards
 
-If the general description or intent specifies generating a "CHARACTER IDENTITY BOARD", structure the features as follows:
-
-- **SUBJECT**:
-    - If original: Define character seed, age, body type, posture, physical presence, and signature biological/outfit features.
-    - If referencing an image (e.g., @Image1): `"SUBJECT: Use the reference image @Image1. name: [Name]. Make color correction. Preserve strict identity consistency across all views: same face, proportions, hairstyle, outfit, and body shape."`
-- **ENVIRONMENT**:
-    - `"Pure white or soft off-white background. No environment, no logo, no watermark."`
-- **STYLE & MEDIUM**:
-    - Medium type: `"Artistic 16:9 CHARACTER IDENTITY BOARD."`
-    - Presentation style: `"Cinematic identity board that feels like a high-end animation studio character study mixed with an artbook layout. Asymmetrical, elegant, with large empty space and intentional imbalance. Avoid grids, blueprints, and repetitive turnarounds."`
-    - Composition: `"One large hero full-body view slightly off-center as the visual anchor. Arrange smaller supporting studies with clean spacing: neutral full-body, back view, profile view, seated/crouching poses, and expressive portrait studies. No overlapping images; clear separation and breathing room."`
-    - Artistic Sections: `"Include a small silhouette study area (2-3 black silhouettes), a small expression study area, and a small detail study area for face/hair/outfit."`
-- **CHANGES**: (Leave blank unless editing an existing character board)
-- **FORBIDDEN**:
-    - `"No overlapping figures. No cropped faces. No hidden limbs. No grids or blueprint lines. No logos or watermarks. No stock-photo backgrounds."`
+See `references/character-identity-board.md` — loaded automatically alongside this file.
 
 ---
 
