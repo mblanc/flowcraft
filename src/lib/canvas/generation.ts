@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { geminiService } from "@/lib/services/gemini.service";
 import { storageService } from "@/lib/services/storage.service";
+import { concatService } from "@/lib/services/concat.service";
 import { libraryService } from "@/lib/services/library.service";
 import logger from "@/app/logger";
 import { topoSort } from "./adk/topology";
@@ -182,6 +183,37 @@ async function executeVideoStep(
     };
 }
 
+async function executeConcatStep(
+    step: GenerationStep,
+    ctx: ExecutionContext,
+): Promise<NodePayload> {
+    // Collect URIs from dependsOn steps in declaration order (narrative order)
+    const inputUris = (step.dependsOn ?? [])
+        .map((depId) => ctx.completedStepUris.get(depId))
+        .filter((uri): uri is string => !!uri);
+
+    if (inputUris.length === 0) {
+        throw new Error(
+            `Concat step "${step.id}" has no resolved input URIs — all dependsOn steps must complete first`,
+        );
+    }
+
+    const sourceUrl = await concatService.concatVideos(inputUris);
+
+    return {
+        id: randomUUID(),
+        type: "canvas-video",
+        label: step.label ?? "Final cut",
+        sourceUrl,
+        mimeType: "video/mp4",
+        prompt: step.prompt,
+        operation: "concat" as const,
+        ...(step.dependsOn && step.dependsOn.length > 0
+            ? { derivedFrom: step.dependsOn }
+            : {}),
+    };
+}
+
 /** Build execution waves via topological sort on dependsOn edges. */
 function buildExecutionWaves(steps: GenerationStep[]): GenerationStep[][] {
     const edges: PlanEdge[] = steps.flatMap((s) =>
@@ -236,31 +268,37 @@ export async function* executePlan(
         const results = await Promise.allSettled(
             wave.map(async (step) => {
                 try {
-                    const node =
-                        step.type === "image"
-                            ? await executeImageStep(
-                                  step,
-                                  ctx,
-                                  activeStyleContent,
-                                  activeStyleId,
-                                  activeStyleName,
-                              )
-                            : await executeVideoStep(
-                                  step,
-                                  ctx,
-                                  activeStyleContent,
-                                  activeStyleId,
-                                  activeStyleName,
-                              );
+                    let node: NodePayload;
+                    if (step.type === "image") {
+                        node = await executeImageStep(
+                            step,
+                            ctx,
+                            activeStyleContent,
+                            activeStyleId,
+                            activeStyleName,
+                        );
+                    } else if (step.type === "concat") {
+                        node = await executeConcatStep(step, ctx);
+                    } else {
+                        node = await executeVideoStep(
+                            step,
+                            ctx,
+                            activeStyleContent,
+                            activeStyleId,
+                            activeStyleName,
+                        );
+                    }
 
                     // Record URI so dependent steps can reference it
                     ctx.completedStepUris.set(step.id, node.sourceUrl);
 
                     // Fire-and-forget: save to library
+                    const libraryType =
+                        step.type === "concat" ? "video" : step.type;
                     libraryService
                         .createAsset({
                             userId,
-                            type: step.type,
+                            type: libraryType,
                             gcsUri: node.sourceUrl,
                             mimeType: node.mimeType ?? "image/png",
                             aspectRatio: node.aspectRatio,

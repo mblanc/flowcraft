@@ -110,6 +110,7 @@ export function validateStepNodeIds(
 
 const IMAGE_OPS = new Set(["t2i", "i2i"]);
 const VIDEO_OPS = new Set(["t2v", "i2v", "i2v2"]);
+const CONCAT_OPS = new Set(["concat"]);
 
 export function mapPlanNodesToSteps(
     planNodes: PlanNode[],
@@ -153,11 +154,13 @@ export function mapPlanNodesToSteps(
     }
 
     return planNodes.flatMap((node): GenerationStep[] => {
-        let type: "image" | "video";
+        let type: "image" | "video" | "concat";
         if (IMAGE_OPS.has(node.operation)) {
             type = "image";
         } else if (VIDEO_OPS.has(node.operation)) {
             type = "video";
+        } else if (CONCAT_OPS.has(node.operation)) {
+            type = "concat";
         } else {
             logger.warn(
                 `[CanvasADK] plan_production: skipping unsupported operation "${node.operation}" on node ${node.id}`,
@@ -173,7 +176,9 @@ export function mapPlanNodesToSteps(
             type,
             prompt: node.prompt ?? node.promptIntent,
             ...(node.label ? { label: node.label } : {}),
-            ...(node.aspectRatio ? { aspectRatio: node.aspectRatio } : {}),
+            ...(type !== "concat" && node.aspectRatio
+                ? { aspectRatio: node.aspectRatio }
+                : {}),
             ...(type === "image" && node.imageSize
                 ? { imageSize: node.imageSize }
                 : {}),
@@ -198,6 +203,10 @@ export function mapPlanNodesToSteps(
             ...(refs && refs.length > 0 ? { referenceNodeIds: refs } : {}),
             ...(deps && deps.length > 0 ? { dependsOn: deps } : {}),
         };
+
+        if (type === "concat") {
+            return [step];
+        }
 
         let validated = applyTypeDefaults(step, imageDefaults, videoDefaults);
         validated = validateStepNodeIds(

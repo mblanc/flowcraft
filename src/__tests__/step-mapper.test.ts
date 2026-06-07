@@ -414,4 +414,69 @@ describe("mapPlanNodesToSteps", () => {
         );
         expect(steps[0].duration).toBe(8);
     });
+
+    // ─── concat operation ───────────────────────────────────────────────────
+
+    it("maps a concat node to a concat step", () => {
+        const steps = mapPlanNodesToSteps(
+            [baseNode({ operation: "concat" })],
+            [],
+            [],
+            [],
+        );
+        expect(steps).toHaveLength(1);
+        expect(steps[0].type).toBe("concat");
+    });
+
+    it("concat step preserves dependsOn from plan edges", () => {
+        const nodes = [
+            baseNode({ id: "vid1", operation: "i2v" }),
+            baseNode({ id: "vid2", operation: "i2v" }),
+            baseNode({ id: "final", operation: "concat" }),
+        ];
+        const steps = mapPlanNodesToSteps(
+            nodes,
+            [
+                { from: "vid1", to: "final", role: "depends_on" },
+                { from: "vid2", to: "final", role: "depends_on" },
+            ],
+            [],
+            [],
+        );
+        const finalStep = steps.find((s) => s.id === "final");
+        expect(finalStep?.dependsOn).toContain("vid1");
+        expect(finalStep?.dependsOn).toContain("vid2");
+    });
+
+    it("concat step does not get a default aspectRatio", () => {
+        const steps = mapPlanNodesToSteps(
+            [baseNode({ operation: "concat" })],
+            [],
+            [],
+            [],
+        );
+        expect(steps[0].aspectRatio).toBeUndefined();
+    });
+
+    it("concat step does not get a default duration or generateAudio", () => {
+        const steps = mapPlanNodesToSteps(
+            [baseNode({ operation: "concat" })],
+            [],
+            [],
+            [],
+        );
+        expect(steps[0].duration).toBeUndefined();
+        expect(steps[0].generateAudio).toBeUndefined();
+    });
+
+    it("t2s is still skipped and concat is still mapped in a mixed plan", () => {
+        const nodes = [
+            baseNode({ id: "n1", operation: "t2i" }),
+            baseNode({ id: "n2", operation: "t2s" }),
+            baseNode({ id: "n3", operation: "concat" }),
+        ];
+        const steps = mapPlanNodesToSteps(nodes, [], [], []);
+        expect(steps).toHaveLength(2);
+        expect(steps.map((s) => s.type)).toEqual(["image", "concat"]);
+    });
 });

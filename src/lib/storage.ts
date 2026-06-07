@@ -222,6 +222,38 @@ export async function uploadFile(
     }
 }
 
+/**
+ * Uploads a local file to GCS by path, streaming it in chunks.
+ * Returns the gs:// URI of the uploaded object.
+ */
+export async function uploadTempFile(
+    localPath: string,
+    filename: string,
+    contentType: string,
+): Promise<string> {
+    if (!storageUri) {
+        throw new Error(
+            "Server configuration error: GCS_STORAGE_URI not specified.",
+        );
+    }
+
+    const bucketName = extractBucketFromStorageUri(storageUri);
+    if (!bucketName) {
+        throw new Error(
+            `Could not extract bucket name from STORAGE_URI: ${storageUri}`,
+        );
+    }
+
+    await storage.bucket(bucketName).upload(localPath, {
+        destination: filename,
+        metadata: { contentType },
+    });
+
+    const gcsUri = `gs://${bucketName}/${filename}`;
+    logger.debug(`Uploaded temp file ${localPath} → ${gcsUri}`);
+    return gcsUri;
+}
+
 export async function deleteFileByUri(gcsUri: string): Promise<void> {
     const { bucket, path } = parseGcsUri(gcsUri);
     await storage.bucket(bucket).file(path).delete({ ignoreNotFound: true });

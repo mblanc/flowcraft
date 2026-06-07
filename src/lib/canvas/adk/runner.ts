@@ -177,6 +177,13 @@ export class CanvasAgentRunner {
         logger.info(
             `[CanvasADK] stream variant=${variant} mode=${input.mode} model=${model} attachments=${input.attachments?.length ?? 0}`,
         );
+        logger.debug("[CanvasADK] instruction sent to LLM:\n" + instruction);
+        if (variant === "b") {
+            logger.debug(
+                "[CanvasADK] pattern skills available: " +
+                    Object.keys(this.patternSkillsCache).join(", "),
+            );
+        }
 
         try {
             // Agent A streams text in real-time (SSE). Agent B (Director) emits tool calls

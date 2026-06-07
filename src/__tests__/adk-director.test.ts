@@ -299,7 +299,7 @@ describe("extractAgentEvents — plan_production", () => {
         expect(byId["vid1"].dependsOn).not.toContain("canvas_portrait");
     });
 
-    it("skips unsupported operations (t2s, concat, etc.) with no crash", async () => {
+    it("skips unsupported operations (t2s, etc.) but maps concat with no crash", async () => {
         const nodes: PlanNode[] = [
             { id: "n1", operation: "t2i", promptIntent: "An image" },
             { id: "n2", operation: "t2s", promptIntent: "Narrate" },
@@ -312,12 +312,17 @@ describe("extractAgentEvents — plan_production", () => {
             extractAgentEvents(asAsyncIter(adkEvents), [], []),
         );
         const planEvent = events.find((e) => e.type === "plan");
-        // only the t2i node maps to a step
+        // t2i maps to image, concat maps to concat; t2s is still skipped
         expect(planEvent).toMatchObject({
             type: "plan",
-            plan: { steps: [expect.objectContaining({ type: "image" })] },
+            plan: {
+                steps: [
+                    expect.objectContaining({ type: "image" }),
+                    expect.objectContaining({ type: "concat" }),
+                ],
+            },
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expect((planEvent as any).plan.steps).toHaveLength(1);
+        expect((planEvent as any).plan.steps).toHaveLength(2);
     });
 });
