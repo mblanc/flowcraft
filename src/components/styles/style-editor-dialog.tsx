@@ -15,6 +15,7 @@ import { Loader2, Upload, X, Wand2, ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import type { StyleDocument } from "@/lib/style-types";
+import { uploadFile } from "@/lib/utils";
 
 interface StyleEditorDialogProps {
     open: boolean;
@@ -99,19 +100,7 @@ export function StyleEditorDialog({
             const newSigned: Record<string, string> = {};
 
             for (const file of Array.from(files)) {
-                const formData = new FormData();
-                formData.append("file", file);
-
-                const res = await fetch("/api/upload-file", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (!res.ok) throw new Error("Upload failed");
-                const data = (await res.json()) as {
-                    gcsUri: string;
-                    signedUrl: string;
-                };
+                const data = await uploadFile(file);
                 newUris.push(data.gcsUri);
                 newSigned[data.gcsUri] = data.signedUrl;
             }

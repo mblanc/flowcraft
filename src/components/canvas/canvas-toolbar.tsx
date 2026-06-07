@@ -15,6 +15,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import logger from "@/app/logger";
+import { uploadFile } from "@/lib/utils";
 
 const ACCEPTED_IMAGE_TYPES = ".png,.jpg,.jpeg,.webp";
 const ACCEPTED_VIDEO_TYPES = ".mp4,.webm";
@@ -69,20 +70,14 @@ export function CanvasToolbar({ getViewportCenter }: CanvasToolbarProps) {
 
             try {
                 for (const file of Array.from(files)) {
-                    const formData = new FormData();
-                    formData.append("file", file);
-
-                    const response = await fetch("/api/upload-file", {
-                        method: "POST",
-                        body: formData,
-                    });
-
-                    if (!response.ok) {
-                        logger.error(`Failed to upload ${file.name}`);
+                    let gcsUri: string;
+                    try {
+                        const uploadResult = await uploadFile(file);
+                        gcsUri = uploadResult.gcsUri;
+                    } catch (error) {
+                        logger.error(`Failed to upload ${file.name}:`, error);
                         continue;
                     }
-
-                    const { gcsUri } = await response.json();
                     const isVideo = file.type.startsWith("video/");
                     const nodeType = isVideo ? "canvas-video" : "canvas-image";
                     const label = getNextLabel(nodeType);

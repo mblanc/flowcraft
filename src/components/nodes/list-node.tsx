@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/nodes/node-title";
-import { cn } from "@/lib/utils";
+import { cn, uploadFile } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 import {
     Tooltip,
@@ -162,18 +162,8 @@ export const ListNode = memo(
             if (!file || index === null) return;
 
             setIsUploading(index);
-            const formData = new FormData();
-            formData.append("file", file);
-
             try {
-                const response = await fetch("/api/upload-file", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (!response.ok) throw new Error("Upload failed");
-
-                const dataResponse = await response.json();
+                const dataResponse = await uploadFile(file);
 
                 const updatedItems = [...localItems];
                 updatedItems[index] =
@@ -188,8 +178,7 @@ export const ListNode = memo(
 
                 setLocalItems(updatedItems);
                 syncItems(updatedItems);
-            } catch (error) {
-                logger.error("Upload error:", error);
+            } catch {
                 toast.error("Failed to upload image");
             } finally {
                 setIsUploading(null);
