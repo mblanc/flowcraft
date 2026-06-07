@@ -86,7 +86,7 @@ async function executeImageStep(
         prompt: step.prompt,
         images: referenceUrls.map((url) => ({ url, type: "image/png" })),
         aspectRatio: step.aspectRatio,
-        resolution: step.resolution,
+        imageSize: step.imageSize,
         model: step.model,
         systemInstruction: styleContent,
     });
@@ -111,11 +111,16 @@ async function executeImageStep(
         mimeType,
         prompt: step.prompt,
         aspectRatio: step.aspectRatio,
-        resolution: step.resolution,
+        imageSize: step.imageSize,
         model: step.model,
         referenceNodeIds: step.referenceNodeIds,
         styleId,
         styleName,
+        planNodeId: step.id,
+        operation: "t2i" as const,
+        ...(step.dependsOn && step.dependsOn.length > 0
+            ? { derivedFrom: step.dependsOn }
+            : {}),
     };
 }
 
@@ -160,6 +165,11 @@ async function executeVideoStep(
         referenceNodeIds: step.referenceNodeIds,
         styleId,
         styleName,
+        planNodeId: step.id,
+        operation: step.firstFrameNodeId ? ("i2v" as const) : ("t2v" as const),
+        ...(step.dependsOn && step.dependsOn.length > 0
+            ? { derivedFrom: step.dependsOn }
+            : {}),
     };
 }
 

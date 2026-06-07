@@ -8,11 +8,16 @@ export interface CanvasImageData {
     height: number;
     aspectRatio?: string;
     model?: string;
-    status: "ready" | "generating" | "error";
+    status: "pending" | "ready" | "generating" | "error";
     error?: string;
     referenceNodeIds?: string[];
     styleId?: string;
     styleName?: string;
+    /** Director plan lineage — set when created from a PlanNode */
+    operation?: MediaOperation;
+    planNodeId?: string;
+    derivedFrom?: string[];
+    skill?: string;
     [key: string]: unknown;
 }
 
@@ -25,7 +30,7 @@ export interface CanvasVideoData {
     duration?: number;
     aspectRatio?: string;
     model?: string;
-    status: "ready" | "generating" | "error";
+    status: "pending" | "ready" | "generating" | "error";
     progress?: number;
     error?: string;
     referenceNodeIds?: string[];
@@ -33,6 +38,11 @@ export interface CanvasVideoData {
     height?: number;
     styleId?: string;
     styleName?: string;
+    /** Director plan lineage — set when created from a PlanNode */
+    operation?: MediaOperation;
+    planNodeId?: string;
+    derivedFrom?: string[];
+    skill?: string;
     [key: string]: unknown;
 }
 
@@ -84,6 +94,9 @@ export interface GenerationStep {
     prompt: string;
     label?: string;
     aspectRatio?: string;
+    /** Image size — only for image steps: "512" | "1K" | "2K" | "4K" */
+    imageSize?: string;
+    /** Video resolution — only for video steps: "720p" | "1080p" | "4K" */
     resolution?: string;
     model?: string;
     duration?: number;
@@ -110,11 +123,19 @@ export interface NodePayload {
     mimeType?: string;
     prompt: string;
     aspectRatio?: string;
+    /** Image size — only for canvas-image: "512" | "1K" | "2K" | "4K" */
+    imageSize?: string;
+    /** Video resolution — only for canvas-video: "720p" | "1080p" | "4K" */
     resolution?: string;
     model?: string;
     referenceNodeIds?: string[];
     styleId?: string;
     styleName?: string;
+    /** Director plan lineage — set when created from a PlanNode */
+    operation?: MediaOperation;
+    planNodeId?: string;
+    derivedFrom?: string[];
+    skill?: string;
 }
 
 export type PlanStatus = "pending_approval" | "approved" | "cancelled";
@@ -178,6 +199,9 @@ export interface PlanNode {
     prompt?: string;
     label?: string;
     aspectRatio?: string;
+    /** Image size — only for image operations: "512" | "1K" | "2K" | "4K" */
+    imageSize?: string;
+    /** Video resolution — only for video operations: "720p" | "1080p" | "4K" */
     resolution?: string;
     model?: string;
     duration?: number;
