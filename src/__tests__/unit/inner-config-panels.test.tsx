@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { TooltipProvider } from "../components/ui/tooltip";
+import { TooltipProvider } from "../../components/ui/tooltip";
 
-import { LLMConfig } from "../components/panels/llm-config";
-import { ImageConfig } from "../components/panels/image-config";
-import { VideoConfig } from "../components/panels/video-config";
-import { TextConfig } from "../components/panels/text-config";
-import { FileConfig } from "../components/panels/file-config";
+import { LLMConfig } from "../../components/panels/llm-config";
+import { ImageConfig } from "../../components/panels/image-config";
+import { VideoConfig } from "../../components/panels/video-config";
+import { TextConfig } from "../../components/panels/text-config";
+import { FileConfig } from "../../components/panels/file-config";
 
 import type {
     LLMData,
@@ -15,9 +15,9 @@ import type {
     VideoData,
     TextData,
     FileData,
-} from "../lib/types";
+} from "../../lib/types";
 
-vi.mock("../lib/store/use-flow-store", () => ({
+vi.mock("../../lib/store/use-flow-store", () => ({
     useFlowStore: vi.fn((selector: any) =>
         selector({
             updateNodeData: vi.fn(),
