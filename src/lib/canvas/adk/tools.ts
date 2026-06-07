@@ -66,6 +66,70 @@ export const planVideoGenerationTool = new FunctionTool({
     execute: async ({ steps }) => ({ steps }),
 });
 
+const MEDIA_OPERATIONS = [
+    "t2i",
+    "i2i",
+    "t2v",
+    "i2v",
+    "i2v2",
+    "t2s",
+    "t2m",
+    "sfx",
+    "concat",
+    "edit",
+    "upscale",
+] as const;
+
+const EDGE_ROLES = ["depends_on", "style_ref", "subject_ref"] as const;
+
+const planNodeSchema = z.object({
+    id: z.string(),
+    operation: z.enum(MEDIA_OPERATIONS),
+    promptIntent: z
+        .string()
+        .describe(
+            "Plain-language description of what this node should produce",
+        ),
+    prompt: z
+        .string()
+        .optional()
+        .describe("Fully-engineered prompt (filled by PromptEngineer)"),
+    label: z.string().optional(),
+    aspectRatio: z.string().optional(),
+    resolution: z.string().optional(),
+    model: z.string().optional(),
+    duration: z.number().optional(),
+    generateAudio: z.boolean().optional(),
+    skill: z.string().optional(),
+});
+
+const planEdgeSchema = z.object({
+    from: z.string(),
+    to: z.string(),
+    role: z.enum(EDGE_ROLES),
+});
+
+export const planProductionTool = new FunctionTool({
+    name: "plan_production",
+    description:
+        "Emit a production plan as a DAG of typed media operation nodes and edges. Call this once after deciding the full plan. Nodes represent media operations; edges express dependencies and references between them.",
+    parameters: z.object({
+        nodes: z.array(planNodeSchema),
+        edges: z.array(planEdgeSchema),
+        clarifications: z
+            .array(z.string())
+            .optional()
+            .describe(
+                "Questions to surface to the user when the intent is ambiguous",
+            ),
+    }),
+    execute: async ({ nodes, edges, clarifications }) => ({
+        nodes,
+        edges,
+        ...(clarifications ? { clarifications } : {}),
+    }),
+});
+
 export const suggestActionsTool = new FunctionTool({
     name: "suggest_actions",
     description:
