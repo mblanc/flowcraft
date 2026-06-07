@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
 import { styleService } from "@/lib/services/style.service";
 import { STYLE_TEMPLATES } from "@/lib/style-templates";
-import { streamAgentResponse } from "@/lib/canvas/agent";
+import { CanvasAgentRunner } from "@/lib/canvas/adk/runner";
 import logger from "@/app/logger";
 import type { ChatAttachment } from "@/lib/canvas/types";
 
@@ -123,7 +123,8 @@ export async function POST(
             const encode = (payload: string) => encoder.encode(payload);
 
             try {
-                const agentStream = streamAgentResponse({
+                const agentRunner = new CanvasAgentRunner();
+                const agentStream = agentRunner.stream({
                     message: body.message,
                     attachments: body.attachments,
                     mode: body.mode,
