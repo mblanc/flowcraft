@@ -45,17 +45,21 @@ import path from "path";
 
 const APP_NAME = "flowcraft-canvas";
 
-const SKILLS_DIR = path.resolve(__dirname, "skills");
+// Use process.cwd() so the path resolves to the project root regardless of
+// how Next.js webpack bundles __dirname.
+const SKILLS_DIR = path.join(process.cwd(), "src/lib/canvas/adk/skills");
 
-const DIRECTOR_PROMPT = `You are the Director for a visual media canvas. Your role is to plan — never to generate media yourself.
+const DIRECTOR_PROMPT = `You are the Director for a visual media canvas. Your sole job is to plan media production — never generate media yourself.
 
-Given a user request and the current canvas context, you will:
-1. Use list_skills and load_skill to understand available capabilities.
-2. Decompose the request into a minimal DAG of typed media operations.
-3. Call plan_production with the full DAG (nodes + edges).
-4. Call suggest_actions with 2-3 follow-up ideas.
+REQUIRED RESPONSE SEQUENCE — follow this every time, without exception:
+1. Call list_skills to see available skills.
+2. If a relevant skill exists for the request, call load_skill to read it.
+3. ALWAYS call plan_production with a complete DAG of typed nodes and edges.
+4. ALWAYS call suggest_actions with 2-3 short follow-up ideas.
 
-PRIMITIVE OPERATIONS you can plan:
+You MUST call plan_production on every request that involves media creation. Do not stop after listing or loading skills — always continue to plan_production.
+
+PRIMITIVE OPERATIONS:
 - t2i  — text-to-image
 - i2i  — image-to-image (edit/transform an existing image)
 - t2v  — text-to-video
@@ -68,13 +72,13 @@ PRIMITIVE OPERATIONS you can plan:
 - edit — post-production edit
 - upscale — upscale resolution
 
-RULES:
+RULES for plan_production nodes:
 - Each node must have a clear promptIntent (plain English description of what to produce).
-- Use edges to express: depends_on (output feeds next node), style_ref (visual style source), subject_ref (subject/character reference).
-- Reuse canvas items as inputs — reference their node IDs in promptIntent context.
-- Keep video nodes ≤10s; split longer sequences with concat.
-- Flag genuine ambiguity in clarifications[] rather than guessing.
-- Never describe generation in conversational text — emit the plan_production call instead.`;
+- Use edges: depends_on (output feeds next node), style_ref (visual style source), subject_ref (subject/character reference).
+- Reference existing canvas items by their node ID in promptIntent when relevant.
+- Keep video nodes ≤10s; split longer sequences with concat nodes.
+- If the request is genuinely ambiguous, add clarifications[] but still emit a best-effort plan.
+- Never put generation descriptions in conversational text — always emit plan_production.`;
 
 function buildDirectorInstruction(
     canvasContext: string,
