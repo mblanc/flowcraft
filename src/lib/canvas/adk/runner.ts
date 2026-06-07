@@ -1,4 +1,5 @@
 import {
+    Gemini,
     LlmAgent,
     Runner,
     getFunctionCalls,
@@ -15,6 +16,7 @@ import {
     suggestActionsTool,
 } from "./tools";
 import { createSessionService } from "./session";
+import { config } from "@/lib/config";
 import { MODELS } from "@/lib/constants";
 import logger from "@/app/logger";
 import type {
@@ -301,14 +303,22 @@ export interface CanvasAgentRunnerConfig {
 
 export class CanvasAgentRunner {
     private readonly sessionService: BaseSessionService;
-    constructor(config: CanvasAgentRunnerConfig = {}) {
-        this.sessionService = config.sessionService ?? createSessionService();
+    constructor(runnerConfig: CanvasAgentRunnerConfig = {}) {
+        this.sessionService =
+            runnerConfig.sessionService ?? createSessionService();
     }
 
     private getRunner(model: string, instruction: string): Runner {
+        const llm = new Gemini({
+            model,
+            vertexai: true,
+            project: config.PROJECT_ID,
+            location: config.LOCATION,
+        });
+
         const agent = new LlmAgent({
             name: "CanvasAgent",
-            model,
+            model: llm,
             instruction,
             tools: [
                 planImageGenerationTool,
