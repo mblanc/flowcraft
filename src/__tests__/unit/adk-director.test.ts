@@ -10,9 +10,9 @@ vi.mock("@/app/logger", () => ({
 import {
     CanvasAgentRunner,
     extractAgentEvents,
-} from "../lib/canvas/adk/runner";
-import type { PlanNode, PlanEdge } from "../lib/canvas/types";
-import { MODELS } from "../lib/constants";
+} from "../../lib/canvas/adk/runner";
+import type { PlanNode, PlanEdge } from "../../lib/canvas/types";
+import { MODELS } from "../../lib/constants";
 
 function makeFunctionCallEvent(name: string, args: unknown): Event {
     return {

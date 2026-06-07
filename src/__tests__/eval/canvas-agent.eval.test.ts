@@ -6,30 +6,32 @@
  * table. A case passes when its mean score meets the threshold (default 1.0).
  *
  * Run:
- *   INTEGRATION=true bun run test canvas-agent.eval.integration
+ *   bun run test:eval
  *
- * Requires Google ADC credentials (gcloud auth application-default login)
- * and a reachable Vertex AI project.
+ * Requires Google ADC credentials and PROJECT_ID / LOCATION env vars.
+ * Tests are skipped automatically when PROJECT_ID is not set.
  */
 
 import { describe, it, expect, vi, afterAll } from "vitest";
 
 vi.mock("@/lib/config", () => ({
-    config: { PROJECT_ID: "my-first-project-199607", LOCATION: "global" },
+    config: {
+        PROJECT_ID: process.env.PROJECT_ID ?? "",
+        LOCATION: process.env.LOCATION ?? "global",
+    },
 }));
 
-import { CanvasAgentRunner } from "../lib/canvas/adk/runner";
-import { MODELS } from "../lib/constants";
-import type { AgentInput } from "../lib/canvas/agent";
-import type { CanvasNode } from "../lib/canvas/types";
+import { CanvasAgentRunner } from "../../lib/canvas/adk/runner";
+import { MODELS } from "../../lib/constants";
+import type { AgentInput } from "../../lib/canvas/agent";
+import type { CanvasNode } from "../../lib/canvas/types";
 import {
     criteria,
     runEval,
     printEvalResults,
-    assertEvalPasses,
     type EvalCase,
     type EvalCaseResult,
-} from "./canvas-eval-harness";
+} from "./harness";
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -298,9 +300,9 @@ const agentBCases: EvalCase[] = [
 
 // ─── Test suite ───────────────────────────────────────────────────────────────
 
-const isIntegration = process.env.INTEGRATION === "true";
+const hasCredentials = !!process.env.PROJECT_ID;
 
-describe.runIf(isIntegration)("Canvas agent eval — Agent A", () => {
+describe.runIf(hasCredentials)("Canvas agent eval — Agent A", () => {
     const runner = new CanvasAgentRunner();
     const allResults: EvalCaseResult[] = [];
 
@@ -329,7 +331,7 @@ describe.runIf(isIntegration)("Canvas agent eval — Agent A", () => {
     }
 });
 
-describe.runIf(isIntegration)("Canvas agent eval — Agent B (Director)", () => {
+describe.runIf(hasCredentials)("Canvas agent eval — Agent B (Director)", () => {
     const runner = new CanvasAgentRunner();
     const allResults: EvalCaseResult[] = [];
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { executeNodeApiCall } from "../lib/nodes/shared/execute-api-call";
+import { executeNodeApiCall } from "../../lib/nodes/shared/execute-api-call";
 
 describe("executeNodeApiCall", () => {
     it("returns parsed JSON on successful response", async () => {

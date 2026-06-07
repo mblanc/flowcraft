@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { WorkflowEngine } from "../lib/workflow-engine";
+import { WorkflowEngine } from "../../lib/workflow-engine";
 import { Node, Edge } from "@xyflow/react";
-import { NodeData } from "../lib/types";
-import { MODELS } from "../lib/constants";
+import { NodeData } from "../../lib/types";
+import { MODELS } from "../../lib/constants";
 
 // Mock logger
-vi.mock("../app/logger", () => ({
+vi.mock("../../app/logger", () => ({
     default: {
         info: vi.fn(),
         error: vi.fn(),

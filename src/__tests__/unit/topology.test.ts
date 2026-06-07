@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { topoSort } from "../lib/canvas/adk/topology";
-import type { PlanEdge, PlanNode } from "../lib/canvas/types";
+import { topoSort } from "../../lib/canvas/adk/topology";
+import type { PlanEdge, PlanNode } from "../../lib/canvas/types";
 
 function makeNode(id: string): PlanNode {
     return { id, operation: "t2i", promptIntent: `intent-${id}` };

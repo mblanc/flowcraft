@@ -10,6 +10,7 @@
         "format": "prettier --write --experimental-cli .",
         "check": "bunx tsc --noEmit",
         "test": "vitest run",
+        "test:eval": "vitest run --config vitest.config.eval.ts",
         "test:ui": "vitest --ui",
         "test:coverage": "vitest --coverage",
         "preflight": "bun run format && bun run check && bun run lint && bun run test",

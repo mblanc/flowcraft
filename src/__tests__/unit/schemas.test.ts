@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { NodeDataSchema } from "../lib/schemas";
+import { NodeDataSchema } from "../../lib/schemas";
 
 describe("Schema Validation", () => {
     describe("Workflow Input Node", () => {

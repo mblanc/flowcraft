@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GenerateImageSchema, GenerateVideoSchema } from "../lib/schemas";
+import { GenerateImageSchema, GenerateVideoSchema } from "../../lib/schemas";
 
 describe("Resolution Schemas", () => {
     describe("GenerateImageSchema", () => {

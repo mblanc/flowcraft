@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { useSyncedState } from "../hooks/use-synced-state";
+import { useSyncedState } from "../../hooks/use-synced-state";
 
 describe("useSyncedState", () => {
     it("returns the initial external value", () => {

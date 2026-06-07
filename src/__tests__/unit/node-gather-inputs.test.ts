@@ -3,11 +3,11 @@
  * These are pure functions and require no mocks.
  */
 import { describe, it, expect, vi } from "vitest";
-import { videoNodeDefinition } from "../lib/nodes/video-node";
-import { resizeNodeDefinition } from "../lib/nodes/resize-node";
-import { upscaleNodeDefinition } from "../lib/nodes/upscale-node";
-import { imageNodeDefinition } from "../lib/nodes/image-node";
-import { routerNodeDefinition } from "../lib/nodes/router-node";
+import { videoNodeDefinition } from "../../lib/nodes/video-node";
+import { resizeNodeDefinition } from "../../lib/nodes/resize-node";
+import { upscaleNodeDefinition } from "../../lib/nodes/upscale-node";
+import { imageNodeDefinition } from "../../lib/nodes/image-node";
+import { routerNodeDefinition } from "../../lib/nodes/router-node";
 import type { Node, Edge } from "@xyflow/react";
 import type {
     VideoData,
@@ -16,8 +16,8 @@ import type {
     UpscaleData,
     RouterData,
     NodeData,
-} from "../lib/types";
-import { MODELS } from "../lib/constants";
+} from "../../lib/types";
+import { MODELS } from "../../lib/constants";
 
 vi.mock("@/app/logger", () => ({
     default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },

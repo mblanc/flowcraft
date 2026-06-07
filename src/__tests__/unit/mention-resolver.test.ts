@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
     resolveInlineMentions,
     appendUnreferencedNodes,
-} from "../lib/nodes/shared/mention-resolver";
-import type { NamedNodeInput } from "../lib/types";
+} from "../../lib/nodes/shared/mention-resolver";
+import type { NamedNodeInput } from "../../lib/types";
 
 function makeNamed(
     nodeId: string,

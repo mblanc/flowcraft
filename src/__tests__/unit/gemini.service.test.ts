@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
-import { GeminiService } from "../lib/services/gemini.service";
+import { GeminiService } from "../../lib/services/gemini.service";
 import * as genai from "@google/genai";
-import { MODELS } from "../lib/constants";
+import { MODELS } from "../../lib/constants";
 
 interface MockGoogleGenAIInstance {
     models: {

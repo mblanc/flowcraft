@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
-import { WorkflowEngine } from "../lib/workflow-engine";
+import { WorkflowEngine } from "../../lib/workflow-engine";
 import { Node, Edge } from "@xyflow/react";
 import {
     NodeData,
@@ -9,16 +9,16 @@ import {
     ImageData as FlowImageData,
     CustomWorkflowData,
     NodeInputs,
-} from "../lib/types";
-import { getNodeDefinition, NodeDefinition } from "../lib/node-registry";
-import { routerNodeDefinition } from "../lib/nodes/router-node";
-import { imageNodeDefinition } from "../lib/nodes/image-node";
-import { MODELS } from "../lib/constants";
+} from "../../lib/types";
+import { getNodeDefinition, NodeDefinition } from "../../lib/node-registry";
+import { routerNodeDefinition } from "../../lib/nodes/router-node";
+import { imageNodeDefinition } from "../../lib/nodes/image-node";
+import { MODELS } from "../../lib/constants";
 
 // Mock node-registry
-vi.mock("../lib/node-registry", async (importOriginal) => {
+vi.mock("../../lib/node-registry", async (importOriginal) => {
     const original =
-        await importOriginal<typeof import("../lib/node-registry")>();
+        await importOriginal<typeof import("../../lib/node-registry")>();
     return {
         ...original,
         getNodeDefinition: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock("../lib/node-registry", async (importOriginal) => {
 });
 
 // Mock logger
-vi.mock("../app/logger", () => ({
+vi.mock("../../app/logger", () => ({
     default: {
         info: vi.fn(),
         error: vi.fn(),

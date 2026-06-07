@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { loadAllSkillsInDir } from "@google/adk";
 import path from "path";
 
-const SKILLS_DIR = path.resolve(__dirname, "../lib/canvas/adk/skills");
+const SKILLS_DIR = path.resolve(__dirname, "../../lib/canvas/adk/skills");
 
 describe("skill files", () => {
     it("loads all skills without error", async () => {

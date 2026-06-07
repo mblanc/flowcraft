@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { Event } from "@google/adk";
-import { extractAgentEvents } from "../lib/canvas/adk/runner";
-import type { GenerationStep } from "../lib/canvas/types";
+import { extractAgentEvents } from "../../lib/canvas/adk/runner";
+import type { GenerationStep } from "../../lib/canvas/types";
 
 function makeTextEvent(text: string, partial = false): Event {
     return {

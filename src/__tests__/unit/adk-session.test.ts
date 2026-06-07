@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createSessionService } from "../lib/canvas/adk/session";
+import { createSessionService } from "../../lib/canvas/adk/session";
 import { InMemorySessionService } from "@google/adk";
 
 describe("createSessionService", () => {

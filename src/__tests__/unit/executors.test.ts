@@ -5,7 +5,7 @@ import {
     executeVideoNode,
     executeUpscaleNode,
     executeResizeNode,
-} from "../lib/executors";
+} from "../../lib/executors";
 
 vi.mock("@/app/logger", () => ({
     default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },

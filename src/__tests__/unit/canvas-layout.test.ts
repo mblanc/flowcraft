@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { calculateNodePositions } from "../lib/canvas/layout";
-import type { GenerationStep, CanvasNode } from "../lib/canvas/types";
+import { calculateNodePositions } from "../../lib/canvas/layout";
+import type { GenerationStep, CanvasNode } from "../../lib/canvas/types";
 
 describe("calculateNodePositions", () => {
     it("should layout a simple chain horizontally", () => {
