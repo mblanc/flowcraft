@@ -98,7 +98,14 @@ const planNodeSchema = z.object({
     aspectRatio: z.string().optional(),
     resolution: z.string().optional(),
     model: z.string().optional(),
-    duration: z.number().optional(),
+    duration: z
+        .enum(["4", "6", "8"])
+        .transform(Number)
+        .or(z.literal(4))
+        .or(z.literal(6))
+        .or(z.literal(8))
+        .optional()
+        .describe("Video duration in seconds. MUST be exactly 4, 6, or 8."),
     generateAudio: z.boolean().optional(),
     skill: z.string().optional(),
 });
