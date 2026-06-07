@@ -56,7 +56,7 @@ function makeImageNodeFull(id = "img-1"): Node<ImageData> {
             images: [],
             aspectRatio: "1:1",
             model: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
-            resolution: "1K",
+            imageSize: "1K",
             groundingGoogleSearch: false,
             groundingImageSearch: false,
         } as ImageData,
@@ -111,7 +111,7 @@ function imageData(images: string[]): NodeData {
         prompt: "",
         aspectRatio: "1:1",
         model: "m",
-        resolution: "1K",
+        imageSize: "1K",
         groundingGoogleSearch: false,
         groundingImageSearch: false,
     } as unknown as NodeData;

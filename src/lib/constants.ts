@@ -43,7 +43,7 @@ export const IMAGE_MODEL_CONFIGS = {
             "16:9",
             "21:9",
         ],
-        resolutions: ["1K"],
+        imageSizes: ["1K"],
         grounding: { google: true, image: false },
     },
     [MODELS.IMAGE.GEMINI_3_PRO_IMAGE]: {
@@ -60,7 +60,7 @@ export const IMAGE_MODEL_CONFIGS = {
             "16:9",
             "21:9",
         ],
-        resolutions: ["1K", "2K", "4K"],
+        imageSizes: ["1K", "2K", "4K"],
         grounding: { google: true, image: false },
     },
     [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE]: {
@@ -81,10 +81,13 @@ export const IMAGE_MODEL_CONFIGS = {
             "16:9",
             "21:9",
         ],
-        resolutions: ["512", "1K", "2K", "4K"],
+        imageSizes: ["512", "1K", "2K", "4K"],
         grounding: { google: true, image: true },
     },
 } as const;
+
+export const IMAGE_SIZES = ["512", "1K", "2K", "4K"] as const;
+export const VIDEO_RESOLUTIONS = ["720p", "1080p", "4K"] as const;
 
 export const BATCH_CONCURRENCY = 3;
 

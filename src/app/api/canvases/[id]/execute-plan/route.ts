@@ -4,13 +4,8 @@ import { canvasService } from "@/lib/services/canvas.service";
 import { styleService } from "@/lib/services/style.service";
 import { STYLE_TEMPLATES } from "@/lib/style-templates";
 import { executePlan } from "@/lib/canvas/generation";
-import { loadAllSkillsInDir } from "@google/adk";
-import { enrichPlanSteps } from "@/lib/canvas/adk/prompt-engineer-enrich";
 import logger from "@/app/logger";
 import type { AgentPlan } from "@/lib/canvas/types";
-import path from "path";
-
-const SKILLS_DIR = path.join(process.cwd(), "src/lib/canvas/adk/skills");
 
 export const maxDuration = 300;
 
@@ -18,7 +13,6 @@ interface ExecutePlanRequestBody {
     plan: AgentPlan;
     messageId: string;
     styleId?: string;
-    agentVariant?: "a" | "b";
 }
 
 function formatSSE(event: string, data: unknown): string {
@@ -62,6 +56,13 @@ export async function POST(
     if (!body.plan?.steps || !Array.isArray(body.plan.steps)) {
         return NextResponse.json(
             { error: "plan.steps is required" },
+            { status: 400 },
+        );
+    }
+
+    if (body.plan.steps.length > 20) {
+        return NextResponse.json(
+            { error: "Plan exceeds maximum of 20 steps" },
             { status: 400 },
         );
     }
@@ -120,29 +121,6 @@ export async function POST(
                     `[ExecutePlanAPI] Could not fetch active style: ${resolvedStyleId}`,
                 );
             }
-        }
-    }
-
-    // For Agent B (Director) plans, enrich each step's prompt via PromptEngineer
-    if (body.agentVariant === "b") {
-        try {
-            const skills = await loadAllSkillsInDir(SKILLS_DIR);
-            const activeStyle =
-                activeStyleContent && activeStyleName
-                    ? { name: activeStyleName, content: activeStyleContent }
-                    : null;
-            body.plan = {
-                steps: await enrichPlanSteps(
-                    body.plan.steps,
-                    skills,
-                    activeStyle,
-                ),
-            };
-        } catch (err) {
-            logger.warn(
-                "[ExecutePlanAPI] PromptEngineer enrichment failed, proceeding with original prompts:",
-                err,
-            );
         }
     }
 

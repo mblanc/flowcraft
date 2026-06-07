@@ -95,10 +95,9 @@ export function ImageConfig({
         }
 
         if (
-            !(config.resolutions as readonly string[]).includes(data.resolution)
+            !(config.imageSizes as readonly string[]).includes(data.imageSize)
         ) {
-            updates.resolution = config
-                .resolutions[0] as ImageData["resolution"];
+            updates.imageSize = config.imageSizes[0] as ImageData["imageSize"];
         }
 
         if (!config.grounding.google) updates.groundingGoogleSearch = false;
@@ -182,10 +181,10 @@ export function ImageConfig({
             <div className="space-y-2">
                 <Label htmlFor="resolution">Resolution</Label>
                 <Select
-                    value={data.resolution}
+                    value={data.imageSize}
                     onValueChange={(value) =>
                         updateNodeData(nodeId, {
-                            resolution: value as ImageData["resolution"],
+                            imageSize: value as ImageData["imageSize"],
                         })
                     }
                 >
@@ -193,7 +192,7 @@ export function ImageConfig({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        {currentModelConfig.resolutions.map((res) => (
+                        {currentModelConfig.imageSizes.map((res) => (
                             <SelectItem key={res} value={res}>
                                 {res}
                             </SelectItem>

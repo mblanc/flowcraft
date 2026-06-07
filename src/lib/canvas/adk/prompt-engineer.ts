@@ -1,177 +1,161 @@
-import {
-    Gemini,
-    InMemorySessionService,
-    LlmAgent,
-    Runner,
-    StreamingMode,
-} from "@google/adk";
+import fs from "fs";
+import path from "path";
+import { GoogleGenAI, createPartFromText } from "@google/genai";
+import logger from "@/app/logger";
 import { config } from "@/lib/config";
 import { MODELS } from "@/lib/constants";
-import logger from "@/app/logger";
-import type { PlanNode } from "../types";
-import type { Skill } from "@google/adk";
+import type { GenerationStep } from "../types";
+import type { CanvasNode } from "../types";
 
-export interface MediaParams {
-    aspectRatio?: string;
-    imageSize?: string;
-    resolution?: string;
-    model?: string;
-    duration?: number;
-    generateAudio?: boolean;
-}
+const SKILL_FOR_TYPE: Record<"image" | "video", string> = {
+    image: "image-generation",
+    video: "video-generation",
+};
 
-export interface PromptEngineerResult {
-    prompt: string;
-    negativePrompt?: string;
-    resolvedParams: MediaParams;
-}
-
-type ActiveStyle = { name: string; content: string } | null | undefined;
-
-const PE_APP_NAME = "flowcraft-prompt-engineer";
-
-function buildInstruction(
-    node: PlanNode,
-    skill: Skill | undefined,
-    style: ActiveStyle,
-): string {
-    const skillBody = skill
-        ? `\n\nSKILL GUIDANCE (${skill.frontmatter.name}):\n${skill.frontmatter.description ?? ""}`
-        : "";
-    const styleBody = style
-        ? `\n\nACTIVE STYLE — "${style.name}":\n${style.content}`
-        : "";
-
-    return `You are a media prompt engineer. Your job is to transform a plain-language intent into a rich, production-ready generation prompt for a ${node.operation} model.
+const INSTRUCTION = `You are a media prompt engineer. Your only job is to take a plain-language generation intent and produce a single, fully-structured generation prompt that strictly follows the skill specification provided.
 
 Rules:
-- Return ONLY a JSON object with these fields: { "prompt": string, "negativePrompt": string | null }
-- "prompt" must be specific, concrete, and follow best practices for the operation type.
-- "negativePrompt" should capture style constraints from the active style guide (if any), otherwise null.
-- Do NOT add commentary outside the JSON object.
-- Do NOT wrap the JSON in markdown code fences.${skillBody}${styleBody}`;
-}
+- Identify the correct Job type from the available references (Job A: no refs, Job B: one ref, Job C: multiple refs).
+- Fill every required section of the template. Never omit FORBIDDEN or CONSTRAINTS.
+- Never describe emotion — describe the physical face or posture that produces it.
+- Never use mood words: cinematic, atmospheric, beautiful, stunning, epic, moody, dramatic, gorgeous.
+- Name every light source by type, direction, and quality. Never by mood.
+- Output ONLY the final prompt text. No preamble, no explanation, no section headers, no markdown.`;
 
-function buildUserMessage(node: PlanNode): string {
-    const parts: string[] = [`Intent: ${node.promptIntent}`];
-    if (node.aspectRatio) parts.push(`Aspect ratio: ${node.aspectRatio}`);
-    if (node.duration) parts.push(`Duration: ${node.duration}s`);
-    return parts.join("\n");
-}
+export class PromptEngineer {
+    private readonly genAI: GoogleGenAI;
+    private readonly skillsDir: string;
+    private readonly skillCache: Map<string, string> = new Map();
 
-function resolveParams(node: PlanNode): MediaParams {
-    return {
-        aspectRatio: node.aspectRatio,
-        imageSize: node.imageSize,
-        resolution: node.resolution,
-        model: node.model,
-        duration: node.duration,
-        generateAudio: node.generateAudio,
-    };
-}
-
-export function parseLlmResponse(
-    raw: string,
-    node: PlanNode,
-): Pick<PromptEngineerResult, "prompt" | "negativePrompt"> {
-    try {
-        // Strip markdown fences if the model ignored the instruction
-        const cleaned = raw
-            .replace(/^```(?:json)?\n?/, "")
-            .replace(/\n?```$/, "")
-            .trim();
-        const parsed = JSON.parse(cleaned) as {
-            prompt?: unknown;
-            negativePrompt?: unknown;
-        };
-        if (typeof parsed.prompt === "string" && parsed.prompt.length > 0) {
-            return {
-                prompt: parsed.prompt,
-                negativePrompt:
-                    typeof parsed.negativePrompt === "string"
-                        ? parsed.negativePrompt
-                        : undefined,
-            };
-        }
-    } catch {
-        // fall through to fallback
+    constructor(skillsDir: string) {
+        this.skillsDir = skillsDir;
+        this.genAI = new GoogleGenAI({
+            vertexai: true,
+            project: config.PROJECT_ID,
+            location: config.LOCATION,
+        });
     }
-    logger.warn(
-        "[PromptEngineer] Could not parse LLM response, falling back to promptIntent",
-    );
-    return { prompt: node.promptIntent };
-}
 
-export async function runPromptEngineer(
-    node: PlanNode,
-    skill: Skill | undefined,
-    style: ActiveStyle,
-): Promise<PromptEngineerResult> {
-    const resolvedParams = resolveParams(node);
+    private loadSkill(skillName: string): string {
+        if (this.skillCache.has(skillName)) {
+            return this.skillCache.get(skillName)!;
+        }
+        const skillPath = path.join(this.skillsDir, skillName, "SKILL.md");
+        try {
+            const content = fs.readFileSync(skillPath, "utf-8");
+            this.skillCache.set(skillName, content);
+            return content;
+        } catch {
+            logger.warn(`[PromptEngineer] Could not load skill: ${skillName}`);
+            return "";
+        }
+    }
 
-    try {
-        const model = MODELS.TEXT.GEMINI_3_5_FLASH;
-        const sessionService = new InMemorySessionService();
-        const agent = new LlmAgent({
-            name: "PromptEngineer",
-            model: new Gemini({
-                model,
-                vertexai: true,
-                project: config.PROJECT_ID,
-                location: config.LOCATION,
-            }),
-            instruction: buildInstruction(node, skill, style),
-            tools: [],
-        });
+    private buildRequest(
+        step: GenerationStep,
+        canvasNodes: CanvasNode[],
+        activeStyle?: { name: string; content: string } | null,
+    ): string {
+        const skillName = SKILL_FOR_TYPE[step.type];
+        const skillContent = this.loadSkill(skillName);
 
-        const runner = new Runner({
-            appName: PE_APP_NAME,
-            agent,
-            sessionService,
-        });
+        const lines: string[] = [];
+        lines.push("SKILL SPECIFICATION:");
+        lines.push(skillContent);
+        lines.push("---");
+        lines.push(`GENERATION INTENT: ${step.prompt}`);
+        lines.push(`MEDIA TYPE: ${step.type}`);
 
-        const sessionId = `pe-${node.id}-${Date.now()}`;
-        await sessionService.createSession({
-            appName: PE_APP_NAME,
-            userId: "system",
-            sessionId,
-        });
+        const refs = (step.referenceNodeIds ?? [])
+            .map((id) => canvasNodes.find((n) => n.id === id))
+            .filter(Boolean) as CanvasNode[];
 
-        const events = runner.runAsync({
-            userId: "system",
-            sessionId,
-            newMessage: {
-                role: "user",
-                parts: [{ text: buildUserMessage(node) }],
-            },
-            runConfig: { streamingMode: StreamingMode.NONE },
-        });
-
-        let fullText = "";
-        for await (const event of events) {
-            if (event.content?.parts) {
-                for (const part of event.content.parts) {
-                    if ("text" in part && typeof part.text === "string") {
-                        fullText += part.text;
-                    }
-                }
+        if (refs.length > 0) {
+            lines.push("CANVAS REFERENCES:");
+            for (const node of refs) {
+                const prompt =
+                    "prompt" in node.data
+                        ? (node.data.prompt as string)
+                        : undefined;
+                lines.push(
+                    `- ${node.data.label}${prompt ? `: "${prompt}"` : ""}`,
+                );
             }
         }
 
-        if (fullText.trim().length === 0) {
-            logger.warn(
-                "[PromptEngineer] Empty LLM response, using promptIntent",
+        if (step.dependsOn && step.dependsOn.length > 0) {
+            lines.push(
+                `PLAN DEPENDENCIES: output of steps [${step.dependsOn.join(", ")}] will be provided as reference`,
             );
-            return { prompt: node.promptIntent, resolvedParams };
         }
 
-        const { prompt, negativePrompt } = parseLlmResponse(fullText, node);
-        return { prompt, negativePrompt, resolvedParams };
-    } catch (err) {
-        logger.warn(
-            "[PromptEngineer] LLM call failed, falling back to promptIntent:",
-            err,
+        if (activeStyle) {
+            lines.push(`ACTIVE STYLE — ${activeStyle.name}:`);
+            lines.push(activeStyle.content);
+        }
+
+        lines.push("");
+        lines.push("Write the structured prompt now.");
+        return lines.join("\n");
+    }
+
+    async engineerPrompt(
+        step: GenerationStep,
+        canvasNodes: CanvasNode[],
+        activeStyle?: { name: string; content: string } | null,
+    ): Promise<string> {
+        const skillName = SKILL_FOR_TYPE[step.type];
+        if (!skillName || !this.loadSkill(skillName)) {
+            return step.prompt;
+        }
+
+        const request = this.buildRequest(step, canvasNodes, activeStyle);
+
+        try {
+            const result = await this.genAI.models.generateContent({
+                model: MODELS.TEXT.GEMINI_3_5_FLASH,
+                config: {
+                    systemInstruction: INSTRUCTION,
+                    thinkingConfig: { thinkingBudget: 0 },
+                },
+                contents: [
+                    { role: "user", parts: [createPartFromText(request)] },
+                ],
+            });
+            const text = result.text?.trim();
+            if (!text) throw new Error("empty response");
+            return text;
+        } catch (err) {
+            logger.error(
+                `[PromptEngineer] Failed to engineer prompt for step ${step.id}:`,
+                err,
+            );
+            return step.prompt;
+        }
+    }
+
+    async enrichSteps(
+        steps: GenerationStep[],
+        canvasNodes: CanvasNode[],
+        activeStyle?: { name: string; content: string } | null,
+    ): Promise<GenerationStep[]> {
+        const enrichable = steps.filter(
+            (s) => s.type === "image" || s.type === "video",
         );
-        return { prompt: node.promptIntent, resolvedParams };
+        if (enrichable.length === 0) return steps;
+
+        const enriched = await Promise.all(
+            steps.map(async (step) => {
+                if (step.type !== "image" && step.type !== "video") return step;
+                const engineeredPrompt = await this.engineerPrompt(
+                    step,
+                    canvasNodes,
+                    activeStyle,
+                );
+                return { ...step, prompt: engineeredPrompt };
+            }),
+        );
+
+        return enriched;
     }
 }

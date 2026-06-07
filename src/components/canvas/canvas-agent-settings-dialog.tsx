@@ -130,7 +130,7 @@ export function CanvasAgentSettingsDialog({
                 if (
                     config &&
                     next.imageResolution !== "auto" &&
-                    !(config.resolutions as readonly string[]).includes(
+                    !(config.imageSizes as readonly string[]).includes(
                         next.imageResolution,
                     )
                 ) {
@@ -288,7 +288,7 @@ export function CanvasAgentSettingsDialog({
                                         <SelectItem value="auto">
                                             Auto
                                         </SelectItem>
-                                        {imageModelConfig.resolutions.map(
+                                        {imageModelConfig.imageSizes.map(
                                             (r) => (
                                                 <SelectItem key={r} value={r}>
                                                     {r}

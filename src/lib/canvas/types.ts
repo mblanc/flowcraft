@@ -140,6 +140,10 @@ export interface NodePayload {
 
 export type PlanStatus = "pending_approval" | "approved" | "cancelled";
 
+export type DirectorLogEntry =
+    | { type: "thought"; text: string }
+    | { type: "action"; label: string };
+
 export interface ChatMessage {
     id: string;
     role: "user" | "assistant" | "system";
@@ -150,6 +154,7 @@ export interface ChatMessage {
     plan?: AgentPlan;
     planStatus?: PlanStatus;
     model?: string;
+    directorLog?: DirectorLogEntry[];
     createdAt: string;
 }
 
@@ -175,20 +180,25 @@ export type CanvasMode = "auto" | "image" | "video";
 
 // --- Production Plan types (Agent B / Director architecture) ---
 
-export type MediaOperation =
-    | "t2i"
-    | "i2i"
-    | "t2v"
-    | "i2v"
-    | "i2v2"
-    | "t2s"
-    | "t2m"
-    | "sfx"
-    | "concat"
-    | "edit"
-    | "upscale";
+export const MEDIA_OPERATIONS = [
+    "t2i",
+    "i2i",
+    "t2v",
+    "i2v",
+    "i2v2",
+    "t2s",
+    "t2m",
+    "sfx",
+    "concat",
+    "edit",
+    "upscale",
+] as const;
 
-export type EdgeRole = "depends_on" | "style_ref" | "subject_ref";
+export type MediaOperation = (typeof MEDIA_OPERATIONS)[number];
+
+export const EDGE_ROLES = ["depends_on", "style_ref", "subject_ref"] as const;
+
+export type EdgeRole = (typeof EDGE_ROLES)[number];
 
 export interface PlanNode {
     id: string;
@@ -221,7 +231,7 @@ export interface ProductionPlan {
     clarifications?: string[];
 }
 
-/** PlanNode with prompt guaranteed non-optional (post-PromptEngineer) */
+/** PlanNode with prompt guaranteed non-optional */
 export interface ResolvedPlanNode extends PlanNode {
     prompt: string;
 }

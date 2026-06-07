@@ -4,6 +4,9 @@ import type { Event } from "@google/adk";
 vi.mock("@/lib/config", () => ({
     config: { PROJECT_ID: "test-project", LOCATION: "us-central1" },
 }));
+vi.mock("@/app/logger", () => ({
+    default: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
 import {
     CanvasAgentRunner,
     extractAgentEvents,
@@ -201,6 +204,99 @@ describe("extractAgentEvents — plan_production", () => {
                 ],
             },
         });
+    });
+
+    it("translates subject_ref edge from canvas node into referenceNodeIds", async () => {
+        const nodes: PlanNode[] = [
+            { id: "img1", operation: "i2i", promptIntent: "Pirate variation" },
+        ];
+        const edges: PlanEdge[] = [
+            { from: "canvas_ref_1", to: "img1", role: "subject_ref" },
+        ];
+        const adkEvents = [
+            makeFunctionCallEvent("plan_production", { nodes, edges }),
+        ];
+        const events = await collect(
+            extractAgentEvents(asAsyncIter(adkEvents), ["canvas_ref_1"], []),
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const steps = (events.find((e) => e.type === "plan") as any).plan.steps;
+        expect(steps[0].referenceNodeIds).toContain("canvas_ref_1");
+    });
+
+    it("translates depends_on edge between plan nodes into dependsOn", async () => {
+        const nodes: PlanNode[] = [
+            { id: "img1", operation: "i2i", promptIntent: "Generate image" },
+            { id: "vid1", operation: "i2v", promptIntent: "Animate image" },
+        ];
+        const edges: PlanEdge[] = [
+            { from: "img1", to: "vid1", role: "depends_on" },
+        ];
+        const adkEvents = [
+            makeFunctionCallEvent("plan_production", { nodes, edges }),
+        ];
+        const events = await collect(
+            extractAgentEvents(asAsyncIter(adkEvents), [], []),
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const steps = (events.find((e) => e.type === "plan") as any).plan.steps;
+        const videoStep = steps.find((s: { id: string }) => s.id === "vid1");
+        expect(videoStep.dependsOn).toContain("img1");
+    });
+
+    it("translates full pirate DAG: subject_ref from canvas + depends_on between steps", async () => {
+        const nodes: PlanNode[] = [
+            {
+                id: "img1",
+                operation: "i2i",
+                promptIntent: "Pirate var 1",
+                aspectRatio: "9:16",
+            },
+            {
+                id: "img2",
+                operation: "i2i",
+                promptIntent: "Pirate var 2",
+                aspectRatio: "9:16",
+            },
+            {
+                id: "vid1",
+                operation: "i2v",
+                promptIntent: "Animate 1",
+                aspectRatio: "9:16",
+                duration: "6" as unknown as number,
+            },
+            {
+                id: "vid2",
+                operation: "i2v",
+                promptIntent: "Animate 2",
+                aspectRatio: "9:16",
+                duration: "6" as unknown as number,
+            },
+        ];
+        const edges: PlanEdge[] = [
+            { from: "canvas_portrait", to: "img1", role: "subject_ref" },
+            { from: "canvas_portrait", to: "img2", role: "subject_ref" },
+            { from: "img1", to: "vid1", role: "depends_on" },
+            { from: "img2", to: "vid2", role: "depends_on" },
+        ];
+        const adkEvents = [
+            makeFunctionCallEvent("plan_production", { nodes, edges }),
+        ];
+        const events = await collect(
+            extractAgentEvents(asAsyncIter(adkEvents), ["canvas_portrait"], []),
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const steps = (events.find((e) => e.type === "plan") as any).plan.steps;
+        const byId = Object.fromEntries(
+            steps.map((s: { id: string }) => [s.id, s]),
+        );
+
+        expect(byId["img1"].referenceNodeIds).toContain("canvas_portrait");
+        expect(byId["img2"].referenceNodeIds).toContain("canvas_portrait");
+        expect(byId["vid1"].dependsOn).toContain("img1");
+        expect(byId["vid2"].dependsOn).toContain("img2");
+        // canvas node must NOT appear in video dependsOn (it's in image referenceNodeIds)
+        expect(byId["vid1"].dependsOn).not.toContain("canvas_portrait");
     });
 
     it("skips unsupported operations (t2s, concat, etc.) with no crash", async () => {

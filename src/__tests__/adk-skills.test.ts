@@ -10,21 +10,21 @@ describe("skill files", () => {
         expect(Object.keys(skills).length).toBeGreaterThanOrEqual(4);
     });
 
-    it("t2i skill has valid frontmatter", async () => {
+    it("image-generation skill has valid frontmatter", async () => {
         const skills = await loadAllSkillsInDir(SKILLS_DIR);
-        const t2i = skills["t2i"];
+        const t2i = skills["image-generation"];
         expect(t2i).toBeDefined();
-        expect(t2i.frontmatter.name).toBe("t2i");
+        expect(t2i.frontmatter.name).toBe("image-generation");
         expect(t2i.frontmatter.description.length).toBeLessThanOrEqual(1024);
         expect(t2i.frontmatter.metadata?.type).toBe("primitive");
         expect(t2i.instructions).toBeTruthy();
     });
 
-    it("i2v skill has valid frontmatter", async () => {
+    it("video-generation skill has valid frontmatter", async () => {
         const skills = await loadAllSkillsInDir(SKILLS_DIR);
-        const i2v = skills["i2v"];
+        const i2v = skills["video-generation"];
         expect(i2v).toBeDefined();
-        expect(i2v.frontmatter.name).toBe("i2v");
+        expect(i2v.frontmatter.name).toBe("video-generation");
         expect(i2v.frontmatter.metadata?.type).toBe("primitive");
     });
 

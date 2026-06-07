@@ -3,7 +3,8 @@ import { geminiService } from "@/lib/services/gemini.service";
 import { storageService } from "@/lib/services/storage.service";
 import { libraryService } from "@/lib/services/library.service";
 import logger from "@/app/logger";
-import type { AgentPlan, GenerationStep, NodePayload } from "./types";
+import { topoSort } from "./adk/topology";
+import type { AgentPlan, GenerationStep, NodePayload, PlanEdge } from "./types";
 
 export type StepEvent =
     | { type: "step_start"; stepId: string }
@@ -51,19 +52,27 @@ function resolveReferences(
         ? getUri(step.lastFrameNodeId)
         : undefined;
 
-    // If this step depends on a previous step and no explicit frame was set,
-    // use the first dependency as the first frame for video
-    if (
-        step.type === "video" &&
-        dependencyUrls.length > 0 &&
-        !firstFrameUrl &&
-        !lastFrameUrl
-    ) {
-        return {
-            referenceUrls,
-            firstFrameUrl: dependencyUrls[0],
-            lastFrameUrl: dependencyUrls[1],
-        };
+    if (step.type === "video" && !firstFrameUrl && !lastFrameUrl) {
+        // For video: promote the first available image to firstFrame (via source.image).
+        // referenceImages is not supported by all models; source.image is universal.
+        if (dependencyUrls.length > 0) {
+            if (dependencyUrls.length > 2) {
+                logger.warn(
+                    `[CanvasGeneration] Video step "${step.id}" has ${dependencyUrls.length} dependencies; only first two used as frames`,
+                );
+            }
+            return {
+                referenceUrls,
+                firstFrameUrl: dependencyUrls[0],
+                lastFrameUrl: dependencyUrls[1],
+            };
+        }
+        if (referenceUrls.length > 0) {
+            return {
+                referenceUrls: referenceUrls.slice(1),
+                firstFrameUrl: referenceUrls[0],
+            };
+        }
     }
 
     return {
@@ -173,32 +182,24 @@ async function executeVideoStep(
     };
 }
 
-/** Build execution waves via topological sort on dependsOn */
+/** Build execution waves via topological sort on dependsOn edges. */
 function buildExecutionWaves(steps: GenerationStep[]): GenerationStep[][] {
-    const remaining = new Set(steps.map((s) => s.id));
-    const waves: GenerationStep[][] = [];
-
-    while (remaining.size > 0) {
-        const wave = steps.filter(
-            (s) =>
-                remaining.has(s.id) &&
-                (s.dependsOn ?? []).every((dep) => !remaining.has(dep)),
+    const edges: PlanEdge[] = steps.flatMap((s) =>
+        (s.dependsOn ?? []).map((dep) => ({
+            from: dep,
+            to: s.id,
+            role: "depends_on" as const,
+        })),
+    );
+    try {
+        return topoSort(steps, edges);
+    } catch {
+        // Cycle or missing dependency — fall back to executing all as one wave
+        logger.warn(
+            "[CanvasGeneration] Cycle detected in plan dependencies, executing all steps together",
         );
-
-        if (wave.length === 0) {
-            // Cycle or missing dependency — execute remaining steps as a fallback wave
-            logger.warn(
-                "[CanvasGeneration] Could not resolve dependencies, executing remaining steps",
-            );
-            waves.push(steps.filter((s) => remaining.has(s.id)));
-            break;
-        }
-
-        waves.push(wave);
-        wave.forEach((s) => remaining.delete(s.id));
+        return [steps];
     }
-
-    return waves;
 }
 
 /**

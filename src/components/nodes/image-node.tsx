@@ -134,12 +134,12 @@ export const ImageNode = memo(
                     .ratios[0] as ImageData["aspectRatio"];
             }
             if (
-                !(config.resolutions as readonly string[]).includes(
-                    data.resolution,
+                !(config.imageSizes as readonly string[]).includes(
+                    data.imageSize,
                 )
             ) {
-                updates.resolution = config
-                    .resolutions[0] as ImageData["resolution"];
+                updates.imageSize = config
+                    .imageSizes[0] as ImageData["imageSize"];
             }
             if (!config.grounding.google) updates.groundingGoogleSearch = false;
             if (!config.grounding.image) updates.groundingImageSearch = false;
@@ -335,11 +335,10 @@ export const ImageNode = memo(
                             </SelectContent>
                         </Select>
                         <Select
-                            value={data.resolution}
+                            value={data.imageSize}
                             onValueChange={(value) =>
                                 updateNodeData(id, {
-                                    resolution:
-                                        value as ImageData["resolution"],
+                                    imageSize: value as ImageData["imageSize"],
                                 })
                             }
                         >
@@ -350,7 +349,7 @@ export const ImageNode = memo(
                                 <SelectValue placeholder="Res" />
                             </SelectTrigger>
                             <SelectContent>
-                                {currentModelConfig.resolutions.map((res) => (
+                                {currentModelConfig.imageSizes.map((res) => (
                                     <SelectItem key={res} value={res}>
                                         {res}
                                     </SelectItem>
