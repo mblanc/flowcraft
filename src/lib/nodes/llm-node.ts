@@ -7,6 +7,7 @@ import {
     NodeDefinition,
     ExecutionContext,
 } from "../types";
+import { MODELS } from "../constants";
 import {
     getSourceValue,
     isCollectionSource,
@@ -76,6 +77,23 @@ export const llmNodeDefinition: NodeDefinition<LLMData, NodeInputs> = {
     },
     outputs: {
         "": "text",
+    },
+    defaultData: {
+        type: "llm",
+        name: "LLM",
+        model: MODELS.TEXT.GEMINI_3_5_FLASH,
+        instructions: "",
+        outputType: "text",
+        strictMode: false,
+        visualSchema: [],
+        thinkingLevel: "HIGH",
+    },
+    getSourcePortType: (node) => {
+        const baseType = "text";
+        if (node.data.batchTotal && node.data.batchTotal > 0) {
+            return `collection:${baseType}`;
+        }
+        return baseType;
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { files: [], prompts: [], namedNodes: [] };

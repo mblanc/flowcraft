@@ -3,11 +3,6 @@ import {
     NodeData,
     NodeType,
     NodeInputs,
-    ListData,
-    FileData,
-    WorkflowInputData,
-    WorkflowOutputData,
-    CustomWorkflowData,
     ExecutionContext,
     NodeExecutor,
     NodeDefinition,
@@ -41,28 +36,11 @@ export function getSourcePortType(
     node: Node<NodeData>,
     handleId?: string | null,
 ): string {
-    if (node.data.type === "list") {
-        return `collection:${(node.data as ListData).itemType}`;
-    }
-    if (node.data.type === "workflow-input") {
-        return (node.data as WorkflowInputData).portType;
-    }
-    if (node.data.type === "custom-workflow") {
-        return (
-            (node.data as CustomWorkflowData).outputs?.[handleId || ""] || "any"
-        );
-    }
-    if (node.data.type === "llm") {
-        const baseType = "text";
-        if (node.data.batchTotal && node.data.batchTotal > 0) {
-            return `collection:${baseType}`;
-        }
-        return baseType;
-    }
-    if (node.data.type === "file") {
-        return (node.data as FileData).fileType || "any";
-    }
     const def = getNodeDefinition(node.data.type);
+    if (def?.getSourcePortType) {
+        return def.getSourcePortType(node, handleId);
+    }
+
     const outputs = def?.outputs || {};
     const normalizedHandleId = handleId === null ? "" : handleId || "";
 
@@ -84,15 +62,11 @@ export function getTargetPortType(
     node: Node<NodeData>,
     handleId?: string | null,
 ): string {
-    if (node.data.type === "workflow-output") {
-        return (node.data as WorkflowOutputData).portType;
-    }
-    if (node.data.type === "custom-workflow") {
-        return (
-            (node.data as CustomWorkflowData).inputs?.[handleId || ""] || "any"
-        );
-    }
     const def = getNodeDefinition(node.data.type);
+    if (def?.getTargetPortType) {
+        return def.getTargetPortType(node, handleId);
+    }
+
     const inputs = def?.inputs || {};
     const normalizedHandleId = handleId === null ? "" : handleId || "";
 

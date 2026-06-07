@@ -5,6 +5,13 @@ export const workflowOutputNodeDefinition: NodeDefinition<
     NodeInputs
 > = {
     type: "workflow-output",
+    defaultData: {
+        type: "workflow-output",
+        name: "Workflow Output",
+        portName: "output",
+        portType: "text",
+    },
+    getTargetPortType: (node) => node.data.portType,
     gatherInputs: (node, edges, getSourceData) => {
         const edge = edges.find((e) => e.target === node.id);
         if (!edge) return {};

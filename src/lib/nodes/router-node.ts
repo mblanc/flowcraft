@@ -23,6 +23,10 @@ export const routerNodeDefinition: NodeDefinition<RouterData, RouterInputs> = {
     type: "router",
     inputs: { input: "any" },
     outputs: { output: "any" },
+    defaultData: {
+        type: "router",
+        name: "Router",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const edge = edges.find(
             (e) => e.target === node.id && e.targetHandle === "input",

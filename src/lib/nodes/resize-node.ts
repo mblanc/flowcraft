@@ -7,6 +7,7 @@ import {
     NodeDefinition,
     ExecutionContext,
 } from "../types";
+import { DEFAULTS } from "../constants";
 import {
     getSourceValue,
     isCollectionSource,
@@ -44,6 +45,11 @@ export const resizeNodeDefinition: NodeDefinition<ResizeData, NodeInputs> = {
     },
     outputs: {
         "result-output": "image",
+    },
+    defaultData: {
+        type: "resize",
+        name: "Resize",
+        aspectRatio: DEFAULTS.ASPECT_RATIO,
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { namedNodes: [] };

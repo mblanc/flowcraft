@@ -7,6 +7,7 @@ import {
     NodeDefinition,
     ExecutionContext,
 } from "../types";
+import { MODELS, DEFAULTS } from "../constants";
 import {
     getSourceValue,
     isCollectionSource,
@@ -131,6 +132,18 @@ export const imageNodeDefinition: NodeDefinition<ImageData, NodeInputs> = {
     },
     outputs: {
         "result-output": "image",
+    },
+    defaultData: {
+        type: "image",
+        name: "Image",
+        prompt: "",
+        images: [],
+        aspectRatio: DEFAULTS.IMAGE_ASPECT_RATIO,
+        model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+        imageSize: DEFAULTS.IMAGE_RESOLUTION,
+        groundingGoogleSearch: false,
+        groundingImageSearch: false,
+        thinkingLevel: "HIGH",
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [], namedNodes: [] };

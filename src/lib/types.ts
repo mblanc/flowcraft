@@ -106,4 +106,7 @@ export interface NodeDefinition<T extends NodeData = NodeData, I = NodeInputs> {
         getSourceData: (id: string, handle?: string | null) => NodeData | null,
     ) => I;
     execute: NodeExecutor<T, I>;
+    defaultData?: Partial<T>;
+    getSourcePortType?: (node: Node<T>, handleId?: string | null) => string;
+    getTargetPortType?: (node: Node<T>, handleId?: string | null) => string;
 }
