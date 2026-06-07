@@ -23,7 +23,7 @@ RUN bun run build
 
 
 # Production image, copy all the files and run next
-FROM node:25-alpine AS runner
+FROM node:25.9.0-alpine AS runner
 RUN apk add --update libc6-compat ffmpeg
 WORKDIR /app
 
