@@ -151,3 +151,53 @@ export interface CanvasDocument {
 }
 
 export type CanvasMode = "auto" | "image" | "video";
+
+// --- Production Plan types (Agent B / Director architecture) ---
+
+export type MediaOperation =
+    | "t2i"
+    | "i2i"
+    | "t2v"
+    | "i2v"
+    | "i2v2"
+    | "t2s"
+    | "t2m"
+    | "sfx"
+    | "concat"
+    | "edit"
+    | "upscale";
+
+export type EdgeRole = "depends_on" | "style_ref" | "subject_ref";
+
+export interface PlanNode {
+    id: string;
+    operation: MediaOperation;
+    /** Plain-language intent; filled by Director */
+    promptIntent: string;
+    /** Fully-engineered prompt; filled by PromptEngineer */
+    prompt?: string;
+    label?: string;
+    aspectRatio?: string;
+    resolution?: string;
+    model?: string;
+    duration?: number;
+    generateAudio?: boolean;
+    skill?: string;
+}
+
+export interface PlanEdge {
+    from: string;
+    to: string;
+    role: EdgeRole;
+}
+
+export interface ProductionPlan {
+    nodes: PlanNode[];
+    edges: PlanEdge[];
+    clarifications?: string[];
+}
+
+/** PlanNode with prompt guaranteed non-optional (post-PromptEngineer) */
+export interface ResolvedPlanNode extends PlanNode {
+    prompt: string;
+}
