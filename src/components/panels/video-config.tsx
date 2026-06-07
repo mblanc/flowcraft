@@ -17,9 +17,9 @@ import {
 import { Button } from "../ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useState, useEffect } from "react";
-import logger from "@/app/logger";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
+import { isGcsUri } from "@/lib/utils/gcs-uri";
+import { useSignedUrls } from "@/hooks/use-signed-url";
 
 export function VideoConfig({
     data,
@@ -34,40 +34,10 @@ export function VideoConfig({
 
     const connectedTextNodes = useConnectedSourceNodes(nodeId, "prompt-input");
 
-    const [signedRefImageUrls, setSignedRefImageUrls] = useState<string[]>([]);
-
-    useEffect(() => {
-        const fetchSignedUrls = async () => {
-            const urls = await Promise.all(
-                data.images.map(async (image) => {
-                    if (image.startsWith("gs://")) {
-                        try {
-                            const res = await fetch(
-                                `/api/signed-url?gcsUri=${encodeURIComponent(image)}`,
-                            );
-                            const result = await res.json();
-                            if (result.signedUrl) {
-                                return result.signedUrl;
-                            } else {
-                                logger.error(
-                                    `Failed to get signed URL: ${result.error}`,
-                                );
-                                return "/placeholder.svg";
-                            }
-                        } catch (error) {
-                            logger.error("Error fetching signed URL:", error);
-                            return "/placeholder.svg";
-                        }
-                    } else {
-                        return image;
-                    }
-                }),
-            );
-            setSignedRefImageUrls(urls);
-        };
-
-        fetchSignedUrls();
-    }, [data.images]);
+    const signedUrlsMap = useSignedUrls(data.images);
+    const signedRefImageUrls = data.images.map(
+        (img) => (isGcsUri(img) ? signedUrlsMap[img] : img) || "",
+    );
 
     const addImage = () => {
         const newImages = [...data.images, "https://placeholder.com/300x300"];

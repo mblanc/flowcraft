@@ -9,12 +9,12 @@ import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/nodes/node-title";
 import { toast } from "sonner";
 import Image from "next/image";
-import logger from "@/app/logger";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { shallowEqual } from "@/lib/utils";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import { NodeActionBar } from "@/components/nodes/node-action-bar";
 import { isGcsUri } from "@/lib/utils/gcs-uri";
+import { useSignedUrls } from "@/hooks/use-signed-url";
 
 function SubWorkflowOutputPreview({
     type,
@@ -25,8 +25,6 @@ function SubWorkflowOutputPreview({
     value: { value?: unknown } | unknown; // Value can be wrapped or direct
     maxHeight: number;
 }) {
-    const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
-
     // Extract the actual value, unwrapping if it came from a workflow-output node
     const actualValue =
         value && typeof value === "object" && "value" in value
@@ -56,41 +54,12 @@ function SubWorkflowOutputPreview({
     };
 
     const uris = extractUris();
+    const hookSignedUrls = useSignedUrls(uris);
 
-    useEffect(() => {
-        const fetchSignedUrls = async () => {
-            const newSignedUrls: Record<string, string> = {};
-
-            for (const uri of uris) {
-                if (!uri) continue;
-
-                if (isGcsUri(uri)) {
-                    try {
-                        const res = await fetch(
-                            `/api/signed-url?gcsUri=${encodeURIComponent(uri)}`,
-                        );
-                        const result = await res.json();
-                        if (result.signedUrl) {
-                            newSignedUrls[uri] = result.signedUrl;
-                        }
-                    } catch (error) {
-                        logger.error("Error fetching signed URL:", error);
-                    }
-                } else {
-                    // Non-GCS URLs can be used directly
-                    newSignedUrls[uri] = uri;
-                }
-            }
-
-            if (Object.keys(newSignedUrls).length > 0) {
-                setSignedUrls((prev) => ({ ...prev, ...newSignedUrls }));
-            }
-        };
-
-        if (uris.length > 0) {
-            fetchSignedUrls();
-        }
-    }, [JSON.stringify(uris)]); // eslint-disable-line react-hooks/exhaustive-deps
+    const getDisplayUrl = (uri: string | undefined) => {
+        if (!uri) return undefined;
+        return isGcsUri(uri) ? hookSignedUrls[uri] : uri;
+    };
 
     if (!value) return null;
 
@@ -98,7 +67,7 @@ function SubWorkflowOutputPreview({
         return (
             <div className="flex flex-col gap-2">
                 {uris.map((uri, index) => {
-                    const displayUrl = signedUrls[uri];
+                    const displayUrl = getDisplayUrl(uri);
                     if (!displayUrl) {
                         return (
                             <div
@@ -134,7 +103,7 @@ function SubWorkflowOutputPreview({
     }
 
     if (type === "video" && uris.length > 0) {
-        const displayUrl = signedUrls[uris[0]];
+        const displayUrl = getDisplayUrl(uris[0]);
         return (
             <div
                 className="border-border overflow-hidden rounded-md border"

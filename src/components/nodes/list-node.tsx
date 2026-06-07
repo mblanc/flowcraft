@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useState, useEffect, useRef, useCallback } from "react";
+import { memo, useState, useRef, useCallback } from "react";
 import { useNodeResize } from "@/hooks/use-node-resize";
 import { useSyncedState } from "@/hooks/use-synced-state";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
@@ -25,12 +25,13 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import logger from "@/app/logger";
+
 import { MediaViewer } from "@/components/nodes/media-viewer";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import { NodeActionBar } from "@/components/nodes/node-action-bar";
 import { toast } from "sonner";
 import { isGcsUri, parseGcsUri } from "@/lib/utils/gcs-uri";
+import { useSignedUrls } from "@/hooks/use-signed-url";
 
 export const ListNode = memo(
     ({ data, selected, id }: NodeProps<Node<ListData>>) => {
@@ -61,52 +62,18 @@ export const ListNode = memo(
         const fileInputRef = useRef<HTMLInputElement>(null);
         const uploadIndexRef = useRef<number | null>(null);
 
-        useEffect(() => {
-            if (data.itemType !== "image") return;
-
-            let isMounted = true;
-            const fetchSignedUrls = async () => {
-                let hasChanges = false;
-                const newSignedUrls = { ...signedUrls };
-
-                for (const item of data.items) {
-                    if (item && isGcsUri(item) && !newSignedUrls[item]) {
-                        try {
-                            const res = await fetch(
-                                `/api/signed-url?gcsUri=${encodeURIComponent(item)}`,
-                            );
-                            const result = await res.json();
-                            if (result.signedUrl) {
-                                newSignedUrls[item] = result.signedUrl;
-                                hasChanges = true;
-                            }
-                        } catch (e) {
-                            logger.error(
-                                "Failed to fetch signed url string",
-                                e,
-                            );
-                        }
-                    }
-                }
-
-                if (hasChanges && isMounted) {
-                    setSignedUrls(newSignedUrls);
-                }
-            };
-            fetchSignedUrls();
-            return () => {
-                isMounted = false;
-            };
-        }, [data.items, data.itemType, signedUrls]);
+        const hookSignedUrls = useSignedUrls(
+            data.itemType === "image" ? data.items : [],
+        );
 
         const resolveUrl = useCallback(
             (url: string) => {
                 if (isGcsUri(url)) {
-                    return signedUrls[url] || "";
+                    return hookSignedUrls[url] || signedUrls[url] || "";
                 }
                 return url;
             },
-            [signedUrls],
+            [hookSignedUrls, signedUrls],
         );
 
         const syncItems = useCallback(

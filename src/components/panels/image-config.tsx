@@ -18,10 +18,9 @@ import {
 import { Button } from "../ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useState, useEffect } from "react";
-import logger from "@/app/logger";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
 import { isGcsUri } from "@/lib/utils/gcs-uri";
+import { useSignedUrls } from "@/hooks/use-signed-url";
 
 export function ImageConfig({
     data,
@@ -36,44 +35,14 @@ export function ImageConfig({
 
     const connectedNodes = useConnectedSourceNodes(nodeId);
 
-    const [signedImageUrls, setSignedImageUrls] = useState<string[]>([]);
+    const signedUrlsMap = useSignedUrls(data.images);
+    const signedImageUrls = data.images.map(
+        (img) => (isGcsUri(img) ? signedUrlsMap[img] : img) || "",
+    );
 
     const currentModelConfig =
         IMAGE_MODEL_CONFIGS[data.model as keyof typeof IMAGE_MODEL_CONFIGS] ||
         IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE];
-
-    useEffect(() => {
-        const fetchSignedUrls = async () => {
-            const urls = await Promise.all(
-                data.images.map(async (image) => {
-                    if (isGcsUri(image)) {
-                        try {
-                            const res = await fetch(
-                                `/api/signed-url?gcsUri=${encodeURIComponent(image)}`,
-                            );
-                            const result = await res.json();
-                            if (result.signedUrl) {
-                                return result.signedUrl;
-                            } else {
-                                logger.error(
-                                    `Failed to get signed URL: ${result.error}`,
-                                );
-                                return "/placeholder.svg";
-                            }
-                        } catch (error) {
-                            logger.error("Error fetching signed URL:", error);
-                            return "/placeholder.svg";
-                        }
-                    } else {
-                        return image;
-                    }
-                }),
-            );
-            setSignedImageUrls(urls);
-        };
-
-        fetchSignedUrls();
-    }, [data.images]);
 
     const addImage = () => {
         const newImages = [...data.images, "https://placeholder.com/300x300"];

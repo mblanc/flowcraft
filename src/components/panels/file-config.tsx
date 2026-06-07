@@ -6,8 +6,7 @@ import type { FileData } from "@/lib/types";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import Image from "next/image";
-import { useState, useEffect } from "react";
-import logger from "@/app/logger";
+import { useSignedUrl } from "@/hooks/use-signed-url";
 
 export function FileConfig({
     data,
@@ -19,39 +18,9 @@ export function FileConfig({
     const updateNodeData = useFlowStore(
         (state: FlowState) => state.updateNodeData,
     );
-    const [signedFileUrl, setSignedFileUrl] = useState<string | undefined>(
-        undefined,
+    const { displayUrl: signedFileUrl } = useSignedUrl(
+        data.fileUrl || undefined,
     );
-
-    useEffect(() => {
-        const fetchSignedUrl = async () => {
-            if (data.fileUrl && data.fileUrl.startsWith("gs://")) {
-                try {
-                    const res = await fetch(
-                        `/api/signed-url?gcsUri=${encodeURIComponent(data.fileUrl)}`,
-                    );
-                    const result = await res.json();
-                    if (result.signedUrl) {
-                        setSignedFileUrl(result.signedUrl);
-                    } else {
-                        logger.error(
-                            `Failed to get signed URL: ${result.error}`,
-                        );
-                        setSignedFileUrl("/placeholder.svg");
-                    }
-                } catch (error) {
-                    logger.error("Error fetching signed URL:", error);
-                    setSignedFileUrl("/placeholder.svg");
-                }
-            } else if (data.fileUrl) {
-                setSignedFileUrl(data.fileUrl);
-            } else {
-                setSignedFileUrl(undefined);
-            }
-        };
-
-        fetchSignedUrl();
-    }, [data.fileUrl]);
 
     return (
         <div className="space-y-6">
