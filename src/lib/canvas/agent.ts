@@ -26,6 +26,7 @@ export interface AgentInput {
     message: string;
     attachments?: ChatAttachment[];
     mode: "auto" | "image" | "video";
+    agentVariant?: "a" | "b";
     model?: string;
     history: ChatMessage[];
     canvasNodes: CanvasNode[];

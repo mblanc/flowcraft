@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -58,10 +58,13 @@ function StepStatusIcon({ status }: { status: StepStatus | undefined }) {
     }
 }
 
-const STEP_TYPE_ICON = {
+const STEP_TYPE_ICON: Record<
+    string,
+    React.ComponentType<{ className?: string }>
+> = {
     image: Image,
     video: Video,
-} as const;
+};
 
 /** Small pill for a single metadata value */
 function MetaChip({ label }: { label: string }) {
@@ -85,7 +88,7 @@ function StepCard({
     status: StepStatus | undefined;
     isApproved: boolean;
 }) {
-    const TypeIcon = STEP_TYPE_ICON[step.type];
+    const TypeIcon = STEP_TYPE_ICON[step.type] ?? Image;
     const nodes = useCanvasStore((s) => s.nodes);
 
     // Build metadata chips

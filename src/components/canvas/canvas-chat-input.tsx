@@ -98,6 +98,7 @@ export function CanvasChatInput({
     executePlanStreamRef,
 }: CanvasChatInputProps) {
     const [input, setInput] = useState("");
+    const [agentVariant, setAgentVariant] = useState<"a" | "b">("a");
     const [agentSettings, setAgentSettings] = useState<AgentSettings>(
         DEFAULT_AGENT_SETTINGS,
     );
@@ -787,6 +788,7 @@ export function CanvasChatInput({
                                 ? attachmentsToSend
                                 : undefined,
                         mode: agentSettings.mode,
+                        agentVariant,
                         model: agentSettings.llmModel,
                         imageDefaults: {
                             model: agentSettings.imageModel,
@@ -1047,6 +1049,35 @@ export function CanvasChatInput({
                             settings={agentSettings}
                             onSettingsChange={setAgentSettings}
                         />
+
+                        <div className="bg-border h-4 w-px" />
+
+                        <div className="flex overflow-hidden rounded border text-xs">
+                            <button
+                                type="button"
+                                onClick={() => setAgentVariant("a")}
+                                className={cn(
+                                    "px-2 py-1 transition-colors",
+                                    agentVariant === "a"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "text-muted-foreground hover:bg-muted",
+                                )}
+                            >
+                                A
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setAgentVariant("b")}
+                                className={cn(
+                                    "px-2 py-1 transition-colors",
+                                    agentVariant === "b"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "text-muted-foreground hover:bg-muted",
+                                )}
+                            >
+                                B
+                            </button>
+                        </div>
 
                         <div className="bg-border h-4 w-px" />
 
