@@ -294,10 +294,16 @@ export async function* extractAgentEvents(
                 call.name === "plan_image_generation" ||
                 call.name === "plan_video_generation"
             ) {
+                const inferredType =
+                    call.name === "plan_video_generation" ? "video" : "image";
                 const raw = (call.args as { steps?: unknown[] })?.steps ?? [];
                 const steps = (raw as GenerationStep[]).map((s, i) => {
+                    const sWithType: GenerationStep = {
+                        ...s,
+                        type: inferredType,
+                    };
                     let step = applyTypeDefaults(
-                        s,
+                        sWithType,
                         imageDefaults,
                         videoDefaults,
                     );
@@ -308,7 +314,7 @@ export async function* extractAgentEvents(
                     );
                     applyVideoFallback(
                         step,
-                        s.type,
+                        inferredType,
                         attachments,
                         i,
                         raw.length,
@@ -357,17 +363,15 @@ export class CanvasAgentRunner {
             runnerConfig.sessionService ?? createSessionService();
     }
 
-    private getRunner(model: string, instruction: string): Runner {
-        const llm = new Gemini({
-            model,
-            vertexai: true,
-            project: config.PROJECT_ID,
-            location: config.LOCATION,
-        });
-
-        const agent = new LlmAgent({
-            name: "CanvasAgent",
-            model: llm,
+    private buildAgentA(model: string, instruction: string): LlmAgent {
+        return new LlmAgent({
+            name: "CanvasAgentA",
+            model: new Gemini({
+                model,
+                vertexai: true,
+                project: config.PROJECT_ID,
+                location: config.LOCATION,
+            }),
             instruction,
             tools: [
                 planImageGenerationTool,
@@ -375,6 +379,35 @@ export class CanvasAgentRunner {
                 suggestActionsTool,
             ],
         });
+    }
+
+    private buildAgentB(model: string, instruction: string): LlmAgent {
+        return new LlmAgent({
+            name: "CanvasAgentB",
+            model: new Gemini({
+                model,
+                vertexai: true,
+                project: config.PROJECT_ID,
+                location: config.LOCATION,
+            }),
+            instruction,
+            tools: [
+                planImageGenerationTool,
+                planVideoGenerationTool,
+                suggestActionsTool,
+            ],
+        });
+    }
+
+    private getRunner(
+        model: string,
+        instruction: string,
+        variant: "a" | "b" = "a",
+    ): Runner {
+        const agent =
+            variant === "b"
+                ? this.buildAgentB(model, instruction)
+                : this.buildAgentA(model, instruction);
 
         return new Runner({
             appName: APP_NAME,
@@ -393,7 +426,11 @@ export class CanvasAgentRunner {
             buildStyleInstruction(input.activeStyle),
         ].join("");
 
-        const runner = this.getRunner(model, instruction);
+        const runner = this.getRunner(
+            model,
+            instruction,
+            input.agentVariant ?? "a",
+        );
 
         const userId = input.userId ?? "anon";
         const sessionId =
@@ -412,7 +449,7 @@ export class CanvasAgentRunner {
         const userContent = buildUserContent(input);
 
         logger.info(
-            `[CanvasADK] stream mode=${input.mode} model=${model} attachments=${input.attachments?.length ?? 0}`,
+            `[CanvasADK] stream variant=${input.agentVariant ?? "a"} mode=${input.mode} model=${model} attachments=${input.attachments?.length ?? 0}`,
         );
 
         try {

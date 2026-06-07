@@ -24,6 +24,7 @@ interface ChatRequestBody {
     message: string;
     attachments?: ChatAttachment[];
     mode: "auto" | "image" | "video";
+    agentVariant?: "a" | "b";
     model?: string;
     sessionId?: string;
     imageDefaults?: MediaDefaults;
@@ -129,6 +130,7 @@ export async function POST(
                     message: body.message,
                     attachments: body.attachments,
                     mode: body.mode,
+                    agentVariant: body.agentVariant,
                     model: body.model,
                     sessionId: body.sessionId,
                     history: canvas.messages,
