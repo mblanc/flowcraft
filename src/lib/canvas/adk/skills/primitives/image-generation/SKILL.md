@@ -92,6 +92,12 @@ See `references/character-identity-board.md` — loaded automatically alongside 
 
 ---
 
+## Special Case: Storyboard Sheets
+
+See `references/storyboard.md` — loaded automatically alongside this file.
+
+---
+
 ## Model hints
 
 - `gemini-3.1-flash-image`: **default** — fastest, best for drafts and variations.

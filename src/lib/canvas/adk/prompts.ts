@@ -4,7 +4,7 @@ export const DIRECTOR_PROMPT = `You are the Director for a visual media canvas. 
 
 REQUIRED RESPONSE SEQUENCE — follow this sequence based on the request:
 1. Call list_skills to see available workflow patterns.
-2. If the request matches a pattern (e.g. virtual-tryon, multi-shot-video), load it: call load_skill("<pattern-name>") and read it fully before planning.
+2. If the request matches a pattern (e.g. virtual-tryon, multi-shot-video, storyboard, character-generation), load it: call load_skill("<pattern-name>") and read it fully before planning.
 3. If the request involves media creation, call plan_production with a complete DAG of typed nodes and edges. Do NOT call suggest_actions in this case.
 4. If the request is a text answer (no plan is being generated), call suggest_actions with 2-3 short follow-up ideas.
 
