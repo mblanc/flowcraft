@@ -9,98 +9,100 @@ metadata:
 
 Use `t2i` when the user wants a still image: concept art, product shots, character references, background plates, style samples, or any image that does not require motion.
 
-Classify the job before writing the prompt:
+---
 
-- **Job A — Create from nothing**: full PLACE / FOCUS / FACTS / FORM / FORBIDDEN structure.
-- **Job B — Modify one existing image**: EDIT / LOCK / NO / PHYSICS structure. One change per prompt.
-- **Job C — Combine multiple images**: label every input by role (@Image1, @Image2…), then INSTRUCTION / PRESERVE / ADOPT / FORBIDDEN.
+## Unified Prompt Structure
+
+Every image generation prompt — whether creating from scratch, editing an existing image, or compositing multiple images — must follow a single unified structure. It consists of a general description of the image followed by a structured description of specific features.
+
+```
+[GENERAL DESCRIPTION]
+<A 1-2 sentence overview of the image, setting the core subject, action, and composition.>
+
+[STRUCTURED FEATURES]
+SUBJECT: <Specific details of the focus/subject. Include reference links like @Image1 if modifying or preserving traits.>
+ENVIRONMENT: <The physical place, background elements, and light sources (type, direction, quality).>
+STYLE & MEDIUM: <Output medium type, camera lens/depth, color palette, and textures.>
+CHANGES (if editing/compositing): <EDIT instructions, LOCK directives, and PHYSICS constraints to match existing elements.>
+FORBIDDEN: <At least three specific entries for elements/artifacts to exclude.>
+```
 
 ---
 
-## Prompt structure (Job A)
+## Prompt structure details
 
-### [PLACE]
+### [GENERAL DESCRIPTION]
 
-Where the image physically exists. Be concrete — not "urban setting" but "east-facing corner of a 1970s laundromat, 6pm, winter."
+Provide a 1-2 sentence overview of the entire scene to give the model overall context.
 
-- Geographic/architectural specificity, era, season, time of day, weather.
-- State the ambient light source that would naturally exist here.
-- Never: "urban," "modern," "atmospheric," "beautiful setting."
+- **Good:** "A close-up photographic portrait of a chef slicing red peppers in a sunlit restaurant kitchen."
+- **Bad:** "A chef in a kitchen."
 
-### [FOCUS]
+### [STRUCTURED FEATURES]
 
-One subject only. The single thing the eye lands on first.
+#### **SUBJECT**
 
-- Person: specific physical anchors — jawline shape, eye color, brow weight, one distinguishing feature.
-- Object: material, dimensions relative to surroundings, condition (new/worn/damaged).
-- If anchoring to a reference: "Same person as @Image1. Maintain [list 3–4 specific traits]. Do not alter facial proportions, eye shape, or hairstyle."
-- Never describe emotion. Describe the face that produces it.
+Describe the single subject or focus that the eye lands on first.
 
-### [FACTS]
+- **Details:** Material, physical anchors (e.g., jawline, eye color, fabric type, exact color names like "faded slate denim"), and condition (new, worn).
+- **Reference Anchoring:** If inheriting traits from a canvas reference (e.g., `@Image1`), specify: `"Same person as @Image1. Maintain [list 3-4 specific traits]. Do not alter facial proportions, eye shape, or hairstyle."`
+- **Emotion:** Do not describe emotion directly (e.g., "sad"). Describe the physical facial features that produce it (e.g., "furrowed brow, downcast eyes").
 
-Measurable physical details — the list that makes this image this image and not any other.
+#### **ENVIRONMENT**
 
-- **Clothing/materials**: fabric type, precise color name ("faded slate denim," not "blue jeans"), fit, visible wear.
-- **Textures**: surface condition — scuffed heels, crazing on ceramic glaze, coffee ring on table, grime in corners.
-- **Light sources**: named by type, direction, and quality — never by mood.
-    - Bad: "cinematic lighting," "golden hour," "moody atmosphere," "beautiful light."
-    - Good: "warm tungsten side-light from camera left," "practical lamp visible in frame casting a warm cone," "neon blue rim light at 2 o'clock," "overcast north-facing window at 9am," "single overhead bulb, one tube slightly dimmer, pale yellow cast."
-- **Lens and capture**: camera model or equivalent (Sony A7R IV, 85mm prime), depth of field (f/1.8 shallow bokeh / f/8 sharp throughout), film stock if relevant (Kodak Portra 400 fine grain).
-- **Imperfection anchor**: at least one real-world imperfection — "one flyaway hair strand," "coffee stain on cuff," "slight facial asymmetry," "paint worn where tyres have scuffed the kerb."
+Describe the physical setting and lighting.
 
-### [FORM]
+- **Setting:** Be concrete. Specify architectural details, era, season, time of day, and weather (e.g., "east-facing corner of a 1970s laundromat, 6pm, winter").
+- **Lighting:** Name every light source by type, direction, and quality. Never use subjective mood words (e.g., "cinematic," "golden hour," "beautiful").
+    - _Good:_ "Warm tungsten side-light from camera left," "neon blue rim light at 2 o'clock," "single overhead bulb casting a pale yellow glow."
+- **Composite Setting:** If inheriting environment from a canvas reference (e.g., `@Image3`), specify: `"Adopt environment, lighting, and layout from @Image3."`
 
-Name the output artifact type explicitly:
+#### **STYLE & MEDIUM**
 
-- Editorial photo / reportage photography / fashion editorial / still life / food photography
-- Product mockup / e-commerce render / architectural visualization
-- Concept art panel / storyboard frame / illustrated poster
+Name the output medium type and style properties explicitly.
 
-If style must transfer from a reference, decompose into three channels:
+- **Medium:** Editorial photo, digital painting, storyboard frame, product mockup, etc.
+- **Camera Details:** Lens choice, aperture (e.g., "Sony A7R IV, 85mm prime, f/1.8 shallow depth of field"), and film stock (e.g., "Kodak Portra 400 fine grain").
+- **Deconstruct Style:** If matching style from a reference (e.g., `@Image2`), deconstruct it into three channels:
+    1.  **Palette:** Named colors and shadow treatment (e.g., "Adopt color palette from @Image2: shadows deep navy, never pure black").
+    2.  **Edge treatment:** Line weights, silhouette hardness (e.g., "hard ink outlines," "soft photographic edges").
+    3.  **Silhouette language:** conventions of pose, proportions.
 
-1. **Palette**: specific named colors, shadow treatment ("shadows: deep navy, never pure black").
-2. **Edge treatment**: pixel edges, line weights, silhouette hardness (hard ink outline / soft photographic edge / vector-crisp).
-3. **Silhouette language**: posing convention, proportional style.
-   Never write "same style" — decompose it.
+#### **CHANGES (if editing/compositing)**
 
-### [FORBIDDEN]
+Used only when modifying or merging existing image(s).
 
-Never skip this slot. At least three specific entries.
+- **EDIT:** Exactly what changes in one unambiguous sentence. One change per prompt.
+- **LOCK:** What must stay identical (e.g., face, pose, outfit, layout, background).
+- **PHYSICS:** Match physical properties of the existing scene: shadow direction, contact shadows, grain, color balance, scale relationships.
 
-- Secondary subjects: "No additional people. No extra hands."
-- Face drift: "Preserve exact facial proportions, eye shape, and brow line."
-- Background contamination: "No stock-photo backgrounds. No lens flares. No HDR treatment."
-- Style contamination: "No over-sharpening. No plastic-looking skin. No neon colors."
-- AI artifact tells: "No symmetry artifacts. No duplicate objects. No watermark-shaped artifacts."
-- Anti-AI realism layer when photorealism is required: "2–3% film grain overlay. Slight facial asymmetry. Visible pore texture. One flyaway hair strand across the left eyebrow."
+#### **FORBIDDEN**
+
+Never skip this section. Provide at least three entries to prevent hallucination and distortion.
+
+- **Exclusions:** "No secondary subjects. No duplicate objects. No over-sharpening."
+- **AI Tells:** "No symmetry artifacts. No plastic-looking skin. No watermark-shaped artifacts."
+- **Realism Layer:** "2-3% film grain overlay. Slight facial asymmetry. Visible pore texture."
 
 ---
 
-## Prompt structure (Job B — Edit)
+## Special Case: Character Identity Boards
 
-```
-EDIT    [Exactly what changes — one unambiguous sentence]
-LOCK    [What must stay identical — face, pose, lens, lighting, background, layout, outfit, scale]
-NO      [What must not appear or happen]
-PHYSICS [Match these physical properties of the existing scene: shadow direction, contact shadows, grain, color balance, scale relationships]
-```
+If the general description or intent specifies generating a "CHARACTER IDENTITY BOARD", structure the features as follows:
 
-One change per prompt. If EDIT needs more than one sentence, split into two separate prompts.
-
----
-
-## Prompt structure (Job C — Composite)
-
-```
-@Image1 = [role: content subject — the person to place in the scene]
-@Image2 = [role: style reference — color palette and edge treatment only]
-@Image3 = [role: background environment — lighting and spatial geometry only]
-
-INSTRUCTION: [What to do, referencing inputs by role]
-PRESERVE FROM @Image1: [Specific traits that must survive the composite]
-ADOPT FROM @Image2: [Exactly which style properties to transfer]
-FORBIDDEN: [What must not appear]
-```
+- **SUBJECT**:
+    - If original: Define character seed, age, body type, posture, physical presence, and signature biological/outfit features.
+    - If referencing an image (e.g., @Image1): `"SUBJECT: Use the reference image @Image1. name: [Name]. Make color correction. Preserve strict identity consistency across all views: same face, proportions, hairstyle, outfit, and body shape."`
+- **ENVIRONMENT**:
+    - `"Pure white or soft off-white background. No environment, no logo, no watermark."`
+- **STYLE & MEDIUM**:
+    - Medium type: `"Artistic 16:9 CHARACTER IDENTITY BOARD."`
+    - Presentation style: `"Cinematic identity board that feels like a high-end animation studio character study mixed with an artbook layout. Asymmetrical, elegant, with large empty space and intentional imbalance. Avoid grids, blueprints, and repetitive turnarounds."`
+    - Composition: `"One large hero full-body view slightly off-center as the visual anchor. Arrange smaller supporting studies with clean spacing: neutral full-body, back view, profile view, seated/crouching poses, and expressive portrait studies. No overlapping images; clear separation and breathing room."`
+    - Artistic Sections: `"Include a small silhouette study area (2-3 black silhouettes), a small expression study area, and a small detail study area for face/hair/outfit."`
+- **CHANGES**: (Leave blank unless editing an existing character board)
+- **FORBIDDEN**:
+    - `"No overlapping figures. No cropped faces. No hidden limbs. No grids or blueprint lines. No logos or watermarks. No stock-photo backgrounds."`
 
 ---
 
