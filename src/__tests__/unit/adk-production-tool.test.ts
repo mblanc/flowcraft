@@ -174,4 +174,34 @@ describe("planProductionTool", () => {
             expect(result.edges[0].role).toBe(role);
         }
     });
+
+    it("correctly remaps self-referential duplicate edges to avoid self-loops", async () => {
+        // n1 appears three times — n1, n1-2, n1-3.
+        // We have two edges: n1 -> n1, and n1 -> n1.
+        // They should be remapped to: n1 -> n1-2, and n1-2 -> n1-3.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (planProductionTool as any).runAsync({
+            args: {
+                nodes: [
+                    { id: "n1", operation: "t2i", promptIntent: "A" },
+                    { id: "n1", operation: "i2v", promptIntent: "B" },
+                    { id: "n1", operation: "upscale", promptIntent: "C" },
+                ],
+                edges: [
+                    { from: "n1", to: "n1", role: "depends_on" },
+                    { from: "n1", to: "n1", role: "depends_on" },
+                ],
+            },
+            toolContext: undefined,
+        });
+        expect(result.nodes.map((n: { id: string }) => n.id)).toEqual([
+            "n1",
+            "n1-2",
+            "n1-3",
+        ]);
+        expect(result.edges).toEqual([
+            { from: "n1", to: "n1-2", role: "depends_on" },
+            { from: "n1-2", to: "n1-3", role: "depends_on" },
+        ]);
+    });
 });

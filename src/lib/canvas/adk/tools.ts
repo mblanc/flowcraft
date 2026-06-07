@@ -7,6 +7,7 @@ import {
     VIDEO_RESOLUTIONS,
 } from "@/lib/constants";
 import { MEDIA_OPERATIONS, EDGE_ROLES } from "../types";
+import logger from "@/app/logger";
 
 // Derive valid values directly from constants so there's one source of truth.
 
@@ -152,26 +153,68 @@ export const planProductionTool = new FunctionTool({
     execute: async ({ nodes, edges, clarifications }) => {
         const seen = new Set<string>();
         const idRemap = new Map<string, string>();
+        const idInstances = new Map<string, string[]>();
+        let hasDuplicates = false;
+
         const deduped = nodes.map((node) => {
-            if (!seen.has(node.id)) {
-                seen.add(node.id);
+            const originalId = node.id;
+            if (!seen.has(originalId)) {
+                seen.add(originalId);
+                idInstances.set(originalId, [originalId]);
                 return node;
             }
+            hasDuplicates = true;
             let suffix = 2;
-            while (seen.has(`${node.id}-${suffix}`)) suffix++;
-            const newId = `${node.id}-${suffix}`;
+            while (seen.has(`${originalId}-${suffix}`)) suffix++;
+            const newId = `${originalId}-${suffix}`;
             seen.add(newId);
-            idRemap.set(node.id, newId);
+
+            const instances = idInstances.get(originalId) || [originalId];
+            instances.push(newId);
+            idInstances.set(originalId, instances);
+
+            idRemap.set(originalId, newId);
             return { ...node, id: newId };
         });
+
+        if (hasDuplicates) {
+            logger.warn(
+                `[planProductionTool] Duplicate node IDs detected in production plan: ${JSON.stringify(
+                    nodes.map((n) => n.id),
+                )}. Remapped instances: ${JSON.stringify(
+                    Array.from(idInstances.entries()),
+                )}`,
+            );
+        }
+
+        const selfLoopCounts = new Map<string, number>();
         const remappedEdges =
             idRemap.size === 0
                 ? edges
-                : edges.map((e) => ({
-                      ...e,
-                      from: idRemap.get(e.from) ?? e.from,
-                      to: idRemap.get(e.to) ?? e.to,
-                  }));
+                : edges.map((e) => {
+                      let fromId = idRemap.get(e.from) ?? e.from;
+                      let toId = idRemap.get(e.to) ?? e.to;
+
+                      // Prevent self-loops created by remapping duplicate IDs
+                      if (fromId === toId && e.from === e.to) {
+                          const instances = idInstances.get(e.from);
+                          if (instances && instances.length > 1) {
+                              const count = selfLoopCounts.get(e.from) ?? 0;
+                              selfLoopCounts.set(e.from, count + 1);
+
+                              const idx = count % (instances.length - 1);
+                              fromId = instances[idx];
+                              toId = instances[idx + 1];
+                          }
+                      }
+
+                      return {
+                          ...e,
+                          from: fromId,
+                          to: toId,
+                      };
+                  });
+
         return {
             nodes: deduped,
             edges: remappedEdges,

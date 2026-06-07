@@ -129,7 +129,9 @@ export const LLMNode = memo(
             a.href = URL.createObjectURL(blob);
             a.download = `${data.name || "output"}.txt`;
             a.click();
-            URL.revokeObjectURL(a.href);
+            setTimeout(() => {
+                URL.revokeObjectURL(a.href);
+            }, 100);
         };
 
         const handleModelChange = (newModel: string) => {

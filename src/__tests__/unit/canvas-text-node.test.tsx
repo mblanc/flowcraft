@@ -183,6 +183,7 @@ describe("CanvasTextNode", () => {
     });
 
     it("calls handleDownload when the download button is clicked", () => {
+        vi.useFakeTimers();
         const createObjectURLMock = vi.fn().mockReturnValue("blob:foo");
         const revokeObjectURLMock = vi.fn();
         window.URL.createObjectURL = createObjectURLMock;
@@ -221,8 +222,12 @@ describe("CanvasTextNode", () => {
 
         expect(createObjectURLMock).toHaveBeenCalled();
         expect(clickMock).toHaveBeenCalled();
+
+        // Advance timers to trigger the deferred revokeObjectURL
+        vi.runAllTimers();
         expect(revokeObjectURLMock).toHaveBeenCalled();
 
+        vi.useRealTimers();
         vi.restoreAllMocks();
     });
 });

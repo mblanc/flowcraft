@@ -77,7 +77,8 @@ export function useSignedUrls(gcsUris: (string | undefined)[]) {
 
     useEffect(() => {
         let isMounted = true;
-        const uris = gcsUris.filter(
+        const parsedUris: (string | undefined)[] = JSON.parse(urisKey);
+        const uris = parsedUris.filter(
             (u): u is string => typeof u === "string" && u.startsWith("gs://"),
         );
         const uncached = uris.filter((uri) => !getCachedSignedUrl(uri));
@@ -101,7 +102,7 @@ export function useSignedUrls(gcsUris: (string | undefined)[]) {
         return () => {
             isMounted = false;
         };
-    }, [urisKey, gcsUris]);
+    }, [urisKey]);
 
     return signedUrls;
 }

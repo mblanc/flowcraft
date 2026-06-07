@@ -136,7 +136,9 @@ export const TextNode = memo(
             a.href = URL.createObjectURL(blob);
             a.download = `${data.name || "text"}.txt`;
             a.click();
-            URL.revokeObjectURL(a.href);
+            setTimeout(() => {
+                URL.revokeObjectURL(a.href);
+            }, 100);
         };
 
         const handleWheel = (e: React.WheelEvent<HTMLTextAreaElement>) => {
