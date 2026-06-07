@@ -226,15 +226,15 @@ function applyTypeDefaults(
                       (videoDefaults as VideoDefaults | undefined)
                           ?.generateAudio ??
                       false,
-                  ...((step.duration ??
-                  (videoDefaults as VideoDefaults | undefined)?.duration)
-                      ? {
-                            duration:
-                                step.duration ??
-                                (videoDefaults as VideoDefaults | undefined)
-                                    ?.duration,
-                        }
-                      : {}),
+                  ...(() => {
+                      const raw =
+                          step.duration ??
+                          (videoDefaults as VideoDefaults | undefined)
+                              ?.duration;
+                      const valid =
+                          raw && [4, 6, 8].includes(raw) ? raw : undefined;
+                      return valid ? { duration: valid } : {};
+                  })(),
               }
             : {}),
     };

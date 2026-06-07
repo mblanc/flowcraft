@@ -33,7 +33,7 @@ const videoStepSchema = z.object({
     aspectRatio: z.string().optional(),
     resolution: z.string().optional(),
     model: z.enum(VIDEO_MODELS).optional(),
-    duration: z.number().optional(),
+    duration: z.union([z.literal(4), z.literal(6), z.literal(8)]).optional(),
     generateAudio: z.boolean().optional(),
     referenceNodeIds: z.array(z.string()).optional(),
     firstFrameNodeId: z.string().optional(),
