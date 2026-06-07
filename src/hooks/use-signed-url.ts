@@ -48,3 +48,60 @@ export function useSignedUrl(gcsUri: string | undefined) {
 
     return { signedUrl: asyncSignedUrl, displayUrl };
 }
+
+export function useSignedUrls(gcsUris: (string | undefined)[]) {
+    const urisKey = JSON.stringify(gcsUris);
+    const [signedUrls, setSignedUrls] = useState<Record<string, string>>(() => {
+        const initial: Record<string, string> = {};
+        for (const uri of gcsUris) {
+            if (uri && uri.startsWith("gs://")) {
+                const cached = getCachedSignedUrl(uri);
+                if (cached) initial[uri] = cached;
+            }
+        }
+        return initial;
+    });
+    const [prevUrisKey, setPrevUrisKey] = useState(urisKey);
+
+    if (urisKey !== prevUrisKey) {
+        setPrevUrisKey(urisKey);
+        const initial: Record<string, string> = {};
+        for (const uri of gcsUris) {
+            if (uri && uri.startsWith("gs://")) {
+                const cached = getCachedSignedUrl(uri);
+                if (cached) initial[uri] = cached;
+            }
+        }
+        setSignedUrls(initial);
+    }
+
+    useEffect(() => {
+        let isMounted = true;
+        const uris = gcsUris.filter(
+            (u): u is string => typeof u === "string" && u.startsWith("gs://"),
+        );
+        const uncached = uris.filter((uri) => !getCachedSignedUrl(uri));
+        if (uncached.length === 0) return;
+
+        // Fetch remaining signed URLs concurrently (cache deduplicates in-flight calls)
+        Promise.all(
+            uncached.map(async (uri) => {
+                const url = await fetchAndCacheSignedUrl(uri);
+                return { uri, url };
+            }),
+        ).then((results) => {
+            if (!isMounted) return;
+            const newUrls: Record<string, string> = {};
+            for (const { uri, url } of results) {
+                if (url) newUrls[uri] = url;
+            }
+            setSignedUrls((prev) => ({ ...prev, ...newUrls }));
+        });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [urisKey, gcsUris]);
+
+    return signedUrls;
+}
