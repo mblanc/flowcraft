@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { Header } from "../components/flow/header";
-import { TooltipProvider } from "../components/ui/tooltip";
+import { Header } from "../../components/flow/header";
+import { TooltipProvider } from "../../components/ui/tooltip";
 
 vi.mock("next-auth/react", () => ({
     useSession: vi.fn(() => ({
@@ -16,7 +16,7 @@ vi.mock("next/navigation", () => ({
     usePathname: () => "/",
 }));
 
-vi.mock("../lib/store/use-flow-store", () => ({
+vi.mock("../../lib/store/use-flow-store", () => ({
     useFlowStore: vi.fn((selector: any) =>
         selector({
             flowId: "flow-1",

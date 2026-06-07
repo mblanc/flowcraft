@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useFlowExecution } from "../hooks/use-flow-execution";
-import { useFlowStore } from "../lib/store/use-flow-store";
+import { useFlowExecution } from "../../hooks/use-flow-execution";
+import { useFlowStore } from "../../lib/store/use-flow-store";
 
-vi.mock("../lib/store/use-flow-store", () => ({
+vi.mock("../../lib/store/use-flow-store", () => ({
     useFlowStore: Object.assign(vi.fn(), {
         getState: vi.fn(() => ({
             nodes: [{ id: "1", selected: true }],
@@ -15,7 +15,7 @@ vi.mock("../lib/store/use-flow-store", () => ({
 }));
 
 // Mock the WorkflowEngine
-vi.mock("../lib/workflow-engine", () => ({
+vi.mock("../../lib/workflow-engine", () => ({
     WorkflowEngine: vi.fn().mockImplementation(() => ({
         run: vi.fn().mockResolvedValue(undefined),
         executeNode: vi.fn().mockResolvedValue(undefined),

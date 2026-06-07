@@ -30,7 +30,7 @@ vi.mock("@/components/flow-canvas/flow-constants", () => ({
 
 vi.mock("uuid", () => ({ v4: () => "mock-uuid" }));
 
-import { useNodeConnection } from "../hooks/use-node-connection";
+import { useNodeConnection } from "../../hooks/use-node-connection";
 
 describe("useNodeConnection", () => {
     beforeEach(() => {

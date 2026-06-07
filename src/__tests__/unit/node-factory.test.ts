@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createNode } from "../lib/node-factory";
+import { createNode } from "../../lib/node-factory";
 import {
     LLMData,
     TextData,
@@ -12,7 +12,7 @@ import {
     WorkflowOutputData,
     CustomWorkflowData,
     NodeType,
-} from "../lib/types";
+} from "../../lib/types";
 
 describe("Node Factory", () => {
     it("should create an llm node with correct defaults", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { FlowService } from "../lib/services/flow.service";
-import { COLLECTIONS } from "../lib/constants";
+import { FlowService } from "../../lib/services/flow.service";
+import { COLLECTIONS } from "../../lib/constants";
 
 // Mock Firestore
 const { mockCollection, mockDoc, mockGet, mockAdd, mockUpdate, mockDelete } =

@@ -19,7 +19,7 @@ vi.mock("@/app/logger", () => ({
     default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-import { useFlowDragDrop } from "../hooks/use-flow-drag-drop";
+import { useFlowDragDrop } from "../../hooks/use-flow-drag-drop";
 
 function makeDragEvent(overrides: Partial<DragEvent> = {}): React.DragEvent {
     return {

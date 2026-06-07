@@ -1,36 +1,34 @@
 /**
- * Integration test: "pirate 2 variations + animate"
+ * Eval: "pirate 2 variations + animate"
  *
- * Uses the REAL LLM (Vertex AI / Gemini) to verify that both Agent A and
- * Agent B produce a sensible 4-step plan for:
+ * Verifies that both Agent A and Agent B produce a sensible 4-step plan for:
  *   "This guy as a pirate from the Caribbean, 2 variations, 9:16, then animate them"
  *
  * Expected plan shape:
- *   2 × image steps (i2i from a ref portrait, 9:16 aspect ratio)
+ *   2 × image steps (i2i from ref portrait, 9:16)
  *   2 × video steps (animate each image, 9:16, valid duration)
  *
- * Run locally:
- *   INTEGRATION=true npx vitest run eval-pirate-plan.integration
+ * Run:
+ *   bun run test:eval
  *
- * Requires Google ADC credentials (gcloud auth application-default login)
- * and a reachable Vertex AI project.
- *
- * Skipped automatically in normal `vitest run` to keep the CI suite fast.
+ * Requires Google ADC credentials and PROJECT_ID / LOCATION env vars.
+ * Tests are skipped automatically when PROJECT_ID is not set.
  */
 
 import { describe, it, expect, vi } from "vitest";
-import type { GenerationStep } from "../lib/canvas/types";
+import type { GenerationStep } from "../../lib/canvas/types";
 
-// Provide real project coordinates for Vertex AI.
-// LOCATION must be a real region — "global" is not valid for Gemini on Vertex.
 vi.mock("@/lib/config", () => ({
-    config: { PROJECT_ID: "my-first-project-199607", LOCATION: "global" },
+    config: {
+        PROJECT_ID: process.env.PROJECT_ID ?? "",
+        LOCATION: process.env.LOCATION ?? "global",
+    },
 }));
 
-import { CanvasAgentRunner } from "../lib/canvas/adk/runner";
-import type { AgentEvent, AgentInput } from "../lib/canvas/agent";
-import type { CanvasNode } from "../lib/canvas/types";
-import { MODELS } from "../lib/constants";
+import { CanvasAgentRunner } from "../../lib/canvas/adk/runner";
+import type { AgentEvent, AgentInput } from "../../lib/canvas/agent";
+import type { CanvasNode } from "../../lib/canvas/types";
+import { MODELS } from "../../lib/constants";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -94,7 +92,6 @@ function getPlan(events: AgentEvent[]): GenerationStep[] {
 
 // ─── fixtures ────────────────────────────────────────────────────────────────
 
-/** A real portrait image in the project's GCS bucket used as the ref */
 const REF_GCS_URI =
     "gs://storycraft-perso/01089de2-b8b5-4b13-91a6-afaa17f1a58a.jpeg";
 const REF_NODE_ID = "canvas_portrait_ref";
@@ -153,11 +150,11 @@ function assertValidPlanShape(steps: GenerationStep[]) {
     }
 }
 
-const isIntegration = process.env.INTEGRATION === "true";
+const hasCredentials = !!process.env.PROJECT_ID;
 
 // ─── Agent A ─────────────────────────────────────────────────────────────────
 
-describe.runIf(isIntegration)("Integration: pirate plan — Agent A", () => {
+describe.runIf(hasCredentials)("Eval: pirate plan — Agent A", () => {
     it(
         "produces 2 image + 2 video steps, 9:16, valid durations",
         { timeout: 120_000 },
@@ -180,7 +177,6 @@ describe.runIf(isIntegration)("Integration: pirate plan — Agent A", () => {
                 ],
                 imageDefaults: { aspectRatio: "9:16" },
                 videoDefaults: { aspectRatio: "9:16", duration: 6 },
-                // Unique session so tests don't share ADK conversation history
                 canvasId: "eval-agent-a-plan",
                 userId: "eval-user",
             };
@@ -198,7 +194,6 @@ describe.runIf(isIntegration)("Integration: pirate plan — Agent A", () => {
 
             assertValidPlanShape(steps);
 
-            // The ref portrait should be wired into at least one image step
             const imageSteps = steps.filter((s) => s.type === "image");
             const anyRefUsed = imageSteps.some(
                 (s) =>
@@ -235,8 +230,6 @@ describe.runIf(isIntegration)("Integration: pirate plan — Agent A", () => {
 
         const events = await collectEvents(runner, input);
         const actionsEvent = events.find((e) => e.type === "actions");
-        // suggest_actions is best-effort — the model occasionally omits it when
-        // the plan is complex. Log but don't hard-fail.
         if (!actionsEvent) {
             console.warn(
                 "[eval] suggest_actions was not emitted — model may have skipped it",
@@ -252,139 +245,136 @@ describe.runIf(isIntegration)("Integration: pirate plan — Agent A", () => {
 
 // ─── Agent B (Director) ───────────────────────────────────────────────────────
 
-describe.runIf(isIntegration)(
-    "Integration: pirate plan — Agent B (Director)",
-    () => {
-        it(
-            "produces 2 image + 2 video steps, 9:16, valid durations",
-            { timeout: 120_000 },
-            async () => {
-                const runner = new CanvasAgentRunner();
+describe.runIf(hasCredentials)("Eval: pirate plan — Agent B (Director)", () => {
+    it(
+        "produces 2 image + 2 video steps, 9:16, valid durations",
+        { timeout: 120_000 },
+        async () => {
+            const runner = new CanvasAgentRunner();
 
-                const input: AgentInput = {
-                    message: USER_MESSAGE,
-                    mode: "auto",
-                    agentVariant: "b",
-                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
-                    history: [],
-                    canvasNodes: [refCanvasNode],
-                    attachments: [
-                        {
-                            nodeId: REF_NODE_ID,
-                            label: "Guy Portrait",
-                            type: "canvas-image",
-                        },
-                    ],
-                    imageDefaults: { aspectRatio: "9:16" },
-                    videoDefaults: { aspectRatio: "9:16", duration: 6 },
-                    canvasId: "eval-agent-b-plan",
-                    userId: "eval-user",
-                };
+            const input: AgentInput = {
+                message: USER_MESSAGE,
+                mode: "auto",
+                agentVariant: "b",
+                model: MODELS.TEXT.GEMINI_3_5_FLASH,
+                history: [],
+                canvasNodes: [refCanvasNode],
+                attachments: [
+                    {
+                        nodeId: REF_NODE_ID,
+                        label: "Guy Portrait",
+                        type: "canvas-image",
+                    },
+                ],
+                imageDefaults: { aspectRatio: "9:16" },
+                videoDefaults: { aspectRatio: "9:16", duration: 6 },
+                canvasId: "eval-agent-b-plan",
+                userId: "eval-user",
+            };
 
-                const events = await collectEvents(runner, input);
+            const events = await collectEvents(runner, input);
 
-                const errorEvents = events.filter((e) => e.type === "error");
-                expect(
-                    errorEvents,
-                    `ADK errors: ${JSON.stringify(errorEvents)}`,
-                ).toHaveLength(0);
+            const errorEvents = events.filter((e) => e.type === "error");
+            expect(
+                errorEvents,
+                `ADK errors: ${JSON.stringify(errorEvents)}`,
+            ).toHaveLength(0);
 
-                const steps = getPlan(events);
-                expect(steps.length, "no plan was produced").toBeGreaterThan(0);
+            const steps = getPlan(events);
+            expect(steps.length, "no plan was produced").toBeGreaterThan(0);
 
-                assertValidPlanShape(steps);
-            },
-        );
+            assertValidPlanShape(steps);
+        },
+    );
 
-        it(
-            "video steps have duration from valid set (never 5)",
-            { timeout: 120_000 },
-            async () => {
-                const runner = new CanvasAgentRunner();
+    it(
+        "video steps have duration from valid set (never 5)",
+        { timeout: 120_000 },
+        async () => {
+            const runner = new CanvasAgentRunner();
 
-                const input: AgentInput = {
-                    message: USER_MESSAGE,
-                    mode: "auto",
-                    agentVariant: "b",
-                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
-                    history: [],
-                    canvasNodes: [refCanvasNode],
-                    attachments: [
-                        {
-                            nodeId: REF_NODE_ID,
-                            label: "Guy Portrait",
-                            type: "canvas-image",
-                        },
-                    ],
-                    videoDefaults: { duration: 6 },
-                    canvasId: "eval-agent-b-duration",
-                    userId: "eval-user",
-                };
+            const input: AgentInput = {
+                message: USER_MESSAGE,
+                mode: "auto",
+                agentVariant: "b",
+                model: MODELS.TEXT.GEMINI_3_5_FLASH,
+                history: [],
+                canvasNodes: [refCanvasNode],
+                attachments: [
+                    {
+                        nodeId: REF_NODE_ID,
+                        label: "Guy Portrait",
+                        type: "canvas-image",
+                    },
+                ],
+                videoDefaults: { duration: 6 },
+                canvasId: "eval-agent-b-duration",
+                userId: "eval-user",
+            };
 
-                const events = await collectEvents(runner, input);
-                const steps = getPlan(events);
-                const videoSteps = steps.filter((s) => s.type === "video");
+            const events = await collectEvents(runner, input);
+            const steps = getPlan(events);
+            const videoSteps = steps.filter((s) => s.type === "video");
 
-                for (const step of videoSteps) {
-                    if (step.duration !== undefined) {
-                        expect([4, 6, 8]).toContain(step.duration);
-                        expect(step.duration).not.toBe(5);
-                    }
+            for (const step of videoSteps) {
+                if (step.duration !== undefined) {
+                    expect([4, 6, 8]).toContain(step.duration);
+                    expect(step.duration).not.toBe(5);
                 }
-            },
-        );
+            }
+        },
+    );
 
-        it(
-            "does not use hallucinated node IDs in firstFrameNodeId",
-            { timeout: 120_000 },
-            async () => {
-                const runner = new CanvasAgentRunner();
+    it(
+        "does not use hallucinated node IDs in firstFrameNodeId",
+        { timeout: 120_000 },
+        async () => {
+            const runner = new CanvasAgentRunner();
 
-                const input: AgentInput = {
-                    message: USER_MESSAGE,
-                    mode: "auto",
-                    agentVariant: "b",
-                    model: MODELS.TEXT.GEMINI_3_5_FLASH,
-                    history: [],
-                    canvasNodes: [refCanvasNode],
-                    attachments: [
-                        {
-                            nodeId: REF_NODE_ID,
-                            label: "Guy Portrait",
-                            type: "canvas-image",
-                        },
-                    ],
-                    canvasId: "eval-agent-b-nodeids",
-                    userId: "eval-user",
-                };
+            const input: AgentInput = {
+                message: USER_MESSAGE,
+                mode: "auto",
+                agentVariant: "b",
+                model: MODELS.TEXT.GEMINI_3_5_FLASH,
+                history: [],
+                canvasNodes: [refCanvasNode],
+                attachments: [
+                    {
+                        nodeId: REF_NODE_ID,
+                        label: "Guy Portrait",
+                        type: "canvas-image",
+                    },
+                ],
+                canvasId: "eval-agent-b-nodeids",
+                userId: "eval-user",
+            };
 
-                const events = await collectEvents(runner, input);
-                const steps = getPlan(events);
-                const validIds = new Set([REF_NODE_ID]);
+            const events = await collectEvents(runner, input);
+            const steps = getPlan(events);
+            const validIds = new Set([REF_NODE_ID]);
 
-                for (const step of steps) {
-                    if (step.firstFrameNodeId) {
+            for (const step of steps) {
+                if (step.firstFrameNodeId) {
+                    expect(
+                        validIds.has(step.firstFrameNodeId),
+                        `firstFrameNodeId "${step.firstFrameNodeId}" is not a real canvas node`,
+                    ).toBe(true);
+                }
+                if (step.lastFrameNodeId) {
+                    expect(
+                        validIds.has(step.lastFrameNodeId),
+                        `lastFrameNodeId "${step.lastFrameNodeId}" is not a real canvas node`,
+                    ).toBe(true);
+                }
+                if (step.referenceNodeIds) {
+                    for (const refId of step.referenceNodeIds) {
                         expect(
-                            validIds.has(step.firstFrameNodeId),
-                            `firstFrameNodeId "${step.firstFrameNodeId}" is not a real canvas node`,
+                            validIds.has(refId),
+                            `referenceNodeId "${refId}" is not a real canvas node`,
                         ).toBe(true);
                     }
-                    if (step.lastFrameNodeId) {
-                        expect(
-                            validIds.has(step.lastFrameNodeId),
-                            `lastFrameNodeId "${step.lastFrameNodeId}" is not a real canvas node`,
-                        ).toBe(true);
-                    }
-                    if (step.referenceNodeIds) {
-                        for (const refId of step.referenceNodeIds) {
-                            expect(
-                                validIds.has(refId),
-                                `referenceNodeId "${refId}" is not a real canvas node`,
-                            ).toBe(true);
-                        }
-                    }
                 }
-            },
-        );
-    },
-);
+            }
+        },
+    );
+});

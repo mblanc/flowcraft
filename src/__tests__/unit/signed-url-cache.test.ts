@@ -4,7 +4,7 @@ import {
     fetchAndCacheSignedUrl,
     invalidateSignedUrl,
     clearSignedUrlCache,
-} from "../lib/cache/signed-url-cache";
+} from "../../lib/cache/signed-url-cache";
 
 describe("signed-url-cache", () => {
     beforeEach(() => {

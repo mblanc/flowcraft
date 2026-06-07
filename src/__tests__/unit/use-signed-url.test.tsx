@@ -13,7 +13,7 @@ vi.mock("@/app/logger", () => ({
     default: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }));
 
-import { useSignedUrl } from "../hooks/use-signed-url";
+import { useSignedUrl } from "../../hooks/use-signed-url";
 
 describe("useSignedUrl", () => {
     beforeEach(() => {

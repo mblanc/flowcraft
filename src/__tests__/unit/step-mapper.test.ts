@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/app/logger", () => ({
     default: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
-vi.mock("../lib/canvas/agent", () => ({
+vi.mock("../../lib/canvas/agent", () => ({
     applyVideoFallback: vi.fn((step: unknown) => step),
 }));
 
@@ -14,8 +14,8 @@ import {
     mapPlanNodesToSteps,
     VALID_IMAGE_MODELS,
     VALID_VIDEO_MODELS,
-} from "../lib/canvas/adk/step-mapper";
-import type { GenerationStep, PlanNode } from "../lib/canvas/types";
+} from "../../lib/canvas/adk/step-mapper";
+import type { GenerationStep, PlanNode } from "../../lib/canvas/types";
 
 const mockWarn = vi.mocked(logger.warn);
 

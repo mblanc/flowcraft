@@ -8,7 +8,7 @@ vi.mock("@/lib/store/use-flow-store", () => ({
         selector({ updateNodeData: mockUpdateNodeData }),
 }));
 
-import { useNodeResize } from "../hooks/use-node-resize";
+import { useNodeResize } from "../../hooks/use-node-resize";
 
 describe("useNodeResize", () => {
     beforeEach(() => {

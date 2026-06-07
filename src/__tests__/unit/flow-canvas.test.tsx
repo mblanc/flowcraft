@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { FlowCanvas } from "../components/flow/flow-canvas";
-import { TooltipProvider } from "../components/ui/tooltip";
+import { FlowCanvas } from "../../components/flow/flow-canvas";
+import { TooltipProvider } from "../../components/ui/tooltip";
 
 vi.mock("@xyflow/react/dist/style.css", () => ({}));
 
@@ -14,7 +14,7 @@ vi.mock("next-themes", () => ({
     useTheme: vi.fn(() => ({ resolvedTheme: "dark" })),
 }));
 
-vi.mock("../lib/store/use-flow-store", () => ({
+vi.mock("../../lib/store/use-flow-store", () => ({
     useFlowStore: vi.fn((selector: any) =>
         selector({
             nodes: [],

@@ -8,7 +8,7 @@ vi.mock("@/lib/store/use-flow-store", () => ({
         mockUseFlowStore(selector),
 }));
 
-import { useConnectedSourceNodes } from "../hooks/use-connected-source-nodes";
+import { useConnectedSourceNodes } from "../../hooks/use-connected-source-nodes";
 
 type MockState = {
     edges: Array<{

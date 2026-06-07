@@ -12,9 +12,9 @@
  *   assertEvalPasses(results);  // throws if any case is below threshold
  */
 
-import type { CanvasAgentRunner } from "../lib/canvas/adk/runner";
-import type { AgentEvent, AgentInput } from "../lib/canvas/agent";
-import type { GenerationStep } from "../lib/canvas/types";
+import type { CanvasAgentRunner } from "../../lib/canvas/adk/runner";
+import type { AgentEvent, AgentInput } from "../../lib/canvas/agent";
+import type { GenerationStep } from "../../lib/canvas/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -120,7 +120,8 @@ export const criteria = {
                     return 0;
                 if (s.lastFrameNodeId && !valid.has(s.lastFrameNodeId))
                     return 0;
-                if (s.referenceNodeIds?.some((id) => !valid.has(id))) return 0;
+                if (s.referenceNodeIds?.some((id: string) => !valid.has(id)))
+                    return 0;
             }
             return 1;
         },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { planProductionTool } from "../lib/canvas/adk/tools";
+import { planProductionTool } from "../../lib/canvas/adk/tools";
 
 describe("planProductionTool", () => {
     it("accepts a minimal plan with one t2i node and no edges", async () => {

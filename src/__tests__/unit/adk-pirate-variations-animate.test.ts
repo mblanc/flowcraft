@@ -16,14 +16,14 @@
 
 import { describe, it, expect, vi } from "vitest";
 import type { Event } from "@google/adk";
-import type { PlanNode, PlanEdge } from "../lib/canvas/types";
+import type { PlanNode, PlanEdge } from "../../lib/canvas/types";
 
 vi.mock("@/lib/config", () => ({
     config: { PROJECT_ID: "test-project", LOCATION: "us-central1" },
 }));
 
-import { extractAgentEvents } from "../lib/canvas/adk/runner";
-import type { ChatAttachment } from "../lib/canvas/types";
+import { extractAgentEvents } from "../../lib/canvas/adk/runner";
+import type { ChatAttachment } from "../../lib/canvas/types";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

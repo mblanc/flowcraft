@@ -2,13 +2,15 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
+const alias = { "@": path.resolve(__dirname, "./src") };
+
 export default defineConfig({
     plugins: [react()],
     test: {
         environment: "jsdom",
         globals: true,
         setupFiles: ["./vitest.setup.ts"],
-        include: ["**/*.test.{ts,tsx}"],
+        include: ["src/__tests__/unit/**/*.test.{ts,tsx}"],
         testTimeout: 15000,
         coverage: {
             provider: "v8",
@@ -24,9 +26,5 @@ export default defineConfig({
             },
         },
     },
-    resolve: {
-        alias: {
-            "@": path.resolve(__dirname, "./src"),
-        },
-    },
+    resolve: { alias },
 });

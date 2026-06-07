@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { applyVideoFallback } from "../lib/canvas/agent";
-import type { GenerationStep, ChatAttachment } from "../lib/canvas/types";
+import { applyVideoFallback } from "../../lib/canvas/agent";
+import type { GenerationStep, ChatAttachment } from "../../lib/canvas/types";
 
 describe("applyVideoFallback", () => {
     it("should assign firstFrameNodeId when there is 1 attachment", () => {

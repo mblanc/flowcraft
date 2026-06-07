@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { withRetry } from "../lib/utils/retry";
+import { withRetry } from "../../lib/utils/retry";
 
 const mockLogger = vi.hoisted(() => ({
     warn: vi.fn(),

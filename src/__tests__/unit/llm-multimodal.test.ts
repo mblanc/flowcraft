@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
-import { WorkflowEngine } from "../lib/workflow-engine";
+import { WorkflowEngine } from "../../lib/workflow-engine";
 import { Node, Edge } from "@xyflow/react";
-import { NodeData, LLMData, FileData, VideoData } from "../lib/types";
-import { MODELS } from "../lib/constants";
+import { NodeData, LLMData, FileData, VideoData } from "../../lib/types";
+import { MODELS } from "../../lib/constants";
 
 // Mock geminiService
-vi.mock("../lib/services/gemini.service", () => ({
+vi.mock("../../lib/services/gemini.service", () => ({
     geminiService: {
         generateText: vi.fn(),
     },

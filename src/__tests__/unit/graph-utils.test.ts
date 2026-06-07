@@ -4,7 +4,7 @@ import {
     detectRecursiveCycle,
     GraphNode,
     GraphEdge,
-} from "../lib/utils/graph";
+} from "../../lib/utils/graph";
 
 describe("Graph Utils - Cycle Detection", () => {
     it("should return false for an empty graph", () => {

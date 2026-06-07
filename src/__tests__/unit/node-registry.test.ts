@@ -3,7 +3,7 @@ import {
     getNodeDefinition,
     getSourcePortType,
     getTargetPortType,
-} from "../lib/node-registry";
+} from "../../lib/node-registry";
 import { Node, Edge } from "@xyflow/react";
 import {
     NodeData,
@@ -14,8 +14,8 @@ import {
     ResizeData,
     UpscaleData,
     WorkflowOutputData,
-} from "../lib/types";
-import { MODELS } from "../lib/constants";
+} from "../../lib/types";
+import { MODELS } from "../../lib/constants";
 
 describe("NodeRegistry - Node Definitions", () => {
     it("should retrieve workflow-input definition", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isTypeCompatible } from "../lib/utils";
+import { isTypeCompatible } from "../../lib/utils";
 
 describe("Type Compatibility Utility", () => {
     it("should allow same types", () => {

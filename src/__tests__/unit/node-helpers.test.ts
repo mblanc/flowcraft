@@ -6,8 +6,8 @@ import {
     buildFileValues,
     createNamedNodesTracker,
     findInputByHandle,
-} from "../lib/nodes/shared/node-helpers";
-import type { NodeData } from "../lib/types";
+} from "../../lib/nodes/shared/node-helpers";
+import type { NodeData } from "../../lib/types";
 
 // Helper to create minimal NodeData fixtures
 function makeData(type: string, extra: Record<string, unknown> = {}): NodeData {

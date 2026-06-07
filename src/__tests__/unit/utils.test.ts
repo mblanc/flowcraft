@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { cn, shallowEqual } from "../lib/utils";
-import { isTypeCompatible } from "../lib/utils";
+import { cn, shallowEqual } from "../../lib/utils";
+import { isTypeCompatible } from "../../lib/utils";
 
 describe("cn", () => {
     it("merges class names", () => {

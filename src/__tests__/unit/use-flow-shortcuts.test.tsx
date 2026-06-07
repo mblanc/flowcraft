@@ -24,7 +24,7 @@ vi.mock("@/app/logger", () => ({
 
 vi.mock("uuid", () => ({ v4: () => "mock-uuid" }));
 
-import { useFlowShortcuts } from "../hooks/use-flow-shortcuts";
+import { useFlowShortcuts } from "../../hooks/use-flow-shortcuts";
 
 describe("useFlowShortcuts", () => {
     beforeEach(() => {

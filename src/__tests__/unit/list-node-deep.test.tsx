@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
-import { ListNode } from "../components/nodes/list-node";
+import { ListNode } from "../../components/nodes/list-node";
 import { ReactFlowProvider } from "@xyflow/react";
-import { TooltipProvider } from "../components/ui/tooltip";
+import { TooltipProvider } from "../../components/ui/tooltip";
 
 vi.mock("@/lib/store/use-flow-store", () => ({
     useFlowStore: Object.assign(

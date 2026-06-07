@@ -3,7 +3,7 @@ import {
     planImageGenerationTool,
     planVideoGenerationTool,
     suggestActionsTool,
-} from "../lib/canvas/adk/tools";
+} from "../../lib/canvas/adk/tools";
 
 describe("planImageGenerationTool", () => {
     it("validates and returns image steps", async () => {

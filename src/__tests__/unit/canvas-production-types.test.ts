@@ -6,7 +6,7 @@ import type {
     PlanEdge,
     ProductionPlan,
     ResolvedPlanNode,
-} from "../lib/canvas/types";
+} from "../../lib/canvas/types";
 
 describe("ProductionPlan types", () => {
     it("PlanNode accepts all required and optional fields", () => {

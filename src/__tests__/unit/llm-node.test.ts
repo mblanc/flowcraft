@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { LLMDataSchema } from "../lib/schemas";
-import { LLMNode } from "../components/nodes/llm-node";
-import { migrateNodes } from "../lib/migration";
-import { executeLLMNode } from "../lib/executors";
+import { LLMDataSchema } from "../../lib/schemas";
+import { LLMNode } from "../../components/nodes/llm-node";
+import { migrateNodes } from "../../lib/migration";
+import { executeLLMNode } from "../../lib/executors";
 import { Node } from "@xyflow/react";
-import { LLMData } from "../lib/types";
-import { MODELS } from "../lib/constants";
+import { LLMData } from "../../lib/types";
+import { MODELS } from "../../lib/constants";
 
 describe("LLMNode Refactoring", () => {
     it("should have LLMDataSchema defined", () => {
