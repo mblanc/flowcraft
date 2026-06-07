@@ -45,6 +45,12 @@ export const upscaleNodeDefinition: NodeDefinition<UpscaleData, NodeInputs> = {
     outputs: {
         "result-output": "image",
     },
+    defaultData: {
+        type: "upscale",
+        name: "Upscale",
+        image: "",
+        upscaleFactor: "x2",
+    },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { namedNodes: [] };
         const edge = edges.find(

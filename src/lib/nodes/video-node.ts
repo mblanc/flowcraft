@@ -7,6 +7,7 @@ import {
     NodeDefinition,
     ExecutionContext,
 } from "../types";
+import { MODELS, DEFAULTS } from "../constants";
 import {
     getSourceValue,
     isCollectionSource,
@@ -83,6 +84,17 @@ export const videoNodeDefinition: NodeDefinition<VideoData, NodeInputs> = {
     },
     outputs: {
         "result-output": "video",
+    },
+    defaultData: {
+        type: "video",
+        name: "Video",
+        prompt: "",
+        images: [],
+        aspectRatio: DEFAULTS.ASPECT_RATIO,
+        duration: DEFAULTS.VIDEO_DURATION,
+        model: MODELS.VIDEO.VEO_3_1_LITE,
+        generateAudio: false,
+        resolution: "720p",
     },
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: NodeInputs = { images: [], namedNodes: [] };

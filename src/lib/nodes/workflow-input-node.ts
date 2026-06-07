@@ -5,6 +5,14 @@ export const workflowInputNodeDefinition: NodeDefinition<
     NodeInputs
 > = {
     type: "workflow-input",
+    defaultData: {
+        type: "workflow-input",
+        name: "Workflow Input",
+        portName: "input",
+        portType: "text",
+        portRequired: true,
+    },
+    getSourcePortType: (node) => node.data.portType,
     gatherInputs: () => ({}),
     execute: async () => ({}),
 };

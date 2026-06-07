@@ -5,6 +5,15 @@ export const customWorkflowNodeDefinition: NodeDefinition<
     NodeInputs
 > = {
     type: "custom-workflow",
+    defaultData: {
+        type: "custom-workflow",
+        name: "Custom Workflow",
+        subWorkflowId: "",
+    },
+    getSourcePortType: (node, handleId) =>
+        node.data.outputs?.[handleId || ""] || "any",
+    getTargetPortType: (node, handleId) =>
+        node.data.inputs?.[handleId || ""] || "any",
     gatherInputs: (node, edges, getSourceData) => {
         const inputs: Record<string, unknown> = {};
         const inputEdges = edges.filter((e) => e.target === node.id);
