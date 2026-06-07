@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useEffect, useRef } from "react";
+import { useMemo, useCallback, useEffect, useRef, useState } from "react";
 import {
     ReactFlow,
     Controls,
@@ -18,6 +18,7 @@ import { CanvasImageNode } from "./nodes/canvas-image-node";
 import { CanvasVideoNode } from "./nodes/canvas-video-node";
 import { CanvasTextNode } from "./nodes/canvas-text-node";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
+import { useCanvasDragDrop } from "@/hooks/use-canvas-drag-drop";
 
 const canvasNodeTypes = {
     "canvas-image": CanvasImageNode,
@@ -28,6 +29,9 @@ const canvasNodeTypes = {
 export function CanvasEditor() {
     const { resolvedTheme } = useTheme();
     const rfInstanceRef = useRef<ReactFlowInstance | null>(null);
+    const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(
+        null,
+    );
 
     const nodes = useCanvasStore((s) => s.nodes);
     const onNodesChange = useCanvasStore((s) => s.onNodesChange);
@@ -35,9 +39,12 @@ export function CanvasEditor() {
     const removeSelectedNodes = useCanvasStore((s) => s.removeSelectedNodes);
     const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
 
+    const { onDragOver, onDrop } = useCanvasDragDrop(rfInstance);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleInit = useCallback((instance: ReactFlowInstance<any>) => {
         rfInstanceRef.current = instance as ReactFlowInstance;
+        setRfInstance(instance as ReactFlowInstance);
     }, []);
 
     const handleMoveEnd = useCallback(
@@ -118,6 +125,8 @@ export function CanvasEditor() {
                         onInit={handleInit}
                         onMoveEnd={handleMoveEnd}
                         onPaneClick={handlePaneClick}
+                        onDragOver={onDragOver}
+                        onDrop={onDrop}
                         selectionOnDrag
                         selectionMode={SelectionMode.Partial}
                         panOnDrag={[2]}
