@@ -1,9 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { GoogleGenAI, createPartFromText } from "@google/genai";
 import logger from "@/app/logger";
-import { config } from "@/lib/config";
 import { MODELS } from "@/lib/constants";
+import { geminiService } from "@/lib/services/gemini.service";
 import type { GenerationStep } from "../types";
 import type { CanvasNode } from "../types";
 
@@ -24,17 +23,11 @@ Rules:
 - Output ONLY the final prompt text. No preamble, no explanation, no section headers, no markdown.`;
 
 export class PromptEngineer {
-    private readonly genAI: GoogleGenAI;
     private readonly skillsDir: string;
     private readonly skillCache: Map<string, string> = new Map();
 
     constructor(skillsDir: string) {
         this.skillsDir = skillsDir;
-        this.genAI = new GoogleGenAI({
-            vertexai: true,
-            project: config.PROJECT_ID,
-            location: config.LOCATION,
-        });
     }
 
     private loadSkill(skillName: string): string {
@@ -128,19 +121,13 @@ export class PromptEngineer {
         const request = this.buildRequest(step, canvasNodes, activeStyle);
 
         try {
-            const result = await this.genAI.models.generateContent({
+            const text = await geminiService.generateText({
                 model: MODELS.TEXT.GEMINI_3_5_FLASH,
-                config: {
-                    systemInstruction: INSTRUCTION,
-                    thinkingConfig: { thinkingBudget: 0 },
-                },
-                contents: [
-                    { role: "user", parts: [createPartFromText(request)] },
-                ],
+                prompts: [request],
+                systemInstruction: INSTRUCTION,
+                thinkingLevel: "OFF",
             });
-            const text = result.text?.trim();
-            if (!text) throw new Error("empty response");
-            return text;
+            return text.trim();
         } catch (err) {
             logger.error(
                 `[PromptEngineer] Failed to engineer prompt for step ${step.id}:`,
