@@ -18,6 +18,7 @@
     "dependencies": {
         "@google-cloud/firestore": "^8.3.0",
         "@google-cloud/storage": "^7.19.0",
+        "@google/adk": "^1.1.0",
         "@google/genai": "1.45.0",
         "@hookform/resolvers": "^5.2.2",
         "@mdxeditor/editor": "^3.55.0",
