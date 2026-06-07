@@ -88,6 +88,13 @@ describe("planVideoGenerationTool", () => {
 });
 
 describe("planTextNodesTool", () => {
+    const run = (nodes: unknown) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (planTextNodesTool as any).runAsync({
+            args: { nodes },
+            toolContext: undefined,
+        });
+
     it("returns nodes unchanged", async () => {
         const nodes = [
             {
@@ -97,54 +104,28 @@ describe("planTextNodesTool", () => {
                 format: "scenario" as const,
             },
         ];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await (planTextNodesTool as any).runAsync({
-            args: { nodes },
-            toolContext: undefined,
-        });
-        expect(result).toEqual({ nodes });
+        expect(await run(nodes)).toEqual({ nodes });
     });
 
     it("accepts nodes without optional format", async () => {
         const nodes = [
             { id: "brief_01", title: "Ad Brief", content: "30s ad for shoes." },
         ];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await (planTextNodesTool as any).runAsync({
-            args: { nodes },
-            toolContext: undefined,
-        });
-        expect(result).toEqual({ nodes });
+        expect(await run(nodes)).toEqual({ nodes });
     });
 
     it("rejects a node missing id", async () => {
         await expect(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (planTextNodesTool as any).runAsync({
-                args: { nodes: [{ title: "No ID", content: "content" }] },
-                toolContext: undefined,
-            }),
+            run([{ title: "No ID", content: "content" }]),
         ).rejects.toThrow();
     });
 
     it("rejects a node missing title", async () => {
-        await expect(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (planTextNodesTool as any).runAsync({
-                args: { nodes: [{ id: "n1", content: "content" }] },
-                toolContext: undefined,
-            }),
-        ).rejects.toThrow();
+        await expect(run([{ id: "n1", content: "content" }])).rejects.toThrow();
     });
 
     it("rejects a node missing content", async () => {
-        await expect(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (planTextNodesTool as any).runAsync({
-                args: { nodes: [{ id: "n1", title: "Title" }] },
-                toolContext: undefined,
-            }),
-        ).rejects.toThrow();
+        await expect(run([{ id: "n1", title: "Title" }])).rejects.toThrow();
     });
 });
 

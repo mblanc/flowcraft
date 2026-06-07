@@ -103,6 +103,7 @@ const evalCases: EvalCase[] = [
             criteria.refNodeUsed(PORTRAIT_ID),
             criteria.noHallucinatedNodeIds([PORTRAIT_ID]),
             criteria.videoStepsAreLinked(),
+            criteria.noSuggestedActions(),
         ],
     },
     {
@@ -117,6 +118,7 @@ const evalCases: EvalCase[] = [
             criteria.noErrors(),
             criteria.hasPlan(),
             criteria.minStepsOfType("image", 1),
+            criteria.noSuggestedActions(),
         ],
     },
     {
@@ -141,6 +143,7 @@ const evalCases: EvalCase[] = [
             criteria.noErrors(),
             criteria.minStepsOfType("video", 1),
             criteria.validVideoDurations([4, 6, 8]),
+            criteria.noSuggestedActions(),
         ],
     },
     {
@@ -160,6 +163,7 @@ const evalCases: EvalCase[] = [
             criteria.textNodesBeforeProduction(),
             criteria.minSteps(4),
             criteria.minStepsOfType("video", 3),
+            criteria.noSuggestedActions(),
         ],
         threshold: 0.75,
     },
@@ -183,6 +187,7 @@ const evalCases: EvalCase[] = [
         criteria: [
             criteria.noErrors(),
             criteria.noHallucinatedNodeIds([PORTRAIT_ID]),
+            criteria.noSuggestedActions(),
         ],
     },
 ];

@@ -65,8 +65,8 @@ export class CanvasAgentRunner {
         });
 
         const userId = input.userId ?? "anon";
-        const sessionId =
-            input.sessionId ?? `${userId}:${input.canvasId ?? "default"}`;
+        const clientSessionId = input.sessionId ?? input.canvasId ?? "default";
+        const sessionId = `${userId}:${clientSessionId}`;
 
         try {
             await this.sessionService.createSession({

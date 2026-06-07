@@ -212,7 +212,7 @@ export interface TextNodePayload {
     id: string;
     title: string;
     content: string;
-    format?: string;
+    format?: "scenario" | "synopsis" | "brief" | "notes";
 }
 
 export type AgentEvent =

@@ -10,20 +10,20 @@ import { MEDIA_OPERATIONS, EDGE_ROLES } from "../types";
 
 // Derive valid values directly from constants so there's one source of truth.
 
-const IMAGE_MODELS = [
+export const IMAGE_MODELS = [
     MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
     MODELS.IMAGE.GEMINI_3_PRO_IMAGE,
     MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
 ] as const;
 
-const VIDEO_MODELS = [
+export const VIDEO_MODELS = [
     MODELS.VIDEO.VEO_3_1_LITE,
     MODELS.VIDEO.VEO_3_1_FAST,
     MODELS.VIDEO.VEO_3_1_PRO,
 ] as const;
 
 // Union of all aspect ratios across every image model config.
-const IMAGE_ASPECT_RATIOS = [
+export const IMAGE_ASPECT_RATIOS = [
     ...new Set(
         Object.values(IMAGE_MODEL_CONFIGS).flatMap((c) =>
             c.ratios.filter((r) => r !== "Auto"),
@@ -31,7 +31,7 @@ const IMAGE_ASPECT_RATIOS = [
     ),
 ] as const;
 
-const VIDEO_ASPECT_RATIOS = ["16:9", "9:16"] as const;
+export const VIDEO_ASPECT_RATIOS = ["16:9", "9:16"] as const;
 
 const ALL_ASPECT_RATIOS = [
     ...new Set([...IMAGE_ASPECT_RATIOS, ...VIDEO_ASPECT_RATIOS]),
@@ -151,6 +151,7 @@ export const planProductionTool = new FunctionTool({
     }),
     execute: async ({ nodes, edges, clarifications }) => {
         const seen = new Set<string>();
+        const idRemap = new Map<string, string>();
         const deduped = nodes.map((node) => {
             if (!seen.has(node.id)) {
                 seen.add(node.id);
@@ -160,11 +161,17 @@ export const planProductionTool = new FunctionTool({
             while (seen.has(`${node.id}-${suffix}`)) suffix++;
             const newId = `${node.id}-${suffix}`;
             seen.add(newId);
+            idRemap.set(node.id, newId);
             return { ...node, id: newId };
         });
-        // Edges keep their original IDs — first-occurrence nodes retain their IDs,
-        // so existing edge references remain valid after deduplication.
-        const remappedEdges = edges.map((e) => ({ ...e }));
+        const remappedEdges =
+            idRemap.size === 0
+                ? edges
+                : edges.map((e) => ({
+                      ...e,
+                      from: idRemap.get(e.from) ?? e.from,
+                      to: idRemap.get(e.to) ?? e.to,
+                  }));
         return {
             nodes: deduped,
             edges: remappedEdges,
@@ -204,7 +211,7 @@ export const planTextNodesTool = new FunctionTool({
 export const suggestActionsTool = new FunctionTool({
     name: "suggest_actions",
     description:
-        "Suggest 2-3 follow-up actions the user can take. Call this at the end of every response.",
+        "Suggest 2-3 follow-up actions the user can take. Call this only at the end of plain text responses, and NEVER call this when generating or planning a production (e.g. when calling plan_production, plan_image_generation, or plan_video_generation).",
     parameters: z.object({ actions: z.array(actionSchema) }),
     execute: async ({ actions }) => ({ actions }),
 });

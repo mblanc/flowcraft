@@ -83,23 +83,13 @@ export async function* extractAgentEvents(
         for (const call of calls) {
             if (call.name === "list_skills") {
                 yield { type: "agent_action", label: "Browsing skills" };
-            }
-            if (call.name === "load_skill") {
+            } else if (call.name === "load_skill") {
                 const skillName = (call.args as { name?: string })?.name ?? "";
                 yield {
                     type: "agent_action",
                     label: `Loading ${skillName} skill`,
                 };
-            }
-            if (call.name === "plan_text_nodes") {
-                yield { type: "agent_action", label: "Writing scenario" };
-            }
-
-            if (call.name === "plan_production") {
-                yield { type: "agent_action", label: "Planning production" };
-            }
-
-            if (
+            } else if (
                 call.name === "plan_image_generation" ||
                 call.name === "plan_video_generation"
             ) {
@@ -115,9 +105,8 @@ export async function* extractAgentEvents(
                     videoDefaults,
                 );
                 allSteps.push(...steps);
-            }
-
-            if (call.name === "plan_production") {
+            } else if (call.name === "plan_production") {
+                yield { type: "agent_action", label: "Planning production" };
                 const raw = call.args as {
                     nodes?: PlanNode[];
                     edges?: Array<{ from: string; to: string; role: string }>;
@@ -131,17 +120,14 @@ export async function* extractAgentEvents(
                     videoDefaults,
                 );
                 allSteps.push(...steps);
-            }
-
-            if (call.name === "plan_text_nodes") {
+            } else if (call.name === "plan_text_nodes") {
+                yield { type: "agent_action", label: "Writing scenario" };
                 const raw =
                     (call.args as { nodes?: TextNodePayload[] })?.nodes ?? [];
                 if (raw.length > 0) {
                     yield { type: "text_nodes", nodes: raw };
                 }
-            }
-
-            if (call.name === "suggest_actions" && !actionsEmitted) {
+            } else if (call.name === "suggest_actions" && !actionsEmitted) {
                 const raw =
                     (
                         call.args as {
@@ -161,6 +147,8 @@ export async function* extractAgentEvents(
         }
     }
 
+    // plan is intentionally emitted last — inline events (text_nodes, agent_action)
+    // are guaranteed to precede it. The textNodesBeforeProduction eval criterion depends on this.
     if (allSteps.length > 0) {
         const plan: AgentPlan = { steps: allSteps };
         yield { type: "plan", plan };
