@@ -27,9 +27,9 @@ The prompt for `i2v` describes the **motion and camera** applied to the source i
 
 ## Model hints
 
-- `veo-3.1-fast-generate-001`: fastest iteration.
-- `veo-3.1-generate-001`: highest quality motion and consistency.
-- Default to fast for planning drafts; upgrade to standard for final output.
+- `veo-3.1-lite-generate-001`: **default** — best balance of quality and speed for most requests.
+- `veo-3.1-generate-001`: highest quality motion and consistency; use for hero shots or final output.
+- Use the canvas default model unless the user explicitly requests a different one.
 
 ## Common failures
 

@@ -80,11 +80,38 @@ RULES for plan_production nodes:
 - If the request is genuinely ambiguous, add clarifications[] but still emit a best-effort plan.
 - Never put generation descriptions in conversational text — always emit plan_production.`;
 
+function buildDefaultsInstruction(
+    imageDefaults?: MediaDefaults,
+    videoDefaults?: VideoDefaults,
+): string {
+    const lines: string[] = [];
+    if (imageDefaults?.model)
+        lines.push(`- Default image model: ${imageDefaults.model}`);
+    if (imageDefaults?.aspectRatio)
+        lines.push(
+            `- Default image aspect ratio: ${imageDefaults.aspectRatio}`,
+        );
+    if (imageDefaults?.resolution)
+        lines.push(`- Default image resolution: ${imageDefaults.resolution}`);
+    if (videoDefaults?.model)
+        lines.push(`- Default video model: ${videoDefaults.model}`);
+    if (videoDefaults?.aspectRatio)
+        lines.push(
+            `- Default video aspect ratio: ${videoDefaults.aspectRatio}`,
+        );
+    if (videoDefaults?.duration)
+        lines.push(`- Default video duration: ${videoDefaults.duration}s`);
+    if (lines.length === 0) return "";
+    return `\n\nCANVAS DEFAULTS (use these when the user has not specified a model, aspect ratio, or duration):\n${lines.join("\n")}`;
+}
+
 function buildDirectorInstruction(
     canvasContext: string,
     styleInstruction: string,
+    imageDefaults?: MediaDefaults,
+    videoDefaults?: VideoDefaults,
 ): string {
-    return `${DIRECTOR_PROMPT}${canvasContext}${styleInstruction}`;
+    return `${DIRECTOR_PROMPT}${buildDefaultsInstruction(imageDefaults, videoDefaults)}${canvasContext}${styleInstruction}`;
 }
 
 const SYSTEM_PROMPT = `You are a creative media assistant inside a visual canvas workspace. You help users generate and iterate on images and videos.
@@ -542,6 +569,8 @@ export class CanvasAgentRunner {
             instruction = buildDirectorInstruction(
                 canvasContext,
                 styleInstruction,
+                input.imageDefaults,
+                input.videoDefaults,
             );
         } else {
             instruction = [
