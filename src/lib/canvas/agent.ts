@@ -32,6 +32,9 @@ export interface AgentInput {
     imageDefaults?: MediaDefaults;
     videoDefaults?: VideoDefaults;
     activeStyle?: { name: string; content: string } | null;
+    canvasId?: string;
+    userId?: string;
+    sessionId?: string;
 }
 
 export type AgentEvent =
