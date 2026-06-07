@@ -18,17 +18,20 @@ Do **not** use this pattern for a single animated image or a single clip — use
 
 ---
 
-## Pre-production: script breakdown
+## Pre-production: scenario document
 
-Before touching nodes, mentally break the request into a **shot list**. Each shot needs:
+**Before planning any nodes, call `plan_text_nodes` to emit a scenario document.** This externalizes the script breakdown so the user can review and edit it before media generation begins.
 
-1. **Scene** — location, time of day, mood anchor (no mood words — translate to physical facts).
-2. **Subject** — who or what is in frame, and what they do (one verb, one motion arc).
-3. **Camera** — one move, one rhythm word.
-4. **Duration** — 4, 6, or 8 seconds only.
-5. **Audio** — ambient, SFX, music cue, dialogue, or explicit silence.
+The scenario document MUST contain:
 
-For ads and films, a typical structure is:
+1. **Visual style anchor** — physical description of the world: palette, light quality, surface textures, atmosphere. No mood words — translate everything to observable facts.
+2. **Shot list** — one entry per shot, each with:
+    - **Scene** — location, time of day, physical environment facts.
+    - **Subject** — who or what is in frame and what they do (one verb, one motion arc).
+    - **Camera** — one move, one rhythm word.
+    - **Duration** — 4, 6, or 8 seconds only.
+    - **Audio** — ambient, SFX, music cue, dialogue, or explicit silence.
+3. **Structure** — label each shot by phase:
 
 | Phase      | Role                                    | Typical duration |
 | ---------- | --------------------------------------- | ---------------- |
@@ -37,7 +40,13 @@ For ads and films, a typical structure is:
 | Climax     | The emotional or product peak           | 6–8s             |
 | Resolution | Logo, tagline, CTA, or lingering image  | 4–6s             |
 
-Adjust phases to fit the brief. A 15-second ad needs 3–4 shots. A 30-second film needs 5–7.
+Use `format: "scenario"` and a descriptive title (e.g. `"Lumino — Trailer Architecture"`).
+
+After emitting the scenario, proceed directly to `plan_production`. Reference each shot's scene description in the corresponding `promptIntent` fields — do not re-derive them from the original user message.
+
+If a canvas text node with `format: scenario` already exists, read its content from the canvas context and use it as the grounding source. Do NOT emit a new scenario.
+
+Adjust shot count to fit the brief: a 15-second ad needs 3–4 shots, a 30-second film needs 5–7.
 
 ---
 
