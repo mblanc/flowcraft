@@ -12,7 +12,7 @@
  *   assertEvalPasses(results);  // throws if any case is below threshold
  */
 
-import type { CanvasAgentRunner } from "../../lib/canvas/adk/runner";
+import type { CanvasAgentRunner } from "../../lib/canvas/agent/agent-runner";
 import type { AgentEvent, AgentInput } from "../../lib/canvas/types";
 import type { GenerationStep } from "../../lib/canvas/types";
 

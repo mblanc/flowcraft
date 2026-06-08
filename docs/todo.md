@@ -92,6 +92,14 @@ Sharing
 
 https://studio.morphic.com/
 
+# Run FLow and Run Selected is broken
+
+Remove?
+
+# Multi node selection
+
+Don't show menus
+
 # Agent Sessions Refactoring
 
 **Goal:** Persistent, resumable Director sessions per canvas with a history UI.

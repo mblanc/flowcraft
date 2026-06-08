@@ -17,7 +17,7 @@ import { useSession } from "next-auth/react";
 import "@xyflow/react/dist/style.css";
 import { type NodeData, type CustomWorkflowData } from "@/lib/types";
 import { FloatingNodePalette } from "./floating-node-palette";
-import { getSourcePortType, getTargetPortType } from "@/lib/node-registry";
+import { getSourcePortType, getTargetPortType } from "@/lib/flow/node-registry";
 import { isTypeCompatible } from "@/lib/utils";
 import { MousePointer2, Hand } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";

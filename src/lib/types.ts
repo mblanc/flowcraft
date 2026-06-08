@@ -13,6 +13,7 @@ import {
     RouterData as InferredRouterData,
     NodeData as InferredNodeData,
     BaseNodeDataSchema,
+    MusicDataSchema,
 } from "./schemas";
 import { z } from "zod";
 import { Edge, Node } from "@xyflow/react";
@@ -22,7 +23,7 @@ export type {
     FlowDocument,
     CustomNodeDocument,
     CustomNodePort,
-} from "./firestore";
+} from "./db/firestore";
 
 export type NodeType =
     | "llm"
@@ -36,7 +37,8 @@ export type NodeType =
     | "workflow-input"
     | "workflow-output"
     | "custom-workflow"
-    | "router";
+    | "router"
+    | "music";
 
 export type ContentPart =
     | { kind: "text"; text: string }
@@ -76,6 +78,7 @@ export type WorkflowInputData = InferredWorkflowInputData;
 export type WorkflowOutputData = InferredWorkflowOutputData;
 export type CustomWorkflowData = InferredCustomWorkflowData;
 export type RouterData = InferredRouterData;
+export type MusicData = z.infer<typeof MusicDataSchema>;
 export type NodeData = InferredNodeData;
 
 export type BaseNodeData = z.infer<typeof BaseNodeDataSchema> & {

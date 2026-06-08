@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { memo, useState, useRef, useCallback } from "react";
-import { useNodeResize } from "@/hooks/use-node-resize";
+import { useMediaNodeResize } from "@/hooks/use-media-node-resize";
 import { useSyncedState } from "@/hooks/use-synced-state";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ListData } from "@/lib/types";
@@ -39,7 +39,7 @@ export const ListNode = memo(
         const [localItems, setLocalItems] = useSyncedState<string[]>(
             data.items,
         );
-        const { dimensions, handleResizeStart } = useNodeResize(
+        const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,
             data.width,
             data.height,
@@ -49,6 +49,7 @@ export const ListNode = memo(
                 minWidth: 220,
                 minHeight: 200,
             },
+            updateNodeData,
         );
         const nodeRef = useRef<HTMLDivElement>(null);
 

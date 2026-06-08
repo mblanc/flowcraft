@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createGraphSlice } from "./graph-slice";
 import { createUISlice } from "./ui-slice";
+import { migrateEdges, migrateNodes } from "@/lib/db/migration";
 
 // Re-export all public types so existing import paths remain unchanged.
 export type {
@@ -24,6 +25,23 @@ export const useFlowStore = create<import("./types").FlowState>()(
         }),
         {
             name: "flow-storage",
+            // Run migrations on localStorage rehydration so that fields added
+            // after a flow was originally saved are populated with defaults.
+            onRehydrateStorage: () => (state) => {
+                if (state?.nodes?.length) {
+                    const migrated = migrateNodes(state.nodes as any);
+                    state.nodes = migrated as any;
+                    state.nodesById = Object.fromEntries(
+                        migrated.map((n) => [n.id, n]),
+                    ) as any;
+                    if (state?.edges?.length) {
+                        state.edges = migrateEdges(
+                            state.edges,
+                            migrated,
+                        ) as any;
+                    }
+                }
+            },
             // Only persist essential graph state – never transient UI flags like isRunning
             // We also strip node-specific transient flags (executing, etc.) to prevent
             // the UI from being stuck in a loading state after hydration.

@@ -9,7 +9,7 @@ import remarkGfm from "remark-gfm";
 import type { CanvasTextData } from "@/lib/canvas/types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
-import { useCanvasNodeResize } from "@/hooks/use-canvas-node-resize";
+import { useMediaNodeResize } from "@/hooks/use-media-node-resize";
 import { CanvasNodeContextMenu } from "@/components/canvas/canvas-node-context-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ export const CanvasTextNode = memo(
     ({ data, selected, id }: NodeProps) => {
         const d = data as unknown as CanvasTextData;
         const updateNodeData = useCanvasStore((s) => s.updateNodeData);
+        const updateNode = useCanvasStore((s) => s.updateNode);
         const removeNode = useCanvasStore((s) => s.removeNode);
 
         const [isEditing, setIsEditing] = useState(false);
@@ -44,7 +45,7 @@ export const CanvasTextNode = memo(
         const [renameDraft, setRenameDraft] = useState(d.label);
         const renameInputRef = useRef<HTMLInputElement>(null);
 
-        const { dimensions, handleResizeStart } = useCanvasNodeResize(
+        const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,
             d.width,
             d.height,
@@ -54,6 +55,7 @@ export const CanvasTextNode = memo(
                 minWidth: 120,
                 minHeight: 80,
             },
+            updateNode,
         );
 
         const [prevContent, setPrevContent] = useState(d.content);

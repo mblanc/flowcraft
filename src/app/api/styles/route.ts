@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/utils/api";
 import { styleService } from "@/lib/services/style.service";
-import { STYLE_TEMPLATES } from "@/lib/style-templates";
+import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import logger from "@/app/logger";
 
 export const GET = withAuth(async (_req, _context, session) => {

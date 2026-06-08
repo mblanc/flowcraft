@@ -3,7 +3,7 @@ import logger from "@/app/logger";
 import {
     getCachedSignedUrl,
     fetchAndCacheSignedUrl,
-} from "@/lib/cache/signed-url-cache";
+} from "@/lib/cache/signed-urls";
 
 export function useSignedUrl(gcsUri: string | undefined) {
     // Initialise synchronously from the module-level cache so remounting nodes

@@ -33,8 +33,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { StyleDocument } from "@/lib/style-types";
-import { STYLE_TEMPLATES } from "@/lib/style-templates";
+import type { StyleDocument } from "@/lib/styles/style-types";
+import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { CanvasAttachmentBar } from "./canvas-attachment-bar";
 import {

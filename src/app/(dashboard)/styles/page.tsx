@@ -14,10 +14,10 @@ import {
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { StyleEditorDialog } from "@/components/styles/style-editor-dialog";
-import type { StyleDocument } from "@/lib/style-types";
-import type { TemplateStyle } from "@/lib/style-templates";
-import { STYLE_TEMPLATES } from "@/lib/style-templates";
+import { StyleEditorDialog } from "@/components/flow/style-editor-dialog";
+import type { StyleDocument } from "@/lib/styles/style-types";
+import type { TemplateStyle } from "@/lib/styles/style-templates";
+import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 
 function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString("en-US", {

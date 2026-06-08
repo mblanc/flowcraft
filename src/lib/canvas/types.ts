@@ -57,11 +57,34 @@ export interface CanvasTextData {
     [key: string]: unknown;
 }
 
-export type CanvasNodeData = CanvasImageData | CanvasVideoData | CanvasTextData;
+export interface CanvasAudioData {
+    type: "canvas-audio";
+    label: string;
+    sourceUrl: string;
+    mimeType: string;
+    prompt?: string;
+    duration?: number;
+    model?: string;
+    width?: number;
+    height?: number;
+    status: "pending" | "ready" | "generating" | "error";
+    error?: string;
+    /** Director plan lineage */
+    operation?: MediaOperation;
+    planNodeId?: string;
+    derivedFrom?: string[];
+    [key: string]: unknown;
+}
+
+export type CanvasNodeData =
+    | CanvasImageData
+    | CanvasVideoData
+    | CanvasTextData
+    | CanvasAudioData;
 
 export interface CanvasNode {
     id: string;
-    type: "canvas-image" | "canvas-video" | "canvas-text";
+    type: "canvas-image" | "canvas-video" | "canvas-text" | "canvas-audio";
     position: { x: number; y: number };
     data: CanvasNodeData;
     width?: number;
@@ -72,7 +95,7 @@ export interface CanvasNode {
 export interface ChatAttachment {
     nodeId: string;
     label: string;
-    type: "canvas-image" | "canvas-video" | "canvas-text";
+    type: "canvas-image" | "canvas-video" | "canvas-text" | "canvas-audio";
     thumbnailUrl?: string;
 }
 
@@ -84,7 +107,7 @@ export interface ChatAction {
 
 export interface GeneratedMediaRef {
     nodeId: string;
-    type: "canvas-image" | "canvas-video";
+    type: "canvas-image" | "canvas-video" | "canvas-audio";
 }
 
 export type StepStatus = "pending" | "generating" | "done" | "error";
@@ -118,7 +141,7 @@ export interface AgentPlan {
 
 export interface NodePayload {
     id: string;
-    type: "canvas-image" | "canvas-video";
+    type: "canvas-image" | "canvas-video" | "canvas-audio";
     label: string;
     sourceUrl: string;
     mimeType?: string;

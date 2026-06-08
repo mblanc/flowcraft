@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import logger from "@/app/logger";
-import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-url-cache";
+import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-urls";
 
 async function fetchThumbnailUrl(
     id: string,

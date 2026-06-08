@@ -4,8 +4,9 @@ import { storageService } from "@/lib/services/storage.service";
 import { concatService } from "@/lib/services/concat.service";
 import { libraryService } from "@/lib/services/library.service";
 import logger from "@/app/logger";
-import { topoSort } from "./adk/topology";
+import { topoSort } from "./agent/topology";
 import type { AgentPlan, GenerationStep, NodePayload, PlanEdge } from "./types";
+import { serverRegistry as registry } from "@/primitives/server-registry";
 
 export type StepEvent =
     | { type: "step_start"; stepId: string }
@@ -268,33 +269,82 @@ export async function* executePlan(
         const results = await Promise.allSettled(
             wave.map(async (step) => {
                 try {
-                    let node: NodePayload;
-                    if (step.type === "image") {
-                        node = await executeImageStep(
-                            step,
-                            ctx,
-                            activeStyleContent,
-                            activeStyleId,
-                            activeStyleName,
-                        );
-                    } else if (step.type === "concat") {
-                        node = await executeConcatStep(step, ctx);
-                    } else {
-                        node = await executeVideoStep(
-                            step,
-                            ctx,
-                            activeStyleContent,
-                            activeStyleId,
-                            activeStyleName,
+                    const primitive = registry.getByCanvasType(
+                        `canvas-${step.type}`,
+                    );
+                    if (!primitive?.canvas || !primitive.execute) {
+                        throw new Error(
+                            `[CanvasGeneration] No primitive for step type: ${step.type}`,
                         );
                     }
+
+                    // Resolve canvas references before calling into the primitive.
+                    const { referenceUrls, firstFrameUrl, lastFrameUrl } =
+                        resolveReferences(step, ctx);
+
+                    const enrichedStep = {
+                        ...step,
+                        images: referenceUrls.map((url) => ({
+                            url,
+                            type: "image/png",
+                        })),
+                        firstFrame: firstFrameUrl,
+                        lastFrame: lastFrameUrl,
+                        // concat: pre-resolve dependsOn URIs
+                        inputUris:
+                            step.type === "concat"
+                                ? (step.dependsOn ?? [])
+                                      .map((id) =>
+                                          ctx.completedStepUris.get(id),
+                                      )
+                                      .filter(
+                                          (uri): uri is string => uri != null,
+                                      )
+                                : undefined,
+                        // style forwarded as convention fields
+                        systemInstruction:
+                            step.type === "image"
+                                ? activeStyleContent
+                                : undefined,
+                        styleInstruction:
+                            step.type === "video"
+                                ? activeStyleContent
+                                : undefined,
+                        styleId: activeStyleId,
+                        styleName: activeStyleName,
+                        // operation inferred for video
+                        operation:
+                            step.type === "video"
+                                ? firstFrameUrl
+                                    ? "i2v"
+                                    : "t2v"
+                                : undefined,
+                        planNodeId: step.id,
+                        derivedFrom: step.dependsOn?.length
+                            ? step.dependsOn
+                            : undefined,
+                    };
+
+                    const request = primitive.canvas.toRequest(enrichedStep, {
+                        userId,
+                    });
+                    const output = await primitive.execute(request, { userId });
+                    const nodeData = primitive.canvas.toCanvasData(
+                        enrichedStep,
+                        output,
+                    );
+                    const node: NodePayload = {
+                        ...(nodeData as NodePayload),
+                        id: randomUUID(),
+                    };
 
                     // Record URI so dependent steps can reference it
                     ctx.completedStepUris.set(step.id, node.sourceUrl);
 
                     // Fire-and-forget: save to library
-                    const libraryType =
-                        step.type === "concat" ? "video" : step.type;
+                    const libraryType = (
+                        node.type === "canvas-video" ? "video" : "image"
+                    ) as "video" | "image";
                     libraryService
                         .createAsset({
                             userId,

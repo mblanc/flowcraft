@@ -21,7 +21,7 @@ vi.mock("@/lib/config", () => ({
     },
 }));
 
-import { CanvasAgentRunner } from "../../lib/canvas/adk/runner";
+import { CanvasAgentRunner } from "../../lib/canvas/agent/agent-runner";
 import { MODELS } from "../../lib/constants";
 import type { AgentInput } from "../../lib/canvas/types";
 import type { CanvasNode } from "../../lib/canvas/types";

@@ -12,7 +12,7 @@ import { cn, uploadFile } from "@/lib/utils";
 import Image from "next/image";
 import { MediaViewer } from "@/components/nodes/media-viewer";
 import logger from "@/app/logger";
-import { useNodeResize } from "@/hooks/use-node-resize";
+import { useMediaNodeResize } from "@/hooks/use-media-node-resize";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import { NodeActionBar } from "@/components/nodes/node-action-bar";
@@ -41,7 +41,7 @@ export const FileNode = memo(
             number | undefined
         >(undefined);
 
-        const { dimensions, handleResizeStart } = useNodeResize(
+        const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,
             data.width,
             data.height,
@@ -52,6 +52,7 @@ export const FileNode = memo(
                 minHeight: 200,
                 lockedAspectRatio: mediaAspectRatio,
             },
+            updateNodeData,
         );
 
         const isActive = selected || isHovered;

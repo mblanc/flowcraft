@@ -9,6 +9,7 @@ import {
     Image,
     Video,
     Text,
+    Music,
     Zap,
     Check,
     Loader2,
@@ -46,6 +47,7 @@ const MEDIA_TYPE_ICON = {
     "canvas-image": Image,
     "canvas-video": Video,
     "canvas-text": Text,
+    "canvas-audio": Music,
 } as const;
 
 function StepStatusIcon({ status }: { status: StepStatus | undefined }) {

@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { WorkflowEngine } from "@/lib/workflow-engine";
+import { WorkflowEngine } from "@/lib/flow/workflow-engine";
 import logger from "@/app/logger";
 
 function buildContext() {

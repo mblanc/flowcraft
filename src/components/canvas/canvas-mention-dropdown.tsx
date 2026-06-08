@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Image, Video, Type } from "lucide-react";
+import { Image, Video, Type, Music } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CanvasNode } from "@/lib/canvas/types";
 
@@ -10,6 +10,7 @@ const NODE_TYPE_ICON = {
     "canvas-image": Image,
     "canvas-video": Video,
     "canvas-text": Type,
+    "canvas-audio": Music,
 } as const;
 
 export interface MentionItem {

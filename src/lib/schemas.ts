@@ -202,6 +202,17 @@ export const RouterDataSchema = BaseNodeDataSchema.extend({
     valueMediaType: z.enum(["image", "video", "pdf"]).optional(),
 });
 
+export const MusicDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("music"),
+    prompt: z.string().default(""),
+    duration: z.number().optional().default(30),
+    model: z
+        .enum(["lyria-3-clip-preview", "lyria-3-pro-preview"])
+        .optional()
+        .default("lyria-3-clip-preview"),
+    audioUrl: z.string().optional(),
+});
+
 export const NodeDataSchema = z.discriminatedUnion("type", [
     LLMDataSchema,
     TextDataSchema,
@@ -215,6 +226,7 @@ export const NodeDataSchema = z.discriminatedUnion("type", [
     WorkflowOutputDataSchema,
     CustomWorkflowDataSchema,
     RouterDataSchema,
+    MusicDataSchema,
 ]);
 
 export const NodeSchema = z.object({
@@ -276,6 +288,7 @@ export const GenerateImageSchema = z
         groundingGoogleSearch: z.boolean().optional().default(false),
         groundingImageSearch: z.boolean().optional().default(false),
         thinkingLevel: z.string().optional(),
+        namedNodes: z.array(z.any()).optional(),
     })
     .superRefine((data, ctx) => {
         const hasParts = data.parts && data.parts.length > 0;
@@ -291,6 +304,8 @@ export const GenerateImageSchema = z
 
 export const GenerateTextSchema = z
     .object({
+        instructions: z.string().optional(),
+        namedNodes: z.array(z.any()).optional(),
         prompts: z.array(z.string()).optional().default([]),
         parts: z.array(ContentPartSchema).optional(),
         files: z
@@ -353,16 +368,19 @@ export const GenerateVideoSchema = z.object({
     ),
     generateAudio: z.boolean().optional().default(true),
     resolution: z.enum(["720p", "1080p", "4K"]).optional().default("720p"),
+    namedNodes: z.array(z.any()).optional(),
 });
 
 export const ResizeImageSchema = z.object({
     image: z.string().min(1, "Image is required"),
     aspectRatio: AspectRatio169_916Schema,
+    namedNodes: z.array(z.any()).optional(),
 });
 
 export const UpscaleImageSchema = z.object({
     image: z.string().min(1, "Image is required"),
     upscaleFactor: z.enum(["x2", "x3", "x4"]).optional().default("x2"),
+    namedNodes: z.array(z.any()).optional(),
 });
 
 export const GetSignedUrlSchema = z.object({

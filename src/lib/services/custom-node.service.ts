@@ -3,7 +3,7 @@ import {
     CustomNodeDocument,
     CustomNodePort,
     formatFirestoreTimestampToDate,
-} from "@/lib/firestore";
+} from "@/lib/db/firestore";
 import {
     CustomNodeCreateRequest,
     CustomNodeUpdateRequest,

@@ -8,7 +8,7 @@ import logger from "@/app/logger";
 import {
     getCachedSignedUrl,
     fetchAndCacheSignedUrl,
-} from "@/lib/cache/signed-url-cache";
+} from "@/lib/cache/signed-urls";
 
 interface BatchMediaGalleryProps {
     items: string[];

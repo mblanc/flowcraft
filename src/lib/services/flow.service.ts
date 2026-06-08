@@ -9,7 +9,7 @@ import {
     getFirestore,
     formatFirestoreTimestamp,
     FlowDocument,
-} from "@/lib/firestore";
+} from "@/lib/db/firestore";
 import { config } from "@/lib/config";
 
 export class FlowService {

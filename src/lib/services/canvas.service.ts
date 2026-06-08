@@ -1,4 +1,4 @@
-import { getFirestore, formatFirestoreTimestamp } from "@/lib/firestore";
+import { getFirestore, formatFirestoreTimestamp } from "@/lib/db/firestore";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 import type {

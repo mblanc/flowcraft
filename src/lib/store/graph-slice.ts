@@ -7,9 +7,9 @@ import {
     applyEdgeChanges,
 } from "@xyflow/react";
 import type { StateCreator } from "zustand";
-import { createNode, getUniqueNodeName } from "@/lib/node-factory";
+import { createNode, getUniqueNodeName } from "@/lib/flow/node-factory";
 import type { NodeData } from "@/lib/types";
-import { migrateNodes } from "@/lib/migration";
+import { migrateEdges, migrateNodes } from "@/lib/db/migration";
 import type { FlowState, GraphSlice } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -244,17 +244,28 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
                 console.warn(
                     `[FlowStore] Preserve local draft for flow ${id} (Local: ${new Date(lastModified).toISOString()}, Remote: ${remoteUpdatedAt})`,
                 );
+                // Still apply migrations to the preserved local nodes so that
+                // fields added after the original save get their default values.
+                const { nodes: localNodes } = get();
+                const migrated = migrateNodes(
+                    localNodes as Node<Record<string, unknown>>[],
+                );
+                set({
+                    nodes: migrated,
+                    nodesById: buildNodesById(migrated),
+                });
                 return;
             }
         }
 
         const migrated = migrateNodes(nodes);
         const nodesById = buildNodesById(migrated);
+        const migratedEdges = migrateEdges(edges, migrated);
         set({
             flowId: id,
             nodes: migrated,
             nodesById,
-            edges,
+            edges: migratedEdges,
             flowName: name,
             entityType,
             selectedNodeId: null,

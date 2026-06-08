@@ -1,13 +1,13 @@
-import { getFirestore, formatFirestoreTimestamp } from "@/lib/firestore";
+import { getFirestore, formatFirestoreTimestamp } from "@/lib/db/firestore";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 import type {
     DocumentSnapshot,
     QueryDocumentSnapshot,
 } from "@google-cloud/firestore";
-import type { StyleDocument } from "@/lib/style-types";
+import type { StyleDocument } from "@/lib/styles/style-types";
 import { FieldValue } from "@google-cloud/firestore";
-import { deleteFileByUri } from "@/lib/storage";
+import { deleteFileByUri } from "@/lib/db/storage";
 
 export interface StyleCreateRequest {
     name: string;

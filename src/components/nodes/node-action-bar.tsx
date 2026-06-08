@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { NodeToolbar, Position } from "@xyflow/react";
+import { NodeToolbar, Position, useStore } from "@xyflow/react";
 
 interface NodeActionBarProps {
     onGenerate?: () => void;
@@ -47,9 +47,12 @@ export function NodeActionBar({
     extra,
     isVisible,
 }: NodeActionBarProps) {
+    const selectedCount = useStore(
+        (s) => s.nodes.filter((n) => n.selected).length,
+    );
     return (
         <NodeToolbar
-            isVisible={isVisible}
+            isVisible={isVisible && selectedCount <= 1}
             position={Position.Top}
             offset={34}
             className="z-50"

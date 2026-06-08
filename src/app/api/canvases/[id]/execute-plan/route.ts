@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
 import { styleService } from "@/lib/services/style.service";
-import { STYLE_TEMPLATES } from "@/lib/style-templates";
+import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import { executePlan } from "@/lib/canvas/generation";
 import logger from "@/app/logger";
 import type { AgentPlan } from "@/lib/canvas/types";
