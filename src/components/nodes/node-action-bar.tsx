@@ -3,6 +3,7 @@
 import {
     Play,
     FastForward,
+    ChevronsRight,
     Settings2,
     Maximize2,
     Loader2,
@@ -23,6 +24,7 @@ import { NodeToolbar, Position, useStore } from "@xyflow/react";
 interface NodeActionBarProps {
     onGenerate?: () => void;
     onRunFromHere?: () => void;
+    onRunToHere?: () => void;
     onSettings?: () => void;
     onFullscreen?: () => void;
     onDownload?: () => void;
@@ -37,6 +39,7 @@ interface NodeActionBarProps {
 export function NodeActionBar({
     onGenerate,
     onRunFromHere,
+    onRunToHere,
     onSettings,
     onFullscreen,
     onDownload,
@@ -47,12 +50,16 @@ export function NodeActionBar({
     extra,
     isVisible,
 }: NodeActionBarProps) {
-    const selectedCount = useStore(
-        (s) => s.nodes.filter((n) => n.selected).length,
-    );
+    const isMultiSelect = useStore((s) => {
+        let count = 0;
+        for (const n of s.nodes) {
+            if (n.selected && ++count > 1) return true;
+        }
+        return false;
+    });
     return (
         <NodeToolbar
-            isVisible={isVisible && selectedCount <= 1}
+            isVisible={isVisible && !isMultiSelect}
             position={Position.Top}
             offset={34}
             className="z-50"
@@ -117,7 +124,30 @@ export function NodeActionBar({
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">
-                                    Run from here
+                                    {onGenerate
+                                        ? "Run from here"
+                                        : "Run downstream"}
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                        {onRunToHere && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        disabled={isExecuting}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onRunToHere();
+                                        }}
+                                        className="h-7 w-7 rounded-full"
+                                    >
+                                        <ChevronsRight className="h-3.5 w-3.5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                    Run to here
                                 </TooltipContent>
                             </Tooltip>
                         )}
@@ -186,6 +216,7 @@ export function NodeActionBar({
                             <>
                                 {(onGenerate ||
                                     onRunFromHere ||
+                                    onRunToHere ||
                                     onSettings ||
                                     onFullscreen ||
                                     onDownload ||

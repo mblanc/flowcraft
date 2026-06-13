@@ -17,6 +17,7 @@ import {
     Loader2,
 } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { NodeTitle } from "@/components/nodes/node-title";
 import { cn, uploadFile } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +37,7 @@ import { useSignedUrls } from "@/hooks/use-signed-url";
 export const FlowNode = memo(
     ({ data, selected, id }: NodeProps<Node<ListData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const { runFromNode } = useFlowExecution();
         const [localItems, setLocalItems] = useSyncedState<string[]>(
             data.items,
         );
@@ -171,6 +173,7 @@ export const FlowNode = memo(
             >
                 <NodeActionBar
                     isVisible={selected || isHovered}
+                    onRunFromHere={() => runFromNode(id)}
                     onDelete={() => useFlowStore.getState().deleteNode(id)}
                     onSettings={() => {
                         useFlowStore.getState().selectNode(id);

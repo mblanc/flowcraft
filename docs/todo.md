@@ -2,7 +2,7 @@
 
 ## Critical
 
-- [ ] Fix Run Flow and Run Selected — both are currently broken
+- [x] Fix Run Flow and Run Selected — both are currently broken
 
 ## High Priority
 
@@ -67,6 +67,11 @@ Persistent, resumable Director sessions per canvas with a history UI.
 ### Sharing
 
 - [ ] Custom Nodes sharing
+
+## Code Quality
+
+- [ ] **[ISP] Narrow `NodeInputs` interface** — `src/lib/types.ts:55`
+      The `[key: string]: unknown` index signature defeats type safety. Most `gatherInputs` implementations use only 2–3 fields. Remove the index signature and narrow per-node via the typed `I` parameter that `NodeDefinition<T, I>` already supports.
 
 ## Nice to Have
 

@@ -8,6 +8,7 @@ import type { WorkflowInputData } from "@/lib/types";
 import { LogIn } from "lucide-react";
 import { useState } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { NodeActionBar } from "@/components/nodes/node-action-bar";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +24,12 @@ import { Switch } from "@/components/ui/switch";
 export const FlowNode = memo(
     ({ data, selected, id }: NodeProps<Node<WorkflowInputData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
+        const deleteNode = useFlowStore((state) => state.deleteNode);
+        const selectNode = useFlowStore((state) => state.selectNode);
+        const setIsConfigSidebarOpen = useFlowStore(
+            (state) => state.setIsConfigSidebarOpen,
+        );
+        const { runFromNode } = useFlowExecution();
         const [isHovered, setIsHovered] = useState(false);
 
         const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,10 +54,11 @@ export const FlowNode = memo(
             >
                 <NodeActionBar
                     isVisible={selected || isHovered}
-                    onDelete={() => useFlowStore.getState().deleteNode(id)}
+                    onRunFromHere={() => runFromNode(id)}
+                    onDelete={() => deleteNode(id)}
                     onSettings={() => {
-                        useFlowStore.getState().selectNode(id);
-                        useFlowStore.getState().setIsConfigSidebarOpen(true);
+                        selectNode(id);
+                        setIsConfigSidebarOpen(true);
                     }}
                 />
                 <div className="mb-4 flex items-start gap-3">

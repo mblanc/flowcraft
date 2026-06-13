@@ -14,6 +14,7 @@ export const POST = withAuth(async (req, _context, session) => {
             );
         }
 
+        let validatedBody = body;
         if (primitive.requestSchema) {
             const parsed = primitive.requestSchema.safeParse(body);
             if (!parsed.success) {
@@ -25,10 +26,11 @@ export const POST = withAuth(async (req, _context, session) => {
                     { status: 400 },
                 );
             }
+            validatedBody = parsed.data;
         }
 
         const userId = session.user!.id!;
-        const result = await primitive.execute(body, { userId });
+        const result = await primitive.execute(validatedBody, { userId });
 
         return NextResponse.json({ audioUrl: result.audioUrl });
     } catch (error) {

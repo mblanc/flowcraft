@@ -7,6 +7,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { FileData } from "@/lib/types";
 import { FileUp, ImageIcon, Video, FileText } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { NodeTitle } from "@/components/nodes/node-title";
 import { cn, uploadFile } from "@/lib/utils";
 import Image from "next/image";
@@ -33,6 +34,7 @@ export const FlowNode = memo(
     ({ data, selected, id }: NodeProps<Node<FileData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const deleteNode = useFlowStore((state) => state.deleteNode);
+        const { runFromNode } = useFlowExecution();
         const fileInputRef = useRef<HTMLInputElement>(null);
         const [asyncSignedUrl, setAsyncSignedUrl] = useState<
             string | undefined
@@ -159,6 +161,7 @@ export const FlowNode = memo(
                 {/* Action bar */}
                 <NodeActionBar
                     isVisible={isActive}
+                    onRunFromHere={() => runFromNode(id)}
                     onFullscreen={
                         signedUrl &&
                         (data.fileType === "image" || data.fileType === "video")

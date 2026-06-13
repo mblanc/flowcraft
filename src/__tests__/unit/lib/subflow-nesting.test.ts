@@ -1040,7 +1040,7 @@ describe("WorkflowEngine Nested Subflows", () => {
         });
 
         // Execute ONLY the LLM node (simulating clicking "Execute" on just that node)
-        await engine.executeNode("llm-node");
+        await engine.executeNodeWithRouterResolution("llm-node");
 
         // Check LLM node result
         const llmResult = engine.getResult("llm-node") as any;
@@ -1067,5 +1067,88 @@ describe("WorkflowEngine Nested Subflows", () => {
             call[0].includes("primitives/image/execute"),
         );
         expect(imageGenCall).toBeUndefined();
+    });
+
+    it("throws when custom-workflow node has no subWorkflowId", async () => {
+        const nodes = [
+            {
+                id: "sub-node",
+                type: "custom-workflow",
+                data: { type: "custom-workflow", name: "Broken Sub" },
+                // subWorkflowId intentionally absent
+            },
+        ] as Node<NodeData>[];
+
+        const engine = new WorkflowEngine(nodes, [], vi.fn(), {});
+        await expect(engine.run()).rejects.toThrow(
+            "Sub-workflow configuration missing",
+        );
+    });
+
+    it("throws when the custom-node API returns a non-ok response", async () => {
+        const mockFetch = vi.fn().mockResolvedValue({
+            ok: false,
+            statusText: "Not Found",
+        });
+
+        const nodes = [
+            {
+                id: "sub-node",
+                type: "custom-workflow",
+                data: {
+                    type: "custom-workflow",
+                    name: "Missing Sub",
+                    subWorkflowId: "nonexistent-flow",
+                },
+            },
+        ] as Node<NodeData>[];
+
+        const engine = new WorkflowEngine(nodes, [], vi.fn(), {
+            fetch: mockFetch,
+        });
+        await expect(engine.run()).rejects.toThrow(
+            "Failed to fetch custom node: Not Found",
+        );
+    });
+
+    it("returns empty results when sub-workflow has no output nodes", async () => {
+        const mockFetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                // Sub-workflow with no workflow-output nodes
+                nodes: [
+                    {
+                        id: "text-only",
+                        type: "text",
+                        data: { type: "text", name: "Text", text: "hello" },
+                    },
+                ],
+                edges: [],
+            }),
+        });
+
+        const updateNodeData = vi.fn();
+        const nodes = [
+            {
+                id: "sub-node",
+                type: "custom-workflow",
+                data: {
+                    type: "custom-workflow",
+                    name: "No Outputs Sub",
+                    subWorkflowId: "no-output-flow",
+                },
+            },
+        ] as Node<NodeData>[];
+
+        const engine = new WorkflowEngine(nodes, [], updateNodeData, {
+            fetch: mockFetch,
+        });
+        await engine.run();
+
+        const resultCall = updateNodeData.mock.calls.find(
+            (call) => call[0] === "sub-node" && "results" in call[1],
+        );
+        expect(resultCall).toBeDefined();
+        expect(resultCall![1].results).toEqual({});
     });
 });

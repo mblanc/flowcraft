@@ -99,9 +99,7 @@ export interface GraphSlice {
  * status, sidebar visibility, etc.
  */
 export interface UISlice {
-    isRunning: boolean;
     isConfigSidebarOpen: boolean;
-    setIsRunning: (isRunning: boolean) => void;
     setIsConfigSidebarOpen: (isOpen: boolean) => void;
 }
 

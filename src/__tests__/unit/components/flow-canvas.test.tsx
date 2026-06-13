@@ -27,7 +27,6 @@ vi.mock("@/lib/store/use-flow-store", () => ({
             flowId: "flow-1",
             entityType: "workflow",
             addNodeWithType: vi.fn(),
-            isRunning: false,
             ownerId: "user-1",
             sharedWith: [],
         }),
@@ -36,8 +35,9 @@ vi.mock("@/lib/store/use-flow-store", () => ({
 
 vi.mock("@/hooks/use-flow-execution", () => ({
     useFlowExecution: () => ({
-        runFlow: vi.fn(),
-        runSelectedNodes: vi.fn(),
+        runFromNode: vi.fn(),
+        executeNode: vi.fn(),
+        runToNode: vi.fn(),
     }),
 }));
 

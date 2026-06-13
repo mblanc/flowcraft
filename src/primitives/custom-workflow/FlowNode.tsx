@@ -3,7 +3,7 @@
 import { memo, useEffect, useState, useRef } from "react";
 import { useMediaNodeResize } from "@/hooks/use-media-node-resize";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-import { Box, Play } from "lucide-react";
+import { Box } from "lucide-react";
 import type { CustomWorkflowData } from "@/lib/types";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/nodes/node-title";
@@ -148,7 +148,7 @@ export const FlowNode = memo(
     ({ data, selected, id }: NodeProps<Node<CustomWorkflowData>>) => {
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const removeEdges = useFlowStore((state) => state.removeEdges);
-        const { executeNode } = useFlowExecution();
+        const { executeNode, runFromNode } = useFlowExecution();
 
         const [interfaceData, setInterfaceData] = useState<{
             inputs: { id: string; name: string; type: string }[];
@@ -286,11 +286,6 @@ export const FlowNode = memo(
             fetchInterface();
         }, [subWorkflowId, id, removeEdges, updateNodeData]);
 
-        const handleExecute = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            executeNode(id);
-        };
-
         // Results in custom-workflow are stored by output node ID
         const results = data.results || {};
 
@@ -304,6 +299,7 @@ export const FlowNode = memo(
                 <NodeActionBar
                     isVisible={selected || isHovered || data.executing}
                     onGenerate={() => executeNode(id)}
+                    onRunFromHere={() => runFromNode(id)}
                     onSettings={() => {
                         useFlowStore.getState().selectNode(id);
                         useFlowStore.getState().setIsConfigSidebarOpen(true);
@@ -412,17 +408,6 @@ export const FlowNode = memo(
                         )}
                     </div>
                 )}
-
-                <button
-                    onClick={handleExecute}
-                    disabled={data.executing}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <Play className="h-3 w-3" />
-                    {data.executing
-                        ? "Executing Sub-graph..."
-                        : "Execute Workflow"}
-                </button>
 
                 <NodeResizeHandle onResizeStart={handleResizeStart} />
             </div>

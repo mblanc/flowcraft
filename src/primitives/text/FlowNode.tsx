@@ -10,6 +10,7 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { TextData } from "@/lib/types";
 import { FileText, GripHorizontal } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
+import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { NodeTitle } from "@/components/nodes/node-title";
 import { NodeActionBar } from "@/components/nodes/node-action-bar";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export const FlowNode = memo(
         const updateNodeData = useFlowStore((state) => state.updateNodeData);
         const selectNode = useFlowStore((state) => state.selectNode);
         const deleteNode = useFlowStore((state) => state.deleteNode);
+        const { runFromNode } = useFlowExecution();
         const [localText, setLocalText] = useSyncedState(data.text);
         const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,
@@ -66,7 +68,6 @@ export const FlowNode = memo(
             const options = { capture: true, passive: false };
             container.addEventListener("wheel", handleWheel, options);
             textarea.addEventListener("wheel", handleWheel, options);
-            textarea.addEventListener("wheel", handleWheel, { passive: false });
 
             let focusedHandler: ((e: WheelEvent) => void) | null = null;
 
@@ -107,7 +108,6 @@ export const FlowNode = memo(
                 textarea.removeEventListener("wheel", handleWheel, {
                     capture: true,
                 });
-                textarea.removeEventListener("wheel", handleWheel);
                 textarea.removeEventListener("focus", handleFocus);
                 textarea.removeEventListener("blur", handleBlur);
                 if (focusedHandler) {
@@ -169,6 +169,7 @@ export const FlowNode = memo(
                 {/* Action bar — visible on hover or selection */}
                 <NodeActionBar
                     isVisible={selected || isHovered}
+                    onRunFromHere={() => runFromNode(id)}
                     onFullscreen={() => setIsModalOpen(true)}
                     onDownload={localText ? handleDownload : undefined}
                     onDelete={handleDelete}

@@ -99,6 +99,44 @@ describe("WorkflowEngine", () => {
 
             expect(levels).toEqual([["1"], ["2"], ["3"]]);
         });
+
+        it("should throw when a cycle is detected", () => {
+            const nodes: Node<NodeData>[] = [
+                {
+                    id: "a",
+                    data: { type: "text", text: "hi", name: "A" } as TextData,
+                    position: { x: 0, y: 0 },
+                } as Node<TextData>,
+                {
+                    id: "b",
+                    data: {
+                        type: "llm",
+                        model: "m",
+                        instructions: "i",
+                        name: "B",
+                    } as LLMData,
+                    position: { x: 0, y: 0 },
+                } as Node<LLMData>,
+            ];
+            // A → B → A forms a cycle
+            const edges: Edge[] = [
+                { id: "e-ab", source: "a", target: "b" },
+                { id: "e-ba", source: "b", target: "a" },
+            ];
+
+            const engine = new WorkflowEngine(
+                nodes as Node<NodeData>[],
+                edges,
+                mockOnNodeUpdate,
+            );
+            expect(() =>
+                (
+                    engine as unknown as {
+                        getExecutionLevels: () => string[][];
+                    }
+                ).getExecutionLevels(),
+            ).toThrow("Cycle detected in flow graph involving nodes: a, b");
+        });
     });
 
     describe("gatherInputs", () => {
@@ -419,7 +457,7 @@ describe("WorkflowEngine", () => {
             } as any);
 
             const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
-            await engine.executeNode("batch-node");
+            await engine.executeNodeWithRouterResolution("batch-node");
 
             const result = engine.getResult("batch-node") as any;
             expect(result.outputs).toEqual(["result-a", "result-b"]);
@@ -454,7 +492,7 @@ describe("WorkflowEngine", () => {
             } as any);
 
             const engine = new WorkflowEngine(nodes, [], mockOnNodeUpdate);
-            await engine.executeNode("batch-img");
+            await engine.executeNodeWithRouterResolution("batch-img");
 
             const result = engine.getResult("batch-img") as any;
             expect(result.images).toEqual(["out.png", "out.png"]); // two iterations
@@ -538,7 +576,7 @@ describe("WorkflowEngine", () => {
             });
 
             const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
-            await engine.executeNode("img2");
+            await engine.executeNodeWithRouterResolution("img2");
 
             const img2Inputs = capturedInputs["img2"] as Record<
                 string,
@@ -585,6 +623,112 @@ describe("WorkflowEngine", () => {
             expect(engine.hasResult("2")).toBe(true);
             expect(engine.hasResult("3")).toBe(true);
             expect(engine.hasResult("1")).toBe(false);
+        });
+    });
+
+    describe("runToNode", () => {
+        it("runs a linear chain up to and including the target", async () => {
+            const nodes = [
+                { id: "1", data: { type: "text" } },
+                { id: "2", data: { type: "text" } },
+                { id: "3", data: { type: "text" } },
+            ] as unknown as Node<NodeData>[];
+            const edges = [
+                { id: "e1", source: "1", target: "2" },
+                { id: "e2", source: "2", target: "3" },
+            ] as Edge[];
+
+            const mockExecute = vi.fn().mockResolvedValue({});
+            vi.mocked(getNodeDefinition).mockReturnValue({
+                gatherInputs: () => ({}),
+                execute: mockExecute,
+            } as any);
+
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
+            await engine.runToNode("2");
+
+            expect(engine.hasResult("1")).toBe(true);
+            expect(engine.hasResult("2")).toBe(true);
+            expect(engine.hasResult("3")).toBe(false);
+        });
+
+        it("runs all branches of a diamond graph when targeting the sink", async () => {
+            // A → B → C
+            // A → D → C
+            const nodes = [
+                { id: "A", data: { type: "text" } },
+                { id: "B", data: { type: "text" } },
+                { id: "D", data: { type: "text" } },
+                { id: "C", data: { type: "text" } },
+            ] as unknown as Node<NodeData>[];
+            const edges = [
+                { id: "e1", source: "A", target: "B" },
+                { id: "e2", source: "A", target: "D" },
+                { id: "e3", source: "B", target: "C" },
+                { id: "e4", source: "D", target: "C" },
+            ] as Edge[];
+
+            const mockExecute = vi.fn().mockResolvedValue({});
+            vi.mocked(getNodeDefinition).mockReturnValue({
+                gatherInputs: () => ({}),
+                execute: mockExecute,
+            } as any);
+
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
+            await engine.runToNode("C");
+
+            expect(engine.hasResult("A")).toBe(true);
+            expect(engine.hasResult("B")).toBe(true);
+            expect(engine.hasResult("D")).toBe(true);
+            expect(engine.hasResult("C")).toBe(true);
+        });
+
+        it("runs only the target node when it has no ancestors", async () => {
+            const nodes = [
+                { id: "1", data: { type: "text" } },
+                { id: "2", data: { type: "text" } },
+            ] as unknown as Node<NodeData>[];
+            const edges = [] as Edge[];
+
+            const mockExecute = vi.fn().mockResolvedValue({});
+            vi.mocked(getNodeDefinition).mockReturnValue({
+                gatherInputs: () => ({}),
+                execute: mockExecute,
+            } as any);
+
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
+            await engine.runToNode("1");
+
+            expect(engine.hasResult("1")).toBe(true);
+            expect(engine.hasResult("2")).toBe(false);
+        });
+
+        it("excludes disconnected nodes that are not ancestors of the target", async () => {
+            // 1 → 2 → 3,  4 (disconnected)
+            const nodes = [
+                { id: "1", data: { type: "text" } },
+                { id: "2", data: { type: "text" } },
+                { id: "3", data: { type: "text" } },
+                { id: "4", data: { type: "text" } },
+            ] as unknown as Node<NodeData>[];
+            const edges = [
+                { id: "e1", source: "1", target: "2" },
+                { id: "e2", source: "2", target: "3" },
+            ] as Edge[];
+
+            const mockExecute = vi.fn().mockResolvedValue({});
+            vi.mocked(getNodeDefinition).mockReturnValue({
+                gatherInputs: () => ({}),
+                execute: mockExecute,
+            } as any);
+
+            const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
+            await engine.runToNode("3");
+
+            expect(engine.hasResult("1")).toBe(true);
+            expect(engine.hasResult("2")).toBe(true);
+            expect(engine.hasResult("3")).toBe(true);
+            expect(engine.hasResult("4")).toBe(false);
         });
     });
 });

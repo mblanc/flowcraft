@@ -24,7 +24,6 @@ vi.mock("@/lib/store/use-flow-store", () => ({
             nodes: [],
             edges: [],
             isSaving: false,
-            isRunning: false,
             ownerId: "user-1",
             sharedWith: [],
         }),
@@ -33,8 +32,9 @@ vi.mock("@/lib/store/use-flow-store", () => ({
 
 vi.mock("@/hooks/use-flow-execution", () => ({
     useFlowExecution: () => ({
-        runFlow: vi.fn(),
-        stopExecution: vi.fn(),
+        runFromNode: vi.fn(),
+        executeNode: vi.fn(),
+        runToNode: vi.fn(),
     }),
 }));
 

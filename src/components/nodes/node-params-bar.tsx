@@ -9,17 +9,24 @@ interface NodeParamsBarProps {
 }
 
 export function NodeParamsBar({ isVisible, children }: NodeParamsBarProps) {
-    const selectedCount = useStore(
-        (s) => s.nodes.filter((n) => n.selected).length,
-    );
+    const isMultiSelect = useStore((s) => {
+        let count = 0;
+        for (const n of s.nodes) {
+            if (n.selected && ++count > 1) return true;
+        }
+        return false;
+    });
     return (
         <NodeToolbar
-            isVisible={isVisible && selectedCount <= 1}
+            isVisible={isVisible && !isMultiSelect}
             position={Position.Bottom}
             offset={8}
             className="z-20"
         >
-            <div className="border-border bg-card pointer-events-auto rounded-lg border px-3 py-2 shadow-sm">
+            <div
+                data-testid="params-bar-container"
+                className="border-border bg-background/95 pointer-events-auto rounded-lg border px-3 py-2 shadow-md backdrop-blur-md"
+            >
                 {children}
             </div>
         </NodeToolbar>

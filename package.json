@@ -58,6 +58,7 @@
         "cmdk": "1.1.1",
         "date-fns": "4.1.0",
         "embla-carousel-react": "8.6.0",
+        "file-type": "^22.0.1",
         "geist": "^1.7.0",
         "input-otp": "1.4.2",
         "lucide-react": "^0.577.0",

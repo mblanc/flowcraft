@@ -35,7 +35,6 @@ describe("useFlowStore (GraphSlice + UISlice)", () => {
             isTemplate: false,
             ownerId: null,
             lastModified: 0,
-            isRunning: false,
         });
     });
 

@@ -24,6 +24,7 @@ import {
     MODEL_THINKING_LEVELS,
 } from "../constants";
 import type { ContentPart, MediaRef } from "../types";
+import { GoogleAuth } from "google-auth-library";
 
 const DATA_URI_REGEX = /^data:([^;]+);base64,(.+)$/;
 
@@ -165,9 +166,23 @@ export class GeminiService {
             generationConfig.responseMimeType = "application/json";
             if (responseSchema) {
                 try {
-                    generationConfig.responseSchema = JSON.parse(
-                        responseSchema,
-                    ) as Record<string, unknown>;
+                    if (responseSchema.length > 8192) {
+                        throw new Error(
+                            "responseSchema exceeds maximum length",
+                        );
+                    }
+                    const parsed = JSON.parse(responseSchema);
+                    if (
+                        typeof parsed !== "object" ||
+                        Array.isArray(parsed) ||
+                        parsed === null
+                    ) {
+                        throw new Error("responseSchema must be a JSON object");
+                    }
+                    generationConfig.responseSchema = parsed as Record<
+                        string,
+                        unknown
+                    >;
                     if (strictMode) {
                         logger.info(
                             "[GeminiService] Strict mode enabled for JSON output",
@@ -585,7 +600,6 @@ export class GeminiService {
         logger.info(`[GeminiService] Generating music with model: ${model}`);
 
         // Lyria uses the Vertex AI predict endpoint — no SDK wrapper yet.
-        const { GoogleAuth } = await import("google-auth-library");
         const auth = new GoogleAuth({
             scopes: "https://www.googleapis.com/auth/cloud-platform",
         });

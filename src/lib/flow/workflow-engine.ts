@@ -133,33 +133,47 @@ export class WorkflowEngine {
         this.context = context || {};
     }
 
-    async run() {
-        // Validate edges from custom-workflow nodes
-        this.validateCustomWorkflowEdges();
-
-        const levels = this.getExecutionLevels();
-
+    private async runLevels(levels: string[][]) {
         for (const level of levels) {
             await Promise.all(
-                level.map(async (nodeId) => {
-                    await this.executeNodeSync(nodeId);
-                }),
+                level.map((nodeId) => this.executeNodeSync(nodeId)),
             );
         }
     }
 
+    async run() {
+        this.validateCustomWorkflowEdges();
+        await this.runLevels(this.getExecutionLevels());
+    }
+
     async runFromNode(startNodeId: string) {
         this.validateCustomWorkflowEdges();
+        await this.runLevels(this.getExecutionLevelsFromNode(startNodeId));
+    }
 
-        const levels = this.getExecutionLevelsFromNode(startNodeId);
+    async runToNode(targetNodeId: string) {
+        this.validateCustomWorkflowEdges();
+        await this.runLevels(this.getExecutionLevelsToNode(targetNodeId));
+    }
 
-        for (const level of levels) {
-            await Promise.all(
-                level.map(async (nodeId) => {
-                    await this.executeNodeSync(nodeId);
-                }),
-            );
+    private getExecutionLevelsToNode(targetNodeId: string): string[][] {
+        const queue = [targetNodeId];
+        const ancestors = new Set<string>([targetNodeId]);
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            for (const edge of this.edges) {
+                if (edge.target === current && !ancestors.has(edge.source)) {
+                    ancestors.add(edge.source);
+                    queue.push(edge.source);
+                }
+            }
         }
+
+        const allLevels = this.getExecutionLevels();
+        return allLevels
+            .map((level) => level.filter((id) => ancestors.has(id)))
+            .filter((level) => level.length > 0);
     }
 
     private getExecutionLevelsFromNode(startNodeId: string): string[][] {
@@ -208,11 +222,6 @@ export class WorkflowEngine {
     async executeNodeWithRouterResolution(nodeId: string) {
         await this.executeUpstreamRouters(nodeId);
         return this.executeNodeSync(nodeId);
-    }
-
-    /** @deprecated Use executeNodeWithRouterResolution */
-    async executeNode(nodeId: string) {
-        return this.executeNodeWithRouterResolution(nodeId);
     }
 
     private async executeUpstreamRouters(nodeId: string): Promise<void> {
@@ -386,11 +395,13 @@ export class WorkflowEngine {
                 .map((node) => node.id);
 
             if (currentLevel.length === 0) {
-                const remaining = nodes.filter(
-                    (node) => !processed.has(node.id),
-                );
-                if (remaining.length > 0) {
-                    currentLevel.push(...remaining.map((n) => n.id));
+                const cycleIds = nodes
+                    .filter((node) => !processed.has(node.id))
+                    .map((n) => n.id);
+                if (cycleIds.length > 0) {
+                    throw new Error(
+                        `Cycle detected in flow graph involving nodes: ${cycleIds.join(", ")}`,
+                    );
                 }
                 break;
             }

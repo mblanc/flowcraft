@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { MODELS, DEFAULTS } from "./constants";
+import { parseGcsUri, extractBucketFromStorageUri } from "./utils/gcs-uri";
+import { config } from "./config";
 
 // --- Legacy Model Migration ---
 // Maps old preview model strings to their GA equivalents for backward compatibility
@@ -19,6 +21,20 @@ function migrateVideoModel(val: unknown): unknown {
 // --- Shared Types ---
 
 const AspectRatio169_916Schema = z.enum(["16:9", "9:16"]);
+
+const MediaRefSchema = z.object({
+    url: z.string(),
+    type: z.string(),
+});
+
+const NamedNodeInputSchema = z.object({
+    nodeId: z.string(),
+    name: z.string(),
+    textValue: z.string().nullable(),
+    textValues: z.array(z.string()).optional(),
+    fileValues: z.array(MediaRefSchema),
+    fileValuesList: z.array(z.array(MediaRefSchema)).optional(),
+});
 
 const ImageDataAspectRatioSchema = z.enum([
     "Auto",
@@ -137,7 +153,7 @@ export const FileDataSchema = BaseNodeDataSchema.extend({
     type: z.literal("file"),
     fileType: z.enum(["image", "video", "pdf"]).nullable(),
     fileUrl: z.string(),
-    fileName: z.string(),
+    fileName: z.string().max(255),
     gcsUri: z.string().optional(),
     width: z.number().optional(),
     height: z.number().optional(),
@@ -288,7 +304,7 @@ export const GenerateImageSchema = z
         groundingGoogleSearch: z.boolean().optional().default(false),
         groundingImageSearch: z.boolean().optional().default(false),
         thinkingLevel: z.string().optional(),
-        namedNodes: z.array(z.any()).optional(),
+        namedNodes: z.array(NamedNodeInputSchema).optional(),
     })
     .superRefine((data, ctx) => {
         const hasParts = data.parts && data.parts.length > 0;
@@ -305,7 +321,7 @@ export const GenerateImageSchema = z
 export const GenerateTextSchema = z
     .object({
         instructions: z.string().optional(),
-        namedNodes: z.array(z.any()).optional(),
+        namedNodes: z.array(NamedNodeInputSchema).optional(),
         prompts: z.array(z.string()).optional().default([]),
         parts: z.array(ContentPartSchema).optional(),
         files: z
@@ -368,23 +384,38 @@ export const GenerateVideoSchema = z.object({
     ),
     generateAudio: z.boolean().optional().default(true),
     resolution: z.enum(["720p", "1080p", "4K"]).optional().default("720p"),
-    namedNodes: z.array(z.any()).optional(),
+    namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 
 export const ResizeImageSchema = z.object({
     image: z.string().min(1, "Image is required"),
     aspectRatio: AspectRatio169_916Schema,
-    namedNodes: z.array(z.any()).optional(),
+    namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 
 export const UpscaleImageSchema = z.object({
     image: z.string().min(1, "Image is required"),
     upscaleFactor: z.enum(["x2", "x3", "x4"]).optional().default("x2"),
-    namedNodes: z.array(z.any()).optional(),
+    namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 
 export const GetSignedUrlSchema = z.object({
-    gcsUri: z.string().min(1, "gcsUri is required"),
+    gcsUri: z
+        .string()
+        .min(1, "gcsUri is required")
+        .refine(
+            (uri) => {
+                try {
+                    const allowedBucket = extractBucketFromStorageUri(
+                        config.GCS_STORAGE_URI,
+                    );
+                    return parseGcsUri(uri).bucket === allowedBucket;
+                } catch {
+                    return false;
+                }
+            },
+            { message: "gcsUri refers to an unauthorized bucket" },
+        ),
 });
 
 export const FlowCreateSchema = z.object({
