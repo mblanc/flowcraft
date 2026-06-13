@@ -53,6 +53,8 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
     isTemplate: false,
     ownerId: null,
     lastModified: 0,
+    saveStatus: "saved" as const,
+    setSaveStatus: (status) => set({ saveStatus: status }),
 
     setNodes: (nodes) => {
         const migrated = migrateNodes(nodes);
