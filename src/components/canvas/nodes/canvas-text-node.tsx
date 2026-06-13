@@ -249,7 +249,7 @@ export const CanvasTextNode = memo(
                             </div>
                         ) : (
                             <div
-                                className="canvas-text-editor-wrapper text-foreground h-full cursor-text overflow-auto p-5 text-sm"
+                                className="canvas-text-editor-wrapper prose prose-sm dark:prose-invert h-full max-w-none cursor-text overflow-auto p-5"
                                 onDoubleClick={() => setIsEditing(true)}
                             >
                                 {d.content ? (

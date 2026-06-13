@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -409,6 +410,37 @@
 .canvas-text-editor-wrapper hr {
     border-top: 1px solid var(--border);
     margin: 0.75rem 0;
+}
+.canvas-text-editor-wrapper table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.75rem 0;
+    font-size: 0.875rem;
+}
+.canvas-text-editor-wrapper thead tr {
+    background-color: var(--muted);
+}
+.canvas-text-editor-wrapper th,
+.canvas-text-editor-wrapper td {
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.65rem;
+    text-align: left;
+}
+.canvas-text-editor-wrapper th {
+    font-weight: 600;
+}
+
+/* Markdown table overrides for prose (canvas text node view mode + chat) */
+.prose :where(table):not(:where([class~="not-prose"] *)) {
+    border-collapse: collapse;
+}
+.prose :where(thead tr):not(:where([class~="not-prose"] *)) {
+    background-color: var(--muted);
+    border-bottom-color: var(--border);
+}
+.prose :where(th, td):not(:where([class~="not-prose"] *)) {
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.65rem;
 }
 
 /* Mention editor chip styles */

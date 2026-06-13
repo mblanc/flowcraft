@@ -352,7 +352,7 @@ export const CanvasNode = memo(
 
                             {d.prompt && (
                                 <div className="flex flex-col gap-1.5">
-                                    <div className="text-foreground/90 custom-scrollbar max-h-[160px] overflow-y-auto border-l-[3px] border-orange-500/50 pl-3 text-sm leading-relaxed text-balance">
+                                    <div className="nowheel text-foreground/90 custom-scrollbar max-h-[160px] overflow-y-auto border-l-[3px] border-orange-500/50 pl-3 text-sm leading-relaxed whitespace-pre-wrap">
                                         {d.prompt}
                                     </div>
                                     <Button
