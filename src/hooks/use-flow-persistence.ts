@@ -1,32 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
-import {
-    ImageData,
-    UpscaleData,
-    ResizeData,
-    VideoData,
-    NodeData,
-} from "@/lib/types";
+import { ImageData, UpscaleData, ResizeData, VideoData } from "@/lib/types";
 import logger from "@/app/logger";
 import { useSession } from "next-auth/react";
+import { useAutoSave } from "@/hooks/use-auto-save";
+
+const AUTO_SAVE_DEBOUNCE_MS = 2000;
 
 export function useFlowPersistence() {
     const setNodes = useFlowStore((state) => state.setNodes);
     const setEdges = useFlowStore((state) => state.setEdges);
     const setFlowName = useFlowStore((state) => state.setFlowName);
+    const setSaveStatus = useFlowStore(
+        (state: FlowState) => state.setSaveStatus,
+    );
     const flowId = useFlowStore((state: FlowState) => state.flowId);
     const lastModified = useFlowStore((state: FlowState) => state.lastModified);
     const ownerId = useFlowStore((state: FlowState) => state.ownerId);
     const sharedWith = useFlowStore((state: FlowState) => state.sharedWith);
     const isTemplate = useFlowStore((state: FlowState) => state.isTemplate);
-    const entityType = useFlowStore((state: FlowState) => state.entityType);
 
     const { data: session } = useSession();
-    const lastSavedRef = useRef<number>(0);
 
     const isOwner =
         !!session?.user?.id && !!ownerId && session.user.id === ownerId;
@@ -95,8 +93,7 @@ export function useFlowPersistence() {
                     ? `/api/custom-nodes/${flowId}`
                     : `/api/flows/${flowId}`;
 
-            const currentModified = useFlowStore.getState().lastModified;
-            lastSavedRef.current = currentModified;
+            setSaveStatus("saving");
 
             try {
                 // Strip transient UI flags from node data before persisting to Firestore
@@ -129,16 +126,28 @@ export function useFlowPersistence() {
                 });
 
                 if (response.ok) {
+                    setSaveStatus("saved");
                     logger.info(
                         `${entityType === "custom-node" ? "Custom node" : "Flow"} saved successfully`,
                     );
+                } else {
+                    setSaveStatus("error");
+                    logger.error("Error saving: bad response");
                 }
             } catch (error) {
+                setSaveStatus("error");
                 logger.error("Error saving:", error);
             }
         },
-        [getThumbnailFromNodes, isEditable],
+        [getThumbnailFromNodes, isEditable, setSaveStatus],
     );
+
+    useAutoSave({
+        entityId: isEditable ? flowId : null,
+        lastModified,
+        onSave: saveFlow,
+        debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+    });
 
     const exportFlow = useCallback(() => {
         const { flowName, nodes, edges } = useFlowStore.getState();
@@ -189,20 +198,6 @@ export function useFlowPersistence() {
         };
         input.click();
     }, [setNodes, setEdges, setFlowName]);
-
-    // Auto-save logic
-    useEffect(() => {
-        if (!isEditable || !flowId || !lastModified) return;
-
-        // If we haven't modified since last save, skip
-        if (lastModified <= lastSavedRef.current) return;
-
-        const timeout = setTimeout(() => {
-            void saveFlow();
-        }, 3000); // 3-second debounce
-
-        return () => clearTimeout(timeout);
-    }, [lastModified, flowId, isEditable, saveFlow]);
 
     return {
         saveFlow,
