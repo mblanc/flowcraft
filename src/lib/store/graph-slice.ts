@@ -53,7 +53,7 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
     isTemplate: false,
     ownerId: null,
     lastModified: 0,
-    saveStatus: "saved" as const,
+    saveStatus: "saved",
     setSaveStatus: (status) => set({ saveStatus: status }),
 
     setNodes: (nodes) => {
@@ -196,7 +196,6 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             nodesById,
             selectedNodeId: finalSelectedId,
             selectedNode: deriveSelectedNode(nodesById, finalSelectedId),
-            lastModified: Date.now(),
         });
     },
 

@@ -13,19 +13,29 @@ export function useAutoSave({
     entityId,
     lastModified,
     onSave,
-    debounceMs = 1500,
+    debounceMs = 2000,
 }: UseAutoSaveOptions) {
     const lastSavedRef = useRef<number>(0);
+    const onSaveRef = useRef(onSave);
+    useEffect(() => {
+        onSaveRef.current = onSave;
+    });
 
     useEffect(() => {
-        if (!entityId || !lastModified) return;
-        if (lastModified <= lastSavedRef.current) return;
+        if (!entityId || lastModified <= lastSavedRef.current) return;
 
         const timeout = setTimeout(() => {
-            lastSavedRef.current = lastModified;
-            void onSave();
+            void (async () => {
+                try {
+                    await onSaveRef.current();
+                    lastSavedRef.current = lastModified;
+                } catch {
+                    // onSave sets saveStatus="error"; lastSavedRef stays so
+                    // the next edit or remount will retry
+                }
+            })();
         }, debounceMs);
 
         return () => clearTimeout(timeout);
-    }, [lastModified, entityId, onSave, debounceMs]);
+    }, [lastModified, entityId, debounceMs]);
 }

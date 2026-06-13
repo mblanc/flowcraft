@@ -19,8 +19,9 @@ export function useCanvasPersistence() {
 
         setSaveStatus("saving");
 
+        let response: Response;
         try {
-            const response = await fetch(`/api/canvases/${canvasId}`, {
+            response = await fetch(`/api/canvases/${canvasId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -30,17 +31,19 @@ export function useCanvasPersistence() {
                     messages,
                 }),
             });
-
-            if (response.ok) {
-                setSaveStatus("saved");
-                logger.info("Canvas saved successfully");
-            } else {
-                setSaveStatus("error");
-                logger.error("Error saving canvas: bad response");
-            }
         } catch (error) {
             setSaveStatus("error");
             logger.error("Error saving canvas:", error);
+            throw error;
+        }
+
+        if (response.ok) {
+            setSaveStatus("saved");
+            logger.info("Canvas saved successfully");
+        } else {
+            setSaveStatus("error");
+            logger.error("Error saving canvas: bad response");
+            throw new Error("Save failed: bad response");
         }
     }, [setSaveStatus]);
 

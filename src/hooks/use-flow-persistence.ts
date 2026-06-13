@@ -1,13 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useCallback } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import type { FlowState } from "@/lib/store/use-flow-store";
 import { ImageData, UpscaleData, ResizeData, VideoData } from "@/lib/types";
 import logger from "@/app/logger";
 import { useSession } from "next-auth/react";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { FlowImportSchema } from "@/lib/schemas";
 
 const AUTO_SAVE_DEBOUNCE_MS = 2000;
 
@@ -15,14 +14,11 @@ export function useFlowPersistence() {
     const setNodes = useFlowStore((state) => state.setNodes);
     const setEdges = useFlowStore((state) => state.setEdges);
     const setFlowName = useFlowStore((state) => state.setFlowName);
-    const setSaveStatus = useFlowStore(
-        (state: FlowState) => state.setSaveStatus,
-    );
-    const flowId = useFlowStore((state: FlowState) => state.flowId);
-    const lastModified = useFlowStore((state: FlowState) => state.lastModified);
-    const ownerId = useFlowStore((state: FlowState) => state.ownerId);
-    const sharedWith = useFlowStore((state: FlowState) => state.sharedWith);
-    const isTemplate = useFlowStore((state: FlowState) => state.isTemplate);
+    const setSaveStatus = useFlowStore((state) => state.setSaveStatus);
+    const flowId = useFlowStore((state) => state.flowId);
+    const lastModified = useFlowStore((state) => state.lastModified);
+    const ownerId = useFlowStore((state) => state.ownerId);
+    const sharedWith = useFlowStore((state) => state.sharedWith);
 
     const { data: session } = useSession();
 
@@ -31,9 +27,9 @@ export function useFlowPersistence() {
     const isEditor =
         !!session?.user?.email &&
         sharedWith?.some(
-            (s: any) => s.email === session.user?.email && s.role === "edit",
+            (s) => s.email === session.user?.email && s.role === "edit",
         );
-    const isEditable = isOwner || isEditor || isTemplate;
+    const isEditable = isOwner || isEditor;
 
     const getThumbnailFromNodes = useCallback(
         (
@@ -58,23 +54,17 @@ export function useFlowPersistence() {
                 return false;
             });
 
-            if (imageNodes.length > 0) {
-                imageNodes.sort((a, b) => {
-                    const timeA = a.data.generatedAt || 0;
-                    const timeB = b.data.generatedAt || 0;
-                    return timeB - timeA;
-                });
+            if (imageNodes.length === 0) return undefined;
 
-                const latestNode = imageNodes[0];
-                const data = latestNode.data;
-                if (data.type === "image") return (data as ImageData).images[0];
-                else if (data.type === "upscale")
-                    return (data as UpscaleData).image;
-                else if (data.type === "resize")
-                    return (data as ResizeData).output;
-                else if (data.type === "video")
-                    return (data as VideoData).images[0];
-            }
+            imageNodes.sort(
+                (a, b) => (b.data.generatedAt || 0) - (a.data.generatedAt || 0),
+            );
+
+            const { data } = imageNodes[0];
+            if (data.type === "image") return (data as ImageData).images[0];
+            if (data.type === "upscale") return (data as UpscaleData).image;
+            if (data.type === "resize") return (data as ResizeData).output;
+            if (data.type === "video") return (data as VideoData).images[0];
             return undefined;
         },
         [],
@@ -95,26 +85,17 @@ export function useFlowPersistence() {
 
             setSaveStatus("saving");
 
-            try {
-                // Strip transient UI flags from node data before persisting to Firestore
-                const cleanedNodes = nodes.map((node) => {
-                    const {
-                        executing,
-                        batchProgress,
-                        batchTotal,
-                        ...cleanData
-                    } = node.data;
-                    return {
-                        ...node,
-                        data: cleanData,
-                    };
-                });
+            const cleanedNodes = nodes.map((node) => {
+                const { executing, batchProgress, batchTotal, ...cleanData } =
+                    node.data;
+                return { ...node, data: cleanData };
+            });
 
-                const response = await fetch(apiPath, {
+            let response: Response;
+            try {
+                response = await fetch(apiPath, {
                     method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         name: flowName,
                         nodes: cleanedNodes,
@@ -124,19 +105,21 @@ export function useFlowPersistence() {
                         }),
                     }),
                 });
-
-                if (response.ok) {
-                    setSaveStatus("saved");
-                    logger.info(
-                        `${entityType === "custom-node" ? "Custom node" : "Flow"} saved successfully`,
-                    );
-                } else {
-                    setSaveStatus("error");
-                    logger.error("Error saving: bad response");
-                }
             } catch (error) {
                 setSaveStatus("error");
                 logger.error("Error saving:", error);
+                throw error;
+            }
+
+            if (response.ok) {
+                setSaveStatus("saved");
+                logger.info(
+                    `${entityType === "custom-node" ? "Custom node" : "Flow"} saved successfully`,
+                );
+            } else {
+                setSaveStatus("error");
+                logger.error("Error saving: bad response");
+                throw new Error("Save failed: bad response");
             }
         },
         [getThumbnailFromNodes, isEditable, setSaveStatus],
@@ -181,14 +164,20 @@ export function useFlowPersistence() {
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     try {
-                        const flowData = JSON.parse(
-                            event.target?.result as string,
+                        const parsed = FlowImportSchema.safeParse(
+                            JSON.parse(event.target?.result as string),
                         );
-                        if (flowData.nodes && flowData.edges) {
-                            setNodes(flowData.nodes);
-                            setEdges(flowData.edges);
-                            if (flowData.name) setFlowName(flowData.name);
+                        if (!parsed.success) {
+                            logger.error(
+                                "Error importing flow: invalid format",
+                                parsed.error,
+                            );
+                            return;
                         }
+                        const { nodes, edges, name } = parsed.data;
+                        setNodes(nodes);
+                        setEdges(edges);
+                        if (name) setFlowName(name);
                     } catch (error) {
                         logger.error("Error importing flow:", error);
                     }

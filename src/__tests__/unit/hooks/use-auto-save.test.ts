@@ -117,12 +117,12 @@ describe("useAutoSave", () => {
         expect(onSave).not.toHaveBeenCalled();
     });
 
-    it("uses default debounce of 1500ms when debounceMs is not provided", () => {
+    it("uses default debounce of 2000ms when debounceMs is not provided", () => {
         const onSave = vi.fn().mockResolvedValue(undefined);
         renderHook(() =>
             useAutoSave({ entityId: "abc", lastModified: 1000, onSave }),
         );
-        vi.advanceTimersByTime(1499);
+        vi.advanceTimersByTime(1999);
         expect(onSave).not.toHaveBeenCalled();
         vi.advanceTimersByTime(1);
         expect(onSave).toHaveBeenCalledTimes(1);

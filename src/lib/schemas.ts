@@ -424,11 +424,15 @@ export const FlowCreateSchema = z.object({
     edges: z.array(EdgeSchema),
 });
 
+export const FlowImportSchema = FlowCreateSchema.extend({
+    name: z.string().optional(),
+});
+
 export const FlowUpdateSchema = z.object({
     name: z.string().optional(),
     nodes: z.array(NodeSchema).optional(),
     edges: z.array(EdgeSchema).optional(),
-    thumbnail: z.string().optional(),
+    thumbnail: z.string().url().max(2048).optional(),
     visibility: z.enum(["private", "public", "restricted"]).optional(),
     isTemplate: z.boolean().optional(),
     sharedWith: z
@@ -471,7 +475,7 @@ export const CustomNodeUpdateSchema = z.object({
     name: z.string().optional(),
     nodes: z.array(NodeSchema).optional(),
     edges: z.array(EdgeSchema).optional(),
-    thumbnail: z.string().optional(),
+    thumbnail: z.string().url().max(2048).optional(),
 });
 
 // --- Infer Types ---
