@@ -198,13 +198,13 @@ describe("WorkflowEngine Nested Subflows", () => {
         await engine.run();
 
         // Check Subflow 1 result
-        const s1Result = engine.executionResults.get("sub-1-node") as any;
+        const s1Result = engine.getResult("sub-1-node") as any;
         expect(s1Result.results["s1-out-image"]).toBeDefined();
         const s1ImageOutput = s1Result.results["s1-out-image"].value;
         expect(s1ImageOutput.images).toContain("gs://bucket/cat.png");
 
         // Check Subflow 2 result
-        const s2Result = engine.executionResults.get("sub-2-node") as any;
+        const s2Result = engine.getResult("sub-2-node") as any;
         expect(s2Result.results["s2-out-video"]).toBeDefined();
         const s2VideoOutput = s2Result.results["s2-out-video"].value;
         expect(s2VideoOutput.videoUrl).toBe("gs://bucket/cat.mp4");
@@ -348,13 +348,13 @@ describe("WorkflowEngine Nested Subflows", () => {
         await engine.run();
 
         // Check Subflow result
-        const subResult = engine.executionResults.get("sub-1-node") as any;
+        const subResult = engine.getResult("sub-1-node") as any;
         expect(subResult.results["s1-out-image"]).toBeDefined();
         const imageOutput = subResult.results["s1-out-image"].value;
         expect(imageOutput.images).toContain("gs://bucket/landscape.png");
 
         // Check Resize node result
-        const resizeResult = engine.executionResults.get("resize-node") as any;
+        const resizeResult = engine.getResult("resize-node") as any;
         expect(resizeResult.output).toBe("gs://bucket/landscape-resized.png");
 
         // Verify that Resize node received the image from the sub-workflow
@@ -497,15 +497,13 @@ describe("WorkflowEngine Nested Subflows", () => {
         await engine.run();
 
         // Check Subflow result
-        const subResult = engine.executionResults.get("sub-1-node") as any;
+        const subResult = engine.getResult("sub-1-node") as any;
         expect(subResult.results["s1-out-image"]).toBeDefined();
         const imageOutput = subResult.results["s1-out-image"].value;
         expect(imageOutput.images).toContain("gs://bucket/portrait.png");
 
         // Check Upscale node result
-        const upscaleResult = engine.executionResults.get(
-            "upscale-node",
-        ) as any;
+        const upscaleResult = engine.getResult("upscale-node") as any;
         expect(upscaleResult.image).toBe("gs://bucket/portrait-upscaled.png");
 
         // Verify that Upscale node received the image from the sub-workflow
@@ -636,7 +634,7 @@ describe("WorkflowEngine Nested Subflows", () => {
         await engine.run();
 
         // The resize should still work due to the single-output fallback
-        const resizeResult = engine.executionResults.get("resize-node") as any;
+        const resizeResult = engine.getResult("resize-node") as any;
         expect(resizeResult.output).toBe("gs://bucket/fallback-resized.png");
 
         // Verify that Resize node received the image from the sub-workflow fallback
@@ -780,13 +778,13 @@ describe("WorkflowEngine Nested Subflows", () => {
         await engine.run();
 
         // Check Subflow result
-        const subResult = engine.executionResults.get("sub-1-node") as any;
+        const subResult = engine.getResult("sub-1-node") as any;
         expect(subResult.results["s1-out-image"]).toBeDefined();
         const imageOutput = subResult.results["s1-out-image"].value;
         expect(imageOutput.images).toContain("gs://bucket/cat-image.png");
 
         // Check LLM node result
-        const llmResult = engine.executionResults.get("llm-node") as any;
+        const llmResult = engine.getResult("llm-node") as any;
         expect(llmResult.output).toBe("This is a cute cat");
 
         // CRITICAL: Verify that LLM node received the image from the sub-workflow
@@ -934,7 +932,7 @@ describe("WorkflowEngine Nested Subflows", () => {
         await engine.run();
 
         // The LLM should still work due to single-output fallback
-        const llmResult = engine.executionResults.get("llm-node") as any;
+        const llmResult = engine.getResult("llm-node") as any;
         expect(llmResult.output).toBe("This is a happy dog");
 
         // Verify LLM received the image even without explicit sourceHandle
@@ -1045,7 +1043,7 @@ describe("WorkflowEngine Nested Subflows", () => {
         await engine.executeNode("llm-node");
 
         // Check LLM node result
-        const llmResult = engine.executionResults.get("llm-node") as any;
+        const llmResult = engine.getResult("llm-node") as any;
         expect(llmResult.output).toBe("This is a previously generated cat");
 
         // Verify that LLM received the image from the stored sub-workflow results

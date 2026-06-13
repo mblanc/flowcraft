@@ -9,6 +9,7 @@ import {
     ImageData as FlowImageData,
     CustomWorkflowData,
     NodeInputs,
+    MediaRef,
 } from "@/lib/types";
 import { getNodeDefinition, NodeDefinition } from "@/lib/flow/node-registry";
 import { imageNodeDefinition, routerNodeDefinition } from "@/lib/node-adapters";
@@ -184,13 +185,7 @@ describe("WorkflowEngine", () => {
                 }),
             );
 
-            expect(
-                (
-                    engine as unknown as {
-                        executionResults: Map<string, unknown>;
-                    }
-                ).executionResults.get("1"),
-            ).toEqual({
+            expect(engine.getResult("1")).toEqual({
                 output: "result",
             });
         });
@@ -381,7 +376,7 @@ describe("WorkflowEngine", () => {
             expect(mockFetch).toHaveBeenCalled();
 
             // Verify results
-            const subWorkflowResult = engine.executionResults.get(
+            const subWorkflowResult = engine.getResult(
                 "sub-workflow-node",
             ) as CustomWorkflowData;
             expect(subWorkflowResult).toBeDefined();
@@ -426,7 +421,7 @@ describe("WorkflowEngine", () => {
             const engine = new WorkflowEngine(nodes, edges, mockOnNodeUpdate);
             await engine.executeNode("batch-node");
 
-            const result = engine.executionResults.get("batch-node") as any;
+            const result = engine.getResult("batch-node") as any;
             expect(result.outputs).toEqual(["result-a", "result-b"]);
             expect(result.batchTotal).toBe(2);
             expect(mockExecute).toHaveBeenCalledTimes(2);
@@ -461,7 +456,7 @@ describe("WorkflowEngine", () => {
             const engine = new WorkflowEngine(nodes, [], mockOnNodeUpdate);
             await engine.executeNode("batch-img");
 
-            const result = engine.executionResults.get("batch-img") as any;
+            const result = engine.getResult("batch-img") as any;
             expect(result.images).toEqual(["out.png", "out.png"]); // two iterations
             expect(mockExecute).toHaveBeenCalledTimes(2);
         });
@@ -551,7 +546,7 @@ describe("WorkflowEngine", () => {
             >;
             expect(img2Inputs).toBeDefined();
             const namedNodes = img2Inputs.namedNodes as Array<{
-                fileValues: { url: string; type: string }[];
+                fileValues: MediaRef[];
             }>;
             expect(namedNodes).toBeDefined();
             const routerEntry = namedNodes.find(
@@ -587,9 +582,9 @@ describe("WorkflowEngine", () => {
             await engine.runFromNode("2");
 
             expect(mockExecute).toHaveBeenCalledTimes(2); // node 2 and 3, but not 1
-            expect(engine.executionResults.has("2")).toBe(true);
-            expect(engine.executionResults.has("3")).toBe(true);
-            expect(engine.executionResults.has("1")).toBe(false);
+            expect(engine.hasResult("2")).toBe(true);
+            expect(engine.hasResult("3")).toBe(true);
+            expect(engine.hasResult("1")).toBe(false);
         });
     });
 });

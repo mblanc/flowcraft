@@ -113,13 +113,13 @@ describe("WorkflowEngine Multi-Node Integration", () => {
         await engine.run();
 
         // Check LLM result
-        const llmResult = engine.executionResults.get("llm-1") as any;
+        const llmResult = engine.getResult("llm-1") as any;
         expect(llmResult?.output).toBe(
             "A highly detailed, magical glowing forest with giant mushrooms and fireflies, fantasy concept art.",
         );
 
         // Check Image result
-        const imageResult = engine.executionResults.get("image-1") as any;
+        const imageResult = engine.getResult("image-1") as any;
         expect(imageResult?.images).toContain("gs://bucket/magical-forest.png");
 
         // Verify API calls
@@ -221,7 +221,7 @@ describe("WorkflowEngine Multi-Node Integration", () => {
         });
         await engine.run();
 
-        const llmResult = engine.executionResults.get("llm-batch") as any;
+        const llmResult = engine.getResult("llm-batch") as any;
         expect(llmResult?.output).toBe(
             "A cyberpunk cat roaming the neon streets.",
         );

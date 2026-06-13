@@ -5,7 +5,8 @@ import { styleService } from "@/lib/services/style.service";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import { executePlan } from "@/lib/canvas/generation";
 import logger from "@/app/logger";
-import type { AgentPlan } from "@/lib/canvas/types";
+import type { AgentPlan, CanvasNode } from "@/lib/canvas/types";
+import { isGcsUri } from "@/lib/utils/gcs-uri";
 
 export const maxDuration = 300;
 
@@ -19,13 +20,11 @@ function formatSSE(event: string, data: unknown): string {
     return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-function buildNodeUriMap(canvas: {
-    nodes: { id: string; data: Record<string, unknown> }[];
-}): Map<string, string> {
+function buildNodeUriMap(canvas: { nodes: CanvasNode[] }): Map<string, string> {
     const map = new Map<string, string>();
     for (const node of canvas.nodes) {
-        const uri = node.data.sourceUrl as string | undefined;
-        if (uri?.startsWith("gs://")) {
+        const uri = "sourceUrl" in node.data ? node.data.sourceUrl : undefined;
+        if (isGcsUri(uri)) {
             map.set(node.id, uri);
         }
     }

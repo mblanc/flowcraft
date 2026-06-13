@@ -23,7 +23,7 @@ import {
     SupportedMimeType,
     MODEL_THINKING_LEVELS,
 } from "../constants";
-import type { ContentPart } from "../types";
+import type { ContentPart, MediaRef } from "../types";
 
 const DATA_URI_REGEX = /^data:([^;]+);base64,(.+)$/;
 
@@ -53,7 +53,7 @@ function contentPartToSdkPart(
 export interface GenerateTextOptions {
     prompts?: string[];
     parts?: ContentPart[];
-    files?: Array<{ url: string; type: string }>;
+    files?: MediaRef[];
     model?: string;
     outputType?: "text" | "json";
     responseSchema?: string;
@@ -65,7 +65,7 @@ export interface GenerateTextOptions {
 export interface GenerateImageOptions {
     prompt?: string;
     parts?: ContentPart[];
-    images?: Array<{ url: string; type: string }>;
+    images?: MediaRef[];
     aspectRatio?: string;
     model?: string;
     imageSize?: string;
@@ -79,7 +79,7 @@ export interface GenerateVideoOptions {
     prompt: string;
     firstFrame?: string;
     lastFrame?: string;
-    images?: Array<{ url: string; type: string }>;
+    images?: MediaRef[];
     aspectRatio?: string;
     duration?: number;
     model?: string;

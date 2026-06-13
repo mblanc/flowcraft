@@ -8,27 +8,18 @@ import {
     NamedNodeInput,
 } from "../types";
 import { getNodeDefinition, ExecutionContext } from "./node-registry";
-import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-urls";
+import { isGcsUri } from "@/lib/utils/gcs-uri";
 import { registry } from "@/primitives/registry";
 
-async function prewarmSignedUrls(result: Partial<NodeData>): Promise<void> {
+function extractGcsUris(result: Partial<NodeData>): string[] {
     const uris: string[] = [];
     if ("images" in result && Array.isArray(result.images)) {
-        uris.push(
-            ...result.images.filter(
-                (u): u is string => !!u?.startsWith("gs://"),
-            ),
-        );
+        uris.push(...result.images.filter((u): u is string => isGcsUri(u)));
     }
     if ("videos" in result && Array.isArray(result.videos)) {
-        uris.push(
-            ...result.videos.filter(
-                (u): u is string => !!u?.startsWith("gs://"),
-            ),
-        );
+        uris.push(...result.videos.filter((u): u is string => isGcsUri(u)));
     }
-    if (uris.length === 0) return;
-    await Promise.all(uris.map(fetchAndCacheSignedUrl));
+    return uris;
 }
 
 // --- Batch / Unfold helpers ---
@@ -109,7 +100,25 @@ export class WorkflowEngine {
     private nodesMap: Map<string, Node<NodeData>>;
     private edges: Edge[];
     private onNodeUpdate: (nodeId: string, data: Partial<NodeData>) => void;
-    public executionResults: Map<string, Partial<NodeData>> = new Map();
+    private executionResults: Map<string, Partial<NodeData>> = new Map();
+
+    getResult(nodeId: string): Partial<NodeData> | undefined {
+        return this.executionResults.get(nodeId);
+    }
+
+    hasResult(nodeId: string): boolean {
+        return this.executionResults.has(nodeId);
+    }
+
+    getOutputs(outputNodeIds: string[]): Record<string, Partial<NodeData>> {
+        const out: Record<string, Partial<NodeData>> = {};
+        for (const id of outputNodeIds) {
+            const result = this.executionResults.get(id);
+            if (result) out[id] = result;
+        }
+        return out;
+    }
+
     private context: ExecutionContext;
 
     constructor(
@@ -195,9 +204,15 @@ export class WorkflowEngine {
         }
     }
 
-    async executeNode(nodeId: string) {
+    /** Resolves upstream routers before executing the target node. Use `run()` for full DAG execution. */
+    async executeNodeWithRouterResolution(nodeId: string) {
         await this.executeUpstreamRouters(nodeId);
         return this.executeNodeSync(nodeId);
+    }
+
+    /** @deprecated Use executeNodeWithRouterResolution */
+    async executeNode(nodeId: string) {
+        return this.executeNodeWithRouterResolution(nodeId);
     }
 
     private async executeUpstreamRouters(nodeId: string): Promise<void> {
@@ -251,43 +266,40 @@ export class WorkflowEngine {
                     const batchResults: Partial<NodeData>[] = new Array(
                         batchPlan.batchSize,
                     );
-                    const indices = Array.from(
+                    const pending = Array.from(
                         { length: batchPlan.batchSize },
                         (_, i) => i,
                     );
-                    const runNext = async (): Promise<void> => {
-                        const i = indices.shift();
-                        if (i === undefined) return;
-                        const singleInputs = sliceBatchInputs(
-                            inputs,
-                            batchPlan,
-                            i,
-                        );
-                        const singleResult = await definition.execute(
-                            node,
-                            singleInputs,
-                            {
-                                ...this.context,
-                                onNodeUpdate: this.onNodeUpdate,
-                            },
-                        );
-                        batchResults[i] = singleResult;
-                        completedCount++;
-                        this.onNodeUpdate(nodeId, {
-                            batchProgress: completedCount,
-                        } as Partial<NodeData>);
-                        return runNext();
+                    const workerCount = Math.min(
+                        BATCH_CONCURRENCY,
+                        batchPlan.batchSize,
+                    );
+                    const execContext = {
+                        ...this.context,
+                        onNodeUpdate: this.onNodeUpdate,
+                    };
+                    const runWorker = async () => {
+                        while (pending.length > 0) {
+                            const i = pending.shift();
+                            if (i === undefined) break;
+                            const singleInputs = sliceBatchInputs(
+                                inputs,
+                                batchPlan,
+                                i,
+                            );
+                            batchResults[i] = await definition.execute(
+                                node,
+                                singleInputs,
+                                execContext,
+                            );
+                            completedCount++;
+                            this.onNodeUpdate(nodeId, {
+                                batchProgress: completedCount,
+                            } as Partial<NodeData>);
+                        }
                     };
                     await Promise.all(
-                        Array.from(
-                            {
-                                length: Math.min(
-                                    BATCH_CONCURRENCY,
-                                    batchPlan.batchSize,
-                                ),
-                            },
-                            runNext,
-                        ),
+                        Array.from({ length: workerCount }, runWorker),
                     );
 
                     result = {
@@ -307,15 +319,20 @@ export class WorkflowEngine {
 
             // Pre-warm signed URL cache before updating the node so the first
             // render after execution resolves the URL synchronously (no placeholder flash).
-            await prewarmSignedUrls(result);
+            const gcsUris = extractGcsUris(result);
+            if (gcsUris.length > 0) {
+                await this.context.signedUrlPrefetch?.(gcsUris);
+            }
 
             // Fire-and-forget: save generated media to library
-            this.saveToLibrary(node, result).catch((err) =>
-                logger.warn(
-                    `[WorkflowEngine] Library save failed for node ${nodeId}:`,
-                    err,
-                ),
-            );
+            this.context
+                .onMediaGenerated?.(node, result)
+                .catch((err) =>
+                    logger.warn(
+                        `[WorkflowEngine] Library save failed for node ${nodeId}:`,
+                        err,
+                    ),
+                );
 
             this.onNodeUpdate(nodeId, {
                 ...result,
@@ -339,25 +356,6 @@ export class WorkflowEngine {
             } as Partial<NodeData>);
             throw error;
         }
-    }
-
-    private async saveToLibrary(
-        node: Node<NodeData>,
-        result: Partial<NodeData>,
-    ): Promise<void> {
-        const { userId, flowId, flowName } = this.context;
-        if (!userId || !flowId) return;
-
-        const primitive = registry.getByFlowType(node.data.type);
-        if (!primitive?.flow?.saveToLibrary) return;
-
-        const fetchFn = this.context.fetch ?? fetch;
-        await primitive.flow.saveToLibrary(node, result, {
-            userId,
-            flowId,
-            flowName,
-            fetch: fetchFn,
-        });
     }
 
     private getExecutionLevels(): string[][] {
@@ -571,20 +569,15 @@ export class WorkflowEngine {
         await subEngine.run();
 
         // 4. Gather results from sub-workflow Output Nodes
-        const results: Record<string, Partial<NodeData>> = {};
-        const outputNodes = subNodes.filter(
-            (n) =>
-                n.type === "workflow-output" ||
-                n.data?.type === "workflow-output",
-        );
+        const outputNodeIds = subNodes
+            .filter(
+                (n) =>
+                    n.type === "workflow-output" ||
+                    n.data?.type === "workflow-output",
+            )
+            .map((n) => n.id);
 
-        for (const outNode of outputNodes) {
-            const outResult = subEngine.executionResults.get(outNode.id);
-            if (outResult) {
-                // Map the output node's resulting data to its ID
-                results[outNode.id] = outResult;
-            }
-        }
+        const results = subEngine.getOutputs(outputNodeIds);
 
         return { results } as Partial<CustomWorkflowData>;
     }

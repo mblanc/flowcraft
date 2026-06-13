@@ -18,7 +18,6 @@ export interface CanvasImageData {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
-    [key: string]: unknown;
 }
 
 export interface CanvasVideoData {
@@ -29,6 +28,7 @@ export interface CanvasVideoData {
     prompt?: string;
     duration?: number;
     aspectRatio?: string;
+    resolution?: string;
     model?: string;
     status: "pending" | "ready" | "generating" | "error";
     progress?: number;
@@ -43,7 +43,6 @@ export interface CanvasVideoData {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
-    [key: string]: unknown;
 }
 
 export interface CanvasTextData {
@@ -54,7 +53,6 @@ export interface CanvasTextData {
     fontSize?: number;
     width: number;
     height: number;
-    [key: string]: unknown;
 }
 
 export interface CanvasAudioData {
@@ -73,7 +71,6 @@ export interface CanvasAudioData {
     operation?: MediaOperation;
     planNodeId?: string;
     derivedFrom?: string[];
-    [key: string]: unknown;
 }
 
 export type CanvasNodeData =

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import logger from "@/app/logger";
 import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-urls";
+import { isGcsUri } from "@/lib/utils/gcs-uri";
 
 async function fetchThumbnailUrl(
     id: string,
@@ -24,7 +25,7 @@ async function fetchThumbnailUrl(
 ): Promise<[string, string] | null> {
     if (!thumbnail) return null;
 
-    if (thumbnail.startsWith("gs://")) {
+    if (isGcsUri(thumbnail)) {
         try {
             const signedUrl = await fetchAndCacheSignedUrl(thumbnail);
             if (signedUrl) return [id, signedUrl];

@@ -1,20 +1,4 @@
-import {
-    LLMData as InferredLLMData,
-    TextData as InferredTextData,
-    ImageData as InferredImageData,
-    VideoData as InferredVideoData,
-    FileData as InferredFileData,
-    UpscaleData as InferredUpscaleData,
-    ResizeData as InferredResizeData,
-    ListData as InferredListData,
-    WorkflowInputData as InferredWorkflowInputData,
-    WorkflowOutputData as InferredWorkflowOutputData,
-    CustomWorkflowData as InferredCustomWorkflowData,
-    RouterData as InferredRouterData,
-    NodeData as InferredNodeData,
-    BaseNodeDataSchema,
-    MusicDataSchema,
-} from "./schemas";
+import { BaseNodeDataSchema } from "./schemas";
 import { z } from "zod";
 import { Edge, Node } from "@xyflow/react";
 
@@ -25,61 +9,56 @@ export type {
     CustomNodePort,
 } from "./db/firestore";
 
-export type NodeType =
-    | "llm"
-    | "text"
-    | "image"
-    | "video"
-    | "file"
-    | "upscale"
-    | "resize"
-    | "list"
-    | "workflow-input"
-    | "workflow-output"
-    | "custom-workflow"
-    | "router"
-    | "music";
+export type {
+    LLMData,
+    TextData,
+    ImageData,
+    VideoData,
+    FileData,
+    UpscaleData,
+    ResizeData,
+    ListData,
+    WorkflowInputData,
+    WorkflowOutputData,
+    CustomWorkflowData,
+    RouterData,
+    MusicData,
+    NodeData,
+} from "./schemas";
+import type { NodeData } from "./schemas";
+
+export type NodeType = NodeData["type"];
 
 export type ContentPart =
     | { kind: "text"; text: string }
     | { kind: "uri"; uri: string; mimeType: string }
     | { kind: "base64"; data: string; mimeType: string };
 
+export interface MediaRef {
+    url: string;
+    type: string;
+}
+
 export interface NamedNodeInput {
     nodeId: string;
     name: string;
     textValue: string | null;
     textValues?: string[];
-    fileValues: { url: string; type: string }[];
-    fileValuesList?: { url: string; type: string }[][];
+    fileValues: MediaRef[];
+    fileValuesList?: MediaRef[][];
 }
 
 export interface NodeInputs {
     prompt?: string;
     prompts?: string[];
-    files?: { url: string; type: string }[];
-    images?: { url: string; type: string }[];
+    files?: MediaRef[];
+    images?: MediaRef[];
     firstFrame?: string;
     lastFrame?: string;
     image?: string;
     namedNodes?: NamedNodeInput[];
     [key: string]: unknown;
 }
-
-export type LLMData = InferredLLMData;
-export type TextData = InferredTextData;
-export type ImageData = InferredImageData;
-export type VideoData = InferredVideoData;
-export type FileData = InferredFileData;
-export type UpscaleData = InferredUpscaleData;
-export type ResizeData = InferredResizeData;
-export type ListData = InferredListData;
-export type WorkflowInputData = InferredWorkflowInputData;
-export type WorkflowOutputData = InferredWorkflowOutputData;
-export type CustomWorkflowData = InferredCustomWorkflowData;
-export type RouterData = InferredRouterData;
-export type MusicData = z.infer<typeof MusicDataSchema>;
-export type NodeData = InferredNodeData;
 
 export type BaseNodeData = z.infer<typeof BaseNodeDataSchema> & {
     type: NodeType;
@@ -91,6 +70,13 @@ export interface ExecutionContext {
     userId?: string;
     flowId?: string;
     flowName?: string;
+    /** Called after a node produces results; responsible for library persistence. */
+    onMediaGenerated?: (
+        node: Node<NodeData>,
+        result: Partial<NodeData>,
+    ) => Promise<void>;
+    /** Called with GCS URIs to pre-warm the signed-URL cache before UI re-renders. */
+    signedUrlPrefetch?: (uris: string[]) => Promise<void>;
 }
 
 export type NodeExecutor<T extends NodeData = NodeData, I = NodeInputs> = (

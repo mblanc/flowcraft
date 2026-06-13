@@ -1,5 +1,5 @@
 import { Edge } from "@xyflow/react";
-import { NodeData, NodeType, NamedNodeInput } from "../../types";
+import { NodeData, NodeType, NamedNodeInput, MediaRef } from "../../types";
 
 // --- Collection detection ---
 
@@ -77,95 +77,65 @@ const VALUE_STRATEGIES: Partial<Record<NodeType, ValueStrategy>> = {
     router: (data) => data.value,
 };
 
+function unwrapEnvelope(data: NodeData): Record<string, unknown> {
+    let d: Record<string, unknown> = data as Record<string, unknown>;
+    while (d && d.value !== undefined && d.type === undefined) {
+        d = d.value as Record<string, unknown>;
+    }
+    return d;
+}
+
+function extractWorkflowInputValue(d: Record<string, unknown>): unknown {
+    const portType = d.portType;
+    let value: unknown = null;
+
+    if (portType === "text") {
+        value = d.text || d.output;
+    } else if (portType === "image") {
+        value = d.images || d.image || d.gcsUri || d.fileUrl;
+    } else if (portType === "video") {
+        value = d.videoUrl || d.gcsUri || d.fileUrl;
+    } else if (portType === "any") {
+        value = d.image || d.videoUrl || d.output || d.gcsUri || d.fileUrl;
+    }
+
+    if (value === undefined || value === null) value = d.value;
+    return value !== undefined && value !== null ? value : d.portDefaultValue;
+}
+
 export const getSourceValue = (data: NodeData | null): unknown => {
     if (!data) return null;
 
-    let unwrappedData: Record<string, unknown> = data as Record<
-        string,
-        unknown
-    >;
-    while (
-        unwrappedData &&
-        unwrappedData.value !== undefined &&
-        unwrappedData.type === undefined
-    ) {
-        unwrappedData = unwrappedData.value as Record<string, unknown>;
+    const d = unwrapEnvelope(data);
+
+    if (d.type === "workflow-output" && d.value !== undefined) {
+        return getSourceValue(d.value as NodeData | null);
     }
 
-    if (
-        unwrappedData.type === "workflow-output" &&
-        unwrappedData.value !== undefined
-    ) {
-        return getSourceValue(unwrappedData.value as NodeData | null);
+    if (d.type === "workflow-input") {
+        return extractWorkflowInputValue(d);
     }
 
-    if (unwrappedData.type === "workflow-input") {
-        const portType = unwrappedData.portType;
-        let value: unknown = null;
-
-        if (portType === "text") {
-            value = unwrappedData.text || unwrappedData.output;
-        } else if (portType === "image") {
-            value =
-                unwrappedData.images ||
-                unwrappedData.image ||
-                unwrappedData.gcsUri ||
-                unwrappedData.fileUrl;
-        } else if (portType === "video") {
-            value =
-                unwrappedData.videoUrl ||
-                unwrappedData.gcsUri ||
-                unwrappedData.fileUrl;
-        } else if (portType === "any") {
-            value =
-                unwrappedData.image ||
-                unwrappedData.videoUrl ||
-                unwrappedData.output ||
-                unwrappedData.gcsUri ||
-                unwrappedData.fileUrl;
-        }
-
-        if (value === undefined || value === null) {
-            value = unwrappedData.value;
-        }
-
-        return value !== undefined && value !== null
-            ? value
-            : unwrappedData.portDefaultValue;
-    }
-
-    const isBatch = !!(
-        unwrappedData.batchTotal && (unwrappedData.batchTotal as number) > 0
-    );
-
-    const strategy = VALUE_STRATEGIES[unwrappedData.type as NodeType];
+    const isBatch = !!(d.batchTotal && (d.batchTotal as number) > 0);
+    const strategy = VALUE_STRATEGIES[d.type as NodeType];
     if (strategy) {
-        return strategy(unwrappedData, isBatch);
+        return strategy(d, isBatch);
     }
 
     // Fallback for direct values or results from other nodes
     const fallbackValue =
-        unwrappedData.images ||
-        unwrappedData.videoUrl ||
-        unwrappedData.output ||
-        unwrappedData.text ||
-        unwrappedData.image ||
-        unwrappedData.gcsUri ||
-        unwrappedData.value;
+        d.images ||
+        d.videoUrl ||
+        d.output ||
+        d.text ||
+        d.image ||
+        d.gcsUri ||
+        d.value;
 
-    if (fallbackValue !== undefined) {
-        return fallbackValue;
-    }
+    if (fallbackValue !== undefined) return fallbackValue;
 
-    // If no known value field found but it's an object that might be the value itself
-    // (This happens when passing raw data through sub-workflows)
-    if (
-        typeof unwrappedData === "object" &&
-        unwrappedData !== null &&
-        !unwrappedData.type
-    ) {
-        return unwrappedData;
-    }
+    // Object with no type field — raw value passed through sub-workflows
+    if (typeof d === "object" && d !== null && !d.type) return d;
 
     return null;
 };
@@ -226,8 +196,8 @@ export function inferMimeType(
 export function buildFileValues(
     rawValues: unknown[],
     sourceData: NodeData | null,
-): { url: string; type: string }[] {
-    const result: { url: string; type: string }[] = [];
+): MediaRef[] {
+    const result: MediaRef[] = [];
     for (const item of rawValues) {
         if (typeof item === "string") {
             result.push({

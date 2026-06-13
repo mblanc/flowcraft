@@ -3,14 +3,44 @@
 import { useCallback } from "react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { WorkflowEngine } from "@/lib/flow/workflow-engine";
+import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-urls";
+import { registry } from "@/primitives/registry";
+import type { NodeData, ExecutionContext } from "@/lib/types";
+import type { Node } from "@xyflow/react";
 import logger from "@/app/logger";
 
-function buildContext() {
+async function onMediaGenerated(
+    node: Node<NodeData>,
+    result: Partial<NodeData>,
+    ctx: Pick<ExecutionContext, "userId" | "flowId" | "flowName" | "fetch">,
+): Promise<void> {
+    const { userId, flowId } = ctx;
+    if (!userId || !flowId) return;
+    const primitive = registry.getByFlowType(node.data.type);
+    if (!primitive?.flow?.saveToLibrary) return;
+    await primitive.flow.saveToLibrary(node, result, {
+        userId,
+        flowId,
+        flowName: ctx.flowName,
+        fetch: ctx.fetch ?? fetch,
+    });
+}
+
+async function signedUrlPrefetch(uris: string[]): Promise<void> {
+    await Promise.all(uris.map(fetchAndCacheSignedUrl));
+}
+
+function buildContext(): ExecutionContext {
     const { flowId, flowName, ownerId } = useFlowStore.getState();
-    return {
+    const ctx: Pick<ExecutionContext, "userId" | "flowId" | "flowName"> = {
         userId: ownerId ?? undefined,
         flowId: flowId ?? undefined,
         flowName: flowName ?? undefined,
+    };
+    return {
+        ...ctx,
+        onMediaGenerated: (node, result) => onMediaGenerated(node, result, ctx),
+        signedUrlPrefetch,
     };
 }
 

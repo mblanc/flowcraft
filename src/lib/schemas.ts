@@ -471,4 +471,5 @@ export type WorkflowInputData = z.infer<typeof WorkflowInputDataSchema>;
 export type WorkflowOutputData = z.infer<typeof WorkflowOutputDataSchema>;
 export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;
 export type RouterData = z.infer<typeof RouterDataSchema>;
+export type MusicData = z.infer<typeof MusicDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;
