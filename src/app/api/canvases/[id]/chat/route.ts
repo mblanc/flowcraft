@@ -276,6 +276,12 @@ export async function POST(
                             );
                             break;
 
+                        case "question":
+                            controller.enqueue(
+                                encode(formatSSE("question", event.question)),
+                            );
+                            break;
+
                         case "error":
                             controller.enqueue(
                                 encode(
