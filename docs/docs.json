@@ -11,28 +11,39 @@
         "name": "GitHub",
         "url": "https://github.com/mblanc/flowcraft"
     },
-    "navigation": [
-        {
-            "group": "Get Started",
-            "pages": ["index", "install"]
-        },
-        {
-            "group": "Canvas",
-            "pages": ["canvas/overview", "canvas/adk", "canvas/topology"]
-        },
-        {
-            "group": "Flows",
-            "pages": [
-                "flow-editor/overview",
-                "flow-editor/nodes",
-                "flow-editor/engine"
-            ]
-        },
-        {
-            "group": "Creative Use Cases & Tutorials",
-            "pages": ["examples"]
-        }
-    ],
+    "navigation": {
+        "tabs": [
+            {
+                "tab": "Docs",
+                "groups": [
+                    {
+                        "group": "Get Started",
+                        "pages": ["index", "install"]
+                    },
+                    {
+                        "group": "Canvas",
+                        "pages": [
+                            "canvas/overview",
+                            "canvas/adk",
+                            "canvas/topology"
+                        ]
+                    },
+                    {
+                        "group": "Flows",
+                        "pages": [
+                            "flow-editor/overview",
+                            "flow-editor/nodes",
+                            "flow-editor/engine"
+                        ]
+                    },
+                    {
+                        "group": "Creative Use Cases & Tutorials",
+                        "pages": ["examples"]
+                    }
+                ]
+            }
+        ]
+    },
     "feedback": {
         "suggestEdit": true,
         "raiseIssue": true
