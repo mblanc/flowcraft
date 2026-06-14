@@ -52,10 +52,10 @@ export function QuestionWidget({
                         size="sm"
                         disabled={answered}
                         onClick={() => handleOption(option)}
-                        className="bg-background hover:bg-accent h-auto w-full justify-start px-3 py-2 text-left text-xs"
+                        className="bg-background hover:bg-accent h-auto w-full justify-start px-3 py-2 text-left text-xs whitespace-normal"
                         title={option.description}
                     >
-                        <span className="flex flex-col items-start gap-0.5">
+                        <span className="flex min-w-0 flex-col items-start gap-0.5">
                             <span>{option.label}</span>
                             {option.description && (
                                 <span className="text-muted-foreground font-normal">
