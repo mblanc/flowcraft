@@ -185,4 +185,120 @@ describe("extractAgentEvents", () => {
             message: "RESOURCE_EXHAUSTED",
         });
     });
+
+    describe("ask_user", () => {
+        it("emits a question event with the payload from the function call", async () => {
+            const options = [
+                { id: "16:9", label: "16:9 — Landscape" },
+                { id: "9:16", label: "9:16 — Portrait" },
+            ];
+            mockGetFunctionCalls.mockReturnValue([
+                {
+                    name: "ask_user",
+                    args: {
+                        id: "aspect_ratio",
+                        question: "What aspect ratio should I use?",
+                        options,
+                    },
+                },
+            ]);
+
+            const events = await collect(
+                extractAgentEvents(makeStream({}), [], []),
+            );
+
+            expect(events).toContainEqual({
+                type: "question",
+                question: {
+                    id: "aspect_ratio",
+                    question: "What aspect ratio should I use?",
+                    options,
+                },
+            });
+        });
+
+        it("does not emit a plan event in the same turn as a question", async () => {
+            mockGetFunctionCalls.mockReturnValue([
+                {
+                    name: "ask_user",
+                    args: {
+                        id: "duration",
+                        question: "How long should the video be?",
+                        options: [
+                            { id: "4s", label: "4s" },
+                            { id: "8s", label: "8s" },
+                        ],
+                    },
+                },
+            ]);
+
+            const events = await collect(
+                extractAgentEvents(makeStream({}), [], []),
+            );
+            const types = events.map((e) => (e as { type: string }).type);
+
+            expect(types).toContain("question");
+            expect(types).not.toContain("plan");
+        });
+
+        it("forwards id, question, and options verbatim", async () => {
+            const options = [
+                {
+                    id: "cs",
+                    label: "Close-up",
+                    description: "Face fills the frame",
+                },
+                {
+                    id: "ws",
+                    label: "Wide shot",
+                    description: "Subject + environment",
+                },
+            ];
+            mockGetFunctionCalls.mockReturnValue([
+                {
+                    name: "ask_user",
+                    args: {
+                        id: "shot_type",
+                        question: "What shot type?",
+                        options,
+                    },
+                },
+            ]);
+
+            const events = await collect(
+                extractAgentEvents(makeStream({}), [], []),
+            );
+            const questionEvent = events.find(
+                (e) => (e as { type: string }).type === "question",
+            ) as
+                | {
+                      type: string;
+                      question: {
+                          id: string;
+                          question: string;
+                          options: unknown[];
+                      };
+                  }
+                | undefined;
+
+            expect(questionEvent?.question.id).toBe("shot_type");
+            expect(questionEvent?.question.question).toBe("What shot type?");
+            expect(questionEvent?.question.options).toEqual(options);
+        });
+
+        it("uses empty defaults when args are missing", async () => {
+            mockGetFunctionCalls.mockReturnValue([
+                { name: "ask_user", args: {} },
+            ]);
+
+            const events = await collect(
+                extractAgentEvents(makeStream({}), [], []),
+            );
+
+            expect(events).toContainEqual({
+                type: "question",
+                question: { id: "", question: "", options: [] },
+            });
+        });
+    });
 });
