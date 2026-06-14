@@ -50,6 +50,7 @@ import type {
     NodePayload,
     GenerationStep,
     AgentPlan,
+    QuestionPayload,
 } from "@/lib/canvas/types";
 import { calculateNodePositions } from "@/lib/canvas/layout";
 
@@ -978,6 +979,12 @@ export function CanvasChatInput({
                                     });
                                     break;
                                 }
+
+                                case "question":
+                                    updateMessage(assistantMsgId, {
+                                        question: payload as QuestionPayload,
+                                    });
+                                    break;
 
                                 case "error":
                                     throw new Error(
