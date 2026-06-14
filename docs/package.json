@@ -1,0 +1,13 @@
+{
+    "name": "flowcraft-docs",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "mintlify dev",
+        "build": "mintlify build",
+        "check": "mintlify broken-links"
+    },
+    "devDependencies": {
+        "mintlify": "latest"
+    }
+}

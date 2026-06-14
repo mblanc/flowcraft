@@ -1,0 +1,145 @@
+---
+title: "Flow Nodes Reference"
+description: "Reference guide for all node types in the Flow Editor."
+---
+
+FlowCraft workflows are built by connecting different blocks called **nodes**. Each node performs a specific action, such as generating text, creating an image, upscaling a file, or managing lists.
+
+Below is a reference guide for all the available nodes you can use in the Flow Editor.
+
+---
+
+## 🤖 AI Models & Generation Nodes
+
+### 1. LLM Node (Language Model)
+
+Uses Google's Gemini models to generate, rewrite, summarize, or structure text.
+
+- **Key Field:**
+    - `Instructions`: Write the system-level instruction and your request here. This field supports `@` mentions to dynamically reference outputs from connected upstream nodes (e.g., `Write a caption for [@image-node]`).
+- **Parameters:**
+    - `Model`: Choose between:
+        - _Gemini 3.1 Pro Preview_ — most capable, best for complex reasoning tasks
+        - _Gemini 3 Flash Preview_ — fast and balanced (default)
+        - _Gemini 3.1 Flash Lite_ — lightweight and low-latency
+    - `Output Format`: Toggle between _Text_ (standard prose) and _JSON_ (structured data). When JSON is selected, you can define a schema using the visual Schema Editor and optionally enable **Strict Mode** to enforce exact schema adherence.
+- **Outputs:** Generated text string or structured JSON object.
+
+### 2. Image Node (Image Generation)
+
+Generates high-quality images from text descriptions using Gemini's native image generation capabilities.
+
+- **Key Fields:**
+    - `Prompt`: The description of the image you want. Supports `@` mention references.
+    - `Images`: Optional reference images you can attach to guide the generation style or content.
+- **Parameters:**
+    - `Model`: Choose between:
+        - _Gemini 2.5 Flash Image_ — fast generation, supports Google Search grounding
+        - _Gemini 3 Pro Image_ — high quality, supports resolutions up to 4K
+        - _Gemini 3.1 Flash Image_ — widest aspect ratio support including portrait and ultra-wide formats
+    - `Aspect Ratio`: Options vary by model. Common choices include Auto, 1:1, 16:9, 9:16, 3:2, 4:3, 5:4. Some models add 21:9, 1:4, 4:1, and more.
+    - `Resolution`: Output image size — 512, 1K, 2K, or 4K (availability depends on the selected model).
+    - `Grounding`: Enable **Google Search** to ground the generation in current web data, or **Image Search** to refine outputs using visual references (availability depends on model).
+- **Outputs:** Generated image file(s).
+
+### 3. Video Node (Video Generation)
+
+Generates cinematic video clips using Google Veo.
+
+- **Key Fields:**
+    - `Prompt`: Description of the scene or action.
+    - `Reference Images`: Optional images to guide the visual style or characters in the generated video.
+- **Parameters:**
+    - `Model`: Choose between _Veo 3.1 Fast_ (faster turnaround) and _Veo 3.1 Pro_ (highest quality).
+    - `Aspect Ratio`: Landscape (16:9) or Portrait (9:16).
+    - `Duration`: 4 seconds, 6 seconds, or 8 seconds.
+    - `Generate Audio`: Toggle on to have Veo generate a matching audio track alongside the video.
+    - `Resolution`: 720p, 1080p, or 4K.
+- **Outputs:** Video file (.mp4).
+
+### 4. Music Node (Music Generation)
+
+Generates background music or audio clips using Google Lyria.
+
+- **Key Field:**
+    - `Prompt`: Describe the style or mood (e.g., _"upbeat lo-fi hip hop track with soft synthesizers"_).
+- **Parameters:**
+    - `Model`: Choose between:
+        - _Lyria 3 Clip_ — generates short clips up to 30 seconds
+        - _Lyria 3 Pro_ — generates longer compositions up to 3 minutes
+    - `Duration (seconds)`: Set the desired length (5–300 seconds, depending on model).
+- **Outputs:** Audio file.
+
+---
+
+## 📂 Utilities & File Handling
+
+### 5. File Node
+
+Allows you to upload local assets (images, videos, or PDFs) into the workflow.
+
+- **Key Use Case:** Uploading a PDF document to feed into an LLM node for summarization, or uploading an image to use as a reference for an Image or Video Node.
+- **Outputs:** Uploaded file reference.
+
+### 6. Text Node
+
+A simple container to hold static text that can be connected to downstream nodes.
+
+- **Key Use Case:** Storing a long baseline prompt or template to reuse across multiple LLM Nodes.
+- **Outputs:** Stored text string.
+
+### 7. Upscale Node
+
+Increases the resolution and detail of an input image using AI super-resolution (Imagen 4.0 Upscale).
+
+- **Key Inputs:** `Image` (from an Image or File Node).
+- **Parameters:** `Upscale Factor` — x2, x3, or x4.
+- **Outputs:** Enhanced high-resolution image.
+
+### 8. Resize Node
+
+Crops or resizes an image to fit a standard aspect ratio.
+
+- **Key Inputs:** `Image` (from an Image or File Node).
+- **Parameters:** `Aspect Ratio` — Horizontal (16:9) or Vertical (9:16).
+- **Outputs:** Resized image.
+
+---
+
+## 🔀 Logic & Workflow Control
+
+### 9. List Node
+
+Manages arrays of text items or images. Useful for running batch operations.
+
+- **Key Use Case:** Collecting multiple prompts to drive an LLM Node in batch mode, or feeding a set of images into a pipeline.
+- **Item types:** Text or Image.
+- **Outputs:** List of items.
+
+### 10. Router Node
+
+Passes a value through the workflow without modification. Useful as a junction for branching connections.
+
+- **Key Use Case:** Connecting a single source to multiple downstream nodes, or organizing complex graphs visually.
+- **Outputs:** The input value, unchanged.
+
+### 11. Custom Workflow Node
+
+Embeds a saved FlowCraft workflow inside another workflow as a reusable sub-component.
+
+- **Key Use Case:** Creating a reusable "Blog Post Generator" subflow and nesting it inside a larger social media syndication workflow.
+- **Configuration:** Select the sub-workflow by ID; its declared Workflow Input and Output ports become the node's connection handles.
+
+### 12. Workflow Input Node
+
+Declares a named input port for a workflow when it is used as a sub-component inside a Custom Workflow Node.
+
+- **Parameters:** `Port Name`, `Port Type` (text, image, or video), `Required`.
+- **Use Case:** Define what data a parent workflow must provide when calling this workflow.
+
+### 13. Workflow Output Node
+
+Declares a named output port, exposing a value from inside the workflow to the parent caller.
+
+- **Parameters:** `Port Name`, `Port Type` (text, image, or video).
+- **Use Case:** Surface a generated result from a sub-workflow so it can be connected to other nodes in the parent graph.

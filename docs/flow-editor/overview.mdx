@@ -1,0 +1,63 @@
+---
+title: "Flow Editor"
+description: "Build automated AI generation pipelines with a visual editor."
+---
+
+The **Flow Editor** is a visual workspace that lets you create automated AI generation pipelines. Think of it like a factory production line: you place machines (nodes) on the floor, configure what each machine does, and connect them with pipes (edges) to pass materials from one machine to another.
+
+---
+
+## 🖥️ The Flow Editor Interface
+
+The Flow Editor is split into three main areas:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  [Header: Title, Save Status, Share, Export/Import]          │
+├─────────────────────────────────────────┬────────────────────┤
+│                                         │                    │
+│   Main Canvas                           │  Config Panel      │
+│                                         │  (Right — appears  │
+│   [Node A] ──(Edge)──> [Node B]         │   when a node      │
+│                            [+] Palette  │   is selected)     │
+│                                         │                    │
+└─────────────────────────────────────────┴────────────────────┘
+```
+
+1. **The Canvas (Center):** The large interactive grid where you layout and connect your nodes. Pan by dragging the background; zoom with your scroll wheel or trackpad.
+2. **The Node Palette (floating `+` button):** Click the `+` button on the canvas to open the palette and add any node type to the canvas. You can also right-click an empty area to open the context menu and choose a node.
+3. **The Config Panel (Right):** Opens automatically when you click a node. Use it to rename the node, change the model, write instructions, and adjust all other parameters.
+4. **The Control Header (Top):**
+    - **Save Status:** Shows whether your flow is saved to the cloud. Saving is automatic; the status reads _Saving…_ or _Saved_.
+    - **Share:** (Owner only) Opens a dialog to invite collaborators or publish the flow as a community template.
+    - **Export / Import:** Download your workflow as a JSON file or load a previously exported one.
+
+---
+
+## 🔌 Connecting Nodes
+
+Nodes communicate by sending data through connections.
+
+- **Input Handles (Left side of nodes):** These receive data from other nodes.
+- **Output Handles (Right side of nodes):** These output the generated results (text, files, images, etc.).
+
+**How to connect:** Click and hold an output handle of a node, drag the line to an input handle of another node, and release. FlowCraft will automatically resolve the data during execution.
+
+---
+
+## 🎛️ Configuring Node Parameters
+
+Every node has unique settings you can adjust:
+
+1. Click on a node in the canvas to select it.
+2. The **Config Panel** will open on the right side of the screen.
+3. Common parameters include:
+    - **Name:** A label shown on the node itself. Also used in `@` mentions.
+    - **Model:** Choose which AI model to use (e.g., Gemini 3.1 Pro Preview, Veo 3.1 Pro, Lyria 3 Clip).
+    - **Instructions / Prompt:** Write your request, using `@node-name` to reference outputs from upstream connected nodes.
+    - **Aspect Ratio / Resolution:** Set dimensions for generated images and videos.
+
+<Tip>
+  Batch mode is **automatic** — connect a List Node to any generation node and
+  it will run once per item in the list. See [Building & Running Workflows](/flow-editor/engine) for details.
+</Tip>

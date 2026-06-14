@@ -1,0 +1,58 @@
+---
+title: "Building & Running Workflows"
+description: "Data flow, execution modes, and batch processing."
+---
+
+Once you understand what different nodes do, you can start combining them to build powerful generation pipelines. This guide explains how data flows between nodes, how to run your workflows, and how to use batch processing to generate assets at scale.
+
+---
+
+## ⛓️ How Data Flows: Mention Referencing
+
+In FlowCraft, you don't need to manually copy-paste results from one node to another. You can dynamically reference upstream outputs using the `@` symbol inside **Instructions** fields.
+
+### How to use Mentions:
+
+1. Connect the output of a node (e.g. an **Image Node** named `image-1`) to the input of an **LLM Node**.
+2. Inside the LLM **Instructions** field, type `@`.
+3. A dropdown list of connected upstream nodes will appear.
+4. Select `image-1`. The editor will insert a tag like `[@image-1]`.
+5. When the workflow runs, FlowCraft will automatically fetch the generated image from `image-1`, feed it to the Gemini model, and execute your instructions (e.g., _"Write a detailed caption for [@image-1]"_).
+
+---
+
+## 🏃 Running and Monitoring Your Flow
+
+Execution in FlowCraft is **per-node** — there is no single "Run All" button. Instead, each node has an action bar that appears when you hover over it:
+
+- **Play (▶):** Execute just this node.
+- **Run from here (⏩):** Execute this node and all downstream nodes that depend on its output.
+- **Run to here:** Execute all upstream dependencies first, then this node.
+
+This lets you re-generate a single step without re-running the entire pipeline.
+
+### Visual Feedback
+
+While a node is running, it displays an animated **beam glow** around its border. If an error occurs, a red error message appears inside the node. Once the node succeeds, its generated output (text, image, or video) is shown directly in the node preview.
+
+---
+
+## 📦 Batch Processing (Generating at Scale)
+
+One of FlowCraft's most powerful features is **automatic Batch Mode**. Instead of running a workflow once, you can run it against a list of different inputs simultaneously — no configuration required.
+
+<Tip>
+  Batch mode is triggered automatically whenever a node receives a **list** of
+  inputs (e.g., from a List Node). FlowCraft detects the collection and fans
+  out execution across all items.
+</Tip>
+
+### Example: Generating 5 product descriptions
+
+1. Place a **List Node** on the canvas and input 5 different product names (set Item Type to _Text_).
+2. Connect the **List Node** to an **LLM Node**.
+3. Click **Run from here** on the List Node.
+4. The engine automatically detects the list and runs the LLM for all 5 products in parallel.
+5. The LLM node shows a progress counter (e.g., `3/5`) as results come in.
+
+FlowCraft manages concurrency behind the scenes to deliver results as fast as possible.

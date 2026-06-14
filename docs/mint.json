@@ -1,0 +1,40 @@
+{
+    "$schema": "https://mintlify.com/schema.json",
+    "name": "FlowCraft",
+    "theme": "maple",
+    "colors": {
+        "primary": "#F59E0B",
+        "light": "#FCD34D",
+        "dark": "#B45309"
+    },
+    "topbarCtaButton": {
+        "name": "GitHub",
+        "url": "https://github.com/mblanc/flowcraft"
+    },
+    "navigation": [
+        {
+            "group": "Get Started",
+            "pages": ["index", "install"]
+        },
+        {
+            "group": "Canvas",
+            "pages": ["canvas/overview", "canvas/adk", "canvas/topology"]
+        },
+        {
+            "group": "Flows",
+            "pages": [
+                "flow-editor/overview",
+                "flow-editor/nodes",
+                "flow-editor/engine"
+            ]
+        },
+        {
+            "group": "Creative Use Cases & Tutorials",
+            "pages": ["examples"]
+        }
+    ],
+    "feedback": {
+        "suggestEdit": true,
+        "raiseIssue": true
+    }
+}

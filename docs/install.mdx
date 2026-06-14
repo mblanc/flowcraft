@@ -1,0 +1,232 @@
+---
+title: "Installing FlowCraft on GCP"
+description: "Deploy FlowCraft to Google Cloud Run with Firestore and Vertex AI."
+---
+
+FlowCraft runs as a containerized Next.js app on **Google Cloud Run**, backed by **Firestore**, **Google Cloud Storage**, and **Vertex AI**. This guide walks you through provisioning the required GCP resources and deploying the app.
+
+---
+
+## Prerequisites
+
+- A GCP project with billing enabled
+- [`gcloud` CLI](https://cloud.google.com/sdk/docs/install) installed and authenticated (`gcloud auth login`)
+- [Docker](https://docs.docker.com/get-docker/) installed locally (for building the image)
+- [Bun](https://bun.sh/) installed locally (for running scripts)
+
+Set your project as the active gcloud project:
+
+```bash
+gcloud config set project YOUR_PROJECT_ID
+```
+
+---
+
+## Step 1: Enable Required APIs
+
+```bash
+gcloud services enable \
+  run.googleapis.com \
+  firestore.googleapis.com \
+  storage.googleapis.com \
+  artifactregistry.googleapis.com \
+  cloudbuild.googleapis.com \
+  aiplatform.googleapis.com
+```
+
+---
+
+## Step 2: Set Up Firestore
+
+FlowCraft uses Firestore in **Native mode** to store flows, canvases, and user data.
+
+1. Go to [Firestore in the GCP Console](https://console.cloud.google.com/firestore).
+2. Click **Create Database**, choose **Native mode**, and pick a region close to your users.
+3. Note the **Database ID** (default is `(default)`). Set it in your environment if you use a custom ID.
+
+---
+
+## Step 3: Create a Cloud Storage Bucket
+
+All generated images, videos, and audio files are stored in GCS.
+
+```bash
+gcloud storage buckets create gs://YOUR_BUCKET_NAME \
+  --location=US \
+  --uniform-bucket-level-access
+```
+
+<Warning>
+  Keep the bucket **private** — FlowCraft generates short-lived signed URLs to
+  serve assets securely to authenticated users.
+</Warning>
+
+---
+
+## Step 4: Create an Artifact Registry Repository
+
+```bash
+gcloud artifacts repositories create flowcraft \
+  --repository-format=docker \
+  --location=us-central1 \
+  --description="FlowCraft container images"
+```
+
+---
+
+## Step 5: Set Up Google OAuth
+
+FlowCraft uses **Google Sign-In** for authentication.
+
+1. Go to [APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials) in the GCP Console.
+2. Click **Create Credentials → OAuth client ID**.
+3. Choose **Web application**.
+4. Add your Cloud Run service URL to **Authorized redirect URIs**:
+   ```
+   https://YOUR_SERVICE_URL/api/auth/callback/google
+   ```
+   Add `http://localhost:3000/api/auth/callback/google` for local development.
+5. Note the **Client ID** and **Client Secret**.
+
+---
+
+## Step 6: Configure Environment Variables
+
+Create a `.env.local` file at the root of the project:
+
+```bash
+# GCP
+PROJECT_ID=your-gcp-project-id
+LOCATION=global                        # Vertex AI location (global works for most models)
+GCS_STORAGE_URI=gs://YOUR_BUCKET_NAME/
+
+# Firestore (omit if using the default database)
+FIRESTORE_DATABASE_ID=your-db-id
+
+# Google OAuth (from Step 5)
+AUTH_GOOGLE_ID=your-oauth-client-id
+AUTH_GOOGLE_SECRET=your-oauth-client-secret
+
+# NextAuth (generate with: openssl rand -base64 32)
+AUTH_SECRET=your-random-secret
+
+# Your app's public URL (update after deploying to Cloud Run)
+NEXTAUTH_URL=https://YOUR_SERVICE_URL
+
+# Optional
+LOG_LEVEL=info
+ADMIN_EMAILS=you@example.com          # Comma-separated list of admin accounts
+OTEL_EXPORTER=cloud_trace             # cloud_trace | langfuse | none
+```
+
+---
+
+## Step 7: Build & Push the Container
+
+```bash
+# Configure Docker to use gcloud credentials
+gcloud auth configure-docker us-central1-docker.pkg.dev
+
+# Build the image
+IMAGE=us-central1-docker.pkg.dev/YOUR_PROJECT_ID/flowcraft/app:latest
+docker build -t $IMAGE .
+
+# Push to Artifact Registry
+docker push $IMAGE
+```
+
+Alternatively, use **Cloud Build** to build remotely (no local Docker required):
+
+```bash
+gcloud builds submit \
+  --config scripts/cloudbuild.yaml \
+  --substitutions _IMAGE_NAME=$IMAGE
+```
+
+---
+
+## Step 8: Deploy to Cloud Run
+
+```bash
+gcloud run deploy flowcraft \
+  --image $IMAGE \
+  --region us-central1 \
+  --platform managed \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --cpu 2 \
+  --timeout 300 \
+  --set-env-vars "PROJECT_ID=your-project-id,\
+LOCATION=global,\
+GCS_STORAGE_URI=gs://YOUR_BUCKET_NAME/,\
+AUTH_GOOGLE_ID=your-client-id,\
+AUTH_GOOGLE_SECRET=your-client-secret,\
+AUTH_SECRET=your-random-secret,\
+NEXTAUTH_URL=https://YOUR_SERVICE_URL,\
+OTEL_EXPORTER=cloud_trace"
+```
+
+After deployment, Cloud Run returns your service URL. Update `NEXTAUTH_URL` in your env and redeploy if it changed.
+
+---
+
+## Step 9: Grant IAM Permissions
+
+The Cloud Run service account needs access to Firestore, GCS, and Vertex AI.
+
+```bash
+# Get the Cloud Run service account
+SA=$(gcloud run services describe flowcraft \
+  --region us-central1 \
+  --format "value(spec.template.spec.serviceAccountName)")
+
+# Firestore access
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member "serviceAccount:$SA" \
+  --role roles/datastore.user
+
+# GCS access
+gcloud storage buckets add-iam-policy-binding gs://YOUR_BUCKET_NAME \
+  --member "serviceAccount:$SA" \
+  --role roles/storage.objectAdmin
+
+# Vertex AI access
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member "serviceAccount:$SA" \
+  --role roles/aiplatform.user
+```
+
+---
+
+## Step 10: Verify
+
+1. Visit your Cloud Run service URL.
+2. Sign in with a Google account.
+3. Create a flow or open a Canvas session and generate a test image.
+
+If generation fails, check the Cloud Run logs:
+
+```bash
+gcloud run services logs read flowcraft --region us-central1
+```
+
+---
+
+## Environment Variable Reference
+
+| Variable | Required | Description |
+|---|---|---|
+| `PROJECT_ID` | ✅ | Your GCP project ID |
+| `LOCATION` | ✅ | Vertex AI region (`global` for most models) |
+| `GCS_STORAGE_URI` | ✅ | GCS bucket URI, e.g. `gs://my-bucket/` |
+| `AUTH_GOOGLE_ID` | ✅ | Google OAuth client ID |
+| `AUTH_GOOGLE_SECRET` | ✅ | Google OAuth client secret |
+| `AUTH_SECRET` | ✅ | Random secret for session encryption |
+| `NEXTAUTH_URL` | ✅ | App's public base URL |
+| `FIRESTORE_DATABASE_ID` | — | Custom Firestore database ID (omit for default) |
+| `ADMIN_EMAILS` | — | Comma-separated admin email addresses |
+| `LOG_LEVEL` | — | `error` \| `warn` \| `info` \| `debug` (default: `info`) |
+| `OTEL_EXPORTER` | — | `cloud_trace` \| `langfuse` \| `none` (default: `cloud_trace`) |
+| `LANGFUSE_PUBLIC_KEY` | — | Langfuse public key (if using Langfuse tracing) |
+| `LANGFUSE_SECRET_KEY` | — | Langfuse secret key |
+| `LANGFUSE_HOST` | — | Langfuse host URL |

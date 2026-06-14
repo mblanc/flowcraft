@@ -14,7 +14,9 @@
         "test:ui": "vitest --ui",
         "test:coverage": "vitest --coverage",
         "preflight": "bun run format && concurrently --kill-others-on-fail -n check,lint,test \"bun run check\" \"bun run lint\" \"bun run test\"",
-        "prepare": "husky"
+        "prepare": "husky",
+        "docs:dev": "cd docs && bun run dev",
+        "docs:build": "cd docs && bun run build"
     },
     "dependencies": {
         "@google-cloud/firestore": "^8.3.0",
