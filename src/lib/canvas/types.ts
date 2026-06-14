@@ -102,6 +102,18 @@ export interface ChatAction {
     prompt: string;
 }
 
+export interface QuestionOption {
+    id: string;
+    label: string;
+    description?: string;
+}
+
+export interface QuestionPayload {
+    id: string;
+    question: string;
+    options: QuestionOption[];
+}
+
 export interface GeneratedMediaRef {
     nodeId: string;
     type: "canvas-image" | "canvas-video" | "canvas-audio";
@@ -176,6 +188,7 @@ export interface ChatMessage {
     planStatus?: PlanStatus;
     model?: string;
     directorLog?: DirectorLogEntry[];
+    question?: QuestionPayload;
     createdAt: string;
 }
 
@@ -242,6 +255,7 @@ export type AgentEvent =
     | { type: "plan"; plan: AgentPlan }
     | { type: "actions"; actions: ChatAction[] }
     | { type: "text_nodes"; nodes: TextNodePayload[] }
+    | { type: "question"; question: QuestionPayload }
     | { type: "error"; message: string }
     | { type: "done" };
 
