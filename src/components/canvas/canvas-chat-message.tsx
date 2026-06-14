@@ -31,6 +31,7 @@ import type {
 } from "@/lib/canvas/types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { cn } from "@/lib/utils";
+import { QuestionWidget } from "./question-widget";
 
 function formatTime(isoString: string): string {
     try {
@@ -456,10 +457,12 @@ function CanvasChatMessageComponent({
     message,
     isLiveAssistant = false,
     onExecutePlan,
+    questionAnswered = false,
 }: {
     message: ChatMessage;
     isLiveAssistant?: boolean;
     onExecutePlan?: (messageId: string, plan: AgentPlan) => void;
+    questionAnswered?: boolean;
 }) {
     const isUser = message.role === "user";
     const isSystem = message.role === "system";
@@ -614,6 +617,14 @@ function CanvasChatMessageComponent({
                             onAction={handleActionClick}
                         />
                     )}
+
+                {!isUser && message.question && (
+                    <QuestionWidget
+                        question={message.question}
+                        onAnswer={handleActionClick}
+                        answered={questionAnswered}
+                    />
+                )}
 
                 <span className="text-muted-foreground px-1 text-[10px]">
                     {formatTime(message.createdAt)}
