@@ -48,9 +48,9 @@ export const useFlowStore = create<import("./types").FlowState>()(
             partialize: (state) => {
                 const cleanNode = (node: Node<NodeData>) => {
                     const {
-                        executing,
-                        batchProgress,
-                        batchTotal,
+                        executing: _executing,
+                        batchProgress: _batchProgress,
+                        batchTotal: _batchTotal,
                         ...cleanData
                     } = node.data;
                     return { ...node, data: cleanData };

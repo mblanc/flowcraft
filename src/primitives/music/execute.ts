@@ -2,20 +2,14 @@ import { geminiService } from "@/lib/services/gemini.service";
 import { storageService } from "@/lib/services/storage.service";
 import { v4 as uuidv4 } from "uuid";
 import { MODELS } from "@/lib/constants";
-import { z } from "zod";
 
-const musicRequestSchema = z.object({
-    prompt: z.string().min(1, "Prompt is required"),
-    negativePrompt: z.string().optional(),
-    seed: z.number().optional(),
-    duration: z.number().optional().default(30),
-    model: z
-        .enum([MODELS.MUSIC.LYRIA_3_CLIP, MODELS.MUSIC.LYRIA_3_PRO])
-        .optional()
-        .default(MODELS.MUSIC.LYRIA_3_CLIP),
-});
-
-type MusicRequest = z.infer<typeof musicRequestSchema>;
+type MusicRequest = {
+    prompt: string;
+    negativePrompt?: string;
+    seed?: number;
+    duration?: number;
+    model?: (typeof MODELS.MUSIC)[keyof typeof MODELS.MUSIC];
+};
 type MusicResult = { audioUrl: string; mimeType: string };
 
 export async function musicExecute(

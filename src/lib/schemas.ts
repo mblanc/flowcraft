@@ -1,7 +1,5 @@
 import { z } from "zod";
 import { MODELS, DEFAULTS } from "./constants";
-import { parseGcsUri, extractBucketFromStorageUri } from "./utils/gcs-uri";
-import { config } from "./config";
 
 // --- Legacy Model Migration ---
 // Maps old preview model strings to their GA equivalents for backward compatibility
@@ -399,25 +397,6 @@ export const UpscaleImageSchema = z.object({
     namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 
-export const GetSignedUrlSchema = z.object({
-    gcsUri: z
-        .string()
-        .min(1, "gcsUri is required")
-        .refine(
-            (uri) => {
-                try {
-                    const allowedBucket = extractBucketFromStorageUri(
-                        config.GCS_STORAGE_URI,
-                    );
-                    return parseGcsUri(uri).bucket === allowedBucket;
-                } catch {
-                    return false;
-                }
-            },
-            { message: "gcsUri refers to an unauthorized bucket" },
-        ),
-});
-
 export const FlowCreateSchema = z.object({
     name: z.string().min(1, "Name is required"),
     nodes: z.array(NodeSchema),
@@ -485,7 +464,6 @@ export type GenerateTextRequest = z.infer<typeof GenerateTextSchema>;
 export type GenerateVideoRequest = z.infer<typeof GenerateVideoSchema>;
 export type ResizeImageRequest = z.infer<typeof ResizeImageSchema>;
 export type UpscaleImageRequest = z.infer<typeof UpscaleImageSchema>;
-export type GetSignedUrlRequest = z.infer<typeof GetSignedUrlSchema>;
 export type FlowCreateRequest = z.infer<typeof FlowCreateSchema>;
 export type FlowUpdateRequest = z.infer<typeof FlowUpdateSchema>;
 export type CustomNodeCreateRequest = z.infer<typeof CustomNodeCreateSchema>;

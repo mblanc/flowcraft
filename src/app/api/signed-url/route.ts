@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withAuth, formatZodError } from "@/lib/utils/api";
-import { GetSignedUrlSchema } from "@/lib/schemas";
+import { GetSignedUrlSchema } from "@/lib/schemas.server";
 import { storageService } from "@/lib/services/storage.service";
 import logger from "@/app/logger";
 

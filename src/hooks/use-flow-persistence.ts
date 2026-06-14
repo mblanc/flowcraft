@@ -86,8 +86,12 @@ export function useFlowPersistence() {
             setSaveStatus("saving");
 
             const cleanedNodes = nodes.map((node) => {
-                const { executing, batchProgress, batchTotal, ...cleanData } =
-                    node.data;
+                const {
+                    executing: _executing,
+                    batchProgress: _batchProgress,
+                    batchTotal: _batchTotal,
+                    ...cleanData
+                } = node.data;
                 return { ...node, data: cleanData };
             });
 
