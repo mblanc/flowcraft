@@ -32,8 +32,10 @@ export function CanvasEditor() {
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(
         null,
     );
+    const [fittedCanvasId, setFittedCanvasId] = useState<string | null>(null);
 
     const nodes = useCanvasStore((s) => s.nodes);
+    const canvasId = useCanvasStore((s) => s.canvasId);
     const onNodesChange = useCanvasStore((s) => s.onNodesChange);
     const setViewport = useCanvasStore((s) => s.setViewport);
     const removeSelectedNodes = useCanvasStore((s) => s.removeSelectedNodes);
@@ -76,6 +78,20 @@ export function CanvasEditor() {
         const { zoom } = instance.getViewport();
         instance.setCenter(x, y, { zoom, duration: 600 });
     }, []);
+
+    useEffect(() => {
+        if (
+            rfInstance &&
+            nodes.length > 0 &&
+            fittedCanvasId !== canvasId &&
+            canvasId
+        ) {
+            window.requestAnimationFrame(() => {
+                rfInstance.fitView({ padding: 0.2 });
+                setFittedCanvasId(canvasId);
+            });
+        }
+    }, [rfInstance, nodes.length, fittedCanvasId, canvasId]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

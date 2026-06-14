@@ -238,6 +238,7 @@ export interface AgentInput {
     activeStyle?: { name: string; content: string } | null;
     canvasId?: string;
     userId?: string;
+    userName?: string;
     sessionId?: string;
 }
 

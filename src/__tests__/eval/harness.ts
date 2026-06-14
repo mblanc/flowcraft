@@ -182,6 +182,23 @@ export const criteria = {
             events.some((e) => e.type === "text_nodes") ? 1 : 0,
     }),
 
+    /** Agent must emit a question event (i.e. called ask_user). */
+    hasQuestion: (): Criterion => ({
+        name: "has_question",
+        score: (_, events) =>
+            events.some((e) => e.type === "question") ? 1 : 0,
+    }),
+
+    /** Agent must not emit a plan when a question is pending. */
+    noPlanWithQuestion: (): Criterion => ({
+        name: "no_plan_with_question",
+        score: (steps, events) => {
+            const hasQ = events.some((e) => e.type === "question");
+            if (!hasQ) return 1;
+            return steps.length === 0 ? 1 : 0;
+        },
+    }),
+
     /** plan_text_nodes must be emitted before any plan event. */
     textNodesBeforeProduction: (): Criterion => ({
         name: "text_nodes_before_production",

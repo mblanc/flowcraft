@@ -212,6 +212,7 @@ export async function POST(
                     activeStyle,
                     canvasId,
                     userId: session.user.id,
+                    userName: session.user.name ?? undefined,
                 });
 
                 for await (const event of agentStream) {

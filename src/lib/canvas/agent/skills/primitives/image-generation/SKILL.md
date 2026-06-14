@@ -86,6 +86,12 @@ Never skip this section. Provide at least three entries to prevent hallucination
 
 ---
 
+## Illustration Style Vocabulary
+
+See `references/illustration-styles.md` — loaded automatically alongside this file. Use it to populate the `STYLE & MEDIUM` section and to surface style options via `ask_user` when the user has not specified a visual style.
+
+---
+
 ## Special Case: Character Identity Boards
 
 See `references/character-identity-board.md` — loaded automatically alongside this file.

@@ -168,6 +168,23 @@ const evalCases: EvalCase[] = [
         threshold: 0.75,
     },
     {
+        id: "director__ask_user_ambiguous_banner",
+        description:
+            "Agent must call ask_user when aspect ratio is genuinely ambiguous (product banner, no cues)",
+        input: baseInput({
+            message:
+                "Create a product banner for a luxury perfume bottle. No other context.",
+            canvasNodes: [],
+            canvasId: "eval-b-ask-user-banner",
+            userId: "eval-user",
+        }),
+        criteria: [
+            criteria.noErrors(),
+            criteria.hasQuestion(),
+            criteria.noPlanWithQuestion(),
+        ],
+    },
+    {
         id: "director__no_hallucinated_ids",
         description: "Director must not invent canvas node IDs not in context",
         input: baseInput({

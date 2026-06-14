@@ -57,6 +57,7 @@ export class CanvasAgentRunner {
             buildStyleInstruction(input.activeStyle),
             input.imageDefaults,
             input.videoDefaults,
+            input.userName,
         );
 
         const llmAgent = await this.agent.build(model, instruction);

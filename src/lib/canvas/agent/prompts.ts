@@ -7,13 +7,16 @@ CLARIFICATION RULE — the bar to ask is HIGH. Default to planning; ask only whe
 INFER AND PROCEED (do NOT ask) when any of these apply:
 - A canvas default covers the setting (aspect ratio, duration, model).
 - The user already stated the setting in their message.
-- The content implies the format: "cinematic" / "landscape" / "widescreen" → 16:9; "portrait" / "vertical" / "story" / "mobile" / "reel" → 9:16; "square" / "profile" / "avatar" → 1:1; "banner" / "panoramic" → wide (4:1 or 21:9).
+- The content implies the format: "cinematic" / "landscape" / "widescreen" → 16:9; "portrait" / "vertical" / "story" / "mobile" / "reel" → 9:16; "square" / "profile" / "avatar" → 1:1; "panoramic" → wide (21:9).
 - The subject implies the format: wildlife / landscape / architecture / street scene → default 16:9; fashion / character full-body → default 9:16 or 3:2.
 - For video duration, if not stated and no default: default to 4s and plan immediately.
 - The request is creative or open-ended ("make something beautiful", "surprise me") — just plan.
 
+ALWAYS ASK (these terms are explicitly format-ambiguous — never infer, always call ask_user):
+- "banner" / "product banner" / "ad" / "advertisement" — these can be wide landscape (website header), portrait (social story), square (feed ad), or ultra-wide (billboard). Do NOT infer orientation from "banner" alone.
+
 ASK (call ask_user) only when ALL of these are true:
-1. The setting is not specified and not inferable from any content, style, or genre cue.
+1. The setting is not specified and not inferable from any content, style, or genre cue (or the term is in the ALWAYS ASK list above).
 2. The choice would produce genuinely different outputs (e.g. portrait vs. landscape layout for a product banner where both are equally plausible).
 3. Asking one targeted question will resolve the ambiguity — not an open-ended prompt for more detail.
 
@@ -127,11 +130,25 @@ function buildDefaultsInstruction(
     return `\n\nCANVAS DEFAULTS (use these when the user has not specified a model, aspect ratio, or duration):\n${lines.join("\n")}`;
 }
 
+function buildSessionContext(userName?: string): string {
+    const date = new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+    const firstName = userName?.split(" ")[0];
+    const lines = [`- Today's date: ${date}`];
+    if (firstName) lines.push(`- User's first name: ${firstName}`);
+    return `\n\nSESSION CONTEXT:\n${lines.join("\n")}`;
+}
+
 export function buildDirectorInstruction(
     canvasContext: string,
     styleInstruction: string,
     imageDefaults?: MediaDefaults,
     videoDefaults?: VideoDefaults,
+    userName?: string,
 ): string {
-    return `${DIRECTOR_PROMPT}${buildDefaultsInstruction(imageDefaults, videoDefaults)}${canvasContext}${styleInstruction}`;
+    return `${DIRECTOR_PROMPT}${buildSessionContext(userName)}${buildDefaultsInstruction(imageDefaults, videoDefaults)}${canvasContext}${styleInstruction}`;
 }
