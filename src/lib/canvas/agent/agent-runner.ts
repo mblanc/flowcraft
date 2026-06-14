@@ -3,7 +3,9 @@ import {
     StreamingMode,
     setLogLevel,
     LogLevel,
+    createEvent,
     type BaseSessionService,
+    type Session,
 } from "@google/adk";
 import { PromptEngineer } from "./prompt-engineer";
 import { CanvasAgent } from "./canvas-agent";
@@ -22,7 +24,7 @@ import {
     buildDirectorInstruction,
     buildStyleInstruction,
 } from "./prompts";
-import type { AgentEvent, AgentInput } from "../types";
+import type { AgentEvent, AgentInput, ChatMessage } from "../types";
 import path from "path";
 
 export { extractAgentEvents } from "./event-extractor";
@@ -68,17 +70,19 @@ export class CanvasAgentRunner {
         const clientSessionId = input.sessionId ?? input.canvasId ?? "default";
         const sessionId = `${userId}:${clientSessionId}`;
 
-        try {
-            await this.sessionService.createSession({
-                appName: APP_NAME,
-                userId,
-                sessionId,
-            });
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            if (!msg.toLowerCase().includes("already exist")) {
-                logger.warn("[CanvasADK] createSession unexpected error:", err);
-            }
+        // getOrCreateSession preserves the existing session if it already has events.
+        // createSession would overwrite it with an empty one on every request.
+        const session = await this.sessionService.getOrCreateSession({
+            appName: APP_NAME,
+            userId,
+            sessionId,
+        });
+
+        // Reseed from persisted history if the session is empty (fresh session or
+        // reset after HMR / cold start). Without this, the ADK runner sees no prior
+        // context.
+        if (session.events.length === 0 && input.history.length > 0) {
+            await this.seedSessionFromHistory(session, input.history);
         }
 
         const userContent = buildUserContent(input);
@@ -135,5 +139,32 @@ export class CanvasAgentRunner {
             };
             yield { type: "done" };
         }
+    }
+
+    private async seedSessionFromHistory(
+        session: Session,
+        history: ChatMessage[],
+    ): Promise<void> {
+        let seeded = 0;
+        for (const msg of history) {
+            if (msg.role === "system") continue;
+            const text = msg.content?.trim();
+            if (!text) continue;
+
+            const event = createEvent({
+                invocationId: msg.id,
+                author: msg.role === "user" ? "user" : "Director",
+                content: {
+                    role: msg.role === "user" ? "user" : "model",
+                    parts: [{ text }],
+                },
+            });
+
+            await this.sessionService.appendEvent({ session, event });
+            seeded++;
+        }
+        logger.info(
+            `[CanvasADK] reseeded session from ${seeded} persisted messages`,
+        );
     }
 }
