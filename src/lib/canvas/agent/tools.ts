@@ -265,3 +265,38 @@ export const suggestActionsTool = new FunctionTool({
     parameters: z.object({ actions: z.array(actionSchema) }),
     execute: async ({ actions }) => ({ actions }),
 });
+
+const questionOptionSchema = z.object({
+    id: z.string().describe("Short stable key, e.g. '16:9'"),
+    label: z.string().describe("Display text shown to the user"),
+    description: z
+        .string()
+        .optional()
+        .describe("Optional one-line elaboration"),
+});
+
+export const askUserTool = new FunctionTool({
+    name: "ask_user",
+    description:
+        "Ask the user a clarifying question with multiple-choice options. " +
+        "Call this INSTEAD of plan_production when the request is ambiguous and the answer would change the plan meaningfully. " +
+        "Do NOT ask about things already specified in the user message, canvas defaults, or active style. " +
+        "Options MUST use valid values (e.g. video duration must be 4s, 6s, or 8s — no other values). " +
+        "After the user replies, continue with plan_production or ask_user again if still ambiguous.",
+    parameters: z.object({
+        id: z
+            .string()
+            .describe(
+                "Short stable key for this question, e.g. 'aspect_ratio'",
+            ),
+        question: z.string().describe("The question to display to the user"),
+        options: z
+            .array(questionOptionSchema)
+            .min(2)
+            .max(5)
+            .describe(
+                "2–5 valid choices. Must cover the most common reasonable options.",
+            ),
+    }),
+    execute: async (args) => args,
+});

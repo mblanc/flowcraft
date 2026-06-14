@@ -10,6 +10,7 @@ import { ThinkingLevel } from "@google/genai";
 import { config } from "@/lib/config";
 import logger from "@/app/logger";
 import {
+    askUserTool,
     planProductionTool,
     planTextNodesTool,
     suggestActionsTool,
@@ -61,6 +62,7 @@ export class CanvasAgent {
                 },
             },
             tools: [
+                askUserTool,
                 planTextNodesTool,
                 planProductionTool,
                 suggestActionsTool,

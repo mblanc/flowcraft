@@ -10,6 +10,8 @@ import type {
     GenerationStep,
     MediaDefaults,
     PlanNode,
+    QuestionOption,
+    QuestionPayload,
     TextNodePayload,
     VideoDefaults,
 } from "../types";
@@ -127,6 +129,18 @@ export async function* extractAgentEvents(
                 if (raw.length > 0) {
                     yield { type: "text_nodes", nodes: raw };
                 }
+            } else if (call.name === "ask_user") {
+                const raw = call.args as {
+                    id?: string;
+                    question?: string;
+                    options?: QuestionOption[];
+                };
+                const payload: QuestionPayload = {
+                    id: raw.id ?? "",
+                    question: raw.question ?? "",
+                    options: raw.options ?? [],
+                };
+                yield { type: "question", question: payload };
             } else if (call.name === "suggest_actions" && !actionsEmitted) {
                 const raw =
                     (
