@@ -34,12 +34,17 @@ export function QuestionWidget({
     };
 
     return (
-        <div className={cn("mt-2 space-y-2", answered && "opacity-50")}>
-            <p className="text-foreground text-sm font-medium">
+        <div
+            className={cn(
+                "border-border bg-muted/40 mt-3 rounded-lg border p-3",
+                answered && "opacity-60",
+            )}
+        >
+            <p className="text-foreground mb-3 text-xs font-medium">
                 {question.question}
             </p>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-col gap-1.5">
                 {question.options.map((option) => (
                     <Button
                         key={option.id}
@@ -47,16 +52,23 @@ export function QuestionWidget({
                         size="sm"
                         disabled={answered}
                         onClick={() => handleOption(option)}
-                        className="h-auto py-1 text-xs"
+                        className="bg-background hover:bg-accent h-auto w-full justify-start px-3 py-2 text-left text-xs"
                         title={option.description}
                     >
-                        {option.label}
+                        <span className="flex flex-col items-start gap-0.5">
+                            <span>{option.label}</span>
+                            {option.description && (
+                                <span className="text-muted-foreground font-normal">
+                                    {option.description}
+                                </span>
+                            )}
+                        </span>
                     </Button>
                 ))}
             </div>
 
             {!answered && (
-                <div className="flex gap-1.5">
+                <div className="border-border mt-3 flex gap-1.5 border-t pt-3">
                     <input
                         type="text"
                         value={freeText}
@@ -65,8 +77,7 @@ export function QuestionWidget({
                             if (e.key === "Enter") handleSubmit();
                         }}
                         placeholder="Or type your own answer…"
-                        disabled={answered}
-                        className="border-input bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-ring h-7 flex-1 rounded-md border px-2 text-xs focus-visible:ring-1 focus-visible:outline-none disabled:opacity-50"
+                        className="border-input bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-ring h-7 flex-1 rounded-md border px-2 text-xs focus-visible:ring-1 focus-visible:outline-none"
                     />
                     <Button
                         size="sm"
