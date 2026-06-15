@@ -7,7 +7,7 @@ import { useAutoSave } from "@/hooks/use-auto-save";
 
 const AUTO_SAVE_DEBOUNCE_MS = 2000;
 
-export function useCanvasPersistence() {
+export function useCanvasPersistence(readOnly = false) {
     const canvasId = useCanvasStore((s) => s.canvasId);
     const lastModified = useCanvasStore((s) => s.lastModified);
     const setSaveStatus = useCanvasStore((s) => s.setSaveStatus);
@@ -15,7 +15,7 @@ export function useCanvasPersistence() {
     const saveCanvas = useCallback(async () => {
         const { canvasId, canvasName, nodes, viewport, messages } =
             useCanvasStore.getState();
-        if (!canvasId) return;
+        if (!canvasId || readOnly) return;
 
         setSaveStatus("saving");
 

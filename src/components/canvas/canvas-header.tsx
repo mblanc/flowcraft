@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { UserProfile } from "@/components/flow/user-profile";
 import { ShareDialog } from "@/components/sharing/ShareDialog";
 
-export function CanvasHeader() {
+export function CanvasHeader({ readOnly = false }: { readOnly?: boolean }) {
     const router = useRouter();
     const { data: session } = useSession();
     const canvasId = useCanvasStore((s) => s.canvasId);
@@ -128,7 +128,7 @@ export function CanvasHeader() {
                         {statusLabel}
                     </span>
                 )}
-                {canvasId && (
+                {canvasId && !readOnly && (
                     <Button
                         variant="ghost"
                         size="sm"

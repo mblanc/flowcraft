@@ -11,6 +11,9 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CanvasHeader } from "./canvas-header";
 import { CanvasToolbar } from "./canvas-toolbar";
 import { CanvasChatPanel } from "./canvas-chat-panel";
@@ -20,6 +23,7 @@ import { CanvasNode as CanvasAudioNode } from "@/primitives/music/CanvasNode";
 import { CanvasTextNode } from "./nodes/canvas-text-node";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { useCanvasDragDrop } from "@/hooks/use-canvas-drag-drop";
+import logger from "@/app/logger";
 
 const canvasNodeTypes = {
     "canvas-image": CanvasImageNode,
@@ -28,13 +32,15 @@ const canvasNodeTypes = {
     "canvas-text": CanvasTextNode,
 };
 
-export function CanvasEditor() {
+export function CanvasEditor({ readOnly = false }: { readOnly?: boolean }) {
+    const router = useRouter();
     const { resolvedTheme } = useTheme();
     const rfInstanceRef = useRef<ReactFlowInstance | null>(null);
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(
         null,
     );
     const [fittedCanvasId, setFittedCanvasId] = useState<string | null>(null);
+    const [cloning, setCloning] = useState(false);
 
     const nodes = useCanvasStore((s) => s.nodes);
     const canvasId = useCanvasStore((s) => s.canvasId);
@@ -44,6 +50,24 @@ export function CanvasEditor() {
     const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
 
     const { onDragOver, onDrop } = useCanvasDragDrop(rfInstance);
+
+    const handleClone = useCallback(async () => {
+        if (!canvasId) return;
+        setCloning(true);
+        try {
+            const res = await fetch(`/api/canvases/${canvasId}/clone`, {
+                method: "POST",
+            });
+            if (res.ok) {
+                const clone = await res.json();
+                router.push(`/canvas/${clone.id}`);
+            }
+        } catch (err) {
+            logger.error("Clone failed:", err);
+        } finally {
+            setCloning(false);
+        }
+    }, [canvasId, router]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleInit = useCallback((instance: ReactFlowInstance<any>) => {
@@ -130,25 +154,41 @@ export function CanvasEditor() {
 
     return (
         <div className="bg-background flex h-screen flex-col">
-            <CanvasHeader />
+            <CanvasHeader readOnly={readOnly} />
+            {readOnly && (
+                <div className="bg-muted/60 border-border flex items-center justify-between border-b px-4 py-2">
+                    <p className="text-muted-foreground text-sm">
+                        You are viewing this canvas in read-only mode.
+                    </p>
+                    <Button size="sm" onClick={handleClone} disabled={cloning}>
+                        <Copy className="mr-2 h-3.5 w-3.5" />
+                        {cloning ? "Cloning…" : "Clone to my workspace"}
+                    </Button>
+                </div>
+            )}
             <div className="flex flex-1 overflow-hidden">
                 {/* Canvas area */}
                 <div className="relative h-full flex-1">
-                    <CanvasToolbar getViewportCenter={getViewportCenter} />
+                    {!readOnly && (
+                        <CanvasToolbar getViewportCenter={getViewportCenter} />
+                    )}
                     <ReactFlow
                         nodes={nodes}
                         edges={[]}
-                        onNodesChange={onNodesChange}
+                        onNodesChange={readOnly ? undefined : onNodesChange}
                         nodeTypes={canvasNodeTypes}
                         onInit={handleInit}
                         onMoveEnd={handleMoveEnd}
                         onPaneClick={handlePaneClick}
-                        onDragOver={onDragOver}
-                        onDrop={onDrop}
-                        selectionOnDrag
+                        onDragOver={readOnly ? undefined : onDragOver}
+                        onDrop={readOnly ? undefined : onDrop}
+                        selectionOnDrag={!readOnly}
                         selectionMode={SelectionMode.Partial}
                         panOnDrag={[2]}
                         panOnScroll
+                        nodesDraggable={!readOnly}
+                        nodesConnectable={!readOnly}
+                        elementsSelectable={!readOnly}
                         proOptions={{ hideAttribution: true }}
                         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
                         minZoom={0.1}
@@ -160,10 +200,12 @@ export function CanvasEditor() {
                         <Controls />
                     </ReactFlow>
 
-                    <CanvasChatPanel
-                        getViewportCenter={getViewportCenter}
-                        centerOnNodes={centerOnNodes}
-                    />
+                    {!readOnly && (
+                        <CanvasChatPanel
+                            getViewportCenter={getViewportCenter}
+                            centerOnNodes={centerOnNodes}
+                        />
+                    )}
                 </div>
             </div>
         </div>
