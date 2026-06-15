@@ -113,7 +113,7 @@ describe("CanvasService — sharing", () => {
                     "other-user",
                     "other@example.com",
                 ),
-            ).rejects.toThrow("Unauthorized");
+            ).rejects.toThrow("Forbidden");
         });
 
         it("throws when canvas does not exist", async () => {

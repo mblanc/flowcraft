@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/utils/api";
-import { canvasService } from "@/lib/services/canvas.service";
+import {
+    canvasService,
+    CanvasNotFoundError,
+    CanvasForbiddenError,
+} from "@/lib/services/canvas.service";
 import logger from "@/app/logger";
 
 export const POST = withAuth<{ params: Promise<{ id: string }> }>(
@@ -14,20 +18,16 @@ export const POST = withAuth<{ params: Promise<{ id: string }> }>(
             );
             return NextResponse.json(cloned);
         } catch (error) {
-            if (error instanceof Error) {
-                if (error.message === "Canvas not found") {
-                    return NextResponse.json(
-                        { error: error.message },
-                        { status: 404 },
-                    );
-                }
-                if (error.message === "Unauthorized") {
-                    return NextResponse.json(
-                        { error: error.message },
-                        { status: 403 },
-                    );
-                }
-            }
+            if (error instanceof CanvasNotFoundError)
+                return NextResponse.json(
+                    { error: "Canvas not found" },
+                    { status: 404 },
+                );
+            if (error instanceof CanvasForbiddenError)
+                return NextResponse.json(
+                    { error: error.message },
+                    { status: 403 },
+                );
             logger.error(`Error cloning canvas ${canvasId}:`, error);
             return NextResponse.json(
                 { error: "Internal server error" },

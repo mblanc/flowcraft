@@ -13,6 +13,20 @@ import type {
 import type { CanvasUpdate } from "@/lib/schemas";
 import { isAdmin } from "@/lib/services/admin";
 
+export class CanvasNotFoundError extends Error {
+    constructor(id: string) {
+        super(`Canvas not found: ${id}`);
+        this.name = "CanvasNotFoundError";
+    }
+}
+
+export class CanvasForbiddenError extends Error {
+    constructor(message = "Forbidden") {
+        super(message);
+        this.name = "CanvasForbiddenError";
+    }
+}
+
 export interface CanvasCreateRequest {
     name: string;
 }
@@ -97,7 +111,7 @@ export class CanvasService {
             .get();
 
         if (!doc.exists) {
-            throw new Error("Canvas not found");
+            throw new CanvasNotFoundError(canvasId);
         }
 
         const canvas = this.transformDoc(doc);
@@ -108,7 +122,7 @@ export class CanvasService {
         const isPublic = canvas.visibility === "public";
 
         if (!isOwner && !isShared && !isPublic) {
-            throw new Error("Unauthorized");
+            throw new CanvasForbiddenError();
         }
 
         return canvas;
@@ -164,7 +178,7 @@ export class CanvasService {
         const doc = await ref.get();
 
         if (!doc.exists) {
-            throw new Error("Canvas not found");
+            throw new CanvasNotFoundError(canvasId);
         }
 
         const current = this.transformDoc(doc);
@@ -176,14 +190,16 @@ export class CanvasService {
             );
 
         if (!isOwner && !isEditor) {
-            throw new Error("Unauthorized");
+            throw new CanvasForbiddenError();
         }
 
         const isChangingSharingSettings =
             data.visibility !== undefined || data.sharedWith !== undefined;
 
         if (isChangingSharingSettings && !isOwner) {
-            throw new Error("Only the owner can change sharing settings");
+            throw new CanvasForbiddenError(
+                "Only the owner can change sharing settings",
+            );
         }
 
         if (
@@ -191,7 +207,9 @@ export class CanvasService {
             data.isTemplate !== current.isTemplate
         ) {
             if (!isAdmin(userEmail)) {
-                throw new Error("Only admins can change template status");
+                throw new CanvasForbiddenError(
+                    "Only admins can change template status",
+                );
             }
         }
 
@@ -223,11 +241,11 @@ export class CanvasService {
         const doc = await ref.get();
 
         if (!doc.exists) {
-            throw new Error("Canvas not found");
+            throw new CanvasNotFoundError(canvasId);
         }
 
         if (doc.data()?.userId !== userId) {
-            throw new Error("Unauthorized");
+            throw new CanvasForbiddenError();
         }
 
         await ref.delete();
