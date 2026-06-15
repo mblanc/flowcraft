@@ -12,12 +12,14 @@ import {
     Workflow,
     Copy,
     PanelRight,
+    Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import logger from "@/app/logger";
 import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-urls";
 import { isGcsUri } from "@/lib/utils/gcs-uri";
+import { ShareDialog } from "@/components/sharing/ShareDialog";
 
 async function fetchThumbnailUrl(
     id: string,
@@ -56,8 +58,12 @@ interface CustomNode {
 
 interface Canvas {
     id: string;
+    userId: string;
     name: string;
     thumbnail?: string;
+    visibility: "private" | "public";
+    sharedWith: { email: string; role: "view" | "edit" }[];
+    isTemplate: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -82,6 +88,7 @@ export function FlowsListView({
     const [creatingFlow, setCreatingFlow] = useState(false);
     const [creatingNode, setCreatingNode] = useState(false);
     const [creatingCanvas, setCreatingCanvas] = useState(false);
+    const [shareTarget, setShareTarget] = useState<Canvas | null>(null);
     const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>(
         {},
     );
@@ -328,6 +335,20 @@ export function FlowsListView({
         }
     };
 
+    const handleCloneCanvas = async (canvasId: string) => {
+        try {
+            const response = await fetch(`/api/canvases/${canvasId}/clone`, {
+                method: "POST",
+            });
+            if (response.ok) {
+                const clone = await response.json();
+                router.push(`/canvas/${clone.id}`);
+            }
+        } catch (error) {
+            logger.error("Error cloning canvas:", error);
+        }
+    };
+
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString("en-US", {
@@ -410,6 +431,18 @@ export function FlowsListView({
                                 <Copy className="text-primary h-3.5 w-3.5" />
                             </button>
                         )}
+                    {isCanvas && activeTab === "canvas" && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShareTarget(item as Canvas);
+                            }}
+                            title="Share canvas"
+                            className="bg-background/90 hover:bg-background border-border rounded-md border p-1.5 backdrop-blur-sm transition-colors duration-150"
+                        >
+                            <Share2 className="text-primary h-3.5 w-3.5" />
+                        </button>
+                    )}
                     {(activeTab === "my" || activeTab === "canvas") && (
                         <button
                             onClick={(e) => {
@@ -645,6 +678,21 @@ export function FlowsListView({
                         </section>
                     )}
                 </div>
+            )}
+            {shareTarget && (
+                <ShareDialog
+                    isOpen={!!shareTarget}
+                    onClose={() => setShareTarget(null)}
+                    artifactType="canvas"
+                    artifactId={shareTarget.id}
+                    artifactName={shareTarget.name}
+                    currentVisibility={shareTarget.visibility}
+                    sharedWith={shareTarget.sharedWith}
+                    isTemplate={shareTarget.isTemplate}
+                    isOwner={shareTarget.userId === session?.user?.id}
+                    isAdmin={false}
+                    onSaved={fetchData}
+                />
             )}
         </div>
     );

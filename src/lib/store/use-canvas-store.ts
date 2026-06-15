@@ -13,7 +13,11 @@ import type {
 export interface CanvasStore {
     // Canvas data
     canvasId: string | null;
+    canvasUserId: string | null;
     canvasName: string;
+    canvasVisibility: "private" | "public";
+    canvasSharedWith: { email: string; role: "view" | "edit" }[];
+    canvasIsTemplate: boolean;
     nodes: CanvasNode[];
     viewport: { x: number; y: number; zoom: number };
     messages: ChatMessage[];
@@ -84,7 +88,11 @@ const TYPE_PREFIX_MAP = {
 
 export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     canvasId: null,
+    canvasUserId: null,
     canvasName: "Untitled Canvas",
+    canvasVisibility: "private",
+    canvasSharedWith: [],
+    canvasIsTemplate: false,
     nodes: [],
     viewport: { x: 0, y: 0, zoom: 1 },
     messages: [],
@@ -102,7 +110,11 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     setCanvas: (canvas) =>
         set({
             canvasId: canvas.id,
+            canvasUserId: canvas.userId,
             canvasName: canvas.name,
+            canvasVisibility: canvas.visibility,
+            canvasSharedWith: canvas.sharedWith,
+            canvasIsTemplate: canvas.isTemplate,
             nodes: canvas.nodes,
             viewport: canvas.viewport,
             messages: canvas.messages,

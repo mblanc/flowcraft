@@ -2,22 +2,30 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, PanelRight } from "lucide-react";
+import { ArrowLeft, Save, PanelRight, Share2 } from "lucide-react";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { UserProfile } from "@/components/flow/user-profile";
+import { ShareDialog } from "@/components/sharing/ShareDialog";
 
 export function CanvasHeader() {
     const router = useRouter();
+    const { data: session } = useSession();
     const canvasId = useCanvasStore((s) => s.canvasId);
+    const canvasUserId = useCanvasStore((s) => s.canvasUserId);
     const canvasName = useCanvasStore((s) => s.canvasName);
+    const canvasVisibility = useCanvasStore((s) => s.canvasVisibility);
+    const canvasSharedWith = useCanvasStore((s) => s.canvasSharedWith);
+    const canvasIsTemplate = useCanvasStore((s) => s.canvasIsTemplate);
     const setCanvasName = useCanvasStore((s) => s.setCanvasName);
     const saveStatus = useCanvasStore((s) => s.saveStatus);
 
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState(canvasName);
+    const [shareOpen, setShareOpen] = useState(false);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -120,9 +128,34 @@ export function CanvasHeader() {
                         {statusLabel}
                     </span>
                 )}
+                {canvasId && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShareOpen(true)}
+                    >
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share
+                    </Button>
+                )}
                 <ThemeToggle />
                 <UserProfile isCollapsed={false} />
             </div>
+
+            {canvasId && (
+                <ShareDialog
+                    isOpen={shareOpen}
+                    onClose={() => setShareOpen(false)}
+                    artifactType="canvas"
+                    artifactId={canvasId}
+                    artifactName={canvasName}
+                    currentVisibility={canvasVisibility}
+                    sharedWith={canvasSharedWith}
+                    isTemplate={canvasIsTemplate}
+                    isOwner={canvasUserId === session?.user?.id}
+                    isAdmin={false}
+                />
+            )}
         </header>
     );
 }

@@ -10,14 +10,17 @@ import {
     Loader2,
     Copy,
     ImageIcon,
+    Share2,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { StyleEditorDialog } from "@/components/flow/style-editor-dialog";
+import { ShareDialog } from "@/components/sharing/ShareDialog";
 import type { StyleDocument } from "@/lib/styles/style-types";
 import type { TemplateStyle } from "@/lib/styles/style-templates";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
+import { useSession } from "next-auth/react";
 
 function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -31,9 +34,10 @@ interface StyleCardProps {
     style: StyleDocument;
     onEdit: (style: StyleDocument) => void;
     onDelete: (id: string) => void;
+    onShare: (style: StyleDocument) => void;
 }
 
-function StyleCard({ style, onEdit, onDelete }: StyleCardProps) {
+function StyleCard({ style, onEdit, onDelete, onShare }: StyleCardProps) {
     const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -76,6 +80,15 @@ function StyleCard({ style, onEdit, onDelete }: StyleCardProps) {
                     </div>
                 )}
                 <div className="bg-background/80 absolute top-2 right-2 flex items-center gap-1 rounded-md p-1 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        onClick={() => onShare(style)}
+                        title="Share style"
+                    >
+                        <Share2 className="size-3.5" />
+                    </Button>
                     <Button
                         variant="ghost"
                         size="icon"
@@ -179,12 +192,14 @@ function TemplateCard({ template, onUse }: TemplateCardProps) {
 }
 
 export default function StylesPage() {
+    const { data: session } = useSession();
     const [styles, setStyles] = useState<StyleDocument[]>([]);
     const [loading, setLoading] = useState(true);
     const [editorOpen, setEditorOpen] = useState(false);
     const [editingStyle, setEditingStyle] = useState<
         Partial<StyleDocument> | undefined
     >();
+    const [shareTarget, setShareTarget] = useState<StyleDocument | null>(null);
 
     const fetchStyles = useCallback(async () => {
         try {
@@ -300,6 +315,7 @@ export default function StylesPage() {
                                         style={style}
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
+                                        onShare={setShareTarget}
                                     />
                                 ))}
                             </div>
@@ -329,6 +345,22 @@ export default function StylesPage() {
                 initialStyle={editingStyle}
                 onSave={handleSave}
             />
+
+            {shareTarget && (
+                <ShareDialog
+                    isOpen={!!shareTarget}
+                    onClose={() => setShareTarget(null)}
+                    artifactType="style"
+                    artifactId={shareTarget.id}
+                    artifactName={shareTarget.name}
+                    currentVisibility={shareTarget.visibility}
+                    sharedWith={shareTarget.sharedWith}
+                    isTemplate={shareTarget.isTemplate}
+                    isOwner={shareTarget.userId === session?.user?.id}
+                    isAdmin={false}
+                    onSaved={fetchStyles}
+                />
+            )}
         </div>
     );
 }
