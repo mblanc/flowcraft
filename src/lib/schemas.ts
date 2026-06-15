@@ -475,7 +475,7 @@ const ChatMessageSchema = z
 
 export const CanvasUpdateSchema = z.object({
     name: z.string().max(256).optional(),
-    nodes: z.array(NodeSchema).optional(),
+    nodes: z.array(z.unknown()).optional(),
     viewport: z
         .object({ x: z.number(), y: z.number(), zoom: z.number() })
         .optional(),
