@@ -213,6 +213,16 @@ describe("CanvasService — sharing", () => {
             await service.listCanvases("any-user", undefined, "community");
             expect(mockWhere).toHaveBeenCalledWith("isTemplate", "==", true);
         });
+
+        it("returns empty list for tab=shared when userEmail is absent", async () => {
+            const result = await service.listCanvases(
+                "user-1",
+                undefined,
+                "shared",
+            );
+            expect(result).toEqual([]);
+            expect(mockGet).not.toHaveBeenCalled();
+        });
     });
 
     describe("cloneCanvas", () => {

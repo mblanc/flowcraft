@@ -62,7 +62,8 @@ export class CanvasService {
         const ref = this.firestore.collection(COLLECTIONS.CANVASES);
         let query;
 
-        if (tab === "shared" && userEmail) {
+        if (tab === "shared") {
+            if (!userEmail) return [];
             query = ref
                 .where("sharedWithEmails", "array-contains", userEmail)
                 .orderBy("updatedAt", "desc");
