@@ -11,6 +11,8 @@ import { deleteFileByUri } from "@/lib/db/storage";
 import type { StyleSharingPatch } from "@/lib/schemas";
 import { isAdmin } from "@/lib/services/admin";
 
+export type StyleListTab = "my" | "shared" | "community";
+
 export interface StyleCreateRequest {
     name: string;
     description: string;
@@ -69,7 +71,7 @@ export class StyleService {
     async listStyles(
         userId: string,
         userEmail?: string,
-        tab: string = "my",
+        tab: StyleListTab = "my",
     ): Promise<StyleDocument[]> {
         logger.debug(
             `[StyleService] Listing styles for user: ${userId}, tab: ${tab}`,

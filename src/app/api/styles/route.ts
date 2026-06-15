@@ -1,13 +1,24 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/utils/api";
-import { styleService } from "@/lib/services/style.service";
+import { styleService, type StyleListTab } from "@/lib/services/style.service";
+
+const STYLE_TABS: StyleListTab[] = ["my", "shared", "community"];
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import logger from "@/app/logger";
 
 export const GET = withAuth(async (req, _context, session) => {
     try {
         const { searchParams } = new URL(req.url);
-        const tab = searchParams.get("tab") ?? "my";
+        const tabParam = searchParams.get("tab") ?? "my";
+        if (!STYLE_TABS.includes(tabParam as StyleListTab)) {
+            return NextResponse.json(
+                {
+                    error: `Invalid tab. Must be one of: ${STYLE_TABS.join(", ")}`,
+                },
+                { status: 400 },
+            );
+        }
+        const tab = tabParam as StyleListTab;
         const userStyles = await styleService.listStyles(
             session.user!.id!,
             session.user!.email ?? undefined,

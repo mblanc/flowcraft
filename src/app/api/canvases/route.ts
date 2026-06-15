@@ -1,12 +1,26 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/utils/api";
-import { canvasService } from "@/lib/services/canvas.service";
+import {
+    canvasService,
+    type CanvasListTab,
+} from "@/lib/services/canvas.service";
+
+const CANVAS_TABS: CanvasListTab[] = ["my", "shared", "community"];
 import logger from "@/app/logger";
 
 export const GET = withAuth(async (req, _context, session) => {
     try {
         const { searchParams } = new URL(req.url);
-        const tab = searchParams.get("tab") ?? "my";
+        const tabParam = searchParams.get("tab") ?? "my";
+        if (!CANVAS_TABS.includes(tabParam as CanvasListTab)) {
+            return NextResponse.json(
+                {
+                    error: `Invalid tab. Must be one of: ${CANVAS_TABS.join(", ")}`,
+                },
+                { status: 400 },
+            );
+        }
+        const tab = tabParam as CanvasListTab;
         const canvases = await canvasService.listCanvases(
             session.user!.id!,
             session.user!.email ?? undefined,

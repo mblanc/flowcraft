@@ -33,6 +33,8 @@ export interface CanvasCreateRequest {
 
 export type CanvasUpdateRequest = CanvasUpdate;
 
+export type CanvasListTab = "my" | "shared" | "community";
+
 export class CanvasService {
     private firestore = getFirestore();
 
@@ -69,7 +71,7 @@ export class CanvasService {
     async listCanvases(
         userId: string,
         userEmail?: string,
-        tab: string = "my",
+        tab: CanvasListTab = "my",
     ): Promise<CanvasDocument[]> {
         logger.debug(
             `[CanvasService] Listing canvases for user: ${userId}, tab: ${tab}`,
