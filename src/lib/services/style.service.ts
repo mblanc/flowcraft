@@ -8,6 +8,7 @@ import type {
 import type { StyleDocument } from "@/lib/styles/style-types";
 import { FieldValue } from "@google-cloud/firestore";
 import { deleteFileByUri } from "@/lib/db/storage";
+import type { StyleSharingPatch } from "@/lib/schemas";
 
 export interface StyleCreateRequest {
     name: string;
@@ -21,6 +22,9 @@ export interface StyleUpdateRequest {
     description?: string;
     content?: string;
     referenceImageUris?: string[];
+    visibility?: StyleSharingPatch["visibility"];
+    sharedWith?: StyleSharingPatch["sharedWith"];
+    isTemplate?: boolean;
 }
 
 export class StyleNotFoundError extends Error {
@@ -61,17 +65,41 @@ export class StyleService {
         };
     }
 
-    async listStyles(userId: string): Promise<StyleDocument[]> {
-        logger.debug(`[StyleService] Listing styles for user: ${userId}`);
+    async listStyles(
+        userId: string,
+        userEmail?: string,
+        tab: string = "my",
+    ): Promise<StyleDocument[]> {
+        logger.debug(
+            `[StyleService] Listing styles for user: ${userId}, tab: ${tab}`,
+        );
         const ref = this.firestore.collection(COLLECTIONS.STYLES);
-        const snapshot = await ref
-            .where("userId", "==", userId)
-            .orderBy("updatedAt", "desc")
-            .get();
+        let query;
+
+        if (tab === "shared" && userEmail) {
+            query = ref
+                .where("sharedWithEmails", "array-contains", userEmail)
+                .orderBy("updatedAt", "desc");
+        } else if (tab === "community") {
+            query = ref
+                .where("isTemplate", "==", true)
+                .where("visibility", "==", "public")
+                .orderBy("updatedAt", "desc");
+        } else {
+            query = ref
+                .where("userId", "==", userId)
+                .orderBy("updatedAt", "desc");
+        }
+
+        const snapshot = await query.get();
         return snapshot.docs.map((doc) => this.transformDoc(doc));
     }
 
-    async getStyle(styleId: string, userId: string): Promise<StyleDocument> {
+    async getStyle(
+        styleId: string,
+        userId: string,
+        userEmail?: string,
+    ): Promise<StyleDocument> {
         logger.debug(`[StyleService] Getting style: ${styleId}`);
         const doc = await this.firestore
             .collection(COLLECTIONS.STYLES)
@@ -81,7 +109,13 @@ export class StyleService {
         if (!doc.exists) throw new StyleNotFoundError(styleId);
 
         const style = this.transformDoc(doc);
-        if (style.userId !== userId) throw new StyleForbiddenError();
+
+        const isOwner = style.userId === userId;
+        const isShared =
+            userEmail && style.sharedWithEmails.includes(userEmail);
+        const isPublic = style.visibility === "public";
+
+        if (!isOwner && !isShared && !isPublic) throw new StyleForbiddenError();
 
         return style;
     }
@@ -99,6 +133,9 @@ export class StyleService {
             description: data.description,
             content: data.content,
             referenceImageUris: data.referenceImageUris ?? [],
+            visibility: "private",
+            sharedWith: [],
+            sharedWithEmails: [],
             isTemplate: false,
             createdAt: now,
             updatedAt: now,
@@ -112,15 +149,43 @@ export class StyleService {
         styleId: string,
         userId: string,
         data: StyleUpdateRequest,
+        userEmail?: string,
     ): Promise<StyleDocument> {
         logger.debug(`[StyleService] Updating style: ${styleId}`);
         const ref = this.firestore.collection(COLLECTIONS.STYLES).doc(styleId);
         const doc = await ref.get();
 
         if (!doc.exists) throw new StyleNotFoundError(styleId);
-        if (doc.data()?.userId !== userId) throw new StyleForbiddenError();
 
-        await ref.update({ ...data, updatedAt: FieldValue.serverTimestamp() });
+        const current = this.transformDoc(doc);
+        const isOwner = current.userId === userId;
+        const isEditor =
+            userEmail &&
+            current.sharedWith.some(
+                (s) => s.email === userEmail && s.role === "edit",
+            );
+
+        if (!isOwner && !isEditor) throw new StyleForbiddenError();
+
+        const isChangingSharing =
+            data.visibility !== undefined ||
+            data.sharedWith !== undefined ||
+            data.isTemplate !== undefined;
+
+        if (isChangingSharing && !isOwner) {
+            throw new Error("Only the owner can change sharing settings");
+        }
+
+        const updateData: Record<string, unknown> = {
+            ...data,
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        if (data.sharedWith) {
+            updateData.sharedWithEmails = data.sharedWith.map((s) => s.email);
+        }
+
+        await ref.update(updateData);
 
         const updated = await ref.get();
         return this.transformDoc(updated);
@@ -139,6 +204,37 @@ export class StyleService {
 
         const uris = (data?.referenceImageUris ?? []) as string[];
         await Promise.allSettled(uris.map((uri) => deleteFileByUri(uri)));
+    }
+
+    async cloneStyle(
+        styleId: string,
+        userId: string,
+        userEmail?: string,
+    ): Promise<StyleDocument> {
+        logger.info(
+            `[StyleService] Cloning style: ${styleId} for user: ${userId}`,
+        );
+
+        const original = await this.getStyle(styleId, userId, userEmail);
+
+        const ref = this.firestore.collection(COLLECTIONS.STYLES);
+        const now = FieldValue.serverTimestamp();
+        const docRef = await ref.add({
+            userId,
+            name: `Copy of ${original.name}`,
+            description: original.description,
+            content: original.content,
+            referenceImageUris: original.referenceImageUris,
+            visibility: "private",
+            sharedWith: [],
+            sharedWithEmails: [],
+            isTemplate: false,
+            createdAt: now,
+            updatedAt: now,
+        });
+
+        const doc = await docRef.get();
+        return this.transformDoc(doc);
     }
 }
 

@@ -4,9 +4,15 @@ import { styleService } from "@/lib/services/style.service";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import logger from "@/app/logger";
 
-export const GET = withAuth(async (_req, _context, session) => {
+export const GET = withAuth(async (req, _context, session) => {
     try {
-        const userStyles = await styleService.listStyles(session.user!.id!);
+        const { searchParams } = new URL(req.url);
+        const tab = searchParams.get("tab") ?? "my";
+        const userStyles = await styleService.listStyles(
+            session.user!.id!,
+            session.user!.email ?? undefined,
+            tab,
+        );
         return NextResponse.json({
             styles: userStyles,
             templates: STYLE_TEMPLATES,
