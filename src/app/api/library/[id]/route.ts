@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withAuth } from "@/lib/utils/api";
 import { libraryService } from "@/lib/services/library.service";
+import { AssetSharingPatchSchema } from "@/lib/schemas";
 import logger from "@/app/logger";
 
 const updateTagsSchema = z.object({
@@ -34,7 +35,19 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(
     async (req, { params }, session) => {
         const { id } = await params;
         try {
-            const parsed = updateTagsSchema.safeParse(await req.json());
+            const body = await req.json();
+
+            const visibilityPatch = AssetSharingPatchSchema.safeParse(body);
+            if (visibilityPatch.success) {
+                const asset = await libraryService.updateAsset(
+                    id,
+                    session.user!.id!,
+                    visibilityPatch.data,
+                );
+                return NextResponse.json(asset);
+            }
+
+            const parsed = updateTagsSchema.safeParse(body);
             if (!parsed.success) {
                 return NextResponse.json(
                     { error: parsed.error.flatten().fieldErrors },

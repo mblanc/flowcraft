@@ -53,17 +53,31 @@ export class LibraryService {
     async listAssets(
         userId: string,
         type?: LibraryAssetType,
-        options?: { before?: Date; limit?: number; search?: string },
+        options?: {
+            before?: Date;
+            limit?: number;
+            search?: string;
+            visibility?: "private" | "public";
+        },
     ): Promise<LibraryAsset[]> {
         logger.debug(
             `[LibraryService] Listing assets for user: ${userId}, type: ${type ?? "all"}`,
         );
-        let query = this.firestore
-            .collection(COLLECTIONS.LIBRARY_ASSETS)
-            .where("userId", "==", userId)
-            .orderBy("createdAt", "desc") as FirebaseFirestore.Query;
 
-        if (type) {
+        const ref = this.firestore.collection(COLLECTIONS.LIBRARY_ASSETS);
+        let query: FirebaseFirestore.Query;
+
+        if (options?.visibility === "public") {
+            query = ref
+                .where("visibility", "==", "public")
+                .orderBy("createdAt", "desc");
+        } else {
+            query = ref
+                .where("userId", "==", userId)
+                .orderBy("createdAt", "desc");
+        }
+
+        if (type && options?.visibility !== "public") {
             query = query.where("type", "==", type);
         }
 
@@ -123,6 +137,26 @@ export class LibraryService {
         if (doc.data()?.userId !== userId) throw new Error("Unauthorized");
 
         await ref.update({ tags });
+    }
+
+    async updateAsset(
+        id: string,
+        userId: string,
+        data: { visibility: "private" | "public" },
+    ): Promise<LibraryAsset> {
+        logger.info(`[LibraryService] Updating asset visibility: ${id}`);
+        const ref = this.firestore
+            .collection(COLLECTIONS.LIBRARY_ASSETS)
+            .doc(id);
+        const doc = await ref.get();
+
+        if (!doc.exists) throw new Error("Asset not found");
+        if (doc.data()?.userId !== userId) throw new Error("Unauthorized");
+
+        await ref.update({ visibility: data.visibility });
+
+        const updated = await ref.get();
+        return this.transformDoc(updated);
     }
 
     async deleteAsset(id: string, userId: string): Promise<void> {

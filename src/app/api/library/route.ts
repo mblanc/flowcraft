@@ -55,10 +55,15 @@ export const GET = withAuth(async (req, _context, session) => {
         const limit =
             limitRaw !== undefined && isNaN(limitRaw) ? undefined : limitRaw;
         const search = searchParams.get("search") ?? undefined;
+        const visibilityParam = searchParams.get("visibility");
+        const visibility =
+            visibilityParam === "public" || visibilityParam === "private"
+                ? visibilityParam
+                : undefined;
         const assets = await libraryService.listAssets(
             session.user!.id!,
             type ?? undefined,
-            { before, limit, search },
+            { before, limit, search, visibility },
         );
         return NextResponse.json({ assets });
     } catch (error) {
