@@ -3,9 +3,15 @@ import { withAuth } from "@/lib/utils/api";
 import { canvasService } from "@/lib/services/canvas.service";
 import logger from "@/app/logger";
 
-export const GET = withAuth(async (_req, _context, session) => {
+export const GET = withAuth(async (req, _context, session) => {
     try {
-        const canvases = await canvasService.listCanvases(session.user!.id!);
+        const { searchParams } = new URL(req.url);
+        const tab = searchParams.get("tab") ?? "my";
+        const canvases = await canvasService.listCanvases(
+            session.user!.id!,
+            session.user!.email ?? undefined,
+            tab,
+        );
         return NextResponse.json({ canvases });
     } catch (error) {
         logger.error("Error fetching canvases:", error);

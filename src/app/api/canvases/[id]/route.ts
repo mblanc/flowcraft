@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/utils/api";
 import { canvasService } from "@/lib/services/canvas.service";
+import { CanvasSharingPatchSchema } from "@/lib/schemas";
 import logger from "@/app/logger";
 
 export const GET = withAuth<{ params: Promise<{ id: string }> }>(
@@ -10,6 +11,7 @@ export const GET = withAuth<{ params: Promise<{ id: string }> }>(
             const canvas = await canvasService.getCanvas(
                 canvasId,
                 session.user!.id!,
+                session.user!.email ?? undefined,
             );
             return NextResponse.json(canvas);
         } catch (error) {
@@ -42,10 +44,17 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(
         try {
             const body = await req.json();
 
+            const sharingFields = CanvasSharingPatchSchema.safeParse(body);
+            const updatePayload = {
+                ...body,
+                ...(sharingFields.success ? sharingFields.data : {}),
+            };
+
             const updatedCanvas = await canvasService.updateCanvas(
                 canvasId,
                 session.user!.id!,
-                body,
+                updatePayload,
+                session.user!.email ?? undefined,
             );
             return NextResponse.json(updatedCanvas);
         } catch (error) {
