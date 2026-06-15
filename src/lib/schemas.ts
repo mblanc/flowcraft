@@ -219,12 +219,12 @@ export const RouterDataSchema = BaseNodeDataSchema.extend({
 export const MusicDataSchema = BaseNodeDataSchema.extend({
     type: z.literal("music"),
     prompt: z.string().default(""),
-    duration: z.number().optional().default(30),
     model: z
         .enum(["lyria-3-clip-preview", "lyria-3-pro-preview"])
         .optional()
         .default("lyria-3-clip-preview"),
     audioUrl: z.string().optional(),
+    mimeType: z.string().optional(),
 });
 
 export const NodeDataSchema = z.discriminatedUnion("type", [

@@ -17,12 +17,12 @@ The **Flow Editor** is a visual workspace for building automated AI generation p
 
 The top bar of the Flow Editor contains four controls:
 
-| Control | Description |
-|---|---|
-| **Title** | Click to rename the flow. The name is saved automatically. |
-| **Save Status** | Shows _Saving…_ or _Saved_. Saving happens automatically — no manual save needed. |
-| **Share** | (Owner only) Opens a dialog to invite collaborators by email or publish the flow as a community template visible to other FlowCraft users. |
-| **Export / Import** | **Export**: Download the entire flow as a JSON file. **Import**: Load a previously exported `.json` file to restore or share a workflow. |
+| Control             | Description                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Title**           | Click to rename the flow. The name is saved automatically.                                                                                 |
+| **Save Status**     | Shows _Saving…_ or _Saved_. Saving happens automatically — no manual save needed.                                                          |
+| **Share**           | (Owner only) Opens a dialog to invite collaborators by email or publish the flow as a community template visible to other FlowCraft users. |
+| **Export / Import** | **Export**: Download the entire flow as a JSON file. **Import**: Load a previously exported `.json` file to restore or share a workflow.   |
 
 ---
 
@@ -31,6 +31,7 @@ The top bar of the Flow Editor contains four controls:
 The **floating `+` button** on the left side of the canvas opens the node palette. Nodes are organized in a 3-column grid by category.
 
 **Ways to add a node:**
+
 - **Click** a node in the palette to add it at the center of the visible canvas
 - **Drag** a node from the palette and drop it at a specific position on the canvas
 - **Right-click** any empty area of the canvas to open the same node list as a context menu
@@ -66,15 +67,15 @@ Every node has **handles** on its edges:
 
 When you hover over a node, a small action bar appears above it with up to seven buttons:
 
-| Button | Action |
-|---|---|
-| ▶ **Generate** | Execute just this node using its current inputs |
+| Button               | Action                                                               |
+| -------------------- | -------------------------------------------------------------------- |
+| ▶ **Generate**       | Execute just this node using its current inputs                      |
 | ⏩ **Run From Here** | Execute this node and all downstream nodes that depend on its output |
-| **Run To Here** | Execute all upstream dependencies first, then this node |
-| ⚙ **Settings** | Open this node's configuration in the Config Panel on the right |
-| ⤢ **Fullscreen** | View the node's current output (image or video) at full size |
-| ↓ **Download** | Download the node's current output to your computer |
-| 🗑 **Delete** | Remove this node and all its connected edges from the canvas |
+| **Run To Here**      | Execute all upstream dependencies first, then this node              |
+| ⚙ **Settings**       | Open this node's configuration in the Config Panel on the right      |
+| ⤢ **Fullscreen**     | View the node's current output (image or video) at full size         |
+| ↓ **Download**       | Download the node's current output to your computer                  |
+| 🗑 **Delete**        | Remove this node and all its connected edges from the canvas         |
 
 The action bar is hidden during execution and when multiple nodes are selected.
 
@@ -98,13 +99,16 @@ All changes in the Config Panel are saved immediately.
 ## Visual Feedback During Execution
 
 While a node is running:
+
 - An animated **beam glow** pulses around the node border
 - The node displays a spinning indicator
 
 When a node finishes:
+
 - Its output (text, image, or video thumbnail) appears inside the node preview
 
 If an error occurs:
+
 - A red error message is displayed inside the node
 - You can hover the error to see the full message
 

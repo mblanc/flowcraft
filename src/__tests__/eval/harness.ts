@@ -67,7 +67,10 @@ export const criteria = {
     }),
 
     /** Plan must have at least `n` steps of a given type. */
-    minStepsOfType: (type: "image" | "video", n: number): Criterion => ({
+    minStepsOfType: (
+        type: "image" | "video" | "audio",
+        n: number,
+    ): Criterion => ({
         name: `min_${type}_steps_${n}`,
         score: (steps) =>
             steps.filter((s) => s.type === type).length >= n ? 1 : 0,

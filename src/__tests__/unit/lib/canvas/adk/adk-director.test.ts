@@ -295,10 +295,10 @@ describe("extractAgentEvents — plan_production", () => {
         expect(byId["vid1"].dependsOn).not.toContain("canvas_portrait");
     });
 
-    it("skips unsupported operations (t2s, etc.) but maps concat with no crash", async () => {
+    it("skips unsupported operations (edit, etc.) but maps concat with no crash", async () => {
         const nodes: PlanNode[] = [
             { id: "n1", operation: "t2i", promptIntent: "An image" },
-            { id: "n2", operation: "t2s", promptIntent: "Narrate" },
+            { id: "n2", operation: "edit", promptIntent: "Narrate" },
             { id: "n3", operation: "concat", promptIntent: "Join clips" },
         ];
         const adkEvents = [

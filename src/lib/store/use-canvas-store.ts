@@ -68,10 +68,10 @@ export interface CanvasStore {
 
     // Node ID generation
     getNextLabel: (
-        type: "canvas-image" | "canvas-video" | "canvas-text",
+        type: "canvas-image" | "canvas-video" | "canvas-text" | "canvas-audio",
     ) => string;
     getNextNodeId: (
-        type: "canvas-image" | "canvas-video" | "canvas-text",
+        type: "canvas-image" | "canvas-video" | "canvas-text" | "canvas-audio",
     ) => string;
 }
 
@@ -79,6 +79,7 @@ const TYPE_PREFIX_MAP = {
     "canvas-image": "Image",
     "canvas-video": "Video",
     "canvas-text": "Text",
+    "canvas-audio": "Audio",
 } as const;
 
 export const useCanvasStore = create<CanvasStore>()((set, get) => ({

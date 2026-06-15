@@ -30,6 +30,11 @@ export const VIDEO_MODELS = [
     MODELS.VIDEO.VEO_3_1_PRO,
 ] as const;
 
+export const MUSIC_MODELS = [
+    MODELS.MUSIC.LYRIA_3_CLIP,
+    MODELS.MUSIC.LYRIA_3_PRO,
+] as const;
+
 // Union of all aspect ratios across every image model config.
 export const IMAGE_ASPECT_RATIOS = [
     ...new Set(
@@ -126,9 +131,11 @@ const planNodeSchema = z.object({
         .optional()
         .describe("For video operations only: video output resolution."),
     model: z
-        .enum([...IMAGE_MODELS, ...VIDEO_MODELS])
+        .enum([...IMAGE_MODELS, ...VIDEO_MODELS, ...MUSIC_MODELS])
         .optional()
-        .describe("Leave unset to use the canvas default model"),
+        .describe(
+            "Model to use. For t2m: lyria-3-clip-preview (short clip, default) or lyria-3-pro-preview (full song). Leave unset to use the canvas default.",
+        ),
     duration: z
         .enum(["4", "6", "8"])
         .optional()

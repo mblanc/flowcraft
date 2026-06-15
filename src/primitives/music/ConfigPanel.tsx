@@ -6,7 +6,6 @@ import type { MusicData } from "@/lib/types";
 import { MODELS } from "@/lib/constants";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import {
     Select,
     SelectContent,
@@ -31,7 +30,7 @@ export function ConfigPanel({
             <div className="flex flex-col gap-1.5">
                 <Label>Prompt</Label>
                 <Textarea
-                    className="min-h-[80px] resize-none"
+                    className="min-h-[100px] resize-none"
                     placeholder="Describe the music to generate…"
                     value={data.prompt}
                     onChange={(e) =>
@@ -51,28 +50,13 @@ export function ConfigPanel({
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value={MODELS.MUSIC.LYRIA_3_CLIP}>
-                            Lyria 3 Clip (30s)
+                            Lyria 3 Clip
                         </SelectItem>
                         <SelectItem value={MODELS.MUSIC.LYRIA_3_PRO}>
-                            Lyria 3 Pro (up to 3min)
+                            Lyria 3 Pro
                         </SelectItem>
                     </SelectContent>
                 </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-                <Label>Duration (seconds)</Label>
-                <Input
-                    type="number"
-                    min={5}
-                    max={300}
-                    value={data.duration ?? 30}
-                    onChange={(e) =>
-                        updateNodeData(nodeId, {
-                            duration: Number(e.target.value),
-                        })
-                    }
-                />
             </div>
         </div>
     );

@@ -466,10 +466,10 @@ describe("mapPlanNodesToSteps", () => {
         expect(steps[0].generateAudio).toBeUndefined();
     });
 
-    it("t2s is still skipped and concat is still mapped in a mixed plan", () => {
+    it("unsupported operations are still skipped and concat is still mapped in a mixed plan", () => {
         const nodes = [
             baseNode({ id: "n1", operation: "t2i" }),
-            baseNode({ id: "n2", operation: "t2s" }),
+            baseNode({ id: "n2", operation: "edit" }),
             baseNode({ id: "n3", operation: "concat" }),
         ];
         const steps = mapPlanNodesToSteps(nodes, [], [], []);

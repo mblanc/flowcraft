@@ -10,6 +10,7 @@ import { FlowNode as WorkflowOutputNode } from "@/primitives/workflow-output/Flo
 import { FlowNode as CustomWorkflowNode } from "@/primitives/custom-workflow/FlowNode";
 import { FlowNode as ListNode } from "@/primitives/list/FlowNode";
 import { FlowNode as RouterNode } from "@/primitives/router/FlowNode";
+import { FlowNode as MusicNode } from "@/primitives/music/FlowNode";
 import type { CustomNodePort } from "@/lib/types";
 import {
     Bot,
@@ -23,6 +24,7 @@ import {
     LogIn,
     LogOut,
     ListOrdered,
+    Music,
 } from "lucide-react";
 
 export interface CustomNodeItem {
@@ -45,6 +47,7 @@ export const nodeTypes = {
     "workflow-output": WorkflowOutputNode,
     "custom-workflow": CustomWorkflowNode,
     router: RouterNode,
+    music: MusicNode,
 };
 
 export const NODE_COLORS: Record<string, string> = {
@@ -104,6 +107,12 @@ export const nativeItems = [
         icon: Video,
         color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "Video",
+    },
+    {
+        type: "music",
+        icon: Music,
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
+        label: "Music",
     },
     {
         type: "upscale",

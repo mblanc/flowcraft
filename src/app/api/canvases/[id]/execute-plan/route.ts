@@ -14,6 +14,7 @@ interface ExecutePlanRequestBody {
     plan: AgentPlan;
     messageId: string;
     styleId?: string;
+    musicModel?: string;
 }
 
 function formatSSE(event: string, data: unknown): string {
@@ -140,6 +141,7 @@ export async function POST(
                     activeStyleContent,
                     resolvedStyleId ?? undefined,
                     activeStyleName,
+                    body.musicModel,
                 )) {
                     switch (stepEvent.type) {
                         case "step_start":

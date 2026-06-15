@@ -7,9 +7,7 @@ import { MODELS } from "@/lib/constants";
 
 const musicRequestSchema = z.object({
     prompt: z.string().min(1, "Prompt is required"),
-    negativePrompt: z.string().optional(),
     seed: z.number().optional(),
-    duration: z.number().optional().default(30),
     model: z
         .enum([MODELS.MUSIC.LYRIA_3_CLIP, MODELS.MUSIC.LYRIA_3_PRO])
         .optional()
@@ -59,12 +57,12 @@ export const musicPrimitive: Primitive<
                 if (typeof text === "string") inputs.prompt = text;
             }
             inputs.prompt = inputs.prompt ?? node.data.prompt;
-            inputs.duration = node.data.duration;
             inputs.model = node.data.model;
             return inputs;
         },
         toFlowData: (_node, _inputs, result) => ({
             audioUrl: result.audioUrl,
+            mimeType: result.mimeType,
         }),
         mergeResults: (results) => {
             if (results.length === 0) return {};
@@ -75,7 +73,6 @@ export const musicPrimitive: Primitive<
             type: "music",
             name: "Music",
             prompt: "",
-            duration: 30,
             model: MODELS.MUSIC.LYRIA_3_CLIP,
         },
     },
@@ -84,9 +81,7 @@ export const musicPrimitive: Primitive<
         type: "canvas-audio",
         toRequest: (step, _ctx) => ({
             prompt: step.prompt || "",
-            negativePrompt: step.negativePrompt,
             seed: step.seed,
-            duration: step.duration ?? 30,
             model: step.model ?? MODELS.MUSIC.LYRIA_3_CLIP,
         }),
         toCanvasData: (step, result): CanvasAudioData => ({

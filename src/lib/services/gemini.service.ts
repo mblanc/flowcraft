@@ -585,16 +585,10 @@ export class GeminiService {
 
     async generateMusic(options: {
         prompt: string;
-        negativePrompt?: string;
         seed?: number;
         model?: string;
     }): Promise<{ audioData: string; mimeType: string }> {
-        const {
-            prompt,
-            negativePrompt,
-            seed,
-            model = "lyria-3-clip-preview",
-        } = options;
+        const { prompt, model = "lyria-3-clip-preview" } = options;
 
         logger.info(`[GeminiService] Generating music with model: ${model}`);
 
@@ -602,8 +596,7 @@ export class GeminiService {
             model,
             contents: prompt,
             config: {
-                ...(negativePrompt ? { negativePrompt } : {}),
-                ...(seed !== undefined ? { seed } : {}),
+                responseModalities: ["AUDIO", "TEXT"],
             },
         });
 

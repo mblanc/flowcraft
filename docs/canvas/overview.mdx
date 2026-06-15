@@ -19,14 +19,15 @@ The Canvas is split into two panels side by side:
 
 The board is a zoomable, infinite 2D whiteboard. Everything the Director generates appears here as a **card**. There are four card types:
 
-| Card Type | What it holds |
-|---|---|
-| **Image card** | Generated still images (t2i, i2i, upscale) |
-| **Video card** | Generated video clips (i2v, t2v, concat) with inline playback |
+| Card Type      | What it holds                                                      |
+| -------------- | ------------------------------------------------------------------ |
+| **Image card** | Generated still images (t2i, i2i, upscale)                         |
+| **Video card** | Generated video clips (i2v, t2v, concat) with inline playback      |
 | **Audio card** | Generated music or speech tracks (t2m, t2s) with a waveform player |
-| **Text card** | Markdown documents — scenario briefs, synopsis, director notes |
+| **Text card**  | Markdown documents — scenario briefs, synopsis, director notes     |
 
 **Board interactions:**
+
 - **Pan**: Drag the background
 - **Zoom**: Scroll wheel or trackpad pinch
 - **Select**: Click a card to select it
@@ -38,12 +39,12 @@ The board is a zoomable, infinite 2D whiteboard. Everything the Director generat
 
 Right-click any card to open its context menu:
 
-| Action | Description |
-|---|---|
-| **Rename** | Edit the card's display label |
-| **Copy Label** | Copy the label text to clipboard |
+| Action          | Description                                                            |
+| --------------- | ---------------------------------------------------------------------- |
+| **Rename**      | Edit the card's display label                                          |
+| **Copy Label**  | Copy the label text to clipboard                                       |
 | **Copy Prompt** | Copy the generation prompt to clipboard (image/video/audio cards only) |
-| **Delete** | Remove the card from the canvas |
+| **Delete**      | Remove the card from the canvas                                        |
 
 ---
 
@@ -51,9 +52,9 @@ Right-click any card to open its context menu:
 
 A small vertical toolbar sits on the left edge of the board:
 
-| Button | Action |
-|---|---|
-| **Text node** (Type icon) | Place a blank text card on the board for notes or briefs |
+| Button                         | Action                                                                                                                        |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Text node** (Type icon)      | Place a blank text card on the board for notes or briefs                                                                      |
 | **Import media** (Upload icon) | Upload a local image or video file as a card; uploaded files can be referenced by the Director as style or subject references |
 
 ---
@@ -84,7 +85,7 @@ Every Canvas session follows the same conversational loop:
 
 1. **Prompt** — Type a request in the chat.
 2. **Think** — The Director reasons about your request before responding (you see the thought log stream in real time).
-3. **Clarify** *(if needed)* — The Director may ask a multiple-choice clarifying question before building a plan (e.g. "What aspect ratio?" or "Portrait or landscape?"). Pick an option or type a custom answer.
+3. **Clarify** _(if needed)_ — The Director may ask a multiple-choice clarifying question before building a plan (e.g. "What aspect ratio?" or "Portrait or landscape?"). Pick an option or type a custom answer.
 4. **Plan** — The Director presents a **Production Plan** as a card in the chat, listing all the steps it will run and in what order.
 5. **Approve** — Review the plan. You can ask the Director to change it, or click **Approve & Execute** to start generation.
 6. **Generate** — Steps execute in dependency order, with parallel steps running simultaneously. Cards appear on the board as each step completes.

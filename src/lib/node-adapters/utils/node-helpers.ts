@@ -75,6 +75,7 @@ const VALUE_STRATEGIES: Partial<Record<NodeType, ValueStrategy>> = {
     list: (data) => data.items,
     file: (data) => data.gcsUri,
     router: (data) => data.value,
+    music: (data) => data.audioUrl,
 };
 
 function unwrapEnvelope(data: NodeData): Record<string, unknown> {
@@ -159,6 +160,11 @@ export function inferMimeType(
     )
         return "image/png";
     if (lower.endsWith(".mp4") || lower.endsWith(".mov")) return "video/mp4";
+    if (lower.endsWith(".wav")) return "audio/wav";
+    if (lower.endsWith(".mp3")) return "audio/mp3";
+    if (lower.endsWith(".ogg")) return "audio/ogg";
+    if (lower.endsWith(".flac")) return "audio/flac";
+    if (lower.endsWith(".aac")) return "audio/aac";
 
     const meta = sourceData as Record<string, unknown> | null;
     if (meta) {
@@ -166,6 +172,7 @@ export function inferMimeType(
             if (meta.valueMediaType === "image") return "image/png";
             if (meta.valueMediaType === "video") return "video/mp4";
             if (meta.valueMediaType === "pdf") return "application/pdf";
+            if (meta.valueMediaType === "audio") return "audio/wav";
         }
         if (meta.fileType === "pdf" || meta.portType === "pdf")
             return "application/pdf";
@@ -183,6 +190,8 @@ export function inferMimeType(
             meta.portType === "video"
         )
             return "video/mp4";
+        if (meta.type === "music")
+            return (meta.mimeType as string) ?? "audio/wav";
     }
 
     return "application/octet-stream";

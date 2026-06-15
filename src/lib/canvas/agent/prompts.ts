@@ -52,7 +52,7 @@ Video operations:
 
 Other operations:
 - t2s  — text-to-speech
-- t2m  — text-to-music
+- t2m  — text-to-music (model: lyria-3-clip-preview for short clips ~30s; lyria-3-pro-preview for full songs)
 - sfx  — sound effects
 - concat — concatenate clips
 - edit — post-production edit

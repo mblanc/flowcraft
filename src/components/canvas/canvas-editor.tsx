@@ -16,6 +16,7 @@ import { CanvasToolbar } from "./canvas-toolbar";
 import { CanvasChatPanel } from "./canvas-chat-panel";
 import { CanvasNode as CanvasImageNode } from "@/primitives/image/CanvasNode";
 import { CanvasNode as CanvasVideoNode } from "@/primitives/video/CanvasNode";
+import { CanvasNode as CanvasAudioNode } from "@/primitives/music/CanvasNode";
 import { CanvasTextNode } from "./nodes/canvas-text-node";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { useCanvasDragDrop } from "@/hooks/use-canvas-drag-drop";
@@ -23,6 +24,7 @@ import { useCanvasDragDrop } from "@/hooks/use-canvas-drag-drop";
 const canvasNodeTypes = {
     "canvas-image": CanvasImageNode,
     "canvas-video": CanvasVideoNode,
+    "canvas-audio": CanvasAudioNode,
     "canvas-text": CanvasTextNode,
 };
 

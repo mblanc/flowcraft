@@ -54,14 +54,13 @@ describe("Schema Validation", () => {
     });
 
     describe("MusicDataSchema", () => {
-        it("applies defaults for duration and model when omitted", () => {
+        it("applies defaults for model when omitted", () => {
             const result = MusicDataSchema.safeParse({
                 type: "music",
                 name: "Music",
             });
             expect(result.success).toBe(true);
             if (result.success) {
-                expect(result.data.duration).toBe(30);
                 expect(result.data.model).toBe("lyria-3-clip-preview");
                 expect(result.data.prompt).toBe("");
             }

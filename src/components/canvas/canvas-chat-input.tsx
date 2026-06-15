@@ -46,6 +46,7 @@ import type {
     ChatAttachment,
     CanvasImageData,
     CanvasVideoData,
+    CanvasAudioData,
     GeneratedMediaRef,
     NodePayload,
     GenerationStep,
@@ -440,7 +441,11 @@ export function CanvasChatInput({
 
             const nodeId = uuidv4();
             const nodeType =
-                step.type === "image" ? "canvas-image" : "canvas-video";
+                step.type === "image"
+                    ? "canvas-image"
+                    : step.type === "audio"
+                      ? "canvas-audio"
+                      : "canvas-video";
             const label = step.label ?? getNextLabel(nodeType);
 
             if (step.type === "image") {
@@ -464,6 +469,24 @@ export function CanvasChatInput({
                     data,
                     width,
                     height,
+                });
+            } else if (step.type === "audio") {
+                const data: CanvasAudioData = {
+                    type: "canvas-audio",
+                    label,
+                    sourceUrl: "",
+                    mimeType: "audio/wav",
+                    prompt: step.prompt,
+                    model: step.model,
+                    status: "pending",
+                };
+                addNode({
+                    id: nodeId,
+                    type: "canvas-audio",
+                    position,
+                    data,
+                    width: 288,
+                    height: 100,
                 });
             } else {
                 const data: CanvasVideoData = {
@@ -547,7 +570,11 @@ export function CanvasChatInput({
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ plan, messageId }),
+                        body: JSON.stringify({
+                            plan,
+                            messageId,
+                            musicModel: agentSettings.musicModel,
+                        }),
                     },
                 );
 

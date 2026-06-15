@@ -20,6 +20,7 @@ In FlowCraft you don't copy-paste results between nodes. You reference upstream 
 5. When the workflow runs, FlowCraft fetches the generated image from `cover-image` and feeds it to the model alongside your instruction.
 
 **Example instruction using a mention:**
+
 ```
 Write a detailed alt-text description for the image [@cover-image].
 Output only the description, no preamble.
@@ -35,13 +36,14 @@ FlowCraft does not have a single "Run All" button. Execution is **per-node**, gi
 
 Each node exposes three execution modes via its [action bar](/flow-editor/overview#node-action-bar):
 
-| Mode | What runs |
-|---|---|
-| ▶ **Generate (this node only)** | Executes just this node. Upstream outputs must already exist. |
-| ⏩ **Run From Here** | Executes this node, then all downstream nodes that depend on its output, in order. |
-| **Run To Here** | Executes all upstream dependencies first, then this node last. Useful for running the whole chain up to a specific step. |
+| Mode                            | What runs                                                                                                                |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| ▶ **Generate (this node only)** | Executes just this node. Upstream outputs must already exist.                                                            |
+| ⏩ **Run From Here**            | Executes this node, then all downstream nodes that depend on its output, in order.                                       |
+| **Run To Here**                 | Executes all upstream dependencies first, then this node last. Useful for running the whole chain up to a specific step. |
 
 **Typical usage pattern:**
+
 - First run: hover the last node → **Run To Here** (runs the entire chain in order).
 - Iterating: change a prompt midway, hover that node → **Run From Here** (re-runs from that point without touching the nodes before it).
 
@@ -49,12 +51,12 @@ Each node exposes three execution modes via its [action bar](/flow-editor/overvi
 
 ## Visual Feedback
 
-| State | What you see |
-|---|---|
-| Running | Animated beam glow around the node border |
-| Success | Output (text, image thumbnail, video preview) rendered inside the node |
-| Error | Red error message inside the node; hover for the full message |
-| Batch in progress | Progress counter in the action bar (e.g. `3 / 10`) |
+| State             | What you see                                                           |
+| ----------------- | ---------------------------------------------------------------------- |
+| Running           | Animated beam glow around the node border                              |
+| Success           | Output (text, image thumbnail, video preview) rendered inside the node |
+| Error             | Red error message inside the node; hover for the full message          |
+| Batch in progress | Progress counter in the action bar (e.g. `3 / 10`)                     |
 
 ---
 

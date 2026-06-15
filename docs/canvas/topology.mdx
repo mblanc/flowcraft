@@ -26,18 +26,18 @@ Steps that have no dependency on each other run **in parallel**. Steps that requ
 
 Each step in a plan has an **operation** that determines what the executor will call:
 
-| Operation | Name | Description |
-|---|---|---|
-| `t2i` | Text to Image | Generate a still image from a text prompt |
-| `i2i` | Image to Image | Edit or composite an existing image |
-| `t2v` | Text to Video | Generate a video clip from a text prompt |
-| `i2v` | Image to Video | Animate an existing image into a video clip |
-| `t2s` | Text to Speech | Convert a text script to spoken audio |
-| `t2m` | Text to Music | Generate a music or audio track |
-| `sfx` | Sound Effects | Generate a sound effects track |
-| `concat` | Concatenate | Merge multiple video/audio clips into one |
-| `edit` | Edit | Apply an edit operation to an existing asset |
-| `upscale` | Upscale | Increase the resolution of an image |
+| Operation | Name           | Description                                  |
+| --------- | -------------- | -------------------------------------------- |
+| `t2i`     | Text to Image  | Generate a still image from a text prompt    |
+| `i2i`     | Image to Image | Edit or composite an existing image          |
+| `t2v`     | Text to Video  | Generate a video clip from a text prompt     |
+| `i2v`     | Image to Video | Animate an existing image into a video clip  |
+| `t2s`     | Text to Speech | Convert a text script to spoken audio        |
+| `t2m`     | Text to Music  | Generate a music or audio track              |
+| `sfx`     | Sound Effects  | Generate a sound effects track               |
+| `concat`  | Concatenate    | Merge multiple video/audio clips into one    |
+| `edit`    | Edit           | Apply an edit operation to an existing asset |
+| `upscale` | Upscale        | Increase the resolution of an image          |
 
 ---
 
@@ -45,11 +45,11 @@ Each step in a plan has an **operation** that determines what the executor will 
 
 Edges between steps have a **role** that tells the executor how to pass the upstream asset to the downstream step:
 
-| Role | Meaning |
-|---|---|
-| `depends_on` | The upstream step's output is the primary input to the downstream step (e.g. the keyframe image feeds into the `i2v` animator) |
+| Role          | Meaning                                                                                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `depends_on`  | The upstream step's output is the primary input to the downstream step (e.g. the keyframe image feeds into the `i2v` animator)                           |
 | `subject_ref` | The upstream asset is used as a **subject identity reference** — the downstream step will preserve the subject's appearance (face, costume, proportions) |
-| `style_ref` | The upstream asset is used as a **visual style reference** — the downstream step will match the environment, lighting, color palette, and atmosphere |
+| `style_ref`   | The upstream asset is used as a **visual style reference** — the downstream step will match the environment, lighting, color palette, and atmosphere     |
 
 A single step can receive multiple reference edges of different roles simultaneously.
 
@@ -69,13 +69,13 @@ The plan appears as a card in the chat before any generation starts. You can:
 
 Once a plan is approved, each step tracks its own status in real time:
 
-| Status | What's happening |
-|---|---|
-| **Queued** | Waiting for upstream dependencies to finish |
-| **Generating** | The AI model is actively producing the asset |
-| **Saving** | The generated file is being uploaded to your private cloud storage |
-| **Completed** | The asset is ready and has appeared on the Canvas board |
-| **Error** | The step failed; an error message is shown on the step card |
+| Status         | What's happening                                                   |
+| -------------- | ------------------------------------------------------------------ |
+| **Queued**     | Waiting for upstream dependencies to finish                        |
+| **Generating** | The AI model is actively producing the asset                       |
+| **Saving**     | The generated file is being uploaded to your private cloud storage |
+| **Completed**  | The asset is ready and has appeared on the Canvas board            |
+| **Error**      | The step failed; an error message is shown on the step card        |
 
 The plan approval card in the chat updates live as steps move through these states. Steps running in parallel show concurrent progress.
 

@@ -5,9 +5,7 @@ import { MODELS } from "@/lib/constants";
 
 type MusicRequest = {
     prompt: string;
-    negativePrompt?: string;
     seed?: number;
-    duration?: number;
     model?: (typeof MODELS.MUSIC)[keyof typeof MODELS.MUSIC];
 };
 type MusicResult = { audioUrl: string; mimeType: string };
@@ -18,7 +16,6 @@ export async function musicExecute(
 ): Promise<MusicResult> {
     const { audioData, mimeType } = await geminiService.generateMusic({
         prompt: inputs.prompt,
-        negativePrompt: inputs.negativePrompt,
         seed: inputs.seed,
         model: inputs.model,
     });

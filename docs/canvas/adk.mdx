@@ -44,6 +44,7 @@ The Director will **not** ask about things that are already specified, already s
 After the Director completes a plain text response or finishes a generation, it suggests **2–3 follow-up actions** as buttons with a ⚡ icon. Clicking a button fires that prompt automatically.
 
 Examples:
+
 - _"Animate this image"_
 - _"Try a portrait orientation"_
 - _"Add a music track"_
@@ -66,6 +67,7 @@ The Director has access to a set of **skills** — modular knowledge bases that 
 Generates still images from text descriptions, or edits and composites existing images.
 
 **Use cases:**
+
 - Concept art and scene keyframes
 - Character references and product shots
 - Background plates and style explorations
@@ -73,6 +75,7 @@ Generates still images from text descriptions, or edits and composites existing 
 - Compositing (e.g. placing a garment on a person)
 
 **Models available:**
+
 - `gemini-3.1-flash-image` — fastest, default
 - `gemini-3-pro-image` — highest quality, up to 4K
 
@@ -81,6 +84,7 @@ Generates still images from text descriptions, or edits and composites existing 
 **Image sizes:** 512, 1K, 2K, 4K.
 
 **How references work:**
+
 - A card on the board can be wired as a **subject reference** (`subject_ref`) — the Director will preserve that subject's identity in the new image.
 - A card can be wired as a **style reference** (`style_ref`) — the Director will match the visual style, lighting, and environment of that reference.
 
@@ -91,11 +95,13 @@ Generates still images from text descriptions, or edits and composites existing 
 Animates an existing image into a short video clip, or generates video from text.
 
 **Use cases:**
+
 - Animating a generated keyframe (preferred over text-to-video when a source image exists)
 - Camera movements over a still (slow pan, dolly, zoom)
 - Action sequences and cinematic cuts
 
 **Models available:**
+
 - `veo-3.1-lite-generate-001` — faster turnaround, default
 - `veo-3.1-generate-001` — highest quality
 
@@ -104,6 +110,7 @@ Animates an existing image into a short video clip, or generates video from text
 **Aspect ratios:** Landscape (16:9) or Portrait (9:16).
 
 **Prompt structure the Director uses:**
+
 - `[ACTION]`: One verb, one motion arc, 1–2 micro-motions
 - `[CAMERA]`: One camera move and a rhythm word (e.g. "slow push-in, deliberate")
 - `[ENVIRONMENT & LIGHTING]`: Named light sources and atmospheric conditions
@@ -118,15 +125,18 @@ Animates an existing image into a short video clip, or generates video from text
 Generates background music, scores, jingles, or audio beds using Google Lyria.
 
 **Use cases:**
+
 - Background score for a video clip
 - Mood-matched audio for a scene
 - Standalone music clips up to ~3 minutes
 
 **Models available:**
+
 - `lyria-3-clip-preview` — short clips (~30s), default
 - `lyria-3-pro-preview` — longer compositions (up to ~3min), supports timestamp-based genre/mood shifts within the clip
 
 **Prompt structure the Director uses:**
+
 - `[GENRE & STYLE]`: Explicit compound genres (e.g. "neo-soul jazz fusion")
 - `[MOOD & EMOTION]`: Concrete descriptors (not vague adjectives)
 - `[INSTRUMENTATION]`: Specific instruments with lead instrument named
@@ -142,6 +152,7 @@ Generates background music, scores, jingles, or audio beds using Google Lyria.
 Converts a text script into a spoken-word audio file for narration or voiceover.
 
 **Use cases:**
+
 - Narration track for a video
 - Character dialogue
 - Explainer voiceover
@@ -159,15 +170,15 @@ Converts a text script into a spoken-word audio file for narration or voiceover.
 
 The Director has built-in cinematography knowledge it applies automatically when constructing image and video prompts. It uses this vocabulary to surface clarifying questions when your request is ambiguous about framing or movement:
 
-| Category | Examples |
-|---|---|
-| **Framing** | ECU (extreme close-up), CU, MCU, MS, MWS, WS, EWS |
-| **Camera angle** | Eye-level, low-angle, high-angle, bird's-eye, worm's-eye, Dutch tilt |
-| **Subject relationship** | POV, over-the-shoulder (OTS), insert, two-shot, ensemble |
-| **Camera movement** | Static, push-in, pull-out, pan, tilt, tracking, dolly, handheld, crane |
-| **Lighting** | Golden hour, tungsten, neon, practical lamps, soft box, hard backlight |
-| **Lens** | Wide (24mm), normal (50mm), telephoto (85mm+), macro, anamorphic, tilt-shift |
-| **Color grading** | Teal-and-orange, bleach bypass, cross-process, film stock (Kodak, Fuji) |
+| Category                 | Examples                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| **Framing**              | ECU (extreme close-up), CU, MCU, MS, MWS, WS, EWS                            |
+| **Camera angle**         | Eye-level, low-angle, high-angle, bird's-eye, worm's-eye, Dutch tilt         |
+| **Subject relationship** | POV, over-the-shoulder (OTS), insert, two-shot, ensemble                     |
+| **Camera movement**      | Static, push-in, pull-out, pan, tilt, tracking, dolly, handheld, crane       |
+| **Lighting**             | Golden hour, tungsten, neon, practical lamps, soft box, hard backlight       |
+| **Lens**                 | Wide (24mm), normal (50mm), telephoto (85mm+), macro, anamorphic, tilt-shift |
+| **Color grading**        | Teal-and-orange, bleach bypass, cross-process, film stock (Kodak, Fuji)      |
 
 ---
 
@@ -184,6 +195,7 @@ Patterns are multi-step workflows the Director knows how to orchestrate end-to-e
 Generates a single 16:9 storyboard sheet image containing multiple monochrome rough-sketch panels, a project masthead, and a director strip showing beat lines, camera paths, and escalation mapping.
 
 **Panel counts by duration:**
+
 - Short burst (≤10s): 10–12 panels in a 4×3 or 3×4 grid
 - Standard (10–20s): 14–18 panels in a 4×4 or 3×6 grid
 - Extended (20–30s): 18–24 panels in a 4×5, 4×6, or 3×6 grid
@@ -202,12 +214,12 @@ Orchestrates a full multi-shot video production from scratch. Before building th
 
 **Production phases (always in this order):**
 
-| Phase | What runs | Notes |
-|---|---|---|
-| **Phase 0** | Reference images (characters, props, settings) | All run in parallel |
-| **Phase 1** | Keyframe image per shot | Each depends on relevant Phase 0 refs |
-| **Phase 2** | Animate each keyframe to video (`i2v`) | Depends on its keyframe |
-| **Phase 3** | Concatenate all video clips | Runs last; produces the final cut |
+| Phase       | What runs                                      | Notes                                 |
+| ----------- | ---------------------------------------------- | ------------------------------------- |
+| **Phase 0** | Reference images (characters, props, settings) | All run in parallel                   |
+| **Phase 1** | Keyframe image per shot                        | Each depends on relevant Phase 0 refs |
+| **Phase 2** | Animate each keyframe to video (`i2v`)         | Depends on its keyframe               |
+| **Phase 3** | Concatenate all video clips                    | Runs last; produces the final cut     |
 
 Optional parallel audio nodes (music or voiceover) are wired into the concat step as `audio_ref`.
 
@@ -237,13 +249,14 @@ Composites a garment onto a subject (person or mannequin) using reference images
 
 **Workflow:**
 
-| Step | Operation | Required |
-|---|---|---|
-| Generate subject reference (full-body, neutral pose) | `t2i` | Optional — skip if you provide a photo |
-| Generate garment flat-lay (isolated on plain background) | `t2i` | Optional — skip if you provide a photo |
-| Composite: place garment on subject | `i2i` with `subject_ref` + `style_ref` | Always |
-| Animate the composite | `i2v` | Optional |
+| Step                                                     | Operation                              | Required                               |
+| -------------------------------------------------------- | -------------------------------------- | -------------------------------------- |
+| Generate subject reference (full-body, neutral pose)     | `t2i`                                  | Optional — skip if you provide a photo |
+| Generate garment flat-lay (isolated on plain background) | `t2i`                                  | Optional — skip if you provide a photo |
+| Composite: place garment on subject                      | `i2i` with `subject_ref` + `style_ref` | Always                                 |
+| Animate the composite                                    | `i2v`                                  | Optional                               |
 
 **Tips for best results:**
+
 - Subject photo: full-body or torso, neutral pose, clear lighting
 - Garment photo: flat-lay or on-mannequin, fully visible, minimal background

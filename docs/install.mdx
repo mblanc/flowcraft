@@ -82,10 +82,10 @@ FlowCraft uses **Google Sign-In** for authentication.
 2. Click **Create Credentials → OAuth client ID**.
 3. Choose **Web application**.
 4. Add your Cloud Run service URL to **Authorized redirect URIs**:
-   ```
-   https://YOUR_SERVICE_URL/api/auth/callback/google
-   ```
-   Add `http://localhost:3000/api/auth/callback/google` for local development.
+    ```
+    https://YOUR_SERVICE_URL/api/auth/callback/google
+    ```
+    Add `http://localhost:3000/api/auth/callback/google` for local development.
 5. Note the **Client ID** and **Client Secret**.
 
 ---
@@ -214,19 +214,19 @@ gcloud run services logs read flowcraft --region us-central1
 
 ## Environment Variable Reference
 
-| Variable | Required | Description |
-|---|---|---|
-| `PROJECT_ID` | ✅ | Your GCP project ID |
-| `LOCATION` | ✅ | Vertex AI region (`global` for most models) |
-| `GCS_STORAGE_URI` | ✅ | GCS bucket URI, e.g. `gs://my-bucket/` |
-| `AUTH_GOOGLE_ID` | ✅ | Google OAuth client ID |
-| `AUTH_GOOGLE_SECRET` | ✅ | Google OAuth client secret |
-| `AUTH_SECRET` | ✅ | Random secret for session encryption |
-| `NEXTAUTH_URL` | ✅ | App's public base URL |
-| `FIRESTORE_DATABASE_ID` | — | Custom Firestore database ID (omit for default) |
-| `ADMIN_EMAILS` | — | Comma-separated admin email addresses |
-| `LOG_LEVEL` | — | `error` \| `warn` \| `info` \| `debug` (default: `info`) |
-| `OTEL_EXPORTER` | — | `cloud_trace` \| `langfuse` \| `none` (default: `cloud_trace`) |
-| `LANGFUSE_PUBLIC_KEY` | — | Langfuse public key (if using Langfuse tracing) |
-| `LANGFUSE_SECRET_KEY` | — | Langfuse secret key |
-| `LANGFUSE_HOST` | — | Langfuse host URL |
+| Variable                | Required | Description                                                    |
+| ----------------------- | -------- | -------------------------------------------------------------- |
+| `PROJECT_ID`            | ✅       | Your GCP project ID                                            |
+| `LOCATION`              | ✅       | Vertex AI region (`global` for most models)                    |
+| `GCS_STORAGE_URI`       | ✅       | GCS bucket URI, e.g. `gs://my-bucket/`                         |
+| `AUTH_GOOGLE_ID`        | ✅       | Google OAuth client ID                                         |
+| `AUTH_GOOGLE_SECRET`    | ✅       | Google OAuth client secret                                     |
+| `AUTH_SECRET`           | ✅       | Random secret for session encryption                           |
+| `NEXTAUTH_URL`          | ✅       | App's public base URL                                          |
+| `FIRESTORE_DATABASE_ID` | —        | Custom Firestore database ID (omit for default)                |
+| `ADMIN_EMAILS`          | —        | Comma-separated admin email addresses                          |
+| `LOG_LEVEL`             | —        | `error` \| `warn` \| `info` \| `debug` (default: `info`)       |
+| `OTEL_EXPORTER`         | —        | `cloud_trace` \| `langfuse` \| `none` (default: `cloud_trace`) |
+| `LANGFUSE_PUBLIC_KEY`   | —        | Langfuse public key (if using Langfuse tracing)                |
+| `LANGFUSE_SECRET_KEY`   | —        | Langfuse secret key                                            |
+| `LANGFUSE_HOST`         | —        | Langfuse host URL                                              |

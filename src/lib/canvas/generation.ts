@@ -114,6 +114,7 @@ export async function* executePlan(
     activeStyleContent?: string,
     activeStyleId?: string,
     activeStyleName?: string,
+    defaultMusicModel?: string,
 ): AsyncGenerator<StepEvent> {
     const ctx: ExecutionContext = {
         completedStepUris: new Map(),
@@ -150,6 +151,12 @@ export async function* executePlan(
 
                     const enrichedStep = {
                         ...step,
+                        // Apply music model default when agent hasn't set one
+                        ...(step.type === "audio" &&
+                        !step.model &&
+                        defaultMusicModel
+                            ? { model: defaultMusicModel }
+                            : {}),
                         images: referenceUrls.map((url) => ({
                             url,
                             type: "image/png",
