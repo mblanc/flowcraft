@@ -40,8 +40,8 @@ const makeNode = (id: string): CanvasNode => ({
 const makeMessage = (id: string): ChatMessage => ({
     id,
     role: "user",
-    content: [{ type: "text", text: "hello" }],
-    timestamp: Date.now(),
+    content: "hello",
+    createdAt: new Date().toISOString(),
 });
 
 function resetStore() {
@@ -188,16 +188,12 @@ describe("useCanvasStore", () => {
 
         it("updateMessage patches an existing message", () => {
             useCanvasStore.getState().addMessage(makeMessage("m1"));
-            useCanvasStore.getState().updateMessage("m1", {
-                content: [{ type: "text", text: "updated" }],
-            });
-            expect(
-                (
-                    useCanvasStore.getState().messages[0].content[0] as {
-                        text: string;
-                    }
-                ).text,
-            ).toBe("updated");
+            useCanvasStore
+                .getState()
+                .updateMessage("m1", { content: "updated" });
+            expect(useCanvasStore.getState().messages[0].content).toBe(
+                "updated",
+            );
         });
 
         it("clearMessages empties the list", () => {

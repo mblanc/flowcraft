@@ -187,16 +187,12 @@ export class CanvasService {
             throw new Error("Unauthorized");
         }
 
-        const isChangingVisibility = data.visibility !== undefined;
-        const isChangingSharedWith = data.sharedWith !== undefined;
-        const isChangingTemplate = data.isTemplate !== undefined;
+        const isChangingSharingSettings =
+            data.visibility !== undefined ||
+            data.sharedWith !== undefined ||
+            data.isTemplate !== undefined;
 
-        if (
-            (isChangingVisibility ||
-                isChangingSharedWith ||
-                isChangingTemplate) &&
-            !isOwner
-        ) {
+        if (isChangingSharingSettings && !isOwner) {
             throw new Error("Only the owner can change sharing settings");
         }
 

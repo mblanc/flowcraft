@@ -65,9 +65,10 @@ export class LibraryService {
         );
 
         const ref = this.firestore.collection(COLLECTIONS.LIBRARY_ASSETS);
+        const isPublicBrowse = options?.visibility === "public";
         let query: FirebaseFirestore.Query;
 
-        if (options?.visibility === "public") {
+        if (isPublicBrowse) {
             query = ref
                 .where("visibility", "==", "public")
                 .orderBy("createdAt", "desc");
@@ -77,7 +78,7 @@ export class LibraryService {
                 .orderBy("createdAt", "desc");
         }
 
-        if (type && options?.visibility !== "public") {
+        if (type && !isPublicBrowse) {
             query = query.where("type", "==", type);
         }
 

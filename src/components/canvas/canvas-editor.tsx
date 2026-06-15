@@ -175,26 +175,28 @@ export function CanvasEditor({ readOnly = false }: { readOnly?: boolean }) {
                     <ReactFlow
                         nodes={nodes}
                         edges={[]}
-                        onNodesChange={readOnly ? undefined : onNodesChange}
                         nodeTypes={canvasNodeTypes}
                         onInit={handleInit}
                         onMoveEnd={handleMoveEnd}
                         onPaneClick={handlePaneClick}
-                        onDragOver={readOnly ? undefined : onDragOver}
-                        onDrop={readOnly ? undefined : onDrop}
-                        selectionOnDrag={!readOnly}
                         selectionMode={SelectionMode.Partial}
                         panOnDrag={[2]}
                         panOnScroll
-                        nodesDraggable={!readOnly}
-                        nodesConnectable={!readOnly}
-                        elementsSelectable={!readOnly}
                         proOptions={{ hideAttribution: true }}
                         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
                         minZoom={0.1}
                         maxZoom={4}
                         className="react-flow"
                         deleteKeyCode={null}
+                        {...(!readOnly && {
+                            onNodesChange,
+                            onDragOver,
+                            onDrop,
+                        })}
+                        selectionOnDrag={!readOnly}
+                        nodesDraggable={!readOnly}
+                        nodesConnectable={!readOnly}
+                        elementsSelectable={!readOnly}
                     >
                         {background}
                         <Controls />

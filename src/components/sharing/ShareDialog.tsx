@@ -54,14 +54,22 @@ export interface ShareDialogProps {
 
 const DEFAULT_SHARED: SharedEntry[] = [];
 
+const TYPE_LABEL: Record<ArtifactType, string> = {
+    flow: "Flow",
+    canvas: "Canvas",
+    style: "Style",
+    asset: "Asset",
+};
+
+const API_BASE: Record<ArtifactType, string> = {
+    flow: "/api/flows",
+    canvas: "/api/canvases",
+    style: "/api/styles",
+    asset: "/api/library",
+};
+
 function apiPath(type: ArtifactType, id: string) {
-    const base: Record<ArtifactType, string> = {
-        flow: "/api/flows",
-        canvas: "/api/canvases",
-        style: "/api/styles",
-        asset: "/api/library",
-    };
-    return `${base[type]}/${id}`;
+    return `${API_BASE[type]}/${id}`;
 }
 
 export function ShareDialog({
@@ -172,18 +180,11 @@ export function ShareDialog({
         }
     };
 
-    const typeLabel: Record<ArtifactType, string> = {
-        flow: "Flow",
-        canvas: "Canvas",
-        style: "Style",
-        asset: "Asset",
-    };
-
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Share {typeLabel[artifactType]}</DialogTitle>
+                    <DialogTitle>Share {TYPE_LABEL[artifactType]}</DialogTitle>
                     <DialogDescription>
                         Manage who can see and edit &quot;{artifactName}&quot;
                     </DialogDescription>
@@ -329,7 +330,7 @@ export function ShareDialog({
                             <p className="text-xs font-medium">Link Access</p>
                             <p className="text-muted-foreground text-[10px]">
                                 {visibility === "public"
-                                    ? `Anyone with the link can view this ${typeLabel[artifactType].toLowerCase()}.`
+                                    ? `Anyone with the link can view this ${TYPE_LABEL[artifactType].toLowerCase()}.`
                                     : "Only people shared with can access via link."}
                             </p>
                         </div>
@@ -358,7 +359,7 @@ export function ShareDialog({
                                     </Label>
                                     <p className="text-muted-foreground text-xs">
                                         Make this{" "}
-                                        {typeLabel[artifactType].toLowerCase()}{" "}
+                                        {TYPE_LABEL[artifactType].toLowerCase()}{" "}
                                         available as a template for all users.
                                     </p>
                                 </div>
