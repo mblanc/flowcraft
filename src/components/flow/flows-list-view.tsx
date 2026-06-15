@@ -69,7 +69,13 @@ interface Canvas {
 }
 
 interface FlowsListViewProps {
-    activeTab: "my" | "shared" | "community" | "canvas";
+    activeTab:
+        | "my"
+        | "shared"
+        | "community"
+        | "canvas"
+        | "canvas-community"
+        | "canvas-shared";
     title?: string;
     description?: string;
 }
@@ -97,8 +103,20 @@ export function FlowsListView({
         setLoading(true);
         try {
             if (session) {
-                if (activeTab === "canvas") {
-                    const canvasResponse = await fetch("/api/canvases");
+                if (
+                    activeTab === "canvas" ||
+                    activeTab === "canvas-community" ||
+                    activeTab === "canvas-shared"
+                ) {
+                    const tabParam =
+                        activeTab === "canvas-community"
+                            ? "community"
+                            : activeTab === "canvas-shared"
+                              ? "shared"
+                              : "my";
+                    const canvasResponse = await fetch(
+                        `/api/canvases?tab=${tabParam}`,
+                    );
                     if (canvasResponse.ok) {
                         const data = await canvasResponse.json();
                         const canvasList: Canvas[] = data.canvases || [];
@@ -569,44 +587,103 @@ export function FlowsListView({
                 <div className="flex h-64 items-center justify-center">
                     <Loader2 className="text-primary h-8 w-8 animate-spin" />
                 </div>
-            ) : activeTab === "canvas" ? (
+            ) : activeTab === "canvas" ||
+              activeTab === "canvas-community" ||
+              activeTab === "canvas-shared" ? (
                 <section>
                     {canvases.length === 0 ? (
                         <div className="border-border flex h-56 flex-col items-center justify-center rounded-lg border border-dashed">
                             <div className="max-w-sm text-center">
                                 <h3 className="text-foreground mb-1.5 text-base font-semibold">
-                                    No canvases yet
+                                    {activeTab === "canvas-community"
+                                        ? "No community canvases yet"
+                                        : activeTab === "canvas-shared"
+                                          ? "No canvases shared with you"
+                                          : "No canvases yet"}
                                 </h3>
                                 <p className="text-muted-foreground mb-6 text-sm">
-                                    Create your first canvas to start generating
-                                    media with AI
+                                    {activeTab === "canvas-community"
+                                        ? "Community canvas templates will appear here"
+                                        : activeTab === "canvas-shared"
+                                          ? "Canvases shared with you by others will appear here"
+                                          : "Create your first canvas to start generating media with AI"}
                                 </p>
-                                <Button
-                                    onClick={handleCreateCanvas}
-                                    disabled={creatingCanvas}
-                                    className="rounded-md"
-                                >
-                                    {creatingCanvas ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Creating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Create canvas
-                                        </>
-                                    )}
-                                </Button>
+                                {activeTab === "canvas" && (
+                                    <Button
+                                        onClick={handleCreateCanvas}
+                                        disabled={creatingCanvas}
+                                        className="rounded-md"
+                                    >
+                                        {creatingCanvas ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Creating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Plus className="mr-2 h-4 w-4" />
+                                                Create canvas
+                                            </>
+                                        )}
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {canvases.map((canvas) =>
-                                renderCard(
-                                    canvas,
-                                    "canvas",
-                                    handleDeleteCanvas,
+                                activeTab === "canvas-community" ||
+                                activeTab === "canvas-shared" ? (
+                                    <div
+                                        key={canvas.id}
+                                        className="group border-border bg-card relative overflow-hidden rounded-lg border transition-shadow duration-150 hover:shadow-sm"
+                                    >
+                                        <div className="bg-muted flex aspect-video items-center justify-center overflow-hidden">
+                                            {thumbnailUrls[canvas.id] ? (
+                                                <Image
+                                                    src={
+                                                        thumbnailUrls[canvas.id]
+                                                    }
+                                                    alt={canvas.name}
+                                                    width={400}
+                                                    height={250}
+                                                    className="h-full w-full object-cover"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="text-muted-foreground text-center">
+                                                    <div className="bg-muted border-border mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-md border">
+                                                        <PanelRight className="text-muted-foreground h-5 w-5" />
+                                                    </div>
+                                                    <p className="text-xs">
+                                                        No preview
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-4">
+                                            <h3 className="text-foreground mb-2 truncate text-sm font-semibold">
+                                                {canvas.name}
+                                            </h3>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="w-full"
+                                                onClick={() =>
+                                                    handleCloneCanvas(canvas.id)
+                                                }
+                                            >
+                                                <Copy className="mr-2 h-3.5 w-3.5" />
+                                                Clone to my workspace
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    renderCard(
+                                        canvas,
+                                        "canvas",
+                                        handleDeleteCanvas,
+                                    )
                                 ),
                             )}
                         </div>
