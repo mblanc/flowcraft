@@ -397,6 +397,21 @@ export const UpscaleImageSchema = z.object({
     namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 
+export const CanvasCreateSchema = z.object({
+    name: z.string().min(1, "Name is required").max(256),
+});
+
+export const StyleCreateSchema = z.object({
+    name: z.string().min(1, "Name is required").max(256),
+    description: z.string().max(2048).optional().default(""),
+    content: z.string().max(819200).optional().default(""),
+    referenceImageUris: z
+        .array(z.string().startsWith("gs://").max(1024))
+        .max(20)
+        .optional()
+        .default([]),
+});
+
 export const FlowCreateSchema = z.object({
     name: z.string().min(1, "Name is required"),
     nodes: z.array(NodeSchema),
@@ -449,13 +464,22 @@ export const CanvasSharingPatchSchema = z.object({
     isTemplate: z.boolean().optional(),
 });
 
+const ChatMessageSchema = z
+    .object({
+        id: z.string(),
+        role: z.enum(["user", "assistant", "system"]),
+        content: z.string(),
+        createdAt: z.string(),
+    })
+    .passthrough();
+
 export const CanvasUpdateSchema = z.object({
-    name: z.string().optional(),
-    nodes: z.array(z.unknown()).optional(),
+    name: z.string().max(256).optional(),
+    nodes: z.array(NodeSchema).optional(),
     viewport: z
         .object({ x: z.number(), y: z.number(), zoom: z.number() })
         .optional(),
-    messages: z.array(z.unknown()).optional(),
+    messages: z.array(ChatMessageSchema).optional(),
     thumbnail: z.string().url().max(2048).optional(),
     activeStyleId: z.string().nullable().optional(),
     visibility: z.enum(["private", "public"]).optional(),
@@ -535,6 +559,8 @@ export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;
 export type RouterData = z.infer<typeof RouterDataSchema>;
 export type MusicData = z.infer<typeof MusicDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;
+export type CanvasCreate = z.infer<typeof CanvasCreateSchema>;
+export type StyleCreate = z.infer<typeof StyleCreateSchema>;
 export type CanvasSharingPatch = z.infer<typeof CanvasSharingPatchSchema>;
 export type CanvasUpdate = z.infer<typeof CanvasUpdateSchema>;
 export type StyleSharingPatch = z.infer<typeof StyleSharingPatchSchema>;

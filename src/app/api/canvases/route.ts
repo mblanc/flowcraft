@@ -4,9 +4,10 @@ import {
     canvasService,
     type CanvasListTab,
 } from "@/lib/services/canvas.service";
+import { CanvasCreateSchema } from "@/lib/schemas";
+import logger from "@/app/logger";
 
 const CANVAS_TABS: CanvasListTab[] = ["my", "shared", "community"];
-import logger from "@/app/logger";
 
 export const GET = withAuth(async (req, _context, session) => {
     try {
@@ -38,18 +39,16 @@ export const GET = withAuth(async (req, _context, session) => {
 
 export const POST = withAuth(async (req, _context, session) => {
     try {
-        const body = await req.json();
-        const name = body.name?.trim();
-
-        if (!name) {
+        const parsed = CanvasCreateSchema.safeParse(await req.json());
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Name is required" },
+                { error: parsed.error.flatten().fieldErrors },
                 { status: 400 },
             );
         }
 
         const canvas = await canvasService.createCanvas(session.user!.id!, {
-            name,
+            name: parsed.data.name.trim(),
         });
         return NextResponse.json(canvas);
     } catch (error) {

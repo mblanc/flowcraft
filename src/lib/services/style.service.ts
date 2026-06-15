@@ -38,8 +38,8 @@ export class StyleNotFoundError extends Error {
 }
 
 export class StyleForbiddenError extends Error {
-    constructor() {
-        super("Forbidden");
+    constructor(message = "Forbidden") {
+        super(message);
         this.name = "StyleForbiddenError";
     }
 }
@@ -175,7 +175,9 @@ export class StyleService {
             data.visibility !== undefined || data.sharedWith !== undefined;
 
         if (isChangingSharing && !isOwner) {
-            throw new Error("Only the owner can change sharing settings");
+            throw new StyleForbiddenError(
+                "Only the owner can change sharing settings",
+            );
         }
 
         if (
@@ -183,7 +185,9 @@ export class StyleService {
             data.isTemplate !== current.isTemplate
         ) {
             if (!isAdmin(userEmail)) {
-                throw new Error("Only admins can change template status");
+                throw new StyleForbiddenError(
+                    "Only admins can change template status",
+                );
             }
         }
 

@@ -132,6 +132,17 @@ describe("StyleService — sharing", () => {
                 service.getStyle("style-1", "other-user", "other@example.com"),
             ).rejects.toThrow("Forbidden");
         });
+
+        it("throws when style does not exist", async () => {
+            mockGet.mockResolvedValue({
+                exists: false,
+                id: "style-1",
+                data: () => undefined,
+            });
+            await expect(
+                service.getStyle("style-1", "owner-1"),
+            ).rejects.toThrow("Style not found");
+        });
     });
 
     describe("updateStyle — sharing guards", () => {

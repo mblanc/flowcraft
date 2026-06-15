@@ -23,6 +23,8 @@ export function CanvasHeader({ readOnly = false }: { readOnly?: boolean }) {
     const setCanvasName = useCanvasStore((s) => s.setCanvasName);
     const saveStatus = useCanvasStore((s) => s.saveStatus);
 
+    const isAdmin = (session?.user as { isAdmin?: boolean })?.isAdmin ?? false;
+
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState(canvasName);
     const [shareOpen, setShareOpen] = useState(false);
@@ -153,7 +155,7 @@ export function CanvasHeader({ readOnly = false }: { readOnly?: boolean }) {
                     sharedWith={canvasSharedWith}
                     isTemplate={canvasIsTemplate}
                     isOwner={canvasUserId === session?.user?.id}
-                    isAdmin={false}
+                    isAdmin={isAdmin}
                 />
             )}
         </header>

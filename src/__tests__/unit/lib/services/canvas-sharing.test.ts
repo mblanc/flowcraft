@@ -128,6 +128,62 @@ describe("CanvasService — sharing", () => {
         });
     });
 
+    describe("deleteCanvas", () => {
+        it("deletes canvas for the owner", async () => {
+            const mockDelete = vi.fn().mockResolvedValue(undefined);
+            mockDoc.mockReturnValue({
+                get: mockGet,
+                update: mockUpdate,
+                delete: mockDelete,
+            });
+            mockGet.mockResolvedValue(makeDocSnap(baseData()));
+            await service.deleteCanvas("canvas-1", "owner-1");
+            expect(mockDelete).toHaveBeenCalled();
+        });
+
+        it("throws Forbidden for non-owner delete", async () => {
+            mockGet.mockResolvedValue(makeDocSnap(baseData()));
+            await expect(
+                service.deleteCanvas("canvas-1", "stranger"),
+            ).rejects.toThrow("Forbidden");
+        });
+
+        it("throws not-found when canvas does not exist", async () => {
+            mockGet.mockResolvedValue({
+                exists: false,
+                id: "canvas-1",
+                data: () => undefined,
+            });
+            await expect(
+                service.deleteCanvas("canvas-1", "owner-1"),
+            ).rejects.toThrow("Canvas not found");
+        });
+    });
+
+    describe("updateCanvas — editor allowed-update", () => {
+        it("allows an editor to update non-sharing fields", async () => {
+            const snap = makeDocSnap({
+                ...baseData(),
+                sharedWith: [{ email: "editor@example.com", role: "edit" }],
+                sharedWithEmails: ["editor@example.com"],
+            });
+            mockGet
+                .mockResolvedValueOnce(snap)
+                .mockResolvedValueOnce(
+                    makeDocSnap({ ...baseData(), name: "Updated by editor" }),
+                );
+            mockUpdate.mockResolvedValue(undefined);
+
+            const result = await service.updateCanvas(
+                "canvas-1",
+                "editor-uid",
+                { name: "Updated by editor" },
+                "editor@example.com",
+            );
+            expect(result.name).toBe("Updated by editor");
+        });
+    });
+
     describe("updateCanvas — sharing guards", () => {
         it("allows the owner to change visibility", async () => {
             const snap = makeDocSnap(baseData());
@@ -308,6 +364,17 @@ describe("CanvasService — sharing", () => {
             expect(cloned.userId).toBe("cloner-1");
             expect(cloned.name).toBe("Copy of My Canvas");
             expect(mockCollection).toHaveBeenCalledWith(COLLECTIONS.CANVASES);
+        });
+
+        it("throws Forbidden when cloning a private canvas as non-owner", async () => {
+            mockGet.mockResolvedValue(makeDocSnap(baseData()));
+            await expect(
+                service.cloneCanvas(
+                    "canvas-1",
+                    "stranger",
+                    "stranger@example.com",
+                ),
+            ).rejects.toThrow("Forbidden");
         });
     });
 });

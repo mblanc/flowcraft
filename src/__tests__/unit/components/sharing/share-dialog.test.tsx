@@ -223,4 +223,63 @@ describe("ShareDialog", () => {
         fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
         expect(baseProps.onClose).toHaveBeenCalledOnce();
     });
+
+    it("shows an error toast when save returns a non-ok response", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: false,
+            json: () => Promise.resolve({ error: "Forbidden" }),
+        });
+        render(<ShareDialog {...baseProps} />);
+        fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
+        await waitFor(() =>
+            expect(mockFetch).toHaveBeenCalledWith(
+                "/api/canvases/canvas-123",
+                expect.objectContaining({ method: "PATCH" }),
+            ),
+        );
+    });
+
+    it("does not add a duplicate email to the invite list", () => {
+        render(
+            <ShareDialog
+                {...baseProps}
+                sharedWith={[{ email: "alice@example.com", role: "view" }]}
+            />,
+        );
+        const input = screen.getByPlaceholderText("Enter email address");
+        fireEvent.change(input, { target: { value: "alice@example.com" } });
+        fireEvent.click(screen.getByRole("button", { name: /^add$/i }));
+        expect(screen.getAllByText("alice@example.com")).toHaveLength(1);
+    });
+
+    it("calls PATCH on save for flow type", async () => {
+        render(
+            <ShareDialog
+                {...baseProps}
+                artifactType="flow"
+                artifactId="flow-1"
+            />,
+        );
+        fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
+        await waitFor(() => {
+            expect(mockFetch).toHaveBeenCalledWith(
+                "/api/flows/flow-1",
+                expect.objectContaining({ method: "PATCH" }),
+            );
+        });
+    });
+
+    it("sets visibility to public when isTemplate is toggled on", async () => {
+        render(<ShareDialog {...baseProps} isAdmin isOwner />);
+        const toggle = screen.getByRole("switch");
+        fireEvent.click(toggle);
+        fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
+        await waitFor(() => {
+            const body = JSON.parse(
+                (mockFetch.mock.calls[0][1] as RequestInit).body as string,
+            );
+            expect(body.visibility).toBe("public");
+            expect(body.isTemplate).toBe(true);
+        });
+    });
 });

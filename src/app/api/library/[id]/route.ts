@@ -6,7 +6,7 @@ import { AssetSharingPatchSchema } from "@/lib/schemas";
 import logger from "@/app/logger";
 
 const updateTagsSchema = z.object({
-    tags: z.array(z.string()),
+    tags: z.array(z.string().min(1).max(64)).max(50),
 });
 
 export const GET = withAuth<{ params: Promise<{ id: string }> }>(

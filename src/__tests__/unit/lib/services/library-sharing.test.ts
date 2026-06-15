@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { LibraryService } from "@/lib/services/library.service";
 
-const { mockCollection, mockDoc, mockGet, mockUpdate, mockWhere } = vi.hoisted(
-    () => ({
+const { mockCollection, mockDoc, mockGet, mockUpdate, mockWhere, mockLimit } =
+    vi.hoisted(() => ({
         mockCollection: vi.fn(),
         mockDoc: vi.fn(),
         mockGet: vi.fn(),
         mockUpdate: vi.fn(),
         mockWhere: vi.fn(),
-    }),
-);
+        mockLimit: vi.fn(),
+    }));
 
 vi.mock("@/lib/db/firestore", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/lib/db/firestore")>();
@@ -48,11 +48,12 @@ describe("LibraryService — sharing", () => {
 
         mockWhere.mockReturnThis();
 
+        mockLimit.mockReturnThis();
         mockCollection.mockReturnValue({
             doc: mockDoc,
             where: mockWhere,
             orderBy: vi.fn().mockReturnThis(),
-            limit: vi.fn().mockReturnThis(),
+            limit: mockLimit,
             get: mockGet,
         });
 
@@ -208,6 +209,34 @@ describe("LibraryService — sharing", () => {
                 "userId",
                 "==",
                 "any-user",
+            );
+        });
+    });
+
+    describe("listAssets — pagination", () => {
+        it("applies the default limit of 50 when no limit is specified", async () => {
+            mockGet.mockResolvedValue({ docs: [] });
+            await service.listAssets("owner-1");
+            expect(mockLimit).toHaveBeenCalledWith(
+                LibraryService.DEFAULT_ASSETS_LIMIT,
+            );
+        });
+
+        it("caps the limit at MAX_ASSETS_LIMIT even if a higher value is requested", async () => {
+            mockGet.mockResolvedValue({ docs: [] });
+            await service.listAssets("owner-1", undefined, { limit: 9999 });
+            expect(mockLimit).toHaveBeenCalledWith(
+                LibraryService.MAX_ASSETS_LIMIT,
+            );
+        });
+
+        it("applies the limit even when a search term is provided", async () => {
+            mockGet.mockResolvedValue({ docs: [] });
+            await service.listAssets("owner-1", undefined, {
+                search: "sunset",
+            });
+            expect(mockLimit).toHaveBeenCalledWith(
+                LibraryService.DEFAULT_ASSETS_LIMIT,
             );
         });
     });

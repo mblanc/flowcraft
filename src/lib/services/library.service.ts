@@ -85,19 +85,17 @@ export class LibraryService {
             query = query.where("type", "==", type);
         }
 
-        if (!options?.search) {
-            if (options?.before) {
-                query = query.where("createdAt", "<", options.before);
-            }
-
-            const requestedLimit =
-                options?.limit ?? LibraryService.DEFAULT_ASSETS_LIMIT;
-            const enforcedLimit = Math.min(
-                requestedLimit,
-                LibraryService.MAX_ASSETS_LIMIT,
-            );
-            query = query.limit(enforcedLimit);
+        if (options?.before && !options?.search) {
+            query = query.where("createdAt", "<", options.before);
         }
+
+        const requestedLimit =
+            options?.limit ?? LibraryService.DEFAULT_ASSETS_LIMIT;
+        const enforcedLimit = Math.min(
+            requestedLimit,
+            LibraryService.MAX_ASSETS_LIMIT,
+        );
+        query = query.limit(enforcedLimit);
 
         const snapshot = await query.get();
         const assets = snapshot.docs.map((doc) => this.transformDoc(doc));
@@ -125,7 +123,8 @@ export class LibraryService {
         if (!doc.exists) return null;
 
         const asset = this.transformDoc(doc);
-        if (asset.userId !== userId) return null;
+        if (asset.userId !== userId && asset.visibility !== "public")
+            return null;
 
         return asset;
     }
