@@ -52,6 +52,7 @@ describe("LibraryService — sharing", () => {
             doc: mockDoc,
             where: mockWhere,
             orderBy: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
             get: mockGet,
         });
 

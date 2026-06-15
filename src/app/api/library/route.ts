@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withAuth } from "@/lib/utils/api";
-import { libraryService } from "@/lib/services/library.service";
+import { libraryService, LibraryService } from "@/lib/services/library.service";
 import logger from "@/app/logger";
 import type { LibraryAssetType } from "@/lib/library-types";
 
@@ -52,8 +52,16 @@ export const GET = withAuth(async (req, _context, session) => {
             before = parsed;
         }
         const limitRaw = limitParam ? parseInt(limitParam, 10) : undefined;
+        if (limitRaw !== undefined && (isNaN(limitRaw) || limitRaw < 1)) {
+            return NextResponse.json(
+                { error: "Invalid 'limit' parameter" },
+                { status: 400 },
+            );
+        }
         const limit =
-            limitRaw !== undefined && isNaN(limitRaw) ? undefined : limitRaw;
+            limitRaw !== undefined
+                ? Math.min(limitRaw, LibraryService.MAX_ASSETS_LIMIT)
+                : undefined;
         const search = searchParams.get("search") ?? undefined;
         const visibilityParam = searchParams.get("visibility");
         const visibility =

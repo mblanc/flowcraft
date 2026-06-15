@@ -50,6 +50,9 @@ export class LibraryService {
         return this.transformDoc(doc);
     }
 
+    static readonly MAX_ASSETS_LIMIT = 200;
+    static readonly DEFAULT_ASSETS_LIMIT = 50;
+
     async listAssets(
         userId: string,
         type?: LibraryAssetType,
@@ -87,9 +90,13 @@ export class LibraryService {
                 query = query.where("createdAt", "<", options.before);
             }
 
-            if (options?.limit) {
-                query = query.limit(options.limit);
-            }
+            const requestedLimit =
+                options?.limit ?? LibraryService.DEFAULT_ASSETS_LIMIT;
+            const enforcedLimit = Math.min(
+                requestedLimit,
+                LibraryService.MAX_ASSETS_LIMIT,
+            );
+            query = query.limit(enforcedLimit);
         }
 
         const snapshot = await query.get();
