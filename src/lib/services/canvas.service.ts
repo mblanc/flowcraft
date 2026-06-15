@@ -10,23 +10,13 @@ import type {
     CanvasNode,
     ChatMessage,
 } from "@/lib/canvas/types";
-import type { CanvasSharingPatch } from "@/lib/schemas";
+import type { CanvasUpdate } from "@/lib/schemas";
 
 export interface CanvasCreateRequest {
     name: string;
 }
 
-export interface CanvasUpdateRequest {
-    name?: string;
-    nodes?: CanvasNode[];
-    viewport?: { x: number; y: number; zoom: number };
-    messages?: ChatMessage[];
-    thumbnail?: string;
-    activeStyleId?: string | null;
-    visibility?: CanvasSharingPatch["visibility"];
-    sharedWith?: CanvasSharingPatch["sharedWith"];
-    isTemplate?: boolean;
-}
+export type CanvasUpdateRequest = CanvasUpdate;
 
 export class CanvasService {
     private firestore = getFirestore();

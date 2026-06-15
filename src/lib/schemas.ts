@@ -449,7 +449,31 @@ export const CanvasSharingPatchSchema = z.object({
     isTemplate: z.boolean().optional(),
 });
 
+export const CanvasUpdateSchema = z.object({
+    name: z.string().optional(),
+    nodes: z.array(z.unknown()).optional(),
+    viewport: z
+        .object({ x: z.number(), y: z.number(), zoom: z.number() })
+        .optional(),
+    messages: z.array(z.unknown()).optional(),
+    thumbnail: z.string().url().max(2048).optional(),
+    activeStyleId: z.string().nullable().optional(),
+    visibility: z.enum(["private", "public"]).optional(),
+    sharedWith: SharedWithSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
+
 export const StyleSharingPatchSchema = z.object({
+    visibility: z.enum(["private", "public"]).optional(),
+    sharedWith: SharedWithSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
+
+export const StyleUpdateSchema = z.object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    content: z.string().optional(),
+    referenceImageUris: z.array(z.string()).optional(),
     visibility: z.enum(["private", "public"]).optional(),
     sharedWith: SharedWithSchema.optional(),
     isTemplate: z.boolean().optional(),
@@ -512,5 +536,7 @@ export type RouterData = z.infer<typeof RouterDataSchema>;
 export type MusicData = z.infer<typeof MusicDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;
 export type CanvasSharingPatch = z.infer<typeof CanvasSharingPatchSchema>;
+export type CanvasUpdate = z.infer<typeof CanvasUpdateSchema>;
 export type StyleSharingPatch = z.infer<typeof StyleSharingPatchSchema>;
+export type StyleUpdate = z.infer<typeof StyleUpdateSchema>;
 export type AssetSharingPatch = z.infer<typeof AssetSharingPatchSchema>;

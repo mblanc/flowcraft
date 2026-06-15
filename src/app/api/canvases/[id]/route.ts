@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/utils/api";
 import { canvasService } from "@/lib/services/canvas.service";
-import { CanvasSharingPatchSchema } from "@/lib/schemas";
+import { CanvasUpdateSchema } from "@/lib/schemas";
 import logger from "@/app/logger";
 
 export const GET = withAuth<{ params: Promise<{ id: string }> }>(
@@ -42,18 +42,18 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(
     async (req, { params }, session) => {
         const { id: canvasId } = await params;
         try {
-            const body = await req.json();
-
-            const sharingFields = CanvasSharingPatchSchema.safeParse(body);
-            const updatePayload = {
-                ...body,
-                ...(sharingFields.success ? sharingFields.data : {}),
-            };
+            const parsed = CanvasUpdateSchema.safeParse(await req.json());
+            if (!parsed.success) {
+                return NextResponse.json(
+                    { error: parsed.error.flatten().fieldErrors },
+                    { status: 400 },
+                );
+            }
 
             const updatedCanvas = await canvasService.updateCanvas(
                 canvasId,
                 session.user!.id!,
-                updatePayload,
+                parsed.data,
                 session.user!.email ?? undefined,
             );
             return NextResponse.json(updatedCanvas);
