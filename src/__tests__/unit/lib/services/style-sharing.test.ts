@@ -20,6 +20,11 @@ const {
     mockSet: vi.fn(),
 }));
 
+vi.mock("@/lib/services/admin", () => ({
+    isAdmin: (email: string | undefined | null) =>
+        email === "admin@example.com",
+}));
+
 vi.mock("@/lib/db/firestore", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/lib/db/firestore")>();
     return {
@@ -208,6 +213,54 @@ describe("StyleService — sharing", () => {
             );
             expect(result).toEqual([]);
             expect(mockGet).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("updateStyle — isTemplate admin gate", () => {
+        it("allows admin to set isTemplate=true", async () => {
+            const snap = makeDocSnap(baseData());
+            mockGet
+                .mockResolvedValueOnce(snap)
+                .mockResolvedValueOnce(
+                    makeDocSnap({ ...baseData(), isTemplate: true }),
+                );
+            mockUpdate.mockResolvedValue(undefined);
+
+            const result = await service.updateStyle(
+                "style-1",
+                "owner-1",
+                { isTemplate: true },
+                "admin@example.com",
+            );
+            expect(result.isTemplate).toBe(true);
+        });
+
+        it("rejects non-admin owner setting isTemplate=true", async () => {
+            mockGet.mockResolvedValue(makeDocSnap(baseData()));
+
+            await expect(
+                service.updateStyle(
+                    "style-1",
+                    "owner-1",
+                    { isTemplate: true },
+                    "owner@example.com",
+                ),
+            ).rejects.toThrow("Only admins can change template status");
+        });
+
+        it("allows no-op isTemplate update without admin check", async () => {
+            const snap = makeDocSnap({ ...baseData(), isTemplate: false });
+            mockGet.mockResolvedValueOnce(snap).mockResolvedValueOnce(snap);
+            mockUpdate.mockResolvedValue(undefined);
+
+            await expect(
+                service.updateStyle(
+                    "style-1",
+                    "owner-1",
+                    { isTemplate: false },
+                    "owner@example.com",
+                ),
+            ).resolves.toBeDefined();
         });
     });
 

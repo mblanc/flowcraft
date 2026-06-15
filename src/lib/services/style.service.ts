@@ -9,6 +9,7 @@ import type { StyleDocument } from "@/lib/styles/style-types";
 import { FieldValue } from "@google-cloud/firestore";
 import { deleteFileByUri } from "@/lib/db/storage";
 import type { StyleSharingPatch } from "@/lib/schemas";
+import { isAdmin } from "@/lib/services/admin";
 
 export interface StyleCreateRequest {
     name: string;
@@ -169,12 +170,19 @@ export class StyleService {
         if (!isOwner && !isEditor) throw new StyleForbiddenError();
 
         const isChangingSharing =
-            data.visibility !== undefined ||
-            data.sharedWith !== undefined ||
-            data.isTemplate !== undefined;
+            data.visibility !== undefined || data.sharedWith !== undefined;
 
         if (isChangingSharing && !isOwner) {
             throw new Error("Only the owner can change sharing settings");
+        }
+
+        if (
+            data.isTemplate !== undefined &&
+            data.isTemplate !== current.isTemplate
+        ) {
+            if (!isAdmin(userEmail)) {
+                throw new Error("Only admins can change template status");
+            }
         }
 
         const updateData: Record<string, unknown> = {

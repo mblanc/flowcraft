@@ -11,6 +11,7 @@ import type {
     ChatMessage,
 } from "@/lib/canvas/types";
 import type { CanvasUpdate } from "@/lib/schemas";
+import { isAdmin } from "@/lib/services/admin";
 
 export interface CanvasCreateRequest {
     name: string;
@@ -179,12 +180,19 @@ export class CanvasService {
         }
 
         const isChangingSharingSettings =
-            data.visibility !== undefined ||
-            data.sharedWith !== undefined ||
-            data.isTemplate !== undefined;
+            data.visibility !== undefined || data.sharedWith !== undefined;
 
         if (isChangingSharingSettings && !isOwner) {
             throw new Error("Only the owner can change sharing settings");
+        }
+
+        if (
+            data.isTemplate !== undefined &&
+            data.isTemplate !== current.isTemplate
+        ) {
+            if (!isAdmin(userEmail)) {
+                throw new Error("Only admins can change template status");
+            }
         }
 
         const updateData: Record<string, unknown> = {
