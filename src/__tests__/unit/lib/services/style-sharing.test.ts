@@ -229,4 +229,63 @@ describe("StyleService — sharing", () => {
             expect(mockCollection).toHaveBeenCalledWith(COLLECTIONS.STYLES);
         });
     });
+
+    describe("createStyle", () => {
+        it("creates a style with default sharing fields", async () => {
+            const snap = makeDocSnap({
+                ...baseData(),
+                name: "New Style",
+                visibility: "private",
+                sharedWith: [],
+                sharedWithEmails: [],
+                isTemplate: false,
+            });
+            mockDoc.mockReturnValue({
+                get: mockGet,
+                update: mockUpdate,
+                set: mockSet,
+            });
+            mockSet.mockResolvedValue(undefined);
+            mockGet.mockResolvedValue(snap);
+
+            const result = await service.createStyle("owner-1", {
+                name: "New Style",
+                description: "desc",
+                content: "# content",
+            });
+
+            expect(mockSet).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: "owner-1",
+                    visibility: "private",
+                    sharedWith: [],
+                    sharedWithEmails: [],
+                    isTemplate: false,
+                }),
+            );
+            expect(result.name).toBe("New Style");
+        });
+    });
+
+    describe("deleteStyle", () => {
+        it("deletes a style owned by the caller", async () => {
+            const mockDelete = vi.fn().mockResolvedValue(undefined);
+            mockDoc.mockReturnValue({
+                get: mockGet,
+                update: mockUpdate,
+                set: mockSet,
+                delete: mockDelete,
+            });
+            mockGet.mockResolvedValue(makeDocSnap(baseData()));
+            await service.deleteStyle("style-1", "owner-1");
+            expect(mockDelete).toHaveBeenCalled();
+        });
+
+        it("throws Forbidden when non-owner tries to delete", async () => {
+            mockGet.mockResolvedValue(makeDocSnap(baseData()));
+            await expect(
+                service.deleteStyle("style-1", "stranger"),
+            ).rejects.toThrow("Forbidden");
+        });
+    });
 });

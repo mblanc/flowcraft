@@ -9,17 +9,7 @@ import { CanvasEditor } from "@/components/canvas/canvas-editor";
 import { useCanvasPersistence } from "@/hooks/use-canvas-persistence";
 import logger from "@/app/logger";
 import type { CanvasDocument } from "@/lib/canvas/types";
-
-function deriveRole(
-    canvas: CanvasDocument,
-    userId: string | undefined,
-    userEmail: string | undefined | null,
-): "owner" | "editor" | "viewer" {
-    if (canvas.userId === userId) return "owner";
-    const entry = canvas.sharedWith.find((s) => s.email === userEmail);
-    if (entry) return entry.role === "edit" ? "editor" : "viewer";
-    return "viewer";
-}
+import { deriveCanvasRole } from "@/lib/canvas/derive-role";
 
 function CanvasContent() {
     const params = useParams();
@@ -40,7 +30,7 @@ function CanvasContent() {
                 if (response.ok) {
                     const canvas: CanvasDocument = await response.json();
                     setCanvas(canvas);
-                    const role = deriveRole(
+                    const role = deriveCanvasRole(
                         canvas,
                         session?.user?.id,
                         session?.user?.email,
