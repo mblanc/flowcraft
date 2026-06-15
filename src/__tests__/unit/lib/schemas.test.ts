@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { NodeDataSchema, MusicDataSchema } from "@/lib/schemas";
+import {
+    NodeDataSchema,
+    MusicDataSchema,
+    CanvasSharingPatchSchema,
+    StyleSharingPatchSchema,
+    AssetSharingPatchSchema,
+} from "@/lib/schemas";
 
 describe("Schema Validation", () => {
     describe("Workflow Input Node", () => {
@@ -93,6 +99,100 @@ describe("Schema Validation", () => {
             if (result.success) {
                 expect(result.data.type).toBe("music");
             }
+        });
+    });
+
+    describe("CanvasSharingPatchSchema", () => {
+        it("accepts a public visibility patch", () => {
+            const result = CanvasSharingPatchSchema.safeParse({
+                visibility: "public",
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("accepts sharedWith with valid roles", () => {
+            const result = CanvasSharingPatchSchema.safeParse({
+                sharedWith: [
+                    { email: "a@b.com", role: "view" },
+                    { email: "c@d.com", role: "edit" },
+                ],
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("rejects an invalid role", () => {
+            const result = CanvasSharingPatchSchema.safeParse({
+                sharedWith: [{ email: "a@b.com", role: "admin" }],
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it("rejects a malformed email", () => {
+            const result = CanvasSharingPatchSchema.safeParse({
+                sharedWith: [{ email: "not-an-email", role: "view" }],
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it("accepts isTemplate flag", () => {
+            const result = CanvasSharingPatchSchema.safeParse({
+                isTemplate: true,
+                visibility: "public",
+            });
+            expect(result.success).toBe(true);
+        });
+    });
+
+    describe("StyleSharingPatchSchema", () => {
+        it("accepts a full sharing patch", () => {
+            const result = StyleSharingPatchSchema.safeParse({
+                visibility: "public",
+                sharedWith: [{ email: "x@y.com", role: "view" }],
+                isTemplate: false,
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("accepts an empty patch", () => {
+            const result = StyleSharingPatchSchema.safeParse({});
+            expect(result.success).toBe(true);
+        });
+
+        it("rejects invalid visibility value", () => {
+            const result = StyleSharingPatchSchema.safeParse({
+                visibility: "friends-only",
+            });
+            expect(result.success).toBe(false);
+        });
+    });
+
+    describe("AssetSharingPatchSchema", () => {
+        it("accepts visibility: public", () => {
+            const result = AssetSharingPatchSchema.safeParse({
+                visibility: "public",
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("accepts visibility: private", () => {
+            const result = AssetSharingPatchSchema.safeParse({
+                visibility: "private",
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("rejects unknown visibility values", () => {
+            const result = AssetSharingPatchSchema.safeParse({
+                visibility: "restricted",
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it("rejects sharedWith (assets don't support email invites)", () => {
+            const result = AssetSharingPatchSchema.safeParse({
+                sharedWith: [{ email: "a@b.com", role: "view" }],
+            });
+            expect(result.success).toBe(false);
         });
     });
 });

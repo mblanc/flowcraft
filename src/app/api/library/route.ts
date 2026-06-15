@@ -15,6 +15,7 @@ const createAssetSchema = z.object({
     aspectRatio: z.string().optional(),
     model: z.string().optional(),
     tags: z.array(z.string()).default([]),
+    visibility: z.enum(["private", "public"]).default("private"),
     provenance: z.object({
         sourceType: z.enum(["flow", "canvas"]),
         sourceId: z.string().min(1),

@@ -46,7 +46,8 @@ export class CanvasService {
             messages: (data?.messages ?? []) as ChatMessage[],
             visibility: (data?.visibility ??
                 "private") as CanvasDocument["visibility"],
-            sharedWith: (data?.sharedWith ?? []) as string[],
+            sharedWith: (data?.sharedWith ??
+                []) as CanvasDocument["sharedWith"],
             sharedWithEmails: (data?.sharedWithEmails ?? []) as string[],
             isTemplate: (data?.isTemplate ?? false) as boolean,
             activeStyleId:

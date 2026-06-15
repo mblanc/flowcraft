@@ -2,16 +2,28 @@ import type { StyleDocument } from "./style-types";
 
 export type TemplateStyle = Omit<
     StyleDocument,
-    "id" | "userId" | "createdAt" | "updatedAt"
+    | "id"
+    | "userId"
+    | "createdAt"
+    | "updatedAt"
+    | "visibility"
+    | "sharedWith"
+    | "sharedWithEmails"
 > & {
     isTemplate: true;
     id: string;
+    visibility: "public";
+    sharedWith: [];
+    sharedWithEmails: [];
 };
 
 export const STYLE_TEMPLATES: TemplateStyle[] = [
     {
         id: "template-cinematic",
         isTemplate: true,
+        visibility: "public" as const,
+        sharedWith: [] as [],
+        sharedWithEmails: [] as [],
         name: "Cinematic",
         description:
             "35mm film aesthetic with golden hour lighting and shallow depth of field",
@@ -51,6 +63,9 @@ export const STYLE_TEMPLATES: TemplateStyle[] = [
     {
         id: "template-editorial-photo",
         isTemplate: true,
+        visibility: "public" as const,
+        sharedWith: [] as [],
+        sharedWithEmails: [] as [],
         name: "Editorial Photo",
         description:
             "Clean studio photography with high contrast and minimalist backgrounds",
@@ -90,6 +105,9 @@ export const STYLE_TEMPLATES: TemplateStyle[] = [
     {
         id: "template-flat-illustration",
         isTemplate: true,
+        visibility: "public" as const,
+        sharedWith: [] as [],
+        sharedWithEmails: [] as [],
         name: "Flat Illustration",
         description:
             "Bold vector-style flat design with clean shapes and a limited color palette",
@@ -130,6 +148,9 @@ export const STYLE_TEMPLATES: TemplateStyle[] = [
     {
         id: "template-watercolor-ink",
         isTemplate: true,
+        visibility: "public" as const,
+        sharedWith: [] as [],
+        sharedWithEmails: [] as [],
         name: "Watercolor & Ink",
         description:
             "Loose painterly brushwork with organic edges and paper texture",
@@ -170,6 +191,9 @@ export const STYLE_TEMPLATES: TemplateStyle[] = [
     {
         id: "template-3d-render-glass",
         isTemplate: true,
+        visibility: "public" as const,
+        sharedWith: [] as [],
+        sharedWithEmails: [] as [],
         name: "3D Render / Glass",
         description:
             "Glossy 3D product renders with HDRI studio lighting and glass materials",
@@ -216,6 +240,9 @@ export const STYLE_TEMPLATES: TemplateStyle[] = [
     {
         id: "template-vintage-poster",
         isTemplate: true,
+        visibility: "public" as const,
+        sharedWith: [] as [],
+        sharedWithEmails: [] as [],
         name: "Vintage Poster",
         description:
             "Retro screen-print aesthetic with limited palette, grain, and bold typography feel",

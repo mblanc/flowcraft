@@ -23,5 +23,6 @@ export interface LibraryAsset {
     model?: string;
     tags: string[];
     provenance: LibraryAssetProvenance;
+    visibility: "private" | "public";
     createdAt: string;
 }

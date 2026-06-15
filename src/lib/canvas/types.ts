@@ -202,7 +202,7 @@ export interface CanvasDocument {
     viewport: { x: number; y: number; zoom: number };
     messages: ChatMessage[];
     visibility: "private" | "public";
-    sharedWith: string[];
+    sharedWith: { email: string; role: "view" | "edit" }[];
     sharedWithEmails: string[];
     isTemplate: boolean;
     activeStyleId?: string;

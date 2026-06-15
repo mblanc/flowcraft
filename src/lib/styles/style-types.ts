@@ -5,7 +5,10 @@ export interface StyleDocument {
     description: string;
     content: string;
     referenceImageUris: string[];
-    isTemplate?: boolean;
+    visibility: "private" | "public";
+    sharedWith: { email: string; role: "view" | "edit" }[];
+    sharedWithEmails: string[];
+    isTemplate: boolean;
     createdAt: string;
     updatedAt: string;
 }

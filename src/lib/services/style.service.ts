@@ -51,6 +51,10 @@ export class StyleService {
             description: data?.description as string,
             content: data?.content as string,
             referenceImageUris: (data?.referenceImageUris ?? []) as string[],
+            visibility: (data?.visibility ??
+                "private") as StyleDocument["visibility"],
+            sharedWith: (data?.sharedWith ?? []) as StyleDocument["sharedWith"],
+            sharedWithEmails: (data?.sharedWithEmails ?? []) as string[],
             isTemplate: (data?.isTemplate ?? false) as boolean,
             createdAt: formatFirestoreTimestamp(data?.createdAt),
             updatedAt: formatFirestoreTimestamp(data?.updatedAt),

@@ -27,6 +27,8 @@ export class LibraryService {
             model: data?.model as string | undefined,
             tags: (data?.tags ?? []) as string[],
             provenance: data?.provenance as LibraryAsset["provenance"],
+            visibility: (data?.visibility ??
+                "private") as LibraryAsset["visibility"],
             createdAt: formatFirestoreTimestamp(data?.createdAt),
         };
     }

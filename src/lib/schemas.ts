@@ -436,6 +436,31 @@ export const FlowShareSchema = z.object({
         .optional(),
 });
 
+const SharedWithSchema = z.array(
+    z.object({
+        email: z.string().email(),
+        role: z.enum(["view", "edit"]),
+    }),
+);
+
+export const CanvasSharingPatchSchema = z.object({
+    visibility: z.enum(["private", "public"]).optional(),
+    sharedWith: SharedWithSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
+
+export const StyleSharingPatchSchema = z.object({
+    visibility: z.enum(["private", "public"]).optional(),
+    sharedWith: SharedWithSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
+
+export const AssetSharingPatchSchema = z
+    .object({
+        visibility: z.enum(["private", "public"]),
+    })
+    .strict();
+
 // --- Custom Node Schemas ---
 
 export const CustomNodePortSchema = z.object({
@@ -486,3 +511,6 @@ export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;
 export type RouterData = z.infer<typeof RouterDataSchema>;
 export type MusicData = z.infer<typeof MusicDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;
+export type CanvasSharingPatch = z.infer<typeof CanvasSharingPatchSchema>;
+export type StyleSharingPatch = z.infer<typeof StyleSharingPatchSchema>;
+export type AssetSharingPatch = z.infer<typeof AssetSharingPatchSchema>;

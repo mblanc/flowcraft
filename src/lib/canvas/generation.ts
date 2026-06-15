@@ -228,6 +228,7 @@ export async function* executePlan(
                                 aspectRatio: node.aspectRatio,
                                 model: node.model,
                                 tags: [],
+                                visibility: "private" as const,
                                 provenance: {
                                     sourceType: "canvas",
                                     sourceId: canvasId,
