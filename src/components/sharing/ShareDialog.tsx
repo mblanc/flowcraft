@@ -85,8 +85,7 @@ export function ShareDialog({
     isAdmin = false,
     onSaved,
 }: ShareDialogProps) {
-    const supportsInvites = artifactType !== "asset";
-    const supportsCommunity = artifactType !== "asset";
+    const isStructuredArtifact = artifactType !== "asset";
     // flows also support "restricted" visibility
     const supportsRestricted = artifactType === "flow";
 
@@ -145,11 +144,11 @@ export function ShareDialog({
         try {
             const body: Record<string, unknown> = { visibility };
 
-            if (supportsInvites) {
+            if (isStructuredArtifact) {
                 body.sharedWith = sharedWith;
             }
 
-            if (supportsCommunity && isAdmin && isOwner) {
+            if (isStructuredArtifact && isAdmin && isOwner) {
                 body.isTemplate = isTemplate;
             }
 
@@ -236,7 +235,7 @@ export function ShareDialog({
                     </div>
 
                     {/* Email invites */}
-                    {supportsInvites && (
+                    {isStructuredArtifact && (
                         <div className="space-y-3">
                             <Label className="text-sm font-medium">
                                 Share with people
@@ -350,7 +349,7 @@ export function ShareDialog({
                     </div>
 
                     {/* Community toggle (admin only) */}
-                    {supportsCommunity && isAdmin && isOwner && (
+                    {isStructuredArtifact && isAdmin && isOwner && (
                         <div className="border-t pt-4">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
