@@ -45,7 +45,7 @@ export function useCanvasPersistence(readOnly = false) {
             logger.error("Error saving canvas: bad response");
             throw new Error("Save failed: bad response");
         }
-    }, [setSaveStatus]);
+    }, [setSaveStatus, readOnly]);
 
     useAutoSave({
         entityId: canvasId,

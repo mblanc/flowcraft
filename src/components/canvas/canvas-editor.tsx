@@ -52,7 +52,7 @@ export function CanvasEditor({ readOnly = false }: { readOnly?: boolean }) {
     const { onDragOver, onDrop } = useCanvasDragDrop(rfInstance);
 
     const handleClone = useCallback(async () => {
-        if (!canvasId) return;
+        if (!canvasId || !readOnly) return;
         setCloning(true);
         try {
             const res = await fetch(`/api/canvases/${canvasId}/clone`, {
@@ -67,7 +67,7 @@ export function CanvasEditor({ readOnly = false }: { readOnly?: boolean }) {
         } finally {
             setCloning(false);
         }
-    }, [canvasId, router]);
+    }, [canvasId, readOnly, router]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleInit = useCallback((instance: ReactFlowInstance<any>) => {

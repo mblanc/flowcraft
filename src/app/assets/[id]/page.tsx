@@ -13,7 +13,7 @@ import type { LibraryAsset } from "@/lib/library-types";
 export default function AssetPublicPage() {
     const params = useParams();
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const [asset, setAsset] = useState<LibraryAsset | null>(null);
     const [mediaUrl, setMediaUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
