@@ -24,7 +24,6 @@ import {
     MODEL_THINKING_LEVELS,
 } from "../constants";
 import type { ContentPart, MediaRef } from "../types";
-import { GoogleAuth } from "google-auth-library";
 
 const DATA_URI_REGEX = /^data:([^;]+);base64,(.+)$/;
 
@@ -599,60 +598,29 @@ export class GeminiService {
 
         logger.info(`[GeminiService] Generating music with model: ${model}`);
 
-        // Lyria uses the Vertex AI predict endpoint — no SDK wrapper yet.
-        const auth = new GoogleAuth({
-            scopes: "https://www.googleapis.com/auth/cloud-platform",
-        });
-        const client = await auth.getClient();
-        const tokenResponse = await client.getAccessToken();
-        const accessToken = tokenResponse?.token;
-        if (!accessToken) throw new Error("Failed to get Google access token");
-
-        const location =
-            config.LOCATION === "global" ? "us-central1" : config.LOCATION;
-        const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${config.PROJECT_ID}/locations/${location}/publishers/google/models/${model}:predict`;
-
-        const body = {
-            instances: [
-                {
-                    prompt,
-                    ...(negativePrompt
-                        ? { negative_prompt: negativePrompt }
-                        : {}),
-                    ...(seed !== undefined ? { seed } : {}),
-                },
-            ],
-            parameters: {},
-        };
-
-        logger.debug(`[GeminiService] Music request to ${endpoint}`);
-
-        const res = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
+        const response = await this.ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                ...(negativePrompt ? { negativePrompt } : {}),
+                ...(seed !== undefined ? { seed } : {}),
             },
-            body: JSON.stringify(body),
         });
 
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`Lyria API error ${res.status}: ${text}`);
-        }
+        const audioPart = response.candidates?.[0]?.content?.parts?.find(
+            (part) => part.inlineData,
+        );
 
-        const json = (await res.json()) as {
-            predictions: { bytesBase64Encoded: string; mimeType: string }[];
-        };
-
-        const prediction = json.predictions?.[0];
-        if (!prediction?.bytesBase64Encoded) {
+        if (!audioPart?.inlineData) {
+            logger.error(
+                `[GeminiService] No audio data in Lyria response: ${JSON.stringify(response, null, 2)}`,
+            );
             throw new Error("No audio data in Lyria response");
         }
 
         return {
-            audioData: prediction.bytesBase64Encoded,
-            mimeType: prediction.mimeType ?? "audio/wav",
+            audioData: audioPart.inlineData.data!,
+            mimeType: audioPart.inlineData.mimeType ?? "audio/wav",
         };
     }
 }

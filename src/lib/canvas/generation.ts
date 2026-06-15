@@ -207,34 +207,36 @@ export async function* executePlan(
                     // Record URI so dependent steps can reference it
                     ctx.completedStepUris.set(step.id, node.sourceUrl);
 
-                    // Fire-and-forget: save to library
-                    const libraryType = (
-                        node.type === "canvas-video" ? "video" : "image"
-                    ) as "video" | "image";
-                    libraryService
-                        .createAsset({
-                            userId,
-                            type: libraryType,
-                            gcsUri: node.sourceUrl,
-                            mimeType: node.mimeType ?? "image/png",
-                            aspectRatio: node.aspectRatio,
-                            model: node.model,
-                            tags: [],
-                            provenance: {
-                                sourceType: "canvas",
-                                sourceId: canvasId,
-                                sourceName: canvasName,
-                                nodeId: node.id,
-                                nodeLabel: node.label,
-                                prompt: node.prompt,
-                            },
-                        })
-                        .catch((err) =>
-                            logger.warn(
-                                "[CanvasGeneration] Library save failed:",
-                                err,
-                            ),
-                        );
+                    // Fire-and-forget: save to library (audio not yet supported)
+                    if (node.type !== "canvas-audio") {
+                        const libraryType = (
+                            node.type === "canvas-video" ? "video" : "image"
+                        ) as "video" | "image";
+                        libraryService
+                            .createAsset({
+                                userId,
+                                type: libraryType,
+                                gcsUri: node.sourceUrl,
+                                mimeType: node.mimeType ?? "image/png",
+                                aspectRatio: node.aspectRatio,
+                                model: node.model,
+                                tags: [],
+                                provenance: {
+                                    sourceType: "canvas",
+                                    sourceId: canvasId,
+                                    sourceName: canvasName,
+                                    nodeId: node.id,
+                                    nodeLabel: node.label,
+                                    prompt: node.prompt,
+                                },
+                            })
+                            .catch((err) =>
+                                logger.warn(
+                                    "[CanvasGeneration] Library save failed:",
+                                    err,
+                                ),
+                            );
+                    }
 
                     return { step, node };
                 } catch (error) {

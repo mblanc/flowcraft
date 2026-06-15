@@ -70,6 +70,7 @@ const STEP_TYPE_ICON: Record<
 > = {
     image: Image,
     video: Video,
+    audio: Music,
 };
 
 /** Small pill for a single metadata value */
@@ -165,7 +166,11 @@ function StepCard({
                         )}
                     >
                         {step.label ??
-                            (step.type === "image" ? "Image" : "Video")}{" "}
+                            (step.type === "image"
+                                ? "Image"
+                                : step.type === "audio"
+                                  ? "Audio"
+                                  : "Video")}{" "}
                         <span className="font-normal opacity-50">
                             #{stepIndex + 1}
                         </span>

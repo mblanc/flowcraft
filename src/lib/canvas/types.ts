@@ -123,7 +123,7 @@ export type StepStatus = "pending" | "generating" | "done" | "error";
 
 export interface GenerationStep {
     id: string;
-    type: "image" | "video" | "concat";
+    type: "image" | "video" | "concat" | "audio";
     prompt: string;
     label?: string;
     aspectRatio?: string;

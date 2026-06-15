@@ -141,6 +141,7 @@ export function validateStepNodeIds(
 const IMAGE_OPS = new Set(["t2i", "i2i"]);
 const VIDEO_OPS = new Set(["t2v", "i2v", "i2v2"]);
 const CONCAT_OPS = new Set(["concat"]);
+const AUDIO_OPS = new Set(["t2m", "t2s", "sfx"]);
 
 export function mapPlanNodesToSteps(
     planNodes: PlanNode[],
@@ -184,13 +185,15 @@ export function mapPlanNodesToSteps(
     }
 
     return planNodes.flatMap((node): GenerationStep[] => {
-        let type: "image" | "video" | "concat";
+        let type: "image" | "video" | "concat" | "audio";
         if (IMAGE_OPS.has(node.operation)) {
             type = "image";
         } else if (VIDEO_OPS.has(node.operation)) {
             type = "video";
         } else if (CONCAT_OPS.has(node.operation)) {
             type = "concat";
+        } else if (AUDIO_OPS.has(node.operation)) {
+            type = "audio";
         } else {
             logger.warn(
                 `[CanvasADK] plan_production: skipping unsupported operation "${node.operation}" on node ${node.id}`,
@@ -234,7 +237,7 @@ export function mapPlanNodesToSteps(
             ...(deps && deps.length > 0 ? { dependsOn: deps } : {}),
         };
 
-        if (type === "concat") {
+        if (type === "concat" || type === "audio") {
             return [step];
         }
 
