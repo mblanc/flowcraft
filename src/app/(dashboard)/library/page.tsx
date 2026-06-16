@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Globe, Lock } from "lucide-react";
 import { LibraryTabs } from "@/components/library/library-tabs";
 import { LibraryToolbar } from "@/components/library/library-toolbar";
 import {
@@ -40,6 +40,7 @@ export default function LibraryPage() {
     const router = useRouter();
 
     const [activeTab, setActiveTab] = useState<LibraryTab>("images");
+    const [showPublic, setShowPublic] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [assets, setAssets] = useState<LibraryAsset[]>([]);
@@ -63,13 +64,13 @@ export default function LibraryPage() {
     }, [status, router]);
 
     useEffect(() => {
-        // Invalidate any in-flight requests from the previous tab selection.
+        // Invalidate any in-flight requests from the previous tab/filter change.
         tabRequestGenerationRef.current += 1;
         initialRequestAbortRef.current?.abort();
         loadMoreRequestAbortRef.current?.abort();
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoadingMore(false);
-    }, [activeTab]);
+    }, [activeTab, showPublic]);
 
     useEffect(() => {
         return () => {
@@ -94,12 +95,14 @@ export default function LibraryPage() {
         setHasMore(false);
         try {
             const type = activeTab === "images" ? "image" : "video";
+            const visibilityParam = showPublic ? "&visibility=public" : "";
             const searchParam = debouncedSearch
                 ? `&search=${encodeURIComponent(debouncedSearch)}`
                 : `&limit=${PAGE_LIMIT}`;
-            const res = await fetch(`/api/library?type=${type}${searchParam}`, {
-                signal: controller.signal,
-            });
+            const res = await fetch(
+                `/api/library?type=${type}${visibilityParam}${searchParam}`,
+                { signal: controller.signal },
+            );
             if (!res.ok) {
                 toast.error("Failed to load library");
                 return;
@@ -130,7 +133,7 @@ export default function LibraryPage() {
                 setLoading(false);
             }
         }
-    }, [activeTab, debouncedSearch]);
+    }, [activeTab, showPublic, debouncedSearch]);
 
     useEffect(() => {
         if (status === "authenticated") {
@@ -267,8 +270,30 @@ export default function LibraryPage() {
 
             <div className="border-border bg-card/50 sticky top-0 z-10 -mx-4 flex items-center justify-between border-y px-4 py-3 backdrop-blur-sm sm:mx-0 sm:rounded-lg sm:border">
                 <LibraryTabs activeTab={activeTab} onChange={setActiveTab} />
-                <div className="text-muted-foreground text-sm font-medium">
-                    {assets.length} items
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowPublic((v) => !v)}
+                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                            showPublic
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:text-foreground border-border border"
+                        }`}
+                        title={
+                            showPublic
+                                ? "Showing public assets"
+                                : "Show public assets"
+                        }
+                    >
+                        {showPublic ? (
+                            <Globe className="h-3.5 w-3.5" />
+                        ) : (
+                            <Lock className="h-3.5 w-3.5" />
+                        )}
+                        {showPublic ? "Public" : "My library"}
+                    </button>
+                    <div className="text-muted-foreground text-sm font-medium">
+                        {assets.length} items
+                    </div>
                 </div>
             </div>
 
@@ -304,6 +329,7 @@ export default function LibraryPage() {
                     onClose={() => setSelectedAsset(null)}
                     onDelete={handleDelete}
                     onTagsChange={handleTagsChange}
+                    onShared={fetchInitial}
                 />
             )}
         </div>
