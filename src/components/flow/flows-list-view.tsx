@@ -206,19 +206,27 @@ export function FlowsListView({
         {},
     );
 
+    const [activeSubTab, setActiveSubTab] =
+        useState<FlowsListViewProps["activeTab"]>(activeTab);
+
     const fetchData = useCallback(async () => {
         setLoading(true);
+        // Clear previous state to prevent old data from lingering during load
+        setFlows([]);
+        setCustomNodes([]);
+        setCanvases([]);
+        setThumbnailUrls({});
         try {
             if (session) {
                 if (
-                    activeTab === "canvas" ||
-                    activeTab === "canvas-community" ||
-                    activeTab === "canvas-shared"
+                    activeSubTab === "canvas" ||
+                    activeSubTab === "canvas-community" ||
+                    activeSubTab === "canvas-shared"
                 ) {
                     const tabParam =
-                        activeTab === "canvas-community"
+                        activeSubTab === "canvas-community"
                             ? "community"
-                            : activeTab === "canvas-shared"
+                            : activeSubTab === "canvas-shared"
                               ? "shared"
                               : "my";
                     const canvasResponse = await fetch(
@@ -245,7 +253,7 @@ export function FlowsListView({
                 } else {
                     const [flowsResponse, customNodesResponse] =
                         await Promise.all([
-                            fetch(`/api/flows?tab=${activeTab}`),
+                            fetch(`/api/flows?tab=${activeSubTab}`),
                             fetch("/api/custom-nodes"),
                         ]);
 
@@ -289,7 +297,7 @@ export function FlowsListView({
         } finally {
             setLoading(false);
         }
-    }, [session, activeTab]);
+    }, [session, activeSubTab]);
 
     useEffect(() => {
         if (status === "authenticated") {
@@ -543,8 +551,8 @@ export function FlowsListView({
                 <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                     {!isCustomNode &&
                         !isCanvas &&
-                        (activeTab === "shared" ||
-                            activeTab === "community") && (
+                        (activeSubTab === "shared" ||
+                            activeSubTab === "community") && (
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -556,7 +564,7 @@ export function FlowsListView({
                                 <Copy className="text-primary h-3.5 w-3.5" />
                             </button>
                         )}
-                    {isCanvas && activeTab === "canvas" && (
+                    {isCanvas && activeSubTab === "canvas" && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -568,7 +576,7 @@ export function FlowsListView({
                             <Share2 className="text-primary h-3.5 w-3.5" />
                         </button>
                     )}
-                    {(activeTab === "my" || activeTab === "canvas") && (
+                    {(activeSubTab === "my" || activeSubTab === "canvas") && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -591,7 +599,7 @@ export function FlowsListView({
         creating: boolean,
     ) => {
         const isFlow = type === "flow";
-        const isMyTab = activeTab === "my";
+        const isMyTab = activeSubTab === "my";
 
         let titleStr = `No ${isFlow ? "flows" : "custom nodes"} yet`;
         let descriptionStr = isFlow
@@ -599,11 +607,11 @@ export function FlowsListView({
             : "Create reusable components for your flows";
 
         if (isFlow && !isMyTab) {
-            if (activeTab === "shared") {
+            if (activeSubTab === "shared") {
                 titleStr = "No flows shared with you yet";
                 descriptionStr =
                     "Flows shared with you by others will appear here";
-            } else if (activeTab === "community") {
+            } else if (activeSubTab === "community") {
                 titleStr = "No community templates available yet";
                 descriptionStr = "Check back later for new templates";
             }
@@ -646,6 +654,19 @@ export function FlowsListView({
         return null;
     }
 
+    const isFlowMode = ["my", "shared", "community"].includes(activeTab);
+    const tabs = isFlowMode
+        ? ([
+              { value: "my", label: "My Flows" },
+              { value: "shared", label: "Shared with me" },
+              { value: "community", label: "Community Templates" },
+          ] as const)
+        : ([
+              { value: "canvas", label: "My Agents" },
+              { value: "canvas-shared", label: "Shared with me" },
+              { value: "canvas-community", label: "Community Templates" },
+          ] as const);
+
     return (
         <div className="space-y-16">
             <header className="flex items-end justify-between">
@@ -654,13 +675,16 @@ export function FlowsListView({
                         className="text-foreground text-3xl font-bold sm:text-4xl"
                         style={{ letterSpacing: "-0.02em" }}
                     >
-                        {title || "Dashboard"}
+                        {title || (isFlowMode ? "Flows" : "Agents")}
                     </h1>
                     <p className="text-muted-foreground mt-1.5 text-sm">
-                        {description || "Manage your projects and resources"}
+                        {description ||
+                            (isFlowMode
+                                ? "Manage your custom visual workflows and reusable components"
+                                : "Collaborative canvas for agent-driven media")}
                     </p>
                 </div>
-                {activeTab === "my" && (
+                {activeSubTab === "my" && (
                     <Button
                         onClick={handleCreateFlow}
                         disabled={creatingFlow}
@@ -674,7 +698,7 @@ export function FlowsListView({
                         New flow
                     </Button>
                 )}
-                {activeTab === "canvas" && (
+                {activeSubTab === "canvas" && (
                     <Button
                         onClick={handleCreateCanvas}
                         disabled={creatingCanvas}
@@ -690,25 +714,47 @@ export function FlowsListView({
                 )}
             </header>
 
+            {/* Local Tab Bar */}
+            <div className="border-border flex gap-1 border-b">
+                {tabs.map((tab) => (
+                    <button
+                        key={tab.value}
+                        onClick={() => setActiveSubTab(tab.value)}
+                        className={`px-4 pb-2 text-sm font-medium transition-colors ${
+                            activeSubTab === tab.value
+                                ? "border-primary text-foreground border-b-2 font-semibold"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
             {loading ? (
                 <div className="flex h-64 items-center justify-center">
                     <Loader2 className="text-primary h-8 w-8 animate-spin" />
                 </div>
-            ) : activeTab === "canvas" ||
-              activeTab === "canvas-community" ||
-              activeTab === "canvas-shared" ? (
+            ) : activeSubTab === "canvas" ||
+              activeSubTab === "canvas-community" ||
+              activeSubTab === "canvas-shared" ? (
                 <section>
                     {canvases.length === 0 ? (
                         <CanvasEmptyState
-                            activeTab={activeTab}
+                            activeTab={
+                                activeSubTab as
+                                    | "canvas"
+                                    | "canvas-community"
+                                    | "canvas-shared"
+                            }
                             onCreate={handleCreateCanvas}
                             creating={creatingCanvas}
                         />
                     ) : (
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {canvases.map((canvas) =>
-                                activeTab === "canvas-community" ||
-                                activeTab === "canvas-shared" ? (
+                                activeSubTab === "canvas-community" ||
+                                activeSubTab === "canvas-shared" ? (
                                     <CanvasCloneCard
                                         key={canvas.id}
                                         canvas={canvas}
@@ -734,9 +780,9 @@ export function FlowsListView({
                                 className="text-foreground text-base font-semibold"
                                 style={{ letterSpacing: "-0.01em" }}
                             >
-                                {activeTab === "my"
+                                {activeSubTab === "my"
                                     ? "My flows"
-                                    : activeTab === "shared"
+                                    : activeSubTab === "shared"
                                       ? "Shared with me"
                                       : "Community flows"}
                             </h3>
@@ -759,7 +805,7 @@ export function FlowsListView({
                         )}
                     </section>
 
-                    {activeTab === "my" && (
+                    {activeSubTab === "my" && (
                         <section>
                             <div className="mb-4 flex items-center gap-2">
                                 <h3

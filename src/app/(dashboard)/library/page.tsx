@@ -271,26 +271,30 @@ export default function LibraryPage() {
             <div className="border-border bg-card/50 sticky top-0 z-10 -mx-4 flex items-center justify-between border-y px-4 py-3 backdrop-blur-sm sm:mx-0 sm:rounded-lg sm:border">
                 <LibraryTabs activeTab={activeTab} onChange={setActiveTab} />
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setShowPublic((v) => !v)}
-                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                            showPublic
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:text-foreground border-border border"
-                        }`}
-                        title={
-                            showPublic
-                                ? "Showing public assets"
-                                : "Show public assets"
-                        }
-                    >
-                        {showPublic ? (
-                            <Globe className="h-3.5 w-3.5" />
-                        ) : (
+                    <div className="bg-muted border-border/50 flex rounded-lg border p-0.5">
+                        <button
+                            onClick={() => setShowPublic(false)}
+                            className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                                !showPublic
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
                             <Lock className="h-3.5 w-3.5" />
-                        )}
-                        {showPublic ? "Public" : "My library"}
-                    </button>
+                            My Library
+                        </button>
+                        <button
+                            onClick={() => setShowPublic(true)}
+                            className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                                showPublic
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            <Globe className="h-3.5 w-3.5" />
+                            Community
+                        </button>
+                    </div>
                     <div className="text-muted-foreground text-sm font-medium">
                         {assets.length} items
                     </div>

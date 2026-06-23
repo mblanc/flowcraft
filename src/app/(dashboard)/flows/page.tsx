@@ -6,7 +6,7 @@ export default function FlowsPage() {
     return (
         <FlowsListView
             activeTab="my"
-            title="My Flows"
+            title="Flows"
             description="Manage your custom visual workflows and reusable components"
         />
     );

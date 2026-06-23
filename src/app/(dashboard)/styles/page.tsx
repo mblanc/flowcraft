@@ -279,6 +279,7 @@ export default function StylesPage() {
 
     const fetchStyles = useCallback(async (tab: StylesTab) => {
         setLoading(true);
+        setStyles([]); // Clear styles immediately to prevent spillover
         try {
             const res = await fetch(`/api/styles?tab=${tab}`);
             if (!res.ok) throw new Error("Failed to fetch styles");
@@ -286,6 +287,7 @@ export default function StylesPage() {
             setStyles(data.styles ?? []);
         } catch {
             toast.error("Failed to load styles");
+            setStyles([]); // Clear styles on error as well
         } finally {
             setLoading(false);
         }

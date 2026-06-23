@@ -8,8 +8,6 @@ import {
     Workflow,
     Bot,
     Palette,
-    Globe,
-    Users,
     BookImage,
     Settings,
 } from "lucide-react";
@@ -21,8 +19,6 @@ const sidebarItems = [
     { name: "Flows", href: "/flows", icon: Workflow },
     { name: "Agents", href: "/agents", icon: Bot },
     { name: "Styles", href: "/styles", icon: Palette },
-    { name: "Community", href: "/community", icon: Globe },
-    { name: "Shared", href: "/shared", icon: Users },
     { name: "Library", href: "/library", icon: BookImage },
 ];
 
