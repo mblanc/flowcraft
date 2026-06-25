@@ -54,6 +54,12 @@ export class CanvasAgentRunner {
         const model = input.model || MODELS.TEXT.GEMINI_3_5_FLASH;
         let forceInstruction = "";
 
+        await this.agent.ensurePatternSkillsLoaded();
+        const builtInSkills = this.agent.patternSkills;
+        const userSkills = input.userId
+            ? await skillService.listSkills(input.userId, undefined, "my")
+            : [];
+
         const messageTrim = input.message.trim();
         if (messageTrim.startsWith("/")) {
             const tokens = messageTrim.split(/\s+/);
@@ -61,16 +67,6 @@ export class CanvasAgentRunner {
             const commandName = command.slice(1).toLowerCase();
 
             if (commandName === "skills") {
-                await this.agent.ensurePatternSkillsLoaded();
-                const builtInSkills = this.agent.patternSkills;
-                const userSkills = input.userId
-                    ? await skillService.listSkills(
-                          input.userId,
-                          undefined,
-                          "my",
-                      )
-                    : [];
-
                 let content =
                     "Here are the available pattern skills for this canvas. You can enable or disable them:\n\n";
 
@@ -104,16 +100,6 @@ export class CanvasAgentRunner {
                 yield { type: "done" };
                 return;
             } else {
-                await this.agent.ensurePatternSkillsLoaded();
-                const builtInSkills = this.agent.patternSkills;
-                const userSkills = input.userId
-                    ? await skillService.listSkills(
-                          input.userId,
-                          undefined,
-                          "my",
-                      )
-                    : [];
-
                 const existsBuiltIn = builtInSkills[commandName] !== undefined;
                 const existsUser = userSkills.some(
                     (s) => s.name === commandName,
@@ -144,10 +130,6 @@ export class CanvasAgentRunner {
                 }
             }
         }
-
-        const userSkills = input.userId
-            ? await skillService.listSkills(input.userId, undefined, "my")
-            : [];
 
         const instruction =
             buildDirectorInstruction(
