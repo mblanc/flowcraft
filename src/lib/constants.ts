@@ -108,6 +108,7 @@ export const COLLECTIONS = {
     CANVASES: "canvases",
     LIBRARY_ASSETS: "library_assets",
     STYLES: "styles",
+    USER_SKILLS: "user_skills",
 } as const;
 
 export const SUPPORTED_MIME_TYPES = {

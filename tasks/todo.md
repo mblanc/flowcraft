@@ -2,7 +2,7 @@
 
 ## Phase 1: Database & Services (Foundation)
 
-- [ ] **Task 1: Constants & Type Definitions**
+- [x] **Task 1: Constants & Type Definitions**
     - _Files_: [constants.ts](file:///Users/mblanc/projects/flowcraft/src/lib/constants.ts), [types.ts](file:///Users/mblanc/projects/flowcraft/src/lib/canvas/types.ts), [skill-types.ts](file:///Users/mblanc/projects/flowcraft/src/lib/canvas/agent/skills/skill-types.ts) [NEW]
     - _Verify_: `bun run check`
 - [ ] **Task 2: Skill CRUD Service**

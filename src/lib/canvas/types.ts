@@ -208,6 +208,7 @@ export interface CanvasDocument {
     sharedWithEmails: string[];
     isTemplate: boolean;
     activeStyleId?: string;
+    disabledSkills?: string[];
     createdAt: string;
     updatedAt: string;
 }
