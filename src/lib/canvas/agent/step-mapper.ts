@@ -157,6 +157,7 @@ export function mapPlanNodesToSteps(
 
     const nodeRefs = new Map<string, string[]>();
     const nodeDeps = new Map<string, string[]>();
+    const orderedInputs = new Map<string, string[]>();
 
     for (const { from, to, role } of edges) {
         if (!planNodeIds.has(to)) continue;
@@ -181,6 +182,10 @@ export function mapPlanNodesToSteps(
                 deps.push(from);
                 nodeDeps.set(to, deps);
             }
+
+            const inputs = orderedInputs.get(to) ?? [];
+            inputs.push(from);
+            orderedInputs.set(to, inputs);
         }
     }
 
@@ -235,6 +240,9 @@ export function mapPlanNodesToSteps(
                 : {}),
             ...(refs && refs.length > 0 ? { referenceNodeIds: refs } : {}),
             ...(deps && deps.length > 0 ? { dependsOn: deps } : {}),
+            ...(type === "concat" && orderedInputs.has(node.id)
+                ? { concatInputs: orderedInputs.get(node.id) }
+                : {}),
         };
 
         if (type === "concat" || type === "audio") {

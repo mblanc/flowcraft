@@ -163,12 +163,19 @@ export async function* executePlan(
                         })),
                         firstFrame: firstFrameUrl,
                         lastFrame: lastFrameUrl,
-                        // concat: pre-resolve dependsOn URIs
+                        // concat: pre-resolve dependsOn / canvas URIs in order
                         inputUris:
                             step.type === "concat"
-                                ? (step.dependsOn ?? [])
-                                      .map((id) =>
-                                          ctx.completedStepUris.get(id),
+                                ? (
+                                      step.concatInputs ?? [
+                                          ...(step.referenceNodeIds ?? []),
+                                          ...(step.dependsOn ?? []),
+                                      ]
+                                  )
+                                      .map(
+                                          (id) =>
+                                              ctx.completedStepUris.get(id) ??
+                                              ctx.attachmentUris.get(id),
                                       )
                                       .filter(
                                           (uri): uri is string => uri != null,

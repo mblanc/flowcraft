@@ -142,6 +142,8 @@ export interface GenerationStep {
     lastFrameNodeId?: string;
     /** Step IDs within this plan whose output to use as references */
     dependsOn?: string[];
+    /** For concat steps: ordered list of all input node/step IDs to concatenate */
+    concatInputs?: string[];
 }
 
 export interface AgentPlan {

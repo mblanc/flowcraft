@@ -445,6 +445,73 @@ describe("mapPlanNodesToSteps", () => {
         expect(finalStep?.dependsOn).toContain("vid2");
     });
 
+    it("concat step preserves ordered concatInputs from plan edges", () => {
+        const nodes = [
+            baseNode({ id: "vid1", operation: "i2v" }),
+            baseNode({ id: "vid2", operation: "i2v" }),
+            baseNode({ id: "final", operation: "concat" }),
+        ];
+        const steps = mapPlanNodesToSteps(
+            nodes,
+            [
+                { from: "vid1", to: "final", role: "depends_on" },
+                { from: "vid2", to: "final", role: "depends_on" },
+            ],
+            [],
+            [],
+        );
+        const finalStep = steps.find((s) => s.id === "final");
+        expect(finalStep?.concatInputs).toEqual(["vid1", "vid2"]);
+    });
+
+    it("concat step preserves ordered concatInputs from canvas nodes", () => {
+        const nodes = [baseNode({ id: "final", operation: "concat" })];
+        const steps = mapPlanNodesToSteps(
+            nodes,
+            [
+                { from: "canvas_vid1", to: "final", role: "depends_on" },
+                { from: "canvas_vid2", to: "final", role: "depends_on" },
+            ],
+            ["canvas_vid1", "canvas_vid2"],
+            [],
+        );
+        const finalStep = steps.find((s) => s.id === "final");
+        expect(finalStep?.concatInputs).toEqual(["canvas_vid1", "canvas_vid2"]);
+        expect(finalStep?.referenceNodeIds).toEqual([
+            "canvas_vid1",
+            "canvas_vid2",
+        ]);
+        expect(finalStep?.dependsOn).toBeUndefined();
+    });
+
+    it("concat step preserves ordered concatInputs from a mix of both in exact edge order", () => {
+        const nodes = [
+            baseNode({ id: "vid1", operation: "i2v" }),
+            baseNode({ id: "final", operation: "concat" }),
+        ];
+        const steps = mapPlanNodesToSteps(
+            nodes,
+            [
+                { from: "canvas_vid1", to: "final", role: "depends_on" },
+                { from: "vid1", to: "final", role: "depends_on" },
+                { from: "canvas_vid2", to: "final", role: "depends_on" },
+            ],
+            ["canvas_vid1", "canvas_vid2"],
+            [],
+        );
+        const finalStep = steps.find((s) => s.id === "final");
+        expect(finalStep?.concatInputs).toEqual([
+            "canvas_vid1",
+            "vid1",
+            "canvas_vid2",
+        ]);
+        expect(finalStep?.referenceNodeIds).toEqual([
+            "canvas_vid1",
+            "canvas_vid2",
+        ]);
+        expect(finalStep?.dependsOn).toEqual(["vid1"]);
+    });
+
     it("concat step does not get a default aspectRatio", () => {
         const steps = mapPlanNodesToSteps(
             [baseNode({ operation: "concat" })],

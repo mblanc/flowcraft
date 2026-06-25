@@ -82,6 +82,61 @@ describe("executePlan — concat step", () => {
         ]);
     });
 
+    it("calls concatService with URIs from existing canvas nodes using concatInputs", async () => {
+        const plan: AgentPlan = {
+            steps: [
+                {
+                    id: "final",
+                    type: "concat",
+                    prompt: "Join canvas videos",
+                    referenceNodeIds: ["canvas_vid1", "canvas_vid2"],
+                    concatInputs: ["canvas_vid1", "canvas_vid2"],
+                },
+            ],
+        };
+
+        const nodeUris = new Map<string, string>([
+            ["canvas_vid1", "gs://bucket/canvas1.mp4"],
+            ["canvas_vid2", "gs://bucket/canvas2.mp4"],
+        ]);
+
+        await collectStepEvents(plan, nodeUris);
+
+        expect(mockConcatVideos).toHaveBeenCalledWith([
+            "gs://bucket/canvas1.mp4",
+            "gs://bucket/canvas2.mp4",
+        ]);
+    });
+
+    it("calls concatService with a mix of canvas nodes and step URIs in the correct order", async () => {
+        mockGenerateVideo.mockResolvedValueOnce("gs://bucket/new_vid.mp4");
+
+        const plan: AgentPlan = {
+            steps: [
+                { id: "vid1", type: "video", prompt: "new clip" },
+                {
+                    id: "final",
+                    type: "concat",
+                    prompt: "Join mixed",
+                    referenceNodeIds: ["canvas_vid1"],
+                    dependsOn: ["vid1"],
+                    concatInputs: ["canvas_vid1", "vid1"],
+                },
+            ],
+        };
+
+        const nodeUris = new Map<string, string>([
+            ["canvas_vid1", "gs://bucket/canvas1.mp4"],
+        ]);
+
+        await collectStepEvents(plan, nodeUris);
+
+        expect(mockConcatVideos).toHaveBeenCalledWith([
+            "gs://bucket/canvas1.mp4",
+            "gs://bucket/new_vid.mp4",
+        ]);
+    });
+
     it("emits step_start then step_done for a concat step", async () => {
         const plan: AgentPlan = {
             steps: [

@@ -292,6 +292,29 @@ describe("ConcatService — packet timestamp offsetting", () => {
         expect(clip2Call[0].timestamp).toBeCloseTo(4);
     });
 
+    it("offsets clip 2 packet timestamps by the actual packet end time of clip 1 when it exceeds nominal duration", async () => {
+        mockInputConfig.clipDuration = 4;
+        mockVideoPackets.push(
+            {
+                data: new Uint8Array([1]),
+                type: "key",
+                timestamp: 0,
+                duration: 4.032,
+            },
+            {
+                data: new Uint8Array([2]),
+                type: "delta",
+                timestamp: 4.032,
+                duration: 0.033,
+            },
+        );
+
+        await service.concatVideos(["gs://bucket/a.mp4", "gs://bucket/b.mp4"]);
+
+        const clip2Call = mockVideoSource.add.mock.calls[2];
+        expect(clip2Call[0].timestamp).toBeCloseTo(4.065);
+    });
+
     it("passes decoderConfig only with the very first video packet", async () => {
         mockVideoPackets.push(
             {
