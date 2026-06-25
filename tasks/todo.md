@@ -5,17 +5,17 @@
 - [x] **Task 1: Constants & Type Definitions**
     - _Files_: [constants.ts](file:///Users/mblanc/projects/flowcraft/src/lib/constants.ts), [types.ts](file:///Users/mblanc/projects/flowcraft/src/lib/canvas/types.ts), [skill-types.ts](file:///Users/mblanc/projects/flowcraft/src/lib/canvas/agent/skills/skill-types.ts) [NEW]
     - _Verify_: `bun run check`
-- [ ] **Task 2: Skill CRUD Service**
+- [x] **Task 2: Skill CRUD Service**
     - _Files_: [skill.service.ts](file:///Users/mblanc/projects/flowcraft/src/lib/services/skill.service.ts) [NEW]
     - _Verify_: `bun run check`
-- [ ] **Task 3: Service Unit Tests**
+- [x] **Task 3: Service Unit Tests**
     - _Files_: [skill.service.test.ts](file:///Users/mblanc/projects/flowcraft/src/__tests__/unit/lib/services/skill.service.test.ts) [NEW]
     - _Verify_: `bun run test src/__tests__/unit/lib/services/skill.service.test.ts`
 
 ### Checkpoint: Foundation
 
-- [ ] `bun run check` compiles clean with no errors
-- [ ] `bun run test` passes all skill service tests successfully
+- [x] `bun run check` compiles clean with no errors
+- [x] `bun run test` passes all skill service tests successfully
 
 ---
 
