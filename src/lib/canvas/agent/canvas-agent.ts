@@ -16,6 +16,7 @@ import {
     suggestActionsTool,
 } from "./tools";
 import path from "path";
+import type { UserSkillDocument } from "./skills/skill-types";
 
 const PATTERNS_DIR = path.join(
     process.cwd(),
@@ -36,9 +37,59 @@ export class CanvasAgent {
         }
     }
 
-    async build(model: string, instruction: string): Promise<LlmAgent> {
+    async build(
+        model: string,
+        instruction: string,
+        userSkills: UserSkillDocument[] = [],
+        disabledSkills: string[] = [],
+    ): Promise<LlmAgent> {
         await this.ensurePatternSkillsLoaded();
-        const skillToolset = new SkillToolset(this.patternSkillsCache);
+
+        // Convert UserSkillDocument[] to Record<string, Skill>
+        const formattedUserSkills: Record<string, Skill> = {};
+        for (const userSkill of userSkills) {
+            const phaseInstructions = userSkill.phases
+                .map(
+                    (phase, idx) =>
+                        `### Phase ${idx + 1}: ${phase.title}\n${phase.rules}`,
+                )
+                .join("\n\n");
+
+            const instructions = `## Trigger condition\n\nUse this pattern when the user asks to:\n\n${userSkill.triggerHints
+                .map((hint) => `- "${hint}"`)
+                .join(
+                    "\n",
+                )}\n\n---\n\n## Workflow steps\n\n${phaseInstructions}`;
+
+            formattedUserSkills[userSkill.name] = {
+                frontmatter: {
+                    name: userSkill.name,
+                    description: userSkill.description,
+                    metadata: {
+                        type: "pattern",
+                        userCreated: true,
+                    },
+                },
+                instructions,
+            };
+        }
+
+        // Combine built-in skills and user skills
+        const combinedSkills = {
+            ...this.patternSkillsCache,
+            ...formattedUserSkills,
+        };
+
+        // Filter out disabled skills
+        const activeSkills: Record<string, Skill> = {};
+        const disabledSet = new Set(disabledSkills);
+        for (const [name, skill] of Object.entries(combinedSkills)) {
+            if (!disabledSet.has(name)) {
+                activeSkills[name] = skill;
+            }
+        }
+
+        const skillToolset = new SkillToolset(activeSkills);
         // Patch the instance dynamically to remove ListSkillsTool
         const st = skillToolset as unknown as { _tools?: unknown[] };
         if (Array.isArray(st._tools)) {
@@ -73,5 +124,9 @@ export class CanvasAgent {
 
     get loadedPatternNames(): string[] {
         return Object.keys(this.patternSkillsCache);
+    }
+
+    get patternSkills(): Record<string, Skill> {
+        return this.patternSkillsCache;
     }
 }

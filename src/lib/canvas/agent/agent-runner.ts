@@ -9,6 +9,7 @@ import {
 } from "@google/adk";
 import { PromptEngineer } from "./prompt-engineer";
 import { CanvasAgent } from "./canvas-agent";
+import { skillService } from "@/lib/services/skill.service";
 
 if (process.env.ADK_LOG_LEVEL === "debug") {
     setLogLevel(LogLevel.DEBUG);
@@ -51,16 +52,118 @@ export class CanvasAgentRunner {
 
     async *stream(input: AgentInput): AsyncGenerator<AgentEvent> {
         const model = input.model || MODELS.TEXT.GEMINI_3_5_FLASH;
+        let forceInstruction = "";
 
-        const instruction = buildDirectorInstruction(
-            buildCanvasContext(input.canvasNodes),
-            buildStyleInstruction(input.activeStyle),
-            input.imageDefaults,
-            input.videoDefaults,
-            input.userName,
+        const messageTrim = input.message.trim();
+        if (messageTrim.startsWith("/")) {
+            const tokens = messageTrim.split(/\s+/);
+            const command = tokens[0];
+            const commandName = command.slice(1).toLowerCase();
+
+            if (commandName === "skills") {
+                await this.agent.ensurePatternSkillsLoaded();
+                const builtInSkills = this.agent.patternSkills;
+                const userSkills = input.userId
+                    ? await skillService.listSkills(
+                          input.userId,
+                          undefined,
+                          "my",
+                      )
+                    : [];
+
+                let content =
+                    "Here are the available pattern skills for this canvas. You can enable or disable them:\n\n";
+
+                content += "### Built-in Skills\n";
+                for (const [name, skill] of Object.entries(builtInSkills)) {
+                    const isEnabled = !(input.disabledSkills ?? []).includes(
+                        name,
+                    );
+                    const checkbox = isEnabled
+                        ? "✅ [Enabled]"
+                        : "❌ [Disabled]";
+                    content += `- **${name}**: ${skill.frontmatter.description || "No description."}\n  *Status*: ${checkbox}\n`;
+                }
+
+                content += "\n### My Custom Skills\n";
+                if (userSkills.length === 0) {
+                    content += "_No custom skills created yet._\n";
+                } else {
+                    for (const userSkill of userSkills) {
+                        const isEnabled = !(
+                            input.disabledSkills ?? []
+                        ).includes(userSkill.name);
+                        const checkbox = isEnabled
+                            ? "✅ [Enabled]"
+                            : "❌ [Disabled]";
+                        content += `- **${userSkill.name}**: ${userSkill.description || "No description."}\n  *Status*: ${checkbox}\n`;
+                    }
+                }
+
+                yield { type: "text", delta: content };
+                yield { type: "done" };
+                return;
+            } else {
+                await this.agent.ensurePatternSkillsLoaded();
+                const builtInSkills = this.agent.patternSkills;
+                const userSkills = input.userId
+                    ? await skillService.listSkills(
+                          input.userId,
+                          undefined,
+                          "my",
+                      )
+                    : [];
+
+                const existsBuiltIn = builtInSkills[commandName] !== undefined;
+                const existsUser = userSkills.some(
+                    (s) => s.name === commandName,
+                );
+                const isSkillDisabled = (input.disabledSkills ?? []).includes(
+                    commandName,
+                );
+
+                if ((existsBuiltIn || existsUser) && !isSkillDisabled) {
+                    const remainingPrompt = tokens.slice(1).join(" ").trim();
+                    input.message =
+                        remainingPrompt || `Run the ${commandName} skill.`;
+                    forceInstruction = `\n\nCRITICAL: The user has explicitly forced the use of the skill: '${commandName}'. You MUST invoke this skill immediately in your first turn to process this request.`;
+                } else if (isSkillDisabled) {
+                    yield {
+                        type: "error",
+                        message: `The skill '${commandName}' is currently disabled on this canvas. Enable it to use it.`,
+                    };
+                    yield { type: "done" };
+                    return;
+                } else {
+                    yield {
+                        type: "error",
+                        message: `Unknown command '/${commandName}'. Type /skills to see all available pattern skills.`,
+                    };
+                    yield { type: "done" };
+                    return;
+                }
+            }
+        }
+
+        const userSkills = input.userId
+            ? await skillService.listSkills(input.userId, undefined, "my")
+            : [];
+
+        const instruction =
+            buildDirectorInstruction(
+                buildCanvasContext(input.canvasNodes),
+                buildStyleInstruction(input.activeStyle),
+                input.imageDefaults,
+                input.videoDefaults,
+                input.userName,
+            ) + forceInstruction;
+
+        const llmAgent = await this.agent.build(
+            model,
+            instruction,
+            userSkills,
+            input.disabledSkills ?? [],
         );
-
-        const llmAgent = await this.agent.build(model, instruction);
         const runner = new Runner({
             appName: APP_NAME,
             agent: llmAgent,

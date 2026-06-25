@@ -243,6 +243,7 @@ export interface AgentInput {
     userId?: string;
     userName?: string;
     sessionId?: string;
+    disabledSkills?: string[];
 }
 
 export interface TextNodePayload {

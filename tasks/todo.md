@@ -37,17 +37,17 @@
 
 ## Phase 3: ADK Agent & Slash Commands Integration
 
-- [ ] **Task 6: Dynamic Skill Merging in CanvasAgent**
+- [x] **Task 6: Dynamic Skill Merging in CanvasAgent**
     - _Files_: [canvas-agent.ts](file:///Users/mblanc/projects/flowcraft/src/lib/canvas/agent/canvas-agent.ts), `src/__tests__/unit/lib/canvas/adk/canvas-agent-dynamic.test.ts` [NEW]
     - _Verify_: `bun run test src/__tests__/unit/lib/canvas/adk/canvas-agent-dynamic.test.ts`
-- [ ] **Task 7: Slash Command Agent Interception**
+- [x] **Task 7: Slash Command Agent Interception**
     - _Files_: [agent-runner.ts](file:///Users/mblanc/projects/flowcraft/src/lib/canvas/agent/agent-runner.ts)
     - _Verify_: `bun run check`
-- [ ] **Task 8: Integration Tests for Agent Runner & Commands**
+- [x] **Task 8: Integration Tests for Agent Runner & Commands**
     - _Files_: `src/__tests__/unit/lib/canvas/adk/agent-runner-slash-commands.test.ts` [NEW]
     - _Verify_: `bun run test src/__tests__/unit/lib/canvas/adk/agent-runner-slash-commands.test.ts`
 
 ### Checkpoint: Backend Complete
 
-- [ ] All tests pass successfully
-- [ ] `bun run preflight` passes with zero errors
+- [x] All tests pass successfully
+- [x] `bun run preflight` passes with zero errors

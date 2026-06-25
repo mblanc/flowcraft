@@ -25,6 +25,11 @@ vi.mock("@/lib/canvas/agent/prompt-engineer", () => ({
         enrichSteps = vi.fn(async (steps: unknown[]) => steps);
     },
 }));
+vi.mock("@/lib/services/skill.service", () => ({
+    skillService: {
+        listSkills: vi.fn().mockResolvedValue([]),
+    },
+}));
 
 vi.mock("@google/adk", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@google/adk")>();

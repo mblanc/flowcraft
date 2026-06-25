@@ -213,6 +213,7 @@ export async function POST(
                     canvasId,
                     userId: session.user.id,
                     userName: session.user.name ?? undefined,
+                    disabledSkills: canvas.disabledSkills,
                 });
 
                 for await (const event of agentStream) {
