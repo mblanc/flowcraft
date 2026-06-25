@@ -74,6 +74,7 @@ RULES for plan_production nodes:
     { from: "img_1", to: "vid_1", role: "depends_on" }            ← vid_1 animates the output of img_1
     { from: "img_2", to: "vid_2", role: "depends_on" }            ← vid_2 animates the output of img_2
 - Use edges: depends_on (output feeds next node), style_ref (visual style source), subject_ref (subject/character reference).
+- **AUDIO REFERENCE CONSTRAINT:** Video/image generation nodes ('t2v', 'i2v', 'i2v2', 't2i', 'i2i') **cannot** accept or use audio, speech, or music nodes ('t2s', 't2m', 'sfx') as references or dependencies. Never draw an edge from an audio/speech/music node to an image or video generation node. Video nodes generate their own audio; to include audio, music, SFX, or dialogue in a video, describe it directly in the video prompt's '[AUDIO]' section (see the video-generation skill). Do not plan separate audio nodes for this. Separate audio/music/speech nodes should only be planned if the user explicitly asks to generate a standalone audio/music file.
 - Reference existing canvas items by their node ID in promptIntent when relevant.
 - Keep video nodes ≤10s; split longer sequences with concat nodes.
 - Video duration MUST be exactly 4, 6, or 8 seconds — no other values are valid. Default to 4 when the user has not specified.

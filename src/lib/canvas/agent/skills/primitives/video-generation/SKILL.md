@@ -114,3 +114,4 @@ For sequences longer than 8 seconds, split into multiple nodes connected with `c
 - Short duration (4s) with complex multi-step action loses beats — use 6s or 8s.
 - Busy source images + strong camera moves cause flickering — prefer subtle moves or static tripod.
 - Omitting audio leaves the model to hallucinate sound — always specify, even if the choice is silence.
+- **Connecting Audio Nodes:** Connecting a separate audio/music node (`t2m`, `t2s`) to a video node as a reference or dependency is invalid. The video model cannot take audio files as inputs; it only generates audio from the text prompt. Never wire edges from audio nodes to video nodes.

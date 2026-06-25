@@ -164,9 +164,8 @@ Always use the canvas default model for every node unless the user explicitly na
 
 Treat audio as a separate layer with its own continuity:
 
-- If there is a voiceover (`t2s`), plan it as a parallel node alongside the visuals, then wire it into `concat` as `audio_ref`.
-- If there is a music bed (`t2m`), same approach — one `t2m` node that spans the full duration, wired into `concat`.
-- Each `i2v` node still receives its own ambient/SFX instruction in `promptIntent` — these are the per-shot sound design details, not the overall music layer.
+- **NO PARALLEL AUDIO NODES:** The `concat` primitive only joins video clips; it does **not** support overlaying or mixing separate audio tracks. Never plan separate `t2s`, `t2m`, or `sfx` nodes and connect them to video or `concat` nodes.
+- **WRITE AUDIO IN VIDEO PROMPTS:** Instead, specify all shot-specific dialogue, music, SFX, or room tone directly in the individual shot (`i2v`) prompts' `[AUDIO]` section. The video model will generate the audio track natively within each clip.
 - If music and ambient coexist, note the balance: "Coffee shop murmur at -28dB beneath slow piano at -18dB."
 
 ---

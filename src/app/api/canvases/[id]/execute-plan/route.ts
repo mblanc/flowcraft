@@ -32,6 +32,16 @@ function buildNodeUriMap(canvas: { nodes: CanvasNode[] }): Map<string, string> {
     return map;
 }
 
+function buildNodeTypeMap(canvas: {
+    nodes: CanvasNode[];
+}): Map<string, string> {
+    const map = new Map<string, string>();
+    for (const node of canvas.nodes) {
+        map.set(node.id, node.type);
+    }
+    return map;
+}
+
 export async function POST(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> },
@@ -125,6 +135,7 @@ export async function POST(
     }
 
     const nodeUriMap = buildNodeUriMap(canvas);
+    const nodeTypeMap = buildNodeTypeMap(canvas);
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
@@ -142,6 +153,7 @@ export async function POST(
                     resolvedStyleId ?? undefined,
                     activeStyleName,
                     body.musicModel,
+                    nodeTypeMap,
                 )) {
                     switch (stepEvent.type) {
                         case "step_start":

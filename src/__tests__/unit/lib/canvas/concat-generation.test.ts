@@ -296,3 +296,86 @@ describe("executePlan — concat library save", () => {
         expect(concatSave).toBeDefined();
     });
 });
+
+// ─── audio reference filtering safeguards ─────────────────────────────────────
+
+describe("executePlan — audio reference filtering safeguards", () => {
+    it("filters out audio dependencies from video step visual references and prevents audio promotion to firstFrame", async () => {
+        mockGenerateVideo.mockResolvedValueOnce("gs://bucket/video_out.mp4");
+
+        const plan: AgentPlan = {
+            steps: [
+                {
+                    id: "audio1",
+                    type: "audio",
+                    prompt: "generate background music",
+                },
+                {
+                    id: "vid1",
+                    type: "video",
+                    prompt: "girl dancing",
+                    dependsOn: ["audio1"], // video depends on audio
+                },
+            ],
+        };
+
+        await collectStepEvents(plan);
+
+        // Verify generateVideo was called WITHOUT audio as firstFrame/lastFrame or reference images
+        expect(mockGenerateVideo).toHaveBeenCalled();
+        const callArgs = mockGenerateVideo.mock.calls[0][0];
+        expect(callArgs.firstFrame).toBeUndefined();
+        expect(callArgs.lastFrame).toBeUndefined();
+        expect(callArgs.images).toEqual([]);
+    });
+
+    it("filters out canvas audio node references from video step visual references", async () => {
+        mockGenerateVideo.mockResolvedValueOnce("gs://bucket/video_out.mp4");
+
+        const plan: AgentPlan = {
+            steps: [
+                {
+                    id: "vid1",
+                    type: "video",
+                    prompt: "girl dancing",
+                    referenceNodeIds: ["canvas_audio_node"],
+                },
+            ],
+        };
+
+        const nodeUris = new Map<string, string>([
+            ["canvas_audio_node", "gs://bucket/music.mp3"],
+        ]);
+
+        const nodeTypes = new Map<string, string>([
+            ["canvas_audio_node", "canvas-audio"],
+        ]);
+
+        const events = [];
+        for await (const event of executePlan(
+            plan,
+            nodeUris,
+            "user-1",
+            "canvas-1",
+            "My Canvas",
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            nodeTypes,
+        )) {
+            events.push(event);
+        }
+
+        const doneEvent = events.find(
+            (e) => e.type === "step_done" && e.stepId === "vid1",
+        );
+        expect(doneEvent).toBeDefined();
+
+        expect(mockGenerateVideo).toHaveBeenCalled();
+        const callArgs = mockGenerateVideo.mock.calls[0][0];
+        expect(callArgs.firstFrame).toBeUndefined();
+        expect(callArgs.lastFrame).toBeUndefined();
+        expect(callArgs.images).toEqual([]);
+    });
+});

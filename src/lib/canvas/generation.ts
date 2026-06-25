@@ -15,6 +15,8 @@ interface ExecutionContext {
     completedStepUris: Map<string, string>;
     /** Maps nodeId → GCS URI from the user's existing canvas attachments */
     attachmentUris: Map<string, string>;
+    /** Maps stepId/nodeId → its media type */
+    nodeTypes: Map<string, string>;
 }
 
 /**
@@ -33,23 +35,42 @@ function resolveReferences(
     const getUri = (nodeId: string): string | undefined =>
         ctx.attachmentUris.get(nodeId);
 
-    // Resolve dependsOn to URIs from completed steps
+    const isAudio = (id: string): boolean => {
+        const type = ctx.nodeTypes.get(id);
+        return type === "audio" || type === "canvas-audio";
+    };
+
+    // Resolve dependsOn to URIs from completed steps, filtering out audio dependencies for visual steps
     const dependencyUrls: string[] = (step.dependsOn ?? [])
+        .filter((depId) => {
+            if (step.type === "video" || step.type === "image") {
+                return !isAudio(depId);
+            }
+            return true;
+        })
         .map((depId) => ctx.completedStepUris.get(depId))
         .filter((uri): uri is string => !!uri);
 
-    // Resolve existing canvas node references
+    // Resolve existing canvas node references, filtering out audio references for visual steps
     const referenceUrls: string[] = (step.referenceNodeIds ?? [])
+        .filter((id) => {
+            if (step.type === "video" || step.type === "image") {
+                return !isAudio(id);
+            }
+            return true;
+        })
         .map((id) => getUri(id))
         .filter((uri): uri is string => !!uri);
 
-    // For video: first/last frame from existing canvas nodes
-    const firstFrameUrl = step.firstFrameNodeId
-        ? getUri(step.firstFrameNodeId)
-        : undefined;
-    const lastFrameUrl = step.lastFrameNodeId
-        ? getUri(step.lastFrameNodeId)
-        : undefined;
+    // For video: first/last frame from existing canvas nodes, ensuring they are not audio
+    const firstFrameUrl =
+        step.firstFrameNodeId && !isAudio(step.firstFrameNodeId)
+            ? getUri(step.firstFrameNodeId)
+            : undefined;
+    const lastFrameUrl =
+        step.lastFrameNodeId && !isAudio(step.lastFrameNodeId)
+            ? getUri(step.lastFrameNodeId)
+            : undefined;
 
     if (step.type === "video" && !firstFrameUrl && !lastFrameUrl) {
         // For video: promote the first available image to firstFrame (via source.image).
@@ -115,11 +136,25 @@ export async function* executePlan(
     activeStyleId?: string,
     activeStyleName?: string,
     defaultMusicModel?: string,
+    nodeTypes?: Map<string, string>,
 ): AsyncGenerator<StepEvent> {
     const ctx: ExecutionContext = {
         completedStepUris: new Map(),
         attachmentUris: nodeUris,
+        nodeTypes: new Map<string, string>(),
     };
+
+    // Pre-populate all step types from the plan
+    for (const step of plan.steps) {
+        ctx.nodeTypes.set(step.id, step.type);
+    }
+
+    // Populate types for existing canvas nodes
+    if (nodeTypes) {
+        for (const [id, type] of nodeTypes.entries()) {
+            ctx.nodeTypes.set(id, type);
+        }
+    }
 
     const waves = buildExecutionWaves(plan.steps);
     logger.info(
