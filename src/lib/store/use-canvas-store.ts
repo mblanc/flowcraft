@@ -22,6 +22,7 @@ export interface CanvasStore {
     viewport: { x: number; y: number; zoom: number };
     messages: ChatMessage[];
     activeStyleId: string | null;
+    disabledSkills: string[];
     sessionId: string;
 
     // UI state
@@ -56,6 +57,8 @@ export interface CanvasStore {
     clearMessages: () => void;
     resetSession: () => void;
     setActiveStyleId: (id: string | null) => void;
+    toggleDisabledSkill: (skillName: string) => void;
+    setDisabledSkills: (skills: string[]) => void;
 
     // Action prompt (set by suggested-action buttons, consumed by chat input)
     pendingActionPrompt: string | null;
@@ -105,6 +108,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     generatingNodeIds: [],
     pendingActionPrompt: null,
     planStepStatuses: {},
+    disabledSkills: [],
     lastModified: 0,
 
     setCanvas: (canvas) =>
@@ -119,6 +123,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
             viewport: canvas.viewport,
             messages: canvas.messages,
             activeStyleId: canvas.activeStyleId ?? null,
+            disabledSkills: canvas.disabledSkills ?? [],
             selectedNodeIds: [],
             lastModified: 0,
         }),
@@ -218,6 +223,19 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     resetSession: () => set({ sessionId: crypto.randomUUID() }),
 
     setActiveStyleId: (id) => set({ activeStyleId: id }),
+
+    toggleDisabledSkill: (skillName) =>
+        set((state) => {
+            const isCurrentlyDisabled =
+                state.disabledSkills.includes(skillName);
+            const nextDisabled = isCurrentlyDisabled
+                ? state.disabledSkills.filter((name) => name !== skillName)
+                : [...state.disabledSkills, skillName];
+            return { disabledSkills: nextDisabled, lastModified: Date.now() };
+        }),
+
+    setDisabledSkills: (skills) =>
+        set({ disabledSkills: skills, lastModified: Date.now() }),
 
     setIsChatLoading: (loading) => set({ isChatLoading: loading }),
 
