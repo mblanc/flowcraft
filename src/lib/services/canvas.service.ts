@@ -63,6 +63,7 @@ export class CanvasService {
             isTemplate: (data?.isTemplate ?? false) as boolean,
             activeStyleId:
                 (data?.activeStyleId as string | undefined) ?? undefined,
+            disabledSkills: (data?.disabledSkills ?? []) as string[],
             createdAt: formatFirestoreTimestamp(data?.createdAt),
             updatedAt: formatFirestoreTimestamp(data?.updatedAt),
         };

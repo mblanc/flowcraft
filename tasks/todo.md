@@ -21,17 +21,17 @@
 
 ## Phase 2: API Endpoints
 
-- [ ] **Task 4: CRUD API Routes**
+- [x] **Task 4: CRUD API Routes**
     - _Files_: `src/app/api/skills/route.ts` [NEW], `src/app/api/skills/[id]/route.ts` [NEW], `src/app/api/skills/[id]/clone/route.ts` [NEW]
     - _Verify_: `bun run check`
-- [ ] **Task 5: Canvas Skill Toggle API Route**
+- [x] **Task 5: Canvas Skill Toggle API Route**
     - _Files_: `src/app/api/canvases/[id]/toggle-skill/route.ts` [NEW]
     - _Verify_: `bun run check`
 
 ### Checkpoint: API Layer
 
-- [ ] All Next.js route handlers compile clean
-- [ ] All unit tests pass with zero regressions
+- [x] All Next.js route handlers compile clean
+- [x] All unit tests pass with zero regressions
 
 ---
 

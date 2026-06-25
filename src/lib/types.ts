@@ -24,6 +24,8 @@ export type {
     RouterData,
     MusicData,
     NodeData,
+    SkillCreate,
+    SkillUpdate,
 } from "./schemas";
 import type { NodeData } from "./schemas";
 

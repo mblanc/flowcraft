@@ -482,6 +482,7 @@ export const CanvasUpdateSchema = z.object({
     messages: z.array(ChatMessageSchema).optional(),
     thumbnail: z.string().url().max(2048).optional(),
     activeStyleId: z.string().nullable().optional(),
+    disabledSkills: z.array(z.string()).optional(),
     visibility: z.enum(["private", "public"]).optional(),
     sharedWith: SharedWithSchema.optional(),
     isTemplate: z.boolean().optional(),
@@ -500,6 +501,37 @@ export const StyleUpdateSchema = z.object({
     referenceImageUris: z.array(z.string()).optional(),
     visibility: z.enum(["private", "public"]).optional(),
     sharedWith: SharedWithSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
+
+export const CreateSkillSchema = z.object({
+    name: z.string().min(2).max(64),
+    description: z.string().min(10).max(1024),
+    triggerHints: z.array(z.string()).min(1),
+    phases: z
+        .array(
+            z.object({
+                title: z.string().min(2),
+                rules: z.string().min(10),
+            }),
+        )
+        .min(1),
+});
+
+export const UpdateSkillSchema = z.object({
+    name: z.string().min(2).max(64).optional(),
+    description: z.string().min(10).max(1024).optional(),
+    triggerHints: z.array(z.string()).min(1).optional(),
+    phases: z
+        .array(
+            z.object({
+                title: z.string().min(2),
+                rules: z.string().min(10),
+            }),
+        )
+        .min(1)
+        .optional(),
+    visibility: z.enum(["private", "public"]).optional(),
     isTemplate: z.boolean().optional(),
 });
 
@@ -566,3 +598,5 @@ export type CanvasUpdate = z.infer<typeof CanvasUpdateSchema>;
 export type StyleSharingPatch = z.infer<typeof StyleSharingPatchSchema>;
 export type StyleUpdate = z.infer<typeof StyleUpdateSchema>;
 export type AssetSharingPatch = z.infer<typeof AssetSharingPatchSchema>;
+export type SkillCreate = z.infer<typeof CreateSkillSchema>;
+export type SkillUpdate = z.infer<typeof UpdateSkillSchema>;
