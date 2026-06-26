@@ -239,29 +239,7 @@ export function SkillsLibrary() {
     }, [mySkills, sharedSkills, communitySkills, activeTab, searchQuery]);
 
     return (
-        <div className="flex h-full flex-col gap-4 p-4">
-            {/* Header info / Redirect link */}
-            <div className="bg-primary/5 border-primary/10 flex flex-col gap-2 rounded-xl border p-4">
-                <div className="flex items-start gap-2.5">
-                    <Sparkles className="text-primary mt-0.5 size-4 shrink-0" />
-                    <div className="flex-1">
-                        <h4 className="text-foreground text-xs font-semibold">
-                            Skills Dashboard
-                        </h4>
-                        <p className="text-muted-foreground mt-0.5 text-[10px] leading-relaxed">
-                            Create, edit, import, and export custom workflows in
-                            your dedicated workstation.
-                        </p>
-                    </div>
-                </div>
-                <Link
-                    href="/skills"
-                    className="bg-primary/10 hover:bg-primary/20 text-primary flex h-8 items-center justify-center gap-1.5 rounded-lg text-[11px] font-semibold transition-all"
-                >
-                    Open Skills Dashboard <ExternalLink className="size-3.5" />
-                </Link>
-            </div>
-
+        <div className="flex h-full min-h-0 flex-col gap-3.5 p-4">
             {/* Search and Tabs */}
             <div className="space-y-3">
                 <div className="relative">
@@ -416,6 +394,16 @@ export function SkillsLibrary() {
                         })}
                     </div>
                 )}
+            </div>
+
+            {/* Footer / Redirect Link */}
+            <div className="border-border/40 mt-1 shrink-0 border-t pt-3">
+                <Link
+                    href="/skills"
+                    className="bg-primary/10 hover:bg-primary/20 text-primary flex h-9 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-all"
+                >
+                    Open Skills Dashboard <ExternalLink className="size-3.5" />
+                </Link>
             </div>
         </div>
     );
