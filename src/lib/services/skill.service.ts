@@ -6,26 +6,26 @@ import type {
     QueryDocumentSnapshot,
 } from "@google-cloud/firestore";
 import { FieldValue } from "@google-cloud/firestore";
-import type {
-    UserSkillDocument,
-    SkillPhase,
-} from "@/lib/canvas/agent/skills/skill-types";
+import type { UserSkillDocument } from "@/lib/canvas/agent/skills/skill-types";
 import { isAdmin } from "@/lib/services/admin";
 
 export type SkillListTab = "my" | "community";
 
+interface LegacySkillPhase {
+    title: string;
+    rules: string;
+}
+
 export interface SkillCreateRequest {
     name: string;
     description: string;
-    triggerHints: string[];
-    phases: SkillPhase[];
+    instructions: string;
 }
 
 export interface SkillUpdateRequest {
     name?: string;
     description?: string;
-    triggerHints?: string[];
-    phases?: SkillPhase[];
+    instructions?: string;
     visibility?: "private" | "public";
     isTemplate?: boolean;
 }
@@ -58,13 +58,25 @@ export class SkillService {
         doc: DocumentSnapshot | QueryDocumentSnapshot,
     ): UserSkillDocument {
         const data = doc.data();
+
+        // Backward-compatible fallback: compile old phases into markdown instructions
+        let instructions = data?.instructions as string;
+        if (!instructions && data?.phases) {
+            const phases = (data.phases ?? []) as LegacySkillPhase[];
+            instructions = phases
+                .map((p, idx) => `### Phase ${idx + 1}: ${p.title}\n${p.rules}`)
+                .join("\n\n");
+        }
+        if (!instructions) {
+            instructions = "";
+        }
+
         return {
             id: doc.id,
             userId: data?.userId as string,
             name: data?.name as string,
             description: data?.description as string,
-            triggerHints: (data?.triggerHints ?? []) as string[],
-            phases: (data?.phases ?? []) as SkillPhase[],
+            instructions,
             visibility: (data?.visibility ?? "private") as "private" | "public",
             sharedWith: (data?.sharedWith ??
                 []) as UserSkillDocument["sharedWith"],
@@ -173,8 +185,7 @@ export class SkillService {
             userId,
             name: kebabName,
             description: data.description,
-            triggerHints: data.triggerHints,
-            phases: data.phases,
+            instructions: data.instructions,
             visibility: "private",
             sharedWith: [],
             sharedWithEmails: [],
@@ -240,11 +251,8 @@ export class SkillService {
         if (data.description !== undefined) {
             updateData.description = data.description;
         }
-        if (data.triggerHints !== undefined) {
-            updateData.triggerHints = data.triggerHints;
-        }
-        if (data.phases !== undefined) {
-            updateData.phases = data.phases;
+        if (data.instructions !== undefined) {
+            updateData.instructions = data.instructions;
         }
         if (data.visibility !== undefined) {
             updateData.visibility = data.visibility;
@@ -308,8 +316,7 @@ export class SkillService {
             userId,
             name: uniqueName,
             description: original.description,
-            triggerHints: original.triggerHints,
-            phases: original.phases,
+            instructions: original.instructions,
             visibility: "private",
             sharedWith: [],
             sharedWithEmails: [],

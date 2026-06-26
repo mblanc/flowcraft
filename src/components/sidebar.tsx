@@ -10,6 +10,7 @@ import {
     Palette,
     BookImage,
     Settings,
+    Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserProfile } from "@/components/flow/user-profile";
@@ -19,6 +20,7 @@ const sidebarItems = [
     { name: "Flows", href: "/flows", icon: Workflow },
     { name: "Agents", href: "/agents", icon: Bot },
     { name: "Styles", href: "/styles", icon: Palette },
+    { name: "Skills", href: "/skills", icon: Sparkles },
     { name: "Library", href: "/library", icon: BookImage },
 ];
 

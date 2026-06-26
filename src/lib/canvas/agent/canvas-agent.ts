@@ -48,19 +48,6 @@ export class CanvasAgent {
         // Convert UserSkillDocument[] to Record<string, Skill>
         const formattedUserSkills: Record<string, Skill> = {};
         for (const userSkill of userSkills) {
-            const phaseInstructions = userSkill.phases
-                .map(
-                    (phase, idx) =>
-                        `### Phase ${idx + 1}: ${phase.title}\n${phase.rules}`,
-                )
-                .join("\n\n");
-
-            const instructions = `## Trigger condition\n\nUse this pattern when the user asks to:\n\n${userSkill.triggerHints
-                .map((hint) => `- "${hint}"`)
-                .join(
-                    "\n",
-                )}\n\n---\n\n## Workflow steps\n\n${phaseInstructions}`;
-
             formattedUserSkills[userSkill.name] = {
                 frontmatter: {
                     name: userSkill.name,
@@ -70,7 +57,7 @@ export class CanvasAgent {
                         userCreated: true,
                     },
                 },
-                instructions,
+                instructions: userSkill.instructions,
             };
         }
 

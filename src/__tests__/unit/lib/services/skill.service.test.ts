@@ -64,8 +64,7 @@ describe("SkillService", () => {
                         userId: "user-1",
                         name: "test-skill",
                         description: "A test skill description",
-                        triggerHints: ["test"],
-                        phases: [],
+                        instructions: "Use this skill to run tests.",
                         visibility: "private",
                         createdAt: new Date(),
                         updatedAt: new Date(),
@@ -222,10 +221,7 @@ describe("SkillService", () => {
             const result = await skillService.createSkill("user-1", {
                 name: "Cyber Punk Campaign!",
                 description: "A cyberpunk campaign workflow definition",
-                triggerHints: ["cyberpunk", "hacker"],
-                phases: [
-                    { title: "Phase 1", rules: "Generate cyberpunk image" },
-                ],
+                instructions: "### Phase 1\nGenerate cyberpunk image",
             });
 
             expect(result.id).toBe("cyber-punk-campaign");
@@ -239,8 +235,7 @@ describe("SkillService", () => {
                 skillService.createSkill("user-1", {
                     name: "existing-skill",
                     description: "existing desc",
-                    triggerHints: [],
-                    phases: [],
+                    instructions: "Use this skill.",
                 }),
             ).rejects.toThrow(
                 "Skill with name 'existing-skill' already exists.",
@@ -387,8 +382,7 @@ describe("SkillService", () => {
                     userId: "user-2",
                     name: "original-skill",
                     description: "Original description",
-                    triggerHints: ["orig"],
-                    phases: [],
+                    instructions: "Use original instructions.",
                     visibility: "public",
                     sharedWithEmails: [],
                 }),

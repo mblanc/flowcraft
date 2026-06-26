@@ -507,30 +507,13 @@ export const StyleUpdateSchema = z.object({
 export const CreateSkillSchema = z.object({
     name: z.string().min(2).max(64),
     description: z.string().min(10).max(1024),
-    triggerHints: z.array(z.string()).min(1),
-    phases: z
-        .array(
-            z.object({
-                title: z.string().min(2),
-                rules: z.string().min(10),
-            }),
-        )
-        .min(1),
+    instructions: z.string().min(10),
 });
 
 export const UpdateSkillSchema = z.object({
     name: z.string().min(2).max(64).optional(),
     description: z.string().min(10).max(1024).optional(),
-    triggerHints: z.array(z.string()).min(1).optional(),
-    phases: z
-        .array(
-            z.object({
-                title: z.string().min(2),
-                rules: z.string().min(10),
-            }),
-        )
-        .min(1)
-        .optional(),
+    instructions: z.string().min(10).optional(),
     visibility: z.enum(["private", "public"]).optional(),
     isTemplate: z.boolean().optional(),
 });

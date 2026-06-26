@@ -33,7 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import logger from "@/app/logger";
 
-export type ArtifactType = "flow" | "canvas" | "style" | "asset";
+export type ArtifactType = "flow" | "canvas" | "style" | "asset" | "skill";
 
 type Visibility = "private" | "public" | "restricted";
 type SharedEntry = { email: string; role: "view" | "edit" };
@@ -59,6 +59,7 @@ const TYPE_LABEL: Record<ArtifactType, string> = {
     canvas: "Canvas",
     style: "Style",
     asset: "Asset",
+    skill: "Skill",
 };
 
 const API_BASE: Record<ArtifactType, string> = {
@@ -66,6 +67,7 @@ const API_BASE: Record<ArtifactType, string> = {
     canvas: "/api/canvases",
     style: "/api/styles",
     asset: "/api/library",
+    skill: "/api/skills",
 };
 
 function apiPath(type: ArtifactType, id: string) {
@@ -113,6 +115,7 @@ export function ShareDialog({
             canvas: `/canvas/${artifactId}`,
             style: `/styles/${artifactId}`,
             asset: `/assets/${artifactId}`,
+            skill: `/skills?shared=${artifactId}`,
         };
         void navigator.clipboard.writeText(
             `${window.location.origin}${paths[artifactType]}`,

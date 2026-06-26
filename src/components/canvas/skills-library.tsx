@@ -1,20 +1,12 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import {
-    Search,
-    Plus,
-    Trash2,
-    Edit3,
-    Copy,
-    Loader2,
-    AlertCircle,
-} from "lucide-react";
+import { Search, Copy, Loader2, Sparkles, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
     Card,
-    CardContent,
     CardDescription,
     CardFooter,
     CardHeader,
@@ -22,22 +14,18 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
-import { SkillEditor } from "./skill-editor";
-import type {
-    UserSkillDocument,
-    SkillPhase,
-} from "@/lib/canvas/agent/skills/skill-types";
+import type { UserSkillDocument } from "@/lib/canvas/agent/skills/skill-types";
 import logger from "@/app/logger";
+import { toast } from "sonner";
 
 interface ExtendedSkill {
     id: string;
     name: string;
     description: string;
-    triggerHints: string[];
     isBuiltIn?: boolean;
     isTemplate?: boolean;
     userId?: string;
-    phases?: SkillPhase[];
+    instructions?: string;
 }
 
 // Define the hardcoded built-in skills
@@ -47,12 +35,6 @@ const BUILT_IN_SKILLS = [
         name: "character-generation",
         description:
             "Design and maintain consistent character references across multiple shots.",
-        triggerHints: [
-            "character reference",
-            "consistent character",
-            "character sheet",
-            "avatar",
-        ],
         isBuiltIn: true,
     },
     {
@@ -60,12 +42,6 @@ const BUILT_IN_SKILLS = [
         name: "multi-shot-video",
         description:
             "Plan and generate multi-scene cinematic videos with precise continuity.",
-        triggerHints: [
-            "movie trailer",
-            "cinematic video",
-            "multi-shot video",
-            "scene continuity",
-        ],
         isBuiltIn: true,
     },
     {
@@ -73,12 +49,6 @@ const BUILT_IN_SKILLS = [
         name: "storyboard",
         description:
             "Sequence visual narratives, setting up frames, camera angles, and action cues.",
-        triggerHints: [
-            "storyboard",
-            "shot list",
-            "scene sequence",
-            "comic strip",
-        ],
         isBuiltIn: true,
     },
     {
@@ -86,12 +56,6 @@ const BUILT_IN_SKILLS = [
         name: "virtual-tryon",
         description:
             "Seamlessly map clothing, accessories, or styles onto a reference person node.",
-        triggerHints: [
-            "virtual tryon",
-            "try on clothing",
-            "swap outfit",
-            "fashion model",
-        ],
         isBuiltIn: true,
     },
 ];
@@ -113,12 +77,6 @@ export function SkillsLibrary() {
     );
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-    // Editor modal state
-    const [editingSkill, setEditingSkill] = useState<UserSkillDocument | null>(
-        null,
-    );
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
 
     // Load skills
     const loadSkills = async () => {
@@ -165,12 +123,13 @@ export function SkillsLibrary() {
             if (!res.ok) {
                 // Revert on error
                 toggleDisabledSkill(skillName);
-                logger.error("Failed to toggle skill on backend");
+                toast.error("Failed to update skill toggle state");
             }
         } catch (err) {
             // Revert on error
             toggleDisabledSkill(skillName);
             logger.error("Failed to toggle skill:", err);
+            toast.error("Network error toggling skill");
         }
     };
 
@@ -184,11 +143,24 @@ export function SkillsLibrary() {
             if (res.ok) {
                 await loadSkills();
                 setActiveTab("my");
+                toast.success(
+                    <div className="flex flex-col gap-1">
+                        <span>Skill customized successfully!</span>
+                        <Link
+                            href="/skills"
+                            className="text-primary flex items-center gap-1 text-xs font-semibold hover:underline"
+                        >
+                            Go to Skills Dashboard to edit{" "}
+                            <ExternalLink className="size-3" />
+                        </Link>
+                    </div>,
+                );
             } else {
-                logger.error(`Failed to clone skill ${name}`);
+                toast.error(`Failed to clone skill ${name}`);
             }
         } catch (err) {
             logger.error(`Error cloning skill ${name}:`, err);
+            toast.error("Failed to clone skill");
         } finally {
             setActionLoading(null);
         }
@@ -198,67 +170,51 @@ export function SkillsLibrary() {
     const handleCloneBuiltIn = async (builtIn: (typeof BUILT_IN_SKILLS)[0]) => {
         setActionLoading(builtIn.id);
         try {
+            // Check if user already has a skill with the same base name to avoid conflict
+            const baseName = `my-${builtIn.name}`;
+            const exists = mySkills.some((s) => s.name === baseName);
+            if (exists) {
+                toast.error(`You have already customized ${builtIn.name}!`);
+                return;
+            }
+
             const res = await fetch("/api/skills", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: `my-${builtIn.name}`,
-                    description: `Customized copy of built-in ${builtIn.name} skill. ${builtIn.description}`,
-                    triggerHints: [
-                        ...builtIn.triggerHints,
-                        `custom-${builtIn.name}`,
-                    ],
-                    phases: [
-                        {
-                            title: "Phase 1",
-                            rules: "Enter customized instructions here.",
-                        },
-                    ],
+                    name: baseName,
+                    description: `Customized version of the built-in ${builtIn.name} skill.`,
+                    instructions: `# ${builtIn.name} Instructions\n\nCustomized rules for this workflow.`,
                 }),
             });
 
             if (res.ok) {
                 await loadSkills();
                 setActiveTab("my");
+                toast.success(
+                    <div className="flex flex-col gap-1">
+                        <span>Customized built-in skill!</span>
+                        <Link
+                            href="/skills"
+                            className="text-primary flex items-center gap-1 text-xs font-semibold hover:underline"
+                        >
+                            Go to Skills Dashboard to edit{" "}
+                            <ExternalLink className="size-3" />
+                        </Link>
+                    </div>,
+                );
             } else {
-                logger.error(`Failed to clone built-in ${builtIn.name}`);
+                const errData = await res.json();
+                toast.error(
+                    errData.error || `Failed to customize ${builtIn.name}`,
+                );
             }
         } catch (err) {
-            logger.error(`Error cloning built-in ${builtIn.name}:`, err);
+            logger.error(`Error customizing built-in ${builtIn.name}:`, err);
+            toast.error("Failed to customize built-in skill");
         } finally {
             setActionLoading(null);
         }
-    };
-
-    // Delete skill
-    const handleDelete = async (skillId: string, name: string) => {
-        if (!confirm(`Are you sure you want to delete the skill "${name}"?`))
-            return;
-        setActionLoading(skillId);
-        try {
-            const res = await fetch(`/api/skills/${skillId}`, {
-                method: "DELETE",
-            });
-            if (res.ok) {
-                setMySkills((prev) => prev.filter((s) => s.id !== skillId));
-            } else {
-                logger.error(`Failed to delete skill ${name}`);
-            }
-        } catch (err) {
-            logger.error(`Error deleting skill ${name}:`, err);
-        } finally {
-            setActionLoading(null);
-        }
-    };
-
-    const handleCreateNew = () => {
-        setEditingSkill(null);
-        setIsEditorOpen(true);
-    };
-
-    const handleEdit = (skill: UserSkillDocument) => {
-        setEditingSkill(skill);
-        setIsEditorOpen(true);
     };
 
     // Filter skills by search query
@@ -273,191 +229,164 @@ export function SkillsLibrary() {
         if (!query) return list;
 
         return list.filter(
-            (s) =>
-                s.name.toLowerCase().includes(query) ||
-                s.description.toLowerCase().includes(query) ||
-                s.triggerHints.some((h: string) =>
-                    h.toLowerCase().includes(query),
-                ),
+            (skill) =>
+                skill.name.toLowerCase().includes(query) ||
+                skill.description.toLowerCase().includes(query),
         );
-    }, [activeTab, mySkills, communitySkills, searchQuery]);
+    }, [mySkills, communitySkills, activeTab, searchQuery]);
 
     return (
-        <div className="flex h-full flex-col p-4">
-            {/* Toolbar / Search */}
-            <div className="mb-4 flex items-center gap-2">
-                <div className="relative flex-1">
-                    <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+        <div className="flex h-full flex-col gap-4 p-4">
+            {/* Header info / Redirect link */}
+            <div className="bg-primary/5 border-primary/10 flex flex-col gap-2 rounded-xl border p-4">
+                <div className="flex items-start gap-2.5">
+                    <Sparkles className="text-primary mt-0.5 size-4 shrink-0" />
+                    <div className="flex-1">
+                        <h4 className="text-foreground text-xs font-semibold">
+                            Skills Dashboard
+                        </h4>
+                        <p className="text-muted-foreground mt-0.5 text-[10px] leading-relaxed">
+                            Create, edit, import, and export custom workflows in
+                            your dedicated workstation.
+                        </p>
+                    </div>
+                </div>
+                <Link
+                    href="/skills"
+                    className="bg-primary/10 hover:bg-primary/20 text-primary flex h-8 items-center justify-center gap-1.5 rounded-lg text-[11px] font-semibold transition-all"
+                >
+                    Open Skills Dashboard <ExternalLink className="size-3.5" />
+                </Link>
+            </div>
+
+            {/* Search and Tabs */}
+            <div className="space-y-3">
+                <div className="relative">
+                    <Search className="text-muted-foreground absolute top-2.5 left-3 size-4" />
                     <Input
-                        placeholder="Search skills..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-muted/50 border-border h-9 pl-8 text-xs focus-visible:ring-1"
+                        placeholder="Search skills..."
+                        className="bg-muted/30 border-border/60 placeholder:text-muted-foreground h-9 pl-9 text-xs"
                     />
                 </div>
-                <Button
-                    size="sm"
-                    onClick={handleCreateNew}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 gap-1.5 px-3 text-xs font-medium shadow-sm"
-                >
-                    <Plus className="h-3.5 w-3.5" /> New
-                </Button>
+
+                {/* Segment tabs */}
+                <div className="bg-muted/40 border-border/40 flex rounded-lg border p-0.5">
+                    {(["my", "built-in", "community"] as const).map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`flex-1 rounded-[6px] py-1 text-center text-[10px] font-semibold tracking-wide uppercase transition-all duration-150 ${
+                                activeTab === tab
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            {tab === "my"
+                                ? "My Skills"
+                                : tab === "built-in"
+                                  ? "Built-in"
+                                  : "Templates"}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Tab selector */}
-            <div className="bg-muted/40 border-border mb-4 grid grid-cols-3 rounded-lg border p-1">
-                <button
-                    onClick={() => setActiveTab("my")}
-                    className={`rounded-md py-1.5 text-xs font-medium transition-all ${
-                        activeTab === "my"
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                    My Skills
-                </button>
-                <button
-                    onClick={() => setActiveTab("built-in")}
-                    className={`rounded-md py-1.5 text-xs font-medium transition-all ${
-                        activeTab === "built-in"
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                    Built-in
-                </button>
-                <button
-                    onClick={() => setActiveTab("community")}
-                    className={`rounded-md py-1.5 text-xs font-medium transition-all ${
-                        activeTab === "community"
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                    Templates
-                </button>
-            </div>
-
-            {/* Skills List */}
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+            {/* Scrollable list */}
+            <div className="flex-1 overflow-y-auto pr-0.5">
                 {loading ? (
-                    <div className="flex h-40 items-center justify-center">
-                        <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+                    <div className="flex h-32 items-center justify-center">
+                        <Loader2 className="text-muted-foreground size-5 animate-spin" />
                     </div>
                 ) : filteredSkills.length === 0 ? (
-                    <div className="border-border bg-muted/20 flex h-40 flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center">
-                        <AlertCircle className="text-muted-foreground mb-2 h-6 w-6" />
+                    <div className="flex h-24 flex-col items-center justify-center text-center">
                         <p className="text-muted-foreground text-xs">
                             No skills found.
                         </p>
-                        {activeTab === "my" && (
-                            <Button
-                                variant="link"
-                                size="sm"
-                                onClick={handleCreateNew}
-                                className="text-primary mt-1 text-xs"
-                            >
-                                Create your first skill
-                            </Button>
-                        )}
                     </div>
                 ) : (
-                    filteredSkills.map((skill) => {
-                        const isEnabled = !disabledSkills.includes(skill.name);
-                        const isLoading = actionLoading === skill.id;
+                    <div className="space-y-3">
+                        {filteredSkills.map((skill) => {
+                            const isEnabled = !disabledSkills.includes(
+                                skill.name,
+                            );
+                            const isLoading = actionLoading === skill.id;
 
-                        return (
-                            <Card
-                                key={skill.id}
-                                className="bg-card/40 border-border/60 hover:border-border shadow-sm transition-all"
-                            >
-                                <CardHeader className="p-3 pb-2">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="min-w-0">
-                                            <CardTitle className="text-foreground flex items-center gap-1.5 truncate text-sm font-semibold">
-                                                {skill.name}
-                                                {skill.isBuiltIn && (
-                                                    <span className="bg-primary/10 text-primary rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase">
-                                                        Built-in
-                                                    </span>
-                                                )}
-                                                {skill.isTemplate &&
-                                                    !skill.isBuiltIn && (
-                                                        <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-emerald-500 uppercase">
-                                                            Template
+                            return (
+                                <Card
+                                    key={skill.id}
+                                    className="bg-card/40 border-border/60 hover:border-border shadow-sm transition-all"
+                                >
+                                    <CardHeader className="p-3 pb-2">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <CardTitle className="text-foreground flex items-center gap-1.5 truncate text-xs font-semibold">
+                                                    {skill.name}
+                                                    {skill.isBuiltIn && (
+                                                        <span className="bg-primary/10 text-primary rounded-full px-1.5 py-0.5 text-[8px] font-semibold tracking-wider uppercase">
+                                                            Built-in
                                                         </span>
                                                     )}
-                                            </CardTitle>
-                                            <CardDescription className="text-muted-foreground mt-1 line-clamp-2 text-[11px] leading-relaxed">
-                                                {skill.description}
-                                            </CardDescription>
-                                        </div>
-                                        <div className="flex shrink-0 items-center space-x-2">
-                                            <Switch
-                                                checked={isEnabled}
-                                                onCheckedChange={(checked) =>
-                                                    handleToggle(
-                                                        skill.name,
+                                                    {skill.isTemplate &&
+                                                        !skill.isBuiltIn && (
+                                                            <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-semibold tracking-wider text-emerald-500 uppercase">
+                                                                Template
+                                                            </span>
+                                                        )}
+                                                </CardTitle>
+                                                <CardDescription className="text-muted-foreground mt-1 line-clamp-2 text-[10px] leading-normal">
+                                                    {skill.description}
+                                                </CardDescription>
+                                            </div>
+                                            <div className="flex shrink-0 items-center space-x-2">
+                                                <Switch
+                                                    checked={isEnabled}
+                                                    onCheckedChange={(
                                                         checked,
-                                                    )
-                                                }
-                                                aria-label={`Toggle ${skill.name}`}
-                                                className="scale-90"
-                                            />
+                                                    ) =>
+                                                        handleToggle(
+                                                            skill.name,
+                                                            checked,
+                                                        )
+                                                    }
+                                                    aria-label={`Toggle ${skill.name}`}
+                                                    className="scale-75"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="p-3 pt-0 pb-2">
-                                    <div className="mt-1 flex flex-wrap gap-1">
-                                        {skill.triggerHints.map(
-                                            (hint: string) => (
-                                                <span
-                                                    key={hint}
-                                                    className="bg-muted/60 text-muted-foreground border-border/40 rounded border px-2 py-0.5 font-mono text-[10px]"
-                                                >
-                                                    {hint}
-                                                </span>
-                                            ),
-                                        )}
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="border-border/20 flex justify-end gap-1.5 border-t p-3 pt-1">
-                                    {skill.isBuiltIn ? (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                                handleCloneBuiltIn(
-                                                    skill as (typeof BUILT_IN_SKILLS)[0],
-                                                )
-                                            }
-                                            disabled={isLoading}
-                                            className="text-muted-foreground hover:text-foreground hover:bg-accent/50 h-7 gap-1 px-2 text-[11px]"
-                                            title="Clone to customize"
-                                        >
-                                            {isLoading ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : (
-                                                <Copy className="h-3 w-3" />
-                                            )}
-                                            Customize
-                                        </Button>
-                                    ) : activeTab === "my" ? (
-                                        <>
+                                    </CardHeader>
+                                    <CardFooter className="border-border/10 flex justify-end gap-1.5 border-t p-2 pt-1">
+                                        {skill.isBuiltIn ? (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() =>
-                                                    handleEdit(
-                                                        skill as UserSkillDocument,
+                                                    handleCloneBuiltIn(
+                                                        skill as (typeof BUILT_IN_SKILLS)[0],
                                                     )
                                                 }
                                                 disabled={isLoading}
-                                                className="text-muted-foreground hover:text-foreground hover:bg-accent/50 h-7 gap-1 px-2 text-[11px]"
+                                                className="text-muted-foreground hover:text-foreground hover:bg-accent/50 h-6 gap-1 px-2 text-[10px]"
+                                                title="Clone to customize"
                                             >
-                                                <Edit3 className="h-3 w-3" />{" "}
-                                                Edit
+                                                {isLoading ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                ) : (
+                                                    <Copy className="h-3 w-3" />
+                                                )}
+                                                Customize
                                             </Button>
+                                        ) : activeTab === "my" ? (
+                                            <Link
+                                                href="/skills"
+                                                className="text-muted-foreground hover:text-foreground hover:bg-accent/50 flex h-6 items-center gap-1 rounded px-2 text-[10px] font-medium transition-colors"
+                                                title="Manage skill in dashboard"
+                                            >
+                                                Manage{" "}
+                                                <ExternalLink className="size-2.5" />
+                                            </Link>
+                                        ) : (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -468,66 +397,23 @@ export function SkillsLibrary() {
                                                     )
                                                 }
                                                 disabled={isLoading}
-                                                className="text-muted-foreground hover:text-foreground hover:bg-accent/50 h-7 gap-1 px-2 text-[11px]"
+                                                className="text-muted-foreground hover:text-foreground hover:bg-accent/50 h-6 gap-1 px-2 text-[10px]"
                                             >
                                                 {isLoading ? (
                                                     <Loader2 className="h-3 w-3 animate-spin" />
                                                 ) : (
                                                     <Copy className="h-3 w-3" />
                                                 )}{" "}
-                                                Clone
+                                                Customize
                                             </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                    handleDelete(
-                                                        skill.id,
-                                                        skill.name,
-                                                    )
-                                                }
-                                                disabled={isLoading}
-                                                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 gap-1 px-2 text-[11px]"
-                                            >
-                                                <Trash2 className="h-3 w-3" />{" "}
-                                                Delete
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                                handleClone(
-                                                    skill.id,
-                                                    skill.name,
-                                                )
-                                            }
-                                            disabled={isLoading}
-                                            className="text-muted-foreground hover:text-foreground hover:bg-accent/50 h-7 gap-1 px-2 text-[11px]"
-                                        >
-                                            {isLoading ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : (
-                                                <Copy className="h-3 w-3" />
-                                            )}{" "}
-                                            Add to My Skills
-                                        </Button>
-                                    )}
-                                </CardFooter>
-                            </Card>
-                        );
-                    })
+                                        )}
+                                    </CardFooter>
+                                </Card>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
-
-            {/* Skill Editor Modal */}
-            <SkillEditor
-                open={isEditorOpen}
-                onOpenChange={setIsEditorOpen}
-                skill={editingSkill}
-                onSave={loadSkills}
-            />
         </div>
     );
 }

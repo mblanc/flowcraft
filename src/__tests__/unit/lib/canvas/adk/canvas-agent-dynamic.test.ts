@@ -22,14 +22,8 @@ describe("CanvasAgent — Dynamic User Skills", () => {
             userId: "user-1",
             name: "brand-campaign",
             description: "Generate a 3-shot brand campaign workflow",
-            triggerHints: ["brand campaign", "product promotion"],
-            phases: [
-                { title: "Hero Shot", rules: "Create hero shot first" },
-                {
-                    title: "Lifestyle Shots",
-                    rules: "Add 2 lifestyle shots with brand logo",
-                },
-            ],
+            instructions:
+                "### Phase 1: Hero Shot\nCreate hero shot first\n\n### Phase 2: Lifestyle Shots\nAdd 2 lifestyle shots with brand logo",
             visibility: "private",
             sharedWith: [],
             sharedWithEmails: [],
@@ -42,8 +36,7 @@ describe("CanvasAgent — Dynamic User Skills", () => {
             userId: "user-1",
             name: "cinematic-teaser",
             description: "Generate a cinematic movie teaser",
-            triggerHints: ["cinematic teaser", "movie promo"],
-            phases: [{ title: "Teaser Scene", rules: "Create dramatic scene" }],
+            instructions: "### Teaser Scene\nCreate dramatic scene",
             visibility: "public",
             sharedWith: [],
             sharedWithEmails: [],
@@ -127,9 +120,9 @@ describe("CanvasAgent — Dynamic User Skills", () => {
         );
         expect(brandCampaign.frontmatter.metadata!.userCreated).toBe(true);
 
-        expect(brandCampaign.instructions).toContain("### Phase 1: Hero Shot");
-        expect(brandCampaign.instructions).toContain("Create hero shot first");
-        expect(brandCampaign.instructions).toContain('- "brand campaign"');
+        expect(brandCampaign.instructions).toBe(
+            "### Phase 1: Hero Shot\nCreate hero shot first\n\n### Phase 2: Lifestyle Shots\nAdd 2 lifestyle shots with brand logo",
+        );
     });
 
     it("should filter out disabled skills (both built-in and user-created)", async () => {

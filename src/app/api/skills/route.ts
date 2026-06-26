@@ -44,16 +44,12 @@ export const POST = withAuth(async (req, _context, session) => {
             );
         }
 
-        const { name, description, triggerHints, phases } = parsed.data;
+        const { name, description, instructions } = parsed.data;
 
         const skill = await skillService.createSkill(session.user!.id!, {
             name: name.trim(),
             description: description.trim(),
-            triggerHints: triggerHints.map((h) => h.trim()),
-            phases: phases.map((p) => ({
-                title: p.title.trim(),
-                rules: p.rules.trim(),
-            })),
+            instructions: instructions.trim(),
         });
 
         return NextResponse.json(skill);

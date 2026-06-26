@@ -47,14 +47,8 @@ export const PATCH = withAuth(async (req, context: Context, session) => {
             );
         }
 
-        const {
-            name,
-            description,
-            triggerHints,
-            phases,
-            visibility,
-            isTemplate,
-        } = parsed.data;
+        const { name, description, instructions, visibility, isTemplate } =
+            parsed.data;
 
         const skill = await skillService.updateSkill(
             id,
@@ -62,11 +56,7 @@ export const PATCH = withAuth(async (req, context: Context, session) => {
             {
                 name: name?.trim(),
                 description: description?.trim(),
-                triggerHints: triggerHints?.map((h) => h.trim()),
-                phases: phases?.map((p) => ({
-                    title: p.title.trim(),
-                    rules: p.rules.trim(),
-                })),
+                instructions: instructions?.trim(),
                 visibility,
                 isTemplate,
             },

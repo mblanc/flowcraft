@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-    X,
-    Plus,
-    Trash2,
-    Loader2,
-    Play,
-    AlertCircle,
-    Info,
-    Sparkles,
-} from "lucide-react";
+import { Loader2, AlertCircle, Info, Sparkles, Eye, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,35 +14,35 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import type {
-    UserSkillDocument,
-    SkillPhase,
-} from "@/lib/canvas/agent/skills/skill-types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReactMarkdown from "react-markdown";
+import type { UserSkillDocument } from "@/lib/canvas/agent/skills/skill-types";
 import logger from "@/app/logger";
 
 interface SkillEditorProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    skill: UserSkillDocument | null;
-    onSave: () => void;
+    initialSkill?: Partial<UserSkillDocument> | null;
+    onSave: (data: {
+        name: string;
+        description: string;
+        instructions: string;
+    }) => Promise<void>;
 }
 
 export function SkillEditor({
     open,
     onOpenChange,
-    skill,
+    initialSkill,
     onSave,
 }: SkillEditorProps) {
-    const isEdit = !!skill;
+    const isEdit = !!initialSkill?.id;
 
     // Form states
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
-    const [triggerHints, setTriggerHints] = useState<string[]>([]);
-    const [hintInput, setHintInput] = useState("");
-    const [phases, setPhases] = useState<SkillPhase[]>([
-        { title: "", rules: "" },
-    ]);
+    const [instructions, setInstructions] = useState("");
+    const [activeTab, setActiveTab] = useState("write");
 
     // UI states
     const [saving, setSaving] = useState(false);
@@ -66,21 +57,21 @@ export function SkillEditor({
             setTimeout(() => {
                 setError(null);
                 setValidationErrors({});
-                if (skill) {
-                    setName(skill.name);
-                    setDescription(skill.description);
-                    setTriggerHints(skill.triggerHints);
-                    setPhases(skill.phases);
+                setActiveTab("write");
+                if (initialSkill) {
+                    setName(initialSkill.name ?? "");
+                    setDescription(initialSkill.description ?? "");
+                    setInstructions(initialSkill.instructions ?? "");
                 } else {
                     setName("");
                     setDescription("");
-                    setTriggerHints([]);
-                    setPhases([{ title: "Phase 1: Concept", rules: "" }]);
+                    setInstructions(
+                        "# Custom Skill Instructions\n\nUse this skill to guide the AI Director.\n\n### Rules\n- Rule 1: Always do X\n- Rule 2: Never do Y\n",
+                    );
                 }
-                setHintInput("");
             }, 0);
         }
-    }, [open, skill]);
+    }, [open, initialSkill]);
 
     // Normalize name to kebab-case
     const handleNameChange = (val: string) => {
@@ -98,66 +89,6 @@ export function SkillEditor({
         }
     };
 
-    // Trigger Hints Tags Input
-    const handleAddHint = () => {
-        const trimmed = hintInput
-            .trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, "");
-        if (trimmed && !triggerHints.includes(trimmed)) {
-            setTriggerHints([...triggerHints, trimmed]);
-            setHintInput("");
-            if (validationErrors.triggerHints) {
-                setValidationErrors((prev) => {
-                    const copy = { ...prev };
-                    delete copy.triggerHints;
-                    return copy;
-                });
-            }
-        }
-    };
-
-    const handleKeyDownHint = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" || e.key === ",") {
-            e.preventDefault();
-            handleAddHint();
-        }
-    };
-
-    const handleRemoveHint = (hintToRemove: string) => {
-        setTriggerHints(triggerHints.filter((h) => h !== hintToRemove));
-    };
-
-    // Phases dynamic array actions
-    const handleAddPhase = () => {
-        const nextNum = phases.length + 1;
-        setPhases([...phases, { title: `Phase ${nextNum}: `, rules: "" }]);
-    };
-
-    const handleRemovePhase = (index: number) => {
-        if (phases.length <= 1) return;
-        setPhases(phases.filter((_, i) => i !== index));
-    };
-
-    const handlePhaseChange = (
-        index: number,
-        field: keyof SkillPhase,
-        value: string,
-    ) => {
-        setPhases(
-            phases.map((p, i) => (i === index ? { ...p, [field]: value } : p)),
-        );
-        // Clear validation errors for this phase
-        const errKey = `phase-${index}-${field}`;
-        if (validationErrors[errKey]) {
-            setValidationErrors((prev) => {
-                const copy = { ...prev };
-                delete copy[errKey];
-                return copy;
-            });
-        }
-    };
-
     // Form validation
     const validateForm = (): boolean => {
         const errs: Record<string, string> = {};
@@ -168,19 +99,9 @@ export function SkillEditor({
         if (!description || description.trim().length < 10) {
             errs.description = "Description must be at least 10 characters.";
         }
-        if (triggerHints.length === 0) {
-            errs.triggerHints = "Provide at least 1 trigger keyword.";
+        if (!instructions || instructions.trim().length < 10) {
+            errs.instructions = "Instructions must be at least 10 characters.";
         }
-
-        phases.forEach((p, i) => {
-            if (!p.title || p.title.trim().length < 2) {
-                errs[`phase-${i}-title`] = "Title is required.";
-            }
-            if (!p.rules || p.rules.trim().length < 10) {
-                errs[`phase-${i}-rules`] =
-                    "Rules must be at least 10 characters.";
-            }
-        });
 
         setValidationErrors(errs);
         return Object.keys(errs).length === 0;
@@ -195,39 +116,19 @@ export function SkillEditor({
 
         setSaving(true);
         try {
-            const body = {
+            await onSave({
                 name: name.trim(),
                 description: description.trim(),
-                triggerHints,
-                phases: phases.map((p) => ({
-                    title: p.title.trim(),
-                    rules: p.rules.trim(),
-                })),
-            };
-
-            const url = isEdit ? `/api/skills/${skill!.id}` : "/api/skills";
-            const method = isEdit ? "PATCH" : "POST";
-
-            const res = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body),
+                instructions: instructions.trim(),
             });
-
-            if (res.ok) {
-                onSave();
-                onOpenChange(false);
-            } else {
-                const errData = await res.json();
-                setError(
-                    typeof errData.error === "string"
-                        ? errData.error
-                        : "Failed to save skill. Check your inputs.",
-                );
-            }
+            onOpenChange(false);
         } catch (err) {
             logger.error("Failed to save skill:", err);
-            setError("A network error occurred. Please try again.");
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to save skill. Please try again.",
+            );
         } finally {
             setSaving(false);
         }
@@ -235,23 +136,25 @@ export function SkillEditor({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-background border-border max-h-[85vh] overflow-y-auto shadow-xl sm:max-w-[580px]">
+            <DialogContent className="bg-background border-border max-h-[90vh] overflow-y-auto shadow-xl sm:max-w-[720px]">
                 <DialogHeader>
                     <DialogTitle className="text-foreground flex items-center gap-2">
                         <Sparkles className="text-primary h-5 w-5" />
                         {isEdit
-                            ? `Edit Skill: ${skill?.name}`
-                            : "Create Custom Pattern Skill"}
+                            ? `Edit Skill: ${initialSkill?.name}`
+                            : "Create Custom Skill"}
                     </DialogTitle>
                     <DialogDescription className="text-muted-foreground text-xs">
-                        Define a custom generative workflow structure. The AI
-                        Director will execute these rules step-by-step when
-                        triggered by chat keywords.
+                        Define custom workflows or design instructions matching
+                        the
+                        <span className="px-1 font-semibold">SKILL.md</span>
+                        specification. The AI Director will automatically follow
+                        these guidelines.
                     </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-5 py-2">
-                    {/* Display API Errors */}
+                    {/* Display Errors */}
                     {error && (
                         <div className="bg-destructive/10 border-destructive/20 text-destructive flex items-start gap-2 rounded-lg border p-3 text-xs">
                             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -259,277 +162,165 @@ export function SkillEditor({
                         </div>
                     )}
 
-                    {/* Skill Name */}
-                    <div className="space-y-1.5">
-                        <Label
-                            htmlFor="skill-name"
-                            className="text-foreground flex items-center gap-1 text-xs font-semibold"
-                        >
-                            Skill Identifier (Kebab-case){" "}
-                            <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                            id="skill-name"
-                            value={name}
-                            onChange={(e) => handleNameChange(e.target.value)}
-                            placeholder="e.g. logo-campaign"
-                            disabled={isEdit || saving}
-                            className={`bg-muted/30 border-border h-9 text-xs ${
-                                validationErrors.name
-                                    ? "border-destructive focus-visible:ring-destructive"
-                                    : ""
-                            }`}
-                        />
-                        {validationErrors.name ? (
-                            <p className="text-destructive text-[10px]">
-                                {validationErrors.name}
-                            </p>
-                        ) : (
-                            <p className="text-muted-foreground flex items-center gap-1 text-[10px]">
-                                <Info className="h-3 w-3 shrink-0" />{" "}
-                                Automatically normalized to lowercase
-                                kebab-case. Used as a forced command:{" "}
-                                <code>/{name || "identifier"}</code>.
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Skill Description */}
-                    <div className="space-y-1.5">
-                        <Label
-                            htmlFor="skill-desc"
-                            className="text-foreground text-xs font-semibold"
-                        >
-                            Description{" "}
-                            <span className="text-destructive">*</span>
-                        </Label>
-                        <Textarea
-                            id="skill-desc"
-                            value={description}
-                            onChange={(e) => {
-                                setDescription(e.target.value);
-                                if (validationErrors.description) {
-                                    setValidationErrors((prev) => {
-                                        const copy = { ...prev };
-                                        delete copy.description;
-                                        return copy;
-                                    });
-                                }
-                            }}
-                            placeholder="Explain what this skill generates and what it is best used for..."
-                            disabled={saving}
-                            rows={3}
-                            className={`bg-muted/30 border-border text-xs ${
-                                validationErrors.description
-                                    ? "border-destructive focus-visible:ring-destructive"
-                                    : ""
-                            }`}
-                        />
-                        {validationErrors.description ? (
-                            <p className="text-destructive text-[10px]">
-                                {validationErrors.description}
-                            </p>
-                        ) : (
-                            <p className="text-muted-foreground text-[10px]">
-                                Used by the AI to match natural language prompts
-                                to this skill.
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Trigger Hints (Tags Input) */}
-                    <div className="space-y-1.5">
-                        <Label className="text-foreground text-xs font-semibold">
-                            Trigger Keywords / Hints{" "}
-                            <span className="text-destructive">*</span>
-                        </Label>
-                        <div className="flex gap-2">
+                    {/* Skill Name & Description Row */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {/* Skill Name */}
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="skill-name"
+                                className="text-foreground flex items-center gap-1 text-xs font-semibold"
+                            >
+                                Skill Name (Kebab-case){" "}
+                                <span className="text-destructive">*</span>
+                            </Label>
                             <Input
-                                value={hintInput}
-                                onChange={(e) => setHintInput(e.target.value)}
-                                onKeyDown={handleKeyDownHint}
-                                placeholder="Add keyword (comma or Enter)..."
-                                disabled={saving}
-                                className={`bg-muted/30 border-border h-9 flex-1 text-xs ${
-                                    validationErrors.triggerHints
+                                id="skill-name"
+                                value={name}
+                                onChange={(e) =>
+                                    handleNameChange(e.target.value)
+                                }
+                                placeholder="e.g. logo-campaign"
+                                disabled={isEdit || saving}
+                                className={`bg-muted/30 border-border h-9 text-xs ${
+                                    validationErrors.name
                                         ? "border-destructive focus-visible:ring-destructive"
                                         : ""
                                 }`}
                             />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleAddHint}
-                                disabled={saving}
-                                className="border-border bg-muted/20 hover:bg-muted/50 text-foreground h-9 text-xs font-medium"
-                            >
-                                Add
-                            </Button>
-                        </div>
-                        {/* Render Keywords Badges */}
-                        <div className="mt-2 flex min-h-6 flex-wrap gap-1.5">
-                            {triggerHints.length === 0 ? (
-                                <p className="text-muted-foreground mt-0.5 text-[10px] italic">
-                                    No keywords added yet.
+                            {validationErrors.name ? (
+                                <p className="text-destructive text-[10px]">
+                                    {validationErrors.name}
                                 </p>
                             ) : (
-                                triggerHints.map((hint) => (
-                                    <span
-                                        key={hint}
-                                        className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px]"
-                                    >
-                                        {hint}
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleRemoveHint(hint)
-                                            }
-                                            disabled={saving}
-                                            className="hover:text-destructive text-muted-foreground transition-colors"
-                                        >
-                                            <X className="h-2.5 w-2.5" />
-                                        </button>
-                                    </span>
-                                ))
+                                <p className="text-muted-foreground flex items-center gap-1 text-[10px]">
+                                    <Info className="h-3 w-3 shrink-0" />{" "}
+                                    Command trigger:{" "}
+                                    <code>/{name || "name"}</code>
+                                </p>
                             )}
                         </div>
-                        {validationErrors.triggerHints && (
+
+                        {/* Skill Description */}
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="skill-desc"
+                                className="text-foreground text-xs font-semibold"
+                            >
+                                Description{" "}
+                                <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                                id="skill-desc"
+                                value={description}
+                                onChange={(e) => {
+                                    setDescription(e.target.value);
+                                    if (validationErrors.description) {
+                                        setValidationErrors((prev) => {
+                                            const copy = { ...prev };
+                                            delete copy.description;
+                                            return copy;
+                                        });
+                                    }
+                                }}
+                                placeholder="e.g. Standard 3-shot layout sequence"
+                                disabled={saving}
+                                className={`bg-muted/30 border-border h-9 text-xs ${
+                                    validationErrors.description
+                                        ? "border-destructive focus-visible:ring-destructive"
+                                        : ""
+                                }`}
+                            />
+                            {validationErrors.description && (
+                                <p className="text-destructive text-[10px]">
+                                    {validationErrors.description}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Skill Instructions (Markdown Editor) */}
+                    <div className="space-y-2">
+                        <Label className="text-foreground text-xs font-semibold">
+                            Instructions (Supports Markdown){" "}
+                            <span className="text-destructive">*</span>
+                        </Label>
+
+                        <Tabs
+                            value={activeTab}
+                            onValueChange={setActiveTab}
+                            className="border-border/60 overflow-hidden rounded-xl border"
+                        >
+                            <div className="bg-muted/30 border-border/60 flex items-center justify-between border-b px-4 py-1.5">
+                                <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+                                    SKILL.md Instructions
+                                </span>
+                                <TabsList className="bg-muted/60 h-7 rounded-md p-0.5">
+                                    <TabsTrigger
+                                        value="write"
+                                        className="h-6 gap-1 rounded-sm px-2.5 text-[11px]"
+                                    >
+                                        <Edit3 className="size-3" />
+                                        Write
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="preview"
+                                        className="h-6 gap-1 rounded-sm px-2.5 text-[11px]"
+                                    >
+                                        <Eye className="size-3" />
+                                        Preview
+                                    </TabsTrigger>
+                                </TabsList>
+                            </div>
+
+                            <TabsContent
+                                value="write"
+                                className="m-0 border-none"
+                            >
+                                <Textarea
+                                    value={instructions}
+                                    onChange={(e) => {
+                                        setInstructions(e.target.value);
+                                        if (validationErrors.instructions) {
+                                            setValidationErrors((prev) => {
+                                                const copy = { ...prev };
+                                                delete copy.instructions;
+                                                return copy;
+                                            });
+                                        }
+                                    }}
+                                    placeholder="# System Instructions&#10;&#10;Specify your workflow rules here in clear markdown. For example:&#10;- Ensure character consistency by referencing the first node.&#10;- Always render cinematic close-ups with neon lights."
+                                    disabled={saving}
+                                    className="min-h-[300px] resize-y rounded-none border-none bg-transparent p-4 font-mono text-xs leading-relaxed focus-visible:ring-0"
+                                />
+                            </TabsContent>
+
+                            <TabsContent
+                                value="preview"
+                                className="bg-muted/5 m-0 max-h-[450px] min-h-[300px] overflow-y-auto border-none p-5"
+                            >
+                                {instructions.trim() ? (
+                                    <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed break-words">
+                                        <ReactMarkdown>
+                                            {instructions}
+                                        </ReactMarkdown>
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground text-xs italic">
+                                        Nothing to preview yet. Write some
+                                        markdown!
+                                    </p>
+                                )}
+                            </TabsContent>
+                        </Tabs>
+                        {validationErrors.instructions && (
                             <p className="text-destructive text-[10px]">
-                                {validationErrors.triggerHints}
+                                {validationErrors.instructions}
                             </p>
                         )}
                     </div>
 
-                    <div className="border-border/40 my-2 border-t" />
-
-                    {/* Phases dynamic list */}
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <Label className="text-foreground flex items-center gap-1.5 text-xs font-semibold">
-                                <Play className="text-primary h-3.5 w-3.5" />{" "}
-                                Workflow Phases & Rules
-                            </Label>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleAddPhase}
-                                disabled={saving}
-                                className="text-primary hover:text-primary hover:bg-primary/10 h-8 gap-1 text-xs"
-                            >
-                                <Plus className="h-3 w-3" /> Add Phase
-                            </Button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {phases.map((phase, index) => (
-                                <div
-                                    key={index}
-                                    className="border-border bg-muted/10 hover:border-border-hover relative space-y-3 rounded-lg border p-3 transition-colors"
-                                >
-                                    {/* Header / Remove button */}
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="text-muted-foreground text-[11px] font-bold tracking-wider uppercase">
-                                            Phase {index + 1}
-                                        </span>
-                                        {phases.length > 1 && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() =>
-                                                    handleRemovePhase(index)
-                                                }
-                                                disabled={saving}
-                                                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-6 w-6 rounded"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                        )}
-                                    </div>
-
-                                    {/* Phase Title */}
-                                    <div className="space-y-1">
-                                        <Label className="text-foreground text-[10px] font-semibold">
-                                            Phase Title
-                                        </Label>
-                                        <Input
-                                            value={phase.title}
-                                            onChange={(e) =>
-                                                handlePhaseChange(
-                                                    index,
-                                                    "title",
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="e.g. Phase 1: Establish Hero Shot"
-                                            disabled={saving}
-                                            className={`bg-muted/30 border-border h-8 text-xs ${
-                                                validationErrors[
-                                                    `phase-${index}-title`
-                                                ]
-                                                    ? "border-destructive focus-visible:ring-destructive"
-                                                    : ""
-                                            }`}
-                                        />
-                                        {validationErrors[
-                                            `phase-${index}-title`
-                                        ] && (
-                                            <p className="text-destructive text-[9px]">
-                                                {
-                                                    validationErrors[
-                                                        `phase-${index}-title`
-                                                    ]
-                                                }
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Phase Rules */}
-                                    <div className="space-y-1">
-                                        <Label className="text-foreground text-[10px] font-semibold">
-                                            Rules & Instructions
-                                        </Label>
-                                        <Textarea
-                                            value={phase.rules}
-                                            onChange={(e) =>
-                                                handlePhaseChange(
-                                                    index,
-                                                    "rules",
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="Specify what this phase should generate and any constraints (e.g. 'Use a cinematic style, set the model to Veo 3.1 Pro, and make it look premium.')"
-                                            disabled={saving}
-                                            rows={3}
-                                            className={`bg-muted/30 border-border text-xs ${
-                                                validationErrors[
-                                                    `phase-${index}-rules`
-                                                ]
-                                                    ? "border-destructive focus-visible:ring-destructive"
-                                                    : ""
-                                            }`}
-                                        />
-                                        {validationErrors[
-                                            `phase-${index}-rules`
-                                        ] && (
-                                            <p className="text-destructive text-[9px]">
-                                                {
-                                                    validationErrors[
-                                                        `phase-${index}-rules`
-                                                    ]
-                                                }
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* Footer */}
-                    <DialogFooter className="border-border/20 border-t pt-2">
+                    <DialogFooter className="border-border/20 border-t pt-3">
                         <Button
                             type="button"
                             variant="ghost"
