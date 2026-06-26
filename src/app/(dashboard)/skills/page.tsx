@@ -69,19 +69,25 @@ function parseSkillMarkdown(content: string): {
 
 interface SkillCardProps {
     skill: UserSkillDocument;
+    currentUserId?: string;
     onEdit: (skill: UserSkillDocument) => void;
     onDelete: (id: string) => void;
     onShare: (skill: UserSkillDocument) => void;
     onExport: (skill: UserSkillDocument) => void;
+    onClone: (id: string) => void;
 }
 
 function SkillCard({
     skill,
+    currentUserId,
     onEdit,
     onDelete,
     onShare,
     onExport,
+    onClone,
 }: SkillCardProps) {
+    const isOwner = !currentUserId || skill.userId === currentUserId;
+
     return (
         <div className="group bg-card hover:border-foreground/20 flex flex-col justify-between overflow-hidden rounded-xl border p-5 transition-all duration-200">
             <div className="flex flex-col gap-3">
@@ -102,48 +108,84 @@ function SkillCard({
             </div>
 
             <div className="border-border/40 mt-5 flex min-h-9 items-center justify-between gap-2 border-t pt-3">
-                <div className="text-muted-foreground flex items-center gap-1 text-[10px] font-medium tracking-wide uppercase">
-                    <Calendar className="size-3" />
-                    <span>Updated {formatDate(skill.updatedAt)}</span>
-                </div>
-                <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 rounded-md"
-                        onClick={() => onShare(skill)}
-                        title="Share skill"
-                    >
-                        <Share2 className="size-3.5" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 rounded-md"
-                        onClick={() => onExport(skill)}
-                        title="Export skill"
-                    >
-                        <Download className="size-3.5" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 rounded-md"
-                        onClick={() => onEdit(skill)}
-                        title="Edit skill"
-                    >
-                        <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive size-7 rounded-md"
-                        onClick={() => onDelete(skill.id)}
-                        title="Delete skill"
-                    >
-                        <Trash2 className="size-3.5" />
-                    </Button>
-                </div>
+                {isOwner ? (
+                    <>
+                        <div className="text-muted-foreground flex items-center gap-1 text-[10px] font-medium tracking-wide uppercase">
+                            <Calendar className="size-3" />
+                            <span>Updated {formatDate(skill.updatedAt)}</span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 rounded-md"
+                                onClick={() => onShare(skill)}
+                                title="Share skill"
+                            >
+                                <Share2 className="size-3.5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 rounded-md"
+                                onClick={() => onExport(skill)}
+                                title="Export skill"
+                            >
+                                <Download className="size-3.5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 rounded-md"
+                                onClick={() => onEdit(skill)}
+                                title="Edit skill"
+                            >
+                                <Pencil className="size-3.5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive size-7 rounded-md"
+                                onClick={() => onDelete(skill.id)}
+                                title="Delete skill"
+                            >
+                                <Trash2 className="size-3.5" />
+                            </Button>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex w-full items-center justify-between gap-2">
+                        <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-[10px] font-medium tracking-wide uppercase">
+                            <Calendar className="size-3 shrink-0" />
+                            <span className="truncate">
+                                Updated {formatDate(skill.updatedAt)}
+                            </span>
+                            <span className="ml-1.5 rounded bg-blue-500/10 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-blue-500 uppercase">
+                                Shared
+                            </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 gap-1 px-2.5 text-[10px] font-semibold"
+                                onClick={() => onClone(skill.id)}
+                            >
+                                <Copy className="size-2.5" />
+                                Customize
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
+                                onClick={() => onExport(skill)}
+                                title="Export skill"
+                            >
+                                <Download className="size-3" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -560,10 +602,12 @@ export default function SkillsPage() {
                                 <SkillCard
                                     key={skill.id}
                                     skill={skill}
+                                    currentUserId={session?.user?.id}
                                     onEdit={handleEdit}
                                     onDelete={handleDelete}
                                     onShare={setShareTarget}
                                     onExport={handleExport}
+                                    onClone={handleClone}
                                 />
                             ))}
                         </div>
