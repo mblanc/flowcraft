@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
-    Workflow,
     Bot,
-    Globe,
-    Users,
+    Palette,
+    Sparkles,
+    Workflow,
     BookImage,
     Plus,
     ArrowRight,
@@ -16,31 +16,31 @@ import { Button } from "@/components/ui/button";
 
 const dashboardBoxes = [
     {
-        name: "Flows",
-        description: "Visual workflow builder for AI content generation",
-        href: "/flows",
-        icon: Workflow,
-        accent: true,
-    },
-    {
         name: "Agents",
         description: "Collaborative canvas for agent-driven media",
         href: "/agents",
         icon: Bot,
+        accent: true,
+    },
+    {
+        name: "Styles",
+        description: "Design and share visual style guidelines",
+        href: "/styles",
+        icon: Palette,
         accent: false,
     },
     {
-        name: "Community",
-        description: "Discover and share workflow templates",
-        href: "/community",
-        icon: Globe,
+        name: "Skills",
+        description: "Configure custom instructions and workflows",
+        href: "/skills",
+        icon: Sparkles,
         accent: false,
     },
     {
-        name: "Shared with me",
-        description: "Access workflows shared by your team",
-        href: "/shared",
-        icon: Users,
+        name: "Flows",
+        description: "Visual workflow builder for AI content generation",
+        href: "/flows",
+        icon: Workflow,
         accent: false,
     },
     {
