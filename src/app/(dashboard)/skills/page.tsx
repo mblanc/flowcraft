@@ -203,10 +203,74 @@ function ReadOnlySkillCard({
     );
 }
 
-type SkillsTab = "my" | "community";
+const BUILT_IN_SKILLS: UserSkillDocument[] = [
+    {
+        id: "character-generation",
+        userId: "system",
+        name: "character-generation",
+        description:
+            "Design and maintain consistent character references across multiple shots.",
+        instructions:
+            "# Character Generation\n\nDesign and maintain consistent character references across multiple shots.\n\n### Guidelines\n- Specify key features (e.g. hair color, style, age, clothing).\n- Reference previous node IDs (e.g. `@img-1`) to guide image models.",
+        visibility: "public",
+        sharedWith: [],
+        sharedWithEmails: [],
+        isTemplate: true,
+        createdAt: "2026-06-26T00:00:00Z",
+        updatedAt: "2026-06-26T00:00:00Z",
+    },
+    {
+        id: "multi-shot-video",
+        userId: "system",
+        name: "multi-shot-video",
+        description:
+            "Plan and generate multi-scene cinematic videos with precise continuity.",
+        instructions:
+            "# Multi-Shot Video\n\nPlan and generate multi-scene cinematic videos with precise continuity.\n\n### Guidelines\n- Define a script outlining visual changes across shots.\n- Use consistent styling tokens for all generated video clips.",
+        visibility: "public",
+        sharedWith: [],
+        sharedWithEmails: [],
+        isTemplate: true,
+        createdAt: "2026-06-26T00:00:00Z",
+        updatedAt: "2026-06-26T00:00:00Z",
+    },
+    {
+        id: "storyboard",
+        userId: "system",
+        name: "storyboard",
+        description:
+            "Sequence visual narratives, setting up frames, camera angles, and action cues.",
+        instructions:
+            "# Storyboard\n\nSequence visual narratives, setting up frames, camera angles, and action cues.\n\n### Guidelines\n- Break down the prompt into key sequential frames.\n- Specify camera movement (e.g. zoom, pan, tilt) and lighting constraints.",
+        visibility: "public",
+        sharedWith: [],
+        sharedWithEmails: [],
+        isTemplate: true,
+        createdAt: "2026-06-26T00:00:00Z",
+        updatedAt: "2026-06-26T00:00:00Z",
+    },
+    {
+        id: "virtual-tryon",
+        userId: "system",
+        name: "virtual-tryon",
+        description:
+            "Seamlessly map clothing, accessories, or styles onto a reference person node.",
+        instructions:
+            "# Virtual Try-On\n\nSeamlessly map clothing, accessories, or styles onto a reference person node.\n\n### Guidelines\n- Reference a person image node as base.\n- Specify target clothing items or accessories to map onto the person.",
+        visibility: "public",
+        sharedWith: [],
+        sharedWithEmails: [],
+        isTemplate: true,
+        createdAt: "2026-06-26T00:00:00Z",
+        updatedAt: "2026-06-26T00:00:00Z",
+    },
+];
+
+type SkillsTab = "my" | "built-in" | "community";
 
 const TAB_LABELS: Record<SkillsTab, string> = {
     my: "My Skills",
+    "built-in": "Built-in",
     community: "Templates",
 };
 
@@ -226,6 +290,11 @@ export default function SkillsPage() {
     );
 
     const fetchSkills = useCallback(async (tab: SkillsTab) => {
+        if (tab === "built-in") {
+            setSkills(BUILT_IN_SKILLS);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setSkills([]);
         try {
@@ -271,15 +340,47 @@ export default function SkillsPage() {
     const handleClone = useCallback(
         async (id: string) => {
             try {
-                const res = await fetch(`/api/skills/${id}/clone`, {
-                    method: "POST",
-                });
-                if (!res.ok) throw new Error("Failed to clone skill");
-                toast.success("Skill customized in your library");
+                const isBuiltIn = BUILT_IN_SKILLS.some((s) => s.id === id);
+                if (isBuiltIn) {
+                    const builtIn = BUILT_IN_SKILLS.find((s) => s.id === id)!;
+                    const baseName = `my-${builtIn.name}`;
+
+                    // Optimistically check if user already has it
+                    const res = await fetch("/api/skills", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            name: baseName,
+                            description: `Customized version of the built-in ${builtIn.name} skill.`,
+                            instructions: builtIn.instructions,
+                        }),
+                    });
+
+                    if (!res.ok) {
+                        const errData = await res.json();
+                        throw new Error(
+                            errData.error ||
+                                "Failed to customize built-in skill",
+                        );
+                    }
+
+                    toast.success("Built-in skill customized in your library");
+                } else {
+                    const res = await fetch(`/api/skills/${id}/clone`, {
+                        method: "POST",
+                    });
+                    if (!res.ok) throw new Error("Failed to clone skill");
+                    toast.success("Skill customized in your library");
+                }
+
                 setActiveTab("my");
                 void fetchSkills("my");
-            } catch {
-                toast.error("Failed to customize skill");
+            } catch (err) {
+                toast.error(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to customize skill",
+                );
             }
         },
         [fetchSkills],
@@ -434,7 +535,7 @@ export default function SkillsPage() {
 
             {/* Tab bar */}
             <div className="border-border flex gap-1 border-b">
-                {(["my", "community"] as SkillsTab[]).map((tab) => (
+                {(["my", "built-in", "community"] as SkillsTab[]).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -487,7 +588,9 @@ export default function SkillsPage() {
             ) : skills.length === 0 ? (
                 <div className="border-border flex h-48 flex-col items-center justify-center rounded-lg border border-dashed">
                     <p className="text-muted-foreground text-sm">
-                        No templates available
+                        {activeTab === "built-in"
+                            ? "No built-in skills available"
+                            : "No templates available"}
                     </p>
                 </div>
             ) : (
