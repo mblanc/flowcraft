@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { FlowDocument } from "@/lib/types";
 import type { CanvasDocument } from "@/lib/canvas/types";
+import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-urls";
+import { isGcsUri } from "@/lib/utils/gcs-uri";
 
 const dashboardBoxes = [
     {
@@ -74,14 +76,58 @@ export default function HomePage() {
                     fetch("/api/canvases?tab=my"),
                     fetch("/api/flows?tab=my"),
                 ]);
+
+                let canvasesData: CanvasDocument[] = [];
+                let flowsData: FlowDocument[] = [];
+
                 if (canvasRes.ok) {
                     const data = await canvasRes.json();
-                    setRecentCanvases((data.canvases ?? []).slice(0, 3));
+                    canvasesData = (data.canvases ?? []).slice(0, 3);
                 }
                 if (flowRes.ok) {
                     const data = await flowRes.json();
-                    setRecentFlows((data.flows ?? []).slice(0, 3));
+                    flowsData = (data.flows ?? []).slice(0, 3);
                 }
+
+                // Resolve GCS thumbnails in parallel
+                const resolveThumbnails = async <
+                    T extends { id: string; thumbnail?: string },
+                >(
+                    items: T[],
+                ): Promise<T[]> => {
+                    return Promise.all(
+                        items.map(async (item) => {
+                            if (item.thumbnail && isGcsUri(item.thumbnail)) {
+                                try {
+                                    const signedUrl =
+                                        await fetchAndCacheSignedUrl(
+                                            item.thumbnail,
+                                        );
+                                    if (signedUrl) {
+                                        return {
+                                            ...item,
+                                            thumbnail: signedUrl,
+                                        };
+                                    }
+                                } catch (error) {
+                                    console.error(
+                                        `Error resolving signed URL for ${item.id}:`,
+                                        error,
+                                    );
+                                }
+                            }
+                            return item;
+                        }),
+                    );
+                };
+
+                const [resolvedCanvases, resolvedFlows] = await Promise.all([
+                    resolveThumbnails(canvasesData),
+                    resolveThumbnails(flowsData),
+                ]);
+
+                setRecentCanvases(resolvedCanvases);
+                setRecentFlows(resolvedFlows);
             } catch (err) {
                 console.error("Failed to load recent home data", err);
             } finally {
