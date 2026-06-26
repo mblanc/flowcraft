@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -10,9 +11,12 @@ import {
     BookImage,
     Plus,
     ArrowRight,
+    Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import type { FlowDocument } from "@/lib/types";
+import type { CanvasDocument } from "@/lib/canvas/types";
 
 const dashboardBoxes = [
     {
@@ -56,6 +60,38 @@ export default function HomePage() {
     const router = useRouter();
     const { data: session, status } = useSession();
 
+    const [recentFlows, setRecentFlows] = useState<FlowDocument[]>([]);
+    const [recentCanvases, setRecentCanvases] = useState<CanvasDocument[]>([]);
+    const [fetchingFlows, setFetchingFlows] = useState(true);
+    const [fetchingCanvases, setFetchingCanvases] = useState(true);
+
+    useEffect(() => {
+        if (status !== "authenticated") return;
+
+        const loadRecentData = async () => {
+            try {
+                const [canvasRes, flowRes] = await Promise.all([
+                    fetch("/api/canvases?tab=my"),
+                    fetch("/api/flows?tab=my"),
+                ]);
+                if (canvasRes.ok) {
+                    const data = await canvasRes.json();
+                    setRecentCanvases((data.canvases ?? []).slice(0, 3));
+                }
+                if (flowRes.ok) {
+                    const data = await flowRes.json();
+                    setRecentFlows((data.flows ?? []).slice(0, 3));
+                }
+            } catch (err) {
+                console.error("Failed to load recent home data", err);
+            } finally {
+                setFetchingCanvases(false);
+                setFetchingFlows(false);
+            }
+        };
+        void loadRecentData();
+    }, [status]);
+
     if (status === "loading") {
         return null;
     }
@@ -63,6 +99,29 @@ export default function HomePage() {
     if (status === "unauthenticated") {
         router.push("/sign-in");
         return null;
+    }
+
+    function formatRelativeTime(dateStr: string): string {
+        try {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return "Just now";
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays === 1) return "Yesterday";
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+            });
+        } catch {
+            return "";
+        }
     }
 
     return (
@@ -127,6 +186,80 @@ export default function HomePage() {
                 ))}
             </div>
 
+            {/* Recent Agents */}
+            <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2
+                        className="text-foreground text-base font-semibold"
+                        style={{ letterSpacing: "-0.01em" }}
+                    >
+                        Recent agents
+                    </h2>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:bg-primary/5 gap-1 text-xs"
+                        onClick={() => router.push("/agents")}
+                    >
+                        View all <ArrowRight className="h-3 w-3" />
+                    </Button>
+                </div>
+                {fetchingCanvases ? (
+                    <div className="flex h-32 items-center justify-center">
+                        <Loader2 className="text-muted-foreground size-5 animate-spin" />
+                    </div>
+                ) : recentCanvases.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {recentCanvases.map((canvas) => (
+                            <div
+                                key={canvas.id}
+                                onClick={() =>
+                                    router.push(`/canvas/${canvas.id}`)
+                                }
+                                className="group border-border bg-card hover:border-primary/30 flex cursor-pointer flex-col gap-3 rounded-xl border p-3 transition-all duration-150"
+                            >
+                                <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+                                    {canvas.thumbnail ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={canvas.thumbnail}
+                                            alt={canvas.name}
+                                            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-102"
+                                        />
+                                    ) : (
+                                        <div className="from-primary/5 border-border/40 flex h-full w-full items-center justify-center border bg-gradient-to-br to-violet-500/5">
+                                            <Bot className="text-primary/30 size-8 transition-transform duration-200 group-hover:scale-105" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="min-w-0 space-y-0.5 px-0.5">
+                                    <h3 className="text-foreground group-hover:text-primary truncate text-xs font-semibold transition-colors">
+                                        {canvas.name}
+                                    </h3>
+                                    <p className="text-muted-foreground text-[9px] font-semibold tracking-wider uppercase">
+                                        Updated{" "}
+                                        {formatRelativeTime(canvas.updatedAt)}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div
+                        onClick={() => router.push("/agents")}
+                        className="border-border hover:border-primary/40 flex h-32 cursor-pointer flex-col items-start justify-between rounded-lg border border-dashed p-5 transition-colors duration-150"
+                    >
+                        <div className="bg-primary/10 flex h-9 w-9 items-center justify-center rounded-md">
+                            <Plus className="text-primary h-4 w-4" />
+                        </div>
+                        <p className="text-foreground text-sm font-medium">
+                            Start a new agent session
+                        </p>
+                    </div>
+                )}
+            </section>
+
+            {/* Recent Flows */}
             <section className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h2
@@ -144,7 +277,45 @@ export default function HomePage() {
                         View all <ArrowRight className="h-3 w-3" />
                     </Button>
                 </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {fetchingFlows ? (
+                    <div className="flex h-32 items-center justify-center">
+                        <Loader2 className="text-muted-foreground size-5 animate-spin" />
+                    </div>
+                ) : recentFlows.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {recentFlows.map((flow) => (
+                            <div
+                                key={flow.id}
+                                onClick={() => router.push(`/flow/${flow.id}`)}
+                                className="group border-border bg-card hover:border-primary/30 flex cursor-pointer flex-col gap-3 rounded-xl border p-3 transition-all duration-150"
+                            >
+                                <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+                                    {flow.thumbnail ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={flow.thumbnail}
+                                            alt={flow.name}
+                                            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-102"
+                                        />
+                                    ) : (
+                                        <div className="from-primary/5 border-border/40 flex h-full w-full items-center justify-center border bg-gradient-to-br to-emerald-500/5">
+                                            <Workflow className="text-primary/30 size-8 transition-transform duration-200 group-hover:scale-105" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="min-w-0 space-y-0.5 px-0.5">
+                                    <h3 className="text-foreground group-hover:text-primary truncate text-xs font-semibold transition-colors">
+                                        {flow.name}
+                                    </h3>
+                                    <p className="text-muted-foreground text-[9px] font-semibold tracking-wider uppercase">
+                                        Updated{" "}
+                                        {formatRelativeTime(flow.updatedAt)}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
                     <div
                         onClick={() => router.push("/flows")}
                         className="border-border hover:border-primary/40 flex h-32 cursor-pointer flex-col items-start justify-between rounded-lg border border-dashed p-5 transition-colors duration-150"
@@ -156,18 +327,7 @@ export default function HomePage() {
                             Create a new flow
                         </p>
                     </div>
-                    <div
-                        onClick={() => router.push("/agents")}
-                        className="border-border hover:border-primary/40 flex h-32 cursor-pointer flex-col items-start justify-between rounded-lg border border-dashed p-5 transition-colors duration-150"
-                    >
-                        <div className="bg-muted flex h-9 w-9 items-center justify-center rounded-md">
-                            <Bot className="text-muted-foreground h-4 w-4" />
-                        </div>
-                        <p className="text-foreground text-sm font-medium">
-                            Start a new agent session
-                        </p>
-                    </div>
-                </div>
+                )}
             </section>
         </div>
     );
