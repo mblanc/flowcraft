@@ -84,15 +84,11 @@ function SkillCard({
 }: SkillCardProps) {
     return (
         <div className="group bg-card hover:border-foreground/20 flex flex-col justify-between overflow-hidden rounded-xl border p-5 transition-all duration-200">
-            <div className="flex flex-col gap-3">
-                <div className="flex w-full min-w-0 items-center justify-between gap-3">
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                        <div className="bg-primary/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                            <Sparkles className="text-primary size-4" />
-                        </div>
-                        <span className="text-foreground truncate text-sm font-semibold tracking-tight">
-                            {skill.name}
-                        </span>
+            <div className="flex flex-col gap-3.5">
+                {/* Top Row: Icon on left, Actions on right */}
+                <div className="flex h-8 w-full items-center justify-between gap-2">
+                    <div className="bg-primary/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                        <Sparkles className="text-primary size-4" />
                     </div>
                     <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                         <Button
@@ -134,11 +130,17 @@ function SkillCard({
                     </div>
                 </div>
 
-                {skill.description && (
-                    <p className="text-muted-foreground line-clamp-2 text-xs leading-relaxed">
-                        {skill.description}
-                    </p>
-                )}
+                {/* Content Row: Full Name and Description */}
+                <div className="space-y-1">
+                    <h3 className="text-foreground text-sm leading-snug font-bold tracking-tight break-words">
+                        {skill.name}
+                    </h3>
+                    {skill.description && (
+                        <p className="text-muted-foreground text-xs leading-relaxed break-words">
+                            {skill.description}
+                        </p>
+                    )}
+                </div>
             </div>
 
             <div className="text-muted-foreground border-border/40 mt-5 flex items-center gap-1 border-t pt-3 text-[10px] font-medium tracking-wide uppercase">
@@ -160,15 +162,11 @@ function ReadOnlySkillCard({
 }) {
     return (
         <div className="group bg-card hover:border-foreground/20 flex flex-col justify-between overflow-hidden rounded-xl border p-5 transition-all duration-200">
-            <div className="flex flex-col gap-3">
-                <div className="flex w-full min-w-0 items-center justify-between gap-3">
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                        <div className="bg-primary/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                            <Sparkles className="text-primary size-4" />
-                        </div>
-                        <span className="text-foreground truncate text-sm font-semibold tracking-tight">
-                            {skill.name}
-                        </span>
+            <div className="flex flex-col gap-3.5">
+                {/* Top Row: Icon on left, Export on right */}
+                <div className="flex h-8 w-full items-center justify-between gap-2">
+                    <div className="bg-primary/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                        <Sparkles className="text-primary size-4" />
                     </div>
                     <Button
                         variant="ghost"
@@ -181,11 +179,17 @@ function ReadOnlySkillCard({
                     </Button>
                 </div>
 
-                {skill.description && (
-                    <p className="text-muted-foreground line-clamp-2 text-xs leading-relaxed">
-                        {skill.description}
-                    </p>
-                )}
+                {/* Content Row: Full Name and Description */}
+                <div className="space-y-1">
+                    <h3 className="text-foreground text-sm leading-snug font-bold tracking-tight break-words">
+                        {skill.name}
+                    </h3>
+                    {skill.description && (
+                        <p className="text-muted-foreground text-xs leading-relaxed break-words">
+                            {skill.description}
+                        </p>
+                    )}
+                </div>
             </div>
 
             <div className="border-border/40 mt-5 flex items-center gap-2 border-t pt-3">
