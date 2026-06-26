@@ -306,12 +306,12 @@ const BUILT_IN_SKILLS: UserSkillDocument[] = [
     },
 ];
 
-type SkillsTab = "my" | "built-in" | "community";
+type SkillsTab = "my" | "shared" | "community";
 
 const TAB_LABELS: Record<SkillsTab, string> = {
     my: "My Skills",
-    "built-in": "Built-in",
-    community: "Templates",
+    shared: "Shared with Me",
+    community: "Community",
 };
 
 export default function SkillsPage() {
@@ -330,18 +330,26 @@ export default function SkillsPage() {
     );
 
     const fetchSkills = useCallback(async (tab: SkillsTab) => {
-        if (tab === "built-in") {
-            setSkills(BUILT_IN_SKILLS);
-            setLoading(false);
-            return;
-        }
         setLoading(true);
         setSkills([]);
         try {
-            const res = await fetch(`/api/skills?tab=${tab}`);
-            if (!res.ok) throw new Error("Failed to fetch skills");
-            const data = (await res.json()) as { skills: UserSkillDocument[] };
-            setSkills(data.skills ?? []);
+            if (tab === "community") {
+                // Fetch templates and prepend hardcoded built-ins
+                const res = await fetch(`/api/skills?tab=community`);
+                if (!res.ok)
+                    throw new Error("Failed to fetch community templates");
+                const data = (await res.json()) as {
+                    skills: UserSkillDocument[];
+                };
+                setSkills([...BUILT_IN_SKILLS, ...(data.skills ?? [])]);
+            } else {
+                const res = await fetch(`/api/skills?tab=${tab}`);
+                if (!res.ok) throw new Error("Failed to fetch skills");
+                const data = (await res.json()) as {
+                    skills: UserSkillDocument[];
+                };
+                setSkills(data.skills ?? []);
+            }
         } catch {
             toast.error("Failed to load skills");
             setSkills([]);
@@ -575,7 +583,7 @@ export default function SkillsPage() {
 
             {/* Tab bar */}
             <div className="border-border flex gap-1 border-b">
-                {(["my", "built-in", "community"] as SkillsTab[]).map((tab) => (
+                {(["my", "shared", "community"] as SkillsTab[]).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -594,7 +602,7 @@ export default function SkillsPage() {
                 <div className="flex h-48 items-center justify-center">
                     <Loader2 className="text-muted-foreground size-6 animate-spin" />
                 </div>
-            ) : activeTab === "my" ? (
+            ) : activeTab === "my" || activeTab === "shared" ? (
                 <>
                     {skills.length > 0 ? (
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -614,25 +622,27 @@ export default function SkillsPage() {
                     ) : (
                         <div className="border-border flex h-48 flex-col items-center justify-center rounded-lg border border-dashed">
                             <p className="text-muted-foreground mb-4 text-sm">
-                                No custom skills yet
+                                {activeTab === "my"
+                                    ? "No custom skills yet"
+                                    : "No shared skills found"}
                             </p>
-                            <Button
-                                onClick={handleNew}
-                                size="sm"
-                                className="h-8 text-xs"
-                            >
-                                <Plus className="mr-2 size-3.5" />
-                                Create your first skill
-                            </Button>
+                            {activeTab === "my" && (
+                                <Button
+                                    onClick={handleNew}
+                                    size="sm"
+                                    className="h-8 text-xs"
+                                >
+                                    <Plus className="mr-2 size-3.5" />
+                                    Create your first skill
+                                </Button>
+                            )}
                         </div>
                     )}
                 </>
             ) : skills.length === 0 ? (
                 <div className="border-border flex h-48 flex-col items-center justify-center rounded-lg border border-dashed">
                     <p className="text-muted-foreground text-sm">
-                        {activeTab === "built-in"
-                            ? "No built-in skills available"
-                            : "No templates available"}
+                        No community skills or templates available
                     </p>
                 </div>
             ) : (

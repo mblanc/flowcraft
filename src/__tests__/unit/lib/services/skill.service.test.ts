@@ -83,19 +83,7 @@ describe("SkillService", () => {
             );
         });
 
-        it("should include shared skills if userEmail is provided", async () => {
-            const mockMySkills = [
-                {
-                    id: "my-skill",
-                    data: () => ({
-                        userId: "user-1",
-                        name: "my-skill",
-                        visibility: "private",
-                        updatedAt: "2026-06-25T12:00:00Z",
-                    }),
-                },
-            ];
-
+        it("should list shared skills when tab is shared and userEmail is provided", async () => {
             const mockSharedSkills = [
                 {
                     id: "shared-skill",
@@ -109,18 +97,16 @@ describe("SkillService", () => {
                 },
             ];
 
-            mockGet
-                .mockResolvedValueOnce({ docs: mockMySkills }) // first call for owned
-                .mockResolvedValueOnce({ docs: mockSharedSkills }); // second call for shared
+            mockGet.mockResolvedValueOnce({ docs: mockSharedSkills });
 
             const result = await skillService.listSkills(
                 "user-1",
                 "user1@example.com",
+                "shared",
             );
 
-            expect(result).toHaveLength(2);
-            expect(result[0].id).toBe("shared-skill"); // Sorted first by updatedAt desc
-            expect(result[1].id).toBe("my-skill");
+            expect(result).toHaveLength(1);
+            expect(result[0].id).toBe("shared-skill");
         });
     });
 

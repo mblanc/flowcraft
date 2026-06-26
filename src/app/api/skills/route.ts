@@ -4,7 +4,7 @@ import { skillService, type SkillListTab } from "@/lib/services/skill.service";
 import { CreateSkillSchema } from "@/lib/schemas";
 import logger from "@/app/logger";
 
-const SKILL_TABS: SkillListTab[] = ["my", "community"];
+const SKILL_TABS: SkillListTab[] = ["my", "shared", "community"];
 
 export const GET = withAuth(async (req, _context, session) => {
     try {

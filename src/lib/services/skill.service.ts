@@ -9,7 +9,7 @@ import { FieldValue } from "@google-cloud/firestore";
 import type { UserSkillDocument } from "@/lib/canvas/agent/skills/skill-types";
 import { isAdmin } from "@/lib/services/admin";
 
-export type SkillListTab = "my" | "community";
+export type SkillListTab = "my" | "shared" | "community";
 
 interface LegacySkillPhase {
     title: string;
@@ -102,6 +102,11 @@ export class SkillService {
             query = ref
                 .where("visibility", "==", "public")
                 .orderBy("updatedAt", "desc");
+        } else if (tab === "shared") {
+            if (!userEmail) return [];
+            query = ref
+                .where("sharedWithEmails", "array-contains", userEmail)
+                .orderBy("updatedAt", "desc");
         } else {
             query = ref
                 .where("userId", "==", userId)
@@ -110,32 +115,6 @@ export class SkillService {
 
         const snapshot = await query.get();
         const skills = snapshot.docs.map((doc) => this.transformDoc(doc));
-
-        // If listing 'my' skills, we also want to include those shared with the user's email
-        if (tab === "my" && userEmail) {
-            const sharedRef = this.firestore.collection(
-                COLLECTIONS.USER_SKILLS,
-            );
-            const sharedQuery = sharedRef
-                .where("sharedWithEmails", "array-contains", userEmail)
-                .orderBy("updatedAt", "desc");
-            const sharedSnapshot = await sharedQuery.get();
-            const sharedSkills = sharedSnapshot.docs.map((doc) =>
-                this.transformDoc(doc),
-            );
-
-            // Deduplicate in case any shared skill is also owned by the user (rare)
-            const ownedIds = new Set(skills.map((s) => s.id));
-            for (const skill of sharedSkills) {
-                if (!ownedIds.has(skill.id)) {
-                    skills.push(skill);
-                }
-            }
-
-            // Sort by updatedAt descending
-            skills.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-        }
-
         return skills;
     }
 
