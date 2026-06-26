@@ -5,13 +5,6 @@ import { Search, Copy, Loader2, Sparkles, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-    Card,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import type { UserSkillDocument } from "@/lib/canvas/agent/skills/skill-types";
@@ -65,13 +58,14 @@ export function SkillsLibrary() {
     const disabledSkills = useCanvasStore((s) => s.disabledSkills);
     const toggleDisabledSkill = useCanvasStore((s) => s.toggleDisabledSkill);
 
-    const [activeTab, setActiveTab] = useState<"my" | "built-in" | "community">(
+    const [activeTab, setActiveTab] = useState<"my" | "shared" | "community">(
         "my",
     );
     const [searchQuery, setSearchQuery] = useState("");
 
     // Skill state
     const [mySkills, setMySkills] = useState<UserSkillDocument[]>([]);
+    const [sharedSkills, setSharedSkills] = useState<UserSkillDocument[]>([]);
     const [communitySkills, setCommunitySkills] = useState<UserSkillDocument[]>(
         [],
     );
@@ -82,14 +76,19 @@ export function SkillsLibrary() {
     const loadSkills = async () => {
         setLoading(true);
         try {
-            const [myRes, commRes] = await Promise.all([
+            const [myRes, sharedRes, commRes] = await Promise.all([
                 fetch("/api/skills?tab=my"),
+                fetch("/api/skills?tab=shared"),
                 fetch("/api/skills?tab=community"),
             ]);
 
             if (myRes.ok) {
                 const data = await myRes.json();
                 setMySkills(data.skills ?? []);
+            }
+            if (sharedRes.ok) {
+                const data = await sharedRes.json();
+                setSharedSkills(data.skills ?? []);
             }
             if (commRes.ok) {
                 const data = await commRes.json();
@@ -222,9 +221,13 @@ export function SkillsLibrary() {
         const query = searchQuery.toLowerCase().trim();
         let list: ExtendedSkill[] = [];
 
-        if (activeTab === "my") list = mySkills;
-        else if (activeTab === "built-in") list = BUILT_IN_SKILLS;
-        else if (activeTab === "community") list = communitySkills;
+        if (activeTab === "my") {
+            list = mySkills;
+        } else if (activeTab === "shared") {
+            list = sharedSkills;
+        } else if (activeTab === "community") {
+            list = [...BUILT_IN_SKILLS, ...communitySkills];
+        }
 
         if (!query) return list;
 
@@ -233,7 +236,7 @@ export function SkillsLibrary() {
                 skill.name.toLowerCase().includes(query) ||
                 skill.description.toLowerCase().includes(query),
         );
-    }, [mySkills, communitySkills, activeTab, searchQuery]);
+    }, [mySkills, sharedSkills, communitySkills, activeTab, searchQuery]);
 
     return (
         <div className="flex h-full flex-col gap-4 p-4">
@@ -273,7 +276,7 @@ export function SkillsLibrary() {
 
                 {/* Segment tabs */}
                 <div className="bg-muted/40 border-border/40 flex rounded-lg border p-0.5">
-                    {(["my", "built-in", "community"] as const).map((tab) => (
+                    {(["my", "shared", "community"] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -285,9 +288,9 @@ export function SkillsLibrary() {
                         >
                             {tab === "my"
                                 ? "My Skills"
-                                : tab === "built-in"
-                                  ? "Built-in"
-                                  : "Templates"}
+                                : tab === "shared"
+                                  ? "Shared with Me"
+                                  : "Community"}
                         </button>
                     ))}
                 </div>
@@ -306,7 +309,7 @@ export function SkillsLibrary() {
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                         {filteredSkills.map((skill) => {
                             const isEnabled = !disabledSkills.includes(
                                 skill.name,
@@ -314,49 +317,49 @@ export function SkillsLibrary() {
                             const isLoading = actionLoading === skill.id;
 
                             return (
-                                <Card
+                                <div
                                     key={skill.id}
-                                    className="bg-card/40 border-border/60 hover:border-border shadow-sm transition-all"
+                                    className="border-border/40 bg-muted/10 hover:bg-muted/25 flex flex-col gap-1.5 rounded-lg border p-3 transition-colors"
                                 >
-                                    <CardHeader className="p-3 pb-2">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <CardTitle className="text-foreground flex items-center gap-1.5 truncate text-xs font-semibold">
-                                                    {skill.name}
-                                                    {skill.isBuiltIn && (
-                                                        <span className="bg-primary/10 text-primary rounded-full px-1.5 py-0.5 text-[8px] font-semibold tracking-wider uppercase">
-                                                            Built-in
-                                                        </span>
-                                                    )}
-                                                    {skill.isTemplate &&
-                                                        !skill.isBuiltIn && (
-                                                            <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-semibold tracking-wider text-emerald-500 uppercase">
-                                                                Template
-                                                            </span>
-                                                        )}
-                                                </CardTitle>
-                                                <CardDescription className="text-muted-foreground mt-1 line-clamp-2 text-[10px] leading-normal">
-                                                    {skill.description}
-                                                </CardDescription>
-                                            </div>
-                                            <div className="flex shrink-0 items-center space-x-2">
-                                                <Switch
-                                                    checked={isEnabled}
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) =>
-                                                        handleToggle(
-                                                            skill.name,
-                                                            checked,
-                                                        )
-                                                    }
-                                                    aria-label={`Toggle ${skill.name}`}
-                                                    className="scale-75"
-                                                />
-                                            </div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex min-w-0 items-center gap-1.5">
+                                            <Sparkles className="text-primary size-3.5 shrink-0" />
+                                            <span className="text-foreground truncate text-xs font-semibold">
+                                                {skill.name}
+                                            </span>
+                                            {skill.isBuiltIn && (
+                                                <span className="bg-primary/10 text-primary shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold tracking-wider uppercase">
+                                                    Built-in
+                                                </span>
+                                            )}
+                                            {skill.isTemplate &&
+                                                !skill.isBuiltIn && (
+                                                    <span className="shrink-0 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-emerald-500 uppercase">
+                                                        Template
+                                                    </span>
+                                                )}
                                         </div>
-                                    </CardHeader>
-                                    <CardFooter className="border-border/10 flex justify-end gap-1.5 border-t p-2 pt-1">
+                                        <Switch
+                                            checked={isEnabled}
+                                            onCheckedChange={(checked) =>
+                                                handleToggle(
+                                                    skill.name,
+                                                    checked,
+                                                )
+                                            }
+                                            aria-label={`Toggle ${skill.name}`}
+                                            className="shrink-0 scale-75"
+                                        />
+                                    </div>
+
+                                    {skill.description && (
+                                        <p className="text-muted-foreground line-clamp-2 text-[10px] leading-relaxed">
+                                            {skill.description}
+                                        </p>
+                                    )}
+
+                                    {/* Action Row */}
+                                    <div className="mt-0.5 flex items-center justify-between gap-2">
                                         {skill.isBuiltIn ? (
                                             <Button
                                                 variant="ghost"
@@ -367,20 +370,20 @@ export function SkillsLibrary() {
                                                     )
                                                 }
                                                 disabled={isLoading}
-                                                className="text-muted-foreground hover:text-foreground hover:bg-accent/50 h-6 gap-1 px-2 text-[10px]"
+                                                className="text-primary hover:text-primary hover:bg-primary/10 h-5 gap-1 px-1.5 text-[9px] font-semibold"
                                                 title="Clone to customize"
                                             >
                                                 {isLoading ? (
-                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
                                                 ) : (
-                                                    <Copy className="h-3 w-3" />
+                                                    <Copy className="h-2.5 w-2.5" />
                                                 )}
                                                 Customize
                                             </Button>
                                         ) : activeTab === "my" ? (
                                             <Link
                                                 href="/skills"
-                                                className="text-muted-foreground hover:text-foreground hover:bg-accent/50 flex h-6 items-center gap-1 rounded px-2 text-[10px] font-medium transition-colors"
+                                                className="text-primary hover:bg-primary/10 flex h-5 items-center gap-1 rounded px-1.5 text-[9px] font-semibold transition-colors"
                                                 title="Manage skill in dashboard"
                                             >
                                                 Manage{" "}
@@ -397,18 +400,18 @@ export function SkillsLibrary() {
                                                     )
                                                 }
                                                 disabled={isLoading}
-                                                className="text-muted-foreground hover:text-foreground hover:bg-accent/50 h-6 gap-1 px-2 text-[10px]"
+                                                className="text-primary hover:text-primary hover:bg-primary/10 h-5 gap-1 px-1.5 text-[9px] font-semibold"
                                             >
                                                 {isLoading ? (
-                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
                                                 ) : (
-                                                    <Copy className="h-3 w-3" />
-                                                )}{" "}
+                                                    <Copy className="h-2.5 w-2.5" />
+                                                )}
                                                 Customize
                                             </Button>
                                         )}
-                                    </CardFooter>
-                                </Card>
+                                    </div>
+                                </div>
                             );
                         })}
                     </div>
