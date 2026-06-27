@@ -154,6 +154,7 @@ export async function POST(
                     activeStyleName,
                     body.musicModel,
                     nodeTypeMap,
+                    canvas.nodes,
                 )) {
                     switch (stepEvent.type) {
                         case "step_start":

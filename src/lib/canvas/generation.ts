@@ -1,9 +1,17 @@
 import { randomUUID } from "crypto";
+import path from "path";
 import { libraryService } from "@/lib/services/library.service";
 import logger from "@/app/logger";
 import { topoSort } from "./agent/topology";
-import type { AgentPlan, GenerationStep, NodePayload, PlanEdge } from "./types";
+import type {
+    AgentPlan,
+    CanvasNode,
+    GenerationStep,
+    NodePayload,
+    PlanEdge,
+} from "./types";
 import { serverRegistry as registry } from "@/primitives/server-registry";
+import { PromptEngineer } from "./agent/prompt-engineer";
 
 export type StepEvent =
     | { type: "step_start"; stepId: string }
@@ -137,7 +145,37 @@ export async function* executePlan(
     activeStyleName?: string,
     defaultMusicModel?: string,
     nodeTypes?: Map<string, string>,
+    canvasNodes?: CanvasNode[],
 ): AsyncGenerator<StepEvent> {
+    let enrichedSteps = plan.steps;
+    if (canvasNodes && canvasNodes.length > 0) {
+        const SKILLS_DIR = path.join(
+            process.cwd(),
+            "src/lib/canvas/agent/skills",
+        );
+        const PRIMITIVES_DIR = path.join(SKILLS_DIR, "primitives");
+        const promptEngineer = new PromptEngineer(PRIMITIVES_DIR);
+        const activeStyle =
+            activeStyleName && activeStyleContent
+                ? { name: activeStyleName, content: activeStyleContent }
+                : null;
+        try {
+            logger.info(
+                `[CanvasGeneration] Running prompt engineering on ${plan.steps.length} plan steps`,
+            );
+            enrichedSteps = await promptEngineer.enrichSteps(
+                plan.steps,
+                canvasNodes,
+                activeStyle,
+            );
+        } catch (err) {
+            logger.error(
+                "[CanvasGeneration] Prompt engineering failed, falling back to raw steps:",
+                err,
+            );
+        }
+    }
+
     const ctx: ExecutionContext = {
         completedStepUris: new Map(),
         attachmentUris: nodeUris,
@@ -145,7 +183,7 @@ export async function* executePlan(
     };
 
     // Pre-populate all step types from the plan
-    for (const step of plan.steps) {
+    for (const step of enrichedSteps) {
         ctx.nodeTypes.set(step.id, step.type);
     }
 
@@ -156,9 +194,9 @@ export async function* executePlan(
         }
     }
 
-    const waves = buildExecutionWaves(plan.steps);
+    const waves = buildExecutionWaves(enrichedSteps);
     logger.info(
-        `[CanvasGeneration] Executing plan: ${plan.steps.length} steps in ${waves.length} wave(s)`,
+        `[CanvasGeneration] Executing plan: ${enrichedSteps.length} steps in ${waves.length} wave(s)`,
     );
 
     for (const wave of waves) {

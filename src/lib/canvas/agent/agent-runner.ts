@@ -7,7 +7,6 @@ import {
     type BaseSessionService,
     type Session,
 } from "@google/adk";
-import { PromptEngineer } from "./prompt-engineer";
 import { CanvasAgent } from "./canvas-agent";
 import { skillService } from "@/lib/services/skill.service";
 
@@ -26,13 +25,10 @@ import {
     buildStyleInstruction,
 } from "./prompts";
 import type { AgentEvent, AgentInput, ChatMessage } from "../types";
-import path from "path";
 
 export { extractAgentEvents } from "./event-extractor";
 
 const APP_NAME = "flowcraft-canvas";
-const SKILLS_DIR = path.join(process.cwd(), "src/lib/canvas/agent/skills");
-const PRIMITIVES_DIR = path.join(SKILLS_DIR, "primitives");
 
 export interface CanvasAgentRunnerConfig {
     sessionService?: BaseSessionService;
@@ -41,13 +37,10 @@ export interface CanvasAgentRunnerConfig {
 export class CanvasAgentRunner {
     private readonly sessionService: BaseSessionService;
     private readonly agent: CanvasAgent;
-    private readonly promptEngineer: PromptEngineer;
-
     constructor(runnerConfig: CanvasAgentRunnerConfig = {}) {
         this.sessionService =
             runnerConfig.sessionService ?? createSessionService();
         this.agent = new CanvasAgent();
-        this.promptEngineer = new PromptEngineer(PRIMITIVES_DIR);
     }
 
     async *stream(input: AgentInput): AsyncGenerator<AgentEvent> {
@@ -199,20 +192,7 @@ export class CanvasAgentRunner {
             );
 
             for await (const event of agentEvents) {
-                if (event.type === "plan") {
-                    yield {
-                        type: "agent_action",
-                        label: "Engineering prompts",
-                    };
-                    const enrichedSteps = await this.promptEngineer.enrichSteps(
-                        event.plan.steps,
-                        input.canvasNodes,
-                        input.activeStyle,
-                    );
-                    yield { type: "plan", plan: { steps: enrichedSteps } };
-                } else {
-                    yield event;
-                }
+                yield event;
             }
         } catch (error) {
             logger.error("[CanvasADK] stream error:", error);

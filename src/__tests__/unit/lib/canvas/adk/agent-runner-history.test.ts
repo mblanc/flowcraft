@@ -20,11 +20,6 @@ vi.mock("@/lib/config", () => ({
 vi.mock("@/app/logger", () => ({
     default: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
-vi.mock("@/lib/canvas/agent/prompt-engineer", () => ({
-    PromptEngineer: class {
-        enrichSteps = vi.fn(async (steps: unknown[]) => steps);
-    },
-}));
 vi.mock("@/lib/services/skill.service", () => ({
     skillService: {
         listSkills: vi.fn().mockResolvedValue([]),
