@@ -870,6 +870,7 @@ export function CanvasChatInput({
             updateMessage,
             getViewportCenter,
             centerOnNodes,
+            agentSettings.musicModel,
         ],
     );
 

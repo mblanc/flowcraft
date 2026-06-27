@@ -3,7 +3,7 @@
 import { memo, useState, useCallback } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { MusicData } from "@/lib/types";
-import { Music, Download } from "lucide-react";
+import { Music } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { NodeTitle } from "@/components/nodes/node-title";
 import { NodeActionBar } from "@/components/nodes/node-action-bar";
