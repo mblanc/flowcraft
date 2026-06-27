@@ -5,7 +5,8 @@ import path from "path";
 const alias = { "@": path.resolve(__dirname, "./src") };
 
 export default defineConfig({
-    plugins: [react()],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    plugins: [react() as any],
     test: {
         environment: "jsdom",
         globals: true,
