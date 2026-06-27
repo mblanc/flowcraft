@@ -68,7 +68,7 @@ export const POST = withAuth(async (_req) => {
 
         const safeDisplayName = file.name
             .replace(/[/\\]/g, "")
-            .replace(/[^\w.\-\s]/g, "")
+            .replace(/[^\p{L}\p{N}_.\-\s]/gu, "")
             .slice(0, 255);
 
         return NextResponse.json({

@@ -155,6 +155,7 @@ export function CanvasChatInput({
     const availableSkills = useMemo(() => {
         const BUILT_IN_SKILL_NAMES = [
             "character-generation",
+            "multi-shot-video",
             "storyboard",
             "virtual-tryon",
         ];

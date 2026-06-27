@@ -4,6 +4,7 @@ import { Download, Trash2, Loader2, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShareDialog } from "@/components/sharing/ShareDialog";
+import { downloadFile } from "@/lib/utils";
 
 interface LibraryAssetActionsProps {
     assetId: string;
@@ -24,21 +25,23 @@ export function LibraryAssetActions({
 }: LibraryAssetActionsProps) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [shareOpen, setShareOpen] = useState(false);
+    const [downloading, setDownloading] = useState(false);
 
     const handleDownload = async () => {
+        if (downloading) return;
+        setDownloading(true);
         try {
             const res = await fetch(
                 `/api/signed-url?gcsUri=${encodeURIComponent(gcsUri)}`,
             );
             if (!res.ok) throw new Error("Failed to get download URL");
             const { signedUrl } = (await res.json()) as { signedUrl: string };
-            const a = document.createElement("a");
-            a.href = signedUrl;
-            a.download = gcsUri.split("/").pop() ?? "asset";
-            a.target = "_blank";
-            a.click();
+            const filename = gcsUri.split("/").pop() ?? "asset";
+            await downloadFile(signedUrl, filename);
         } catch {
             toast.error("Download failed");
+        } finally {
+            setDownloading(false);
         }
     };
 
@@ -64,10 +67,15 @@ export function LibraryAssetActions({
             <div className="flex gap-2">
                 <button
                     onClick={handleDownload}
-                    className="border-border bg-background text-foreground hover:bg-muted flex flex-1 items-center justify-center gap-2 rounded-lg border py-2 text-sm font-medium transition-colors"
+                    disabled={downloading}
+                    className="border-border bg-background text-foreground hover:bg-muted flex flex-1 items-center justify-center gap-2 rounded-lg border py-2 text-sm font-medium transition-colors disabled:opacity-50"
                 >
-                    <Download className="h-4 w-4" />
-                    Download
+                    {downloading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <Download className="h-4 w-4" />
+                    )}
+                    {downloading ? "Downloading..." : "Download"}
                 </button>
                 {isOwner && (
                     <button

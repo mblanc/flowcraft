@@ -123,6 +123,16 @@ describe("POST /api/upload-file", () => {
         expect(body.fileName).not.toMatch(/[<>]/);
     });
 
+    it("preserves international characters (Unicode) in the filename while sanitizing malicious ones", async () => {
+        const res = await POST(
+            makeRequest(makeFile("图片_документ_café_<script>.png")),
+            {},
+        );
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.fileName).toBe("图片_документ_café_script.png");
+    });
+
     it("uses magic-byte-detected extension, not the client-supplied filename extension", async () => {
         mockFileTypeFromBuffer.mockResolvedValue({
             mime: "image/jpeg",

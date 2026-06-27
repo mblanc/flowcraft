@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { UserProfile } from "@/components/flow/user-profile";
 import type { LibraryAsset } from "@/lib/library-types";
+import { downloadFile } from "@/lib/utils";
 
 export default function AssetPublicPage() {
     const params = useParams();
@@ -18,6 +19,7 @@ export default function AssetPublicPage() {
     const [mediaUrl, setMediaUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -56,12 +58,18 @@ export default function AssetPublicPage() {
         toast.success("Link copied to clipboard");
     };
 
-    const handleDownload = () => {
-        if (!mediaUrl || !asset) return;
-        const a = document.createElement("a");
-        a.href = mediaUrl;
-        a.download = `asset-${asset.id}.${asset.mimeType.split("/")[1] ?? "bin"}`;
-        a.click();
+    const handleDownload = async () => {
+        if (!mediaUrl || !asset || downloading) return;
+        setDownloading(true);
+        try {
+            const ext = asset.mimeType.split("/")[1] ?? "bin";
+            await downloadFile(mediaUrl, `asset-${asset.id}.${ext}`);
+        } catch (err) {
+            console.error("Failed to download asset:", err);
+            toast.error("Failed to download asset");
+        } finally {
+            setDownloading(false);
+        }
     };
 
     if (loading || status === "loading") {
@@ -133,9 +141,17 @@ export default function AssetPublicPage() {
                             Copy link
                         </Button>
                         {mediaUrl && (
-                            <Button size="sm" onClick={handleDownload}>
-                                <Download className="mr-2 h-3.5 w-3.5" />
-                                Download
+                            <Button
+                                size="sm"
+                                onClick={handleDownload}
+                                disabled={downloading}
+                            >
+                                {downloading ? (
+                                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                    <Download className="mr-2 h-3.5 w-3.5" />
+                                )}
+                                {downloading ? "Downloading..." : "Download"}
                             </Button>
                         )}
                     </div>

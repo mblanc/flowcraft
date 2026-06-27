@@ -19,12 +19,19 @@ async function onMediaGenerated(
     if (!userId || !flowId) return;
     const primitive = registry.getByFlowType(node.data.type);
     if (!primitive?.flow?.saveToLibrary) return;
-    await primitive.flow.saveToLibrary(node, result, {
-        userId,
-        flowId,
-        flowName: ctx.flowName,
-        fetch: ctx.fetch ?? fetch,
-    });
+    try {
+        await primitive.flow.saveToLibrary(node, result, {
+            userId,
+            flowId,
+            flowName: ctx.flowName,
+            fetch: ctx.fetch ?? fetch,
+        });
+    } catch (error) {
+        logger.error(
+            `Failed to save node ${node.id} output to library:`,
+            error,
+        );
+    }
 }
 
 async function signedUrlPrefetch(uris: string[]): Promise<void> {

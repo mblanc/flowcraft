@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Loader2, AlertCircle, Info, Sparkles, Eye, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,27 +51,31 @@ export function SkillEditor({
         Record<string, string>
     >({});
 
-    // Reset form when modal opens/closes or skill changes
-    useEffect(() => {
+    // Track previous props to reset state during rendering
+    const [prevOpen, setPrevOpen] = useState(open);
+    const [prevInitialSkill, setPrevInitialSkill] = useState(initialSkill);
+
+    if (open !== prevOpen || initialSkill !== prevInitialSkill) {
+        setPrevOpen(open);
+        setPrevInitialSkill(initialSkill);
+
         if (open) {
-            setTimeout(() => {
-                setError(null);
-                setValidationErrors({});
-                setActiveTab("write");
-                if (initialSkill) {
-                    setName(initialSkill.name ?? "");
-                    setDescription(initialSkill.description ?? "");
-                    setInstructions(initialSkill.instructions ?? "");
-                } else {
-                    setName("");
-                    setDescription("");
-                    setInstructions(
-                        "# Custom Skill Instructions\n\nUse this skill to guide the AI Director.\n\n### Rules\n- Rule 1: Always do X\n- Rule 2: Never do Y\n",
-                    );
-                }
-            }, 0);
+            setError(null);
+            setValidationErrors({});
+            setActiveTab("write");
+            if (initialSkill) {
+                setName(initialSkill.name ?? "");
+                setDescription(initialSkill.description ?? "");
+                setInstructions(initialSkill.instructions ?? "");
+            } else {
+                setName("");
+                setDescription("");
+                setInstructions(
+                    "# Custom Skill Instructions\n\nUse this skill to guide the AI Director.\n\n### Rules\n- Rule 1: Always do X\n- Rule 2: Never do Y\n",
+                );
+            }
         }
-    }, [open, initialSkill]);
+    }
 
     // Normalize name to kebab-case
     const handleNameChange = (val: string) => {
