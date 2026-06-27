@@ -244,7 +244,7 @@ export function FlowCanvas() {
 
             if (!isHighlighted && !isCollection) return edge;
 
-            const baseStyle: Record<string, unknown> = { ...edge.style };
+            const baseStyle: React.CSSProperties = { ...edge.style };
             const sourceNodeType = sourceNodeData.type;
 
             if (isCollection) {
