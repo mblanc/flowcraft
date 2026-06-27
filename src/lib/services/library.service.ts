@@ -1,4 +1,4 @@
-import { getFirestore, formatFirestoreTimestamp } from "@/lib/firestore";
+import { getFirestore, formatFirestoreTimestamp } from "@/lib/db/firestore";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 import type {
@@ -27,6 +27,8 @@ export class LibraryService {
             model: data?.model as string | undefined,
             tags: (data?.tags ?? []) as string[],
             provenance: data?.provenance as LibraryAsset["provenance"],
+            visibility: (data?.visibility ??
+                "private") as LibraryAsset["visibility"],
             createdAt: formatFirestoreTimestamp(data?.createdAt),
         };
     }
@@ -48,32 +50,52 @@ export class LibraryService {
         return this.transformDoc(doc);
     }
 
+    static readonly MAX_ASSETS_LIMIT = 200;
+    static readonly DEFAULT_ASSETS_LIMIT = 50;
+
     async listAssets(
         userId: string,
         type?: LibraryAssetType,
-        options?: { before?: Date; limit?: number; search?: string },
+        options?: {
+            before?: Date;
+            limit?: number;
+            search?: string;
+            visibility?: "private" | "public";
+        },
     ): Promise<LibraryAsset[]> {
         logger.debug(
             `[LibraryService] Listing assets for user: ${userId}, type: ${type ?? "all"}`,
         );
-        let query = this.firestore
-            .collection(COLLECTIONS.LIBRARY_ASSETS)
-            .where("userId", "==", userId)
-            .orderBy("createdAt", "desc") as FirebaseFirestore.Query;
 
-        if (type) {
+        const ref = this.firestore.collection(COLLECTIONS.LIBRARY_ASSETS);
+        const isPublicBrowse = options?.visibility === "public";
+        let query: FirebaseFirestore.Query;
+
+        if (isPublicBrowse) {
+            query = ref
+                .where("visibility", "==", "public")
+                .orderBy("createdAt", "desc");
+        } else {
+            query = ref
+                .where("userId", "==", userId)
+                .orderBy("createdAt", "desc");
+        }
+
+        if (type && !isPublicBrowse) {
             query = query.where("type", "==", type);
         }
 
-        if (!options?.search) {
-            if (options?.before) {
-                query = query.where("createdAt", "<", options.before);
-            }
-
-            if (options?.limit) {
-                query = query.limit(options.limit);
-            }
+        if (options?.before && !options?.search) {
+            query = query.where("createdAt", "<", options.before);
         }
+
+        const requestedLimit =
+            options?.limit ?? LibraryService.DEFAULT_ASSETS_LIMIT;
+        const enforcedLimit = Math.min(
+            requestedLimit,
+            LibraryService.MAX_ASSETS_LIMIT,
+        );
+        query = query.limit(enforcedLimit);
 
         const snapshot = await query.get();
         const assets = snapshot.docs.map((doc) => this.transformDoc(doc));
@@ -101,7 +123,8 @@ export class LibraryService {
         if (!doc.exists) return null;
 
         const asset = this.transformDoc(doc);
-        if (asset.userId !== userId) return null;
+        if (asset.userId !== userId && asset.visibility !== "public")
+            return null;
 
         return asset;
     }
@@ -121,6 +144,26 @@ export class LibraryService {
         if (doc.data()?.userId !== userId) throw new Error("Unauthorized");
 
         await ref.update({ tags });
+    }
+
+    async updateAsset(
+        id: string,
+        userId: string,
+        data: { visibility: "private" | "public" },
+    ): Promise<LibraryAsset> {
+        logger.info(`[LibraryService] Updating asset visibility: ${id}`);
+        const ref = this.firestore
+            .collection(COLLECTIONS.LIBRARY_ASSETS)
+            .doc(id);
+        const doc = await ref.get();
+
+        if (!doc.exists) throw new Error("Asset not found");
+        if (doc.data()?.userId !== userId) throw new Error("Unauthorized");
+
+        await ref.update({ visibility: data.visibility });
+
+        const updated = await ref.get();
+        return this.transformDoc(updated);
     }
 
     async deleteAsset(id: string, userId: string): Promise<void> {

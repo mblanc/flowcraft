@@ -17,13 +17,12 @@ import { useSession } from "next-auth/react";
 import "@xyflow/react/dist/style.css";
 import { type NodeData, type CustomWorkflowData } from "@/lib/types";
 import { FloatingNodePalette } from "./floating-node-palette";
-import { getSourcePortType, getTargetPortType } from "@/lib/node-registry";
+import { getSourcePortType, getTargetPortType } from "@/lib/flow/node-registry";
 import { isTypeCompatible } from "@/lib/utils";
 import { MousePointer2, Hand } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
 import { useShallow } from "zustand/react/shallow";
-import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { useTheme } from "next-themes";
 import logger from "@/app/logger";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,7 +36,6 @@ import {
 } from "./flow-constants";
 import { FlowContextMenu } from "./flow-context-menu";
 import { NodeConnectionDropdown } from "./node-connection-dropdown";
-import { FlowRunPanel } from "./flow-run-panel";
 import { useFlowShortcuts } from "@/hooks/use-flow-shortcuts";
 import { useFlowDragDrop } from "@/hooks/use-flow-drag-drop";
 import { useNodeConnection } from "@/hooks/use-node-connection";
@@ -58,7 +56,6 @@ export function FlowCanvas() {
         flowId,
         entityType,
         addNodeWithType,
-        isRunning,
         ownerId,
         sharedWith,
     } = useFlowStore(
@@ -69,12 +66,10 @@ export function FlowCanvas() {
             flowId: state.flowId,
             entityType: state.entityType,
             addNodeWithType: state.addNodeWithType,
-            isRunning: state.isRunning,
             ownerId: state.ownerId,
             sharedWith: state.sharedWith,
         })),
     );
-    const { runFlow, runSelectedNodes } = useFlowExecution();
     const { resolvedTheme } = useTheme();
     const { data: session } = useSession();
 
@@ -249,7 +244,7 @@ export function FlowCanvas() {
 
             if (!isHighlighted && !isCollection) return edge;
 
-            const baseStyle: Record<string, unknown> = { ...edge.style };
+            const baseStyle: React.CSSProperties = { ...edge.style };
             const sourceNodeType = sourceNodeData.type;
 
             if (isCollection) {
@@ -376,13 +371,6 @@ export function FlowCanvas() {
                         >
                             {flowBackground}
                             {flowControls}
-                            <FlowRunPanel
-                                isRunning={isRunning}
-                                hasSelectedNodes={nodes.some((n) => n.selected)}
-                                onRunFlow={runFlow}
-                                onRunSelectedNodes={runSelectedNodes}
-                            />
-
                             <NodeConnectionDropdown
                                 dropdownOpen={dropdownOpen}
                                 dropdownVisualPosition={dropdownVisualPosition}

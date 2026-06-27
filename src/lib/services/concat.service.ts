@@ -165,16 +165,23 @@ export class ConcatService {
                 // clipVideoBase anchors the first packet to exactly timeOffset,
                 // avoiding negative timestamps from clips whose display timestamps
                 // start slightly before 0 (e.g. B-frame offsets like -0.033s).
+                let clipVideoEnd = timeOffset;
                 const videoSink = new EncodedPacketSink(videoTrack);
                 let clipVideoBase: number | null = null;
                 let isFirstVideoPacket = i === 0;
                 for await (const packet of videoSink.packets()) {
                     if (clipVideoBase === null)
                         clipVideoBase = packet.timestamp;
+                    const shiftedTs =
+                        packet.timestamp - clipVideoBase + timeOffset;
+                    clipVideoEnd = Math.max(
+                        clipVideoEnd,
+                        shiftedTs + packet.duration,
+                    );
                     const shifted = new EncodedPacket(
                         packet.data,
                         packet.type,
-                        packet.timestamp - clipVideoBase + timeOffset,
+                        shiftedTs,
                         packet.duration,
                     );
                     if (isFirstVideoPacket) {
@@ -188,6 +195,7 @@ export class ConcatService {
                 }
 
                 // Pipe audio packets with timestamp offset (if present)
+                let clipAudioEnd = timeOffset;
                 if (audioTrack && audioSource && audioConfig) {
                     const audioSink = new EncodedPacketSink(audioTrack);
                     let clipAudioBase: number | null = null;
@@ -195,10 +203,16 @@ export class ConcatService {
                     for await (const packet of audioSink.packets()) {
                         if (clipAudioBase === null)
                             clipAudioBase = packet.timestamp;
+                        const shiftedTs =
+                            packet.timestamp - clipAudioBase + timeOffset;
+                        clipAudioEnd = Math.max(
+                            clipAudioEnd,
+                            shiftedTs + packet.duration,
+                        );
                         const shifted = new EncodedPacket(
                             packet.data,
                             packet.type,
-                            packet.timestamp - clipAudioBase + timeOffset,
+                            shiftedTs,
                             packet.duration,
                         );
                         if (isFirstAudioPacket) {
@@ -212,10 +226,15 @@ export class ConcatService {
                     }
                 }
 
-                timeOffset += clipDuration;
-                logger.debug(
-                    `[ConcatService] Clip ${i + 1}/${inputs.length} piped, duration=${clipDuration.toFixed(3)}s`,
+                const nextOffset = Math.max(
+                    timeOffset + clipDuration,
+                    clipVideoEnd,
+                    clipAudioEnd,
                 );
+                logger.debug(
+                    `[ConcatService] Clip ${i + 1}/${inputs.length} piped: metadataDuration=${clipDuration.toFixed(3)}s, videoEnd=${clipVideoEnd.toFixed(3)}s, audioEnd=${clipAudioEnd.toFixed(3)}s, nextOffset=${nextOffset.toFixed(3)}s`,
+                );
+                timeOffset = nextOffset;
             }
 
             videoSource.close();

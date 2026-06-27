@@ -1,11 +1,32 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/utils/api";
-import { canvasService } from "@/lib/services/canvas.service";
+import {
+    canvasService,
+    type CanvasListTab,
+} from "@/lib/services/canvas.service";
+import { CanvasCreateSchema } from "@/lib/schemas";
 import logger from "@/app/logger";
 
-export const GET = withAuth(async (_req, _context, session) => {
+const CANVAS_TABS: CanvasListTab[] = ["my", "shared", "community"];
+
+export const GET = withAuth(async (req, _context, session) => {
     try {
-        const canvases = await canvasService.listCanvases(session.user!.id!);
+        const { searchParams } = new URL(req.url);
+        const tabParam = searchParams.get("tab") ?? "my";
+        if (!CANVAS_TABS.includes(tabParam as CanvasListTab)) {
+            return NextResponse.json(
+                {
+                    error: `Invalid tab. Must be one of: ${CANVAS_TABS.join(", ")}`,
+                },
+                { status: 400 },
+            );
+        }
+        const tab = tabParam as CanvasListTab;
+        const canvases = await canvasService.listCanvases(
+            session.user!.id!,
+            session.user!.email ?? undefined,
+            tab,
+        );
         return NextResponse.json({ canvases });
     } catch (error) {
         logger.error("Error fetching canvases:", error);
@@ -18,18 +39,16 @@ export const GET = withAuth(async (_req, _context, session) => {
 
 export const POST = withAuth(async (req, _context, session) => {
     try {
-        const body = await req.json();
-        const name = body.name?.trim();
-
-        if (!name) {
+        const parsed = CanvasCreateSchema.safeParse(await req.json());
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Name is required" },
+                { error: parsed.error.flatten().fieldErrors },
                 { status: 400 },
             );
         }
 
         const canvas = await canvasService.createCanvas(session.user!.id!, {
-            name,
+            name: parsed.data.name.trim(),
         });
         return NextResponse.json(canvas);
     } catch (error) {

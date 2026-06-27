@@ -1,0 +1,119 @@
+---
+title: "Flow Editor"
+description: "Build automated AI generation pipelines with a visual drag-and-drop editor."
+---
+
+The **Flow Editor** is a visual workspace for building automated AI generation pipelines. You place nodes on a canvas, connect them with edges, and run the whole chain — or individual steps — on demand. Think of it like a factory production line: each node is a machine, each edge is a conveyor belt passing output from one machine to the next.
+
+---
+
+## Interface Layout
+
+![Flow Editor showing the node palette, connected nodes on the canvas, and the config panel](public/images/flow.png)
+
+---
+
+## Header Controls
+
+The top bar of the Flow Editor contains four controls:
+
+| Control             | Description                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Title**           | Click to rename the flow. The name is saved automatically.                                                                                 |
+| **Save Status**     | Shows _Saving…_ or _Saved_. Saving happens automatically — no manual save needed.                                                          |
+| **Share**           | (Owner only) Opens a dialog to invite collaborators by email or publish the flow as a community template visible to other FlowCraft users. |
+| **Export / Import** | **Export**: Download the entire flow as a JSON file. **Import**: Load a previously exported `.json` file to restore or share a workflow.   |
+
+---
+
+## Node Palette
+
+The **floating `+` button** on the left side of the canvas opens the node palette. Nodes are organized in a 3-column grid by category.
+
+**Ways to add a node:**
+
+- **Click** a node in the palette to add it at the center of the visible canvas
+- **Drag** a node from the palette and drop it at a specific position on the canvas
+- **Right-click** any empty area of the canvas to open the same node list as a context menu
+
+---
+
+## Right-Click Context Menu
+
+Right-clicking on empty canvas space opens a context menu with:
+
+- A list of all native node types, grouped by category
+- Workflow Input / Workflow Output nodes (if you are editing a Custom Workflow)
+- Any saved Custom Workflow nodes from your library
+
+Clicking a node type from the context menu places it at the right-click position.
+
+---
+
+## Connecting Nodes
+
+Every node has **handles** on its edges:
+
+- **Input handles** (left side): receive data from an upstream node
+- **Output handles** (right side): send data to downstream nodes
+
+**To connect:** Click and hold an output handle, drag to an input handle on another node, release. A colored edge appears between them. The data type flows automatically when the workflow runs.
+
+**To delete a connection:** Click the edge to select it, then press `Backspace` or `Delete`.
+
+---
+
+## Node Action Bar
+
+When you hover over a node, a small action bar appears above it with up to seven buttons:
+
+| Button               | Action                                                               |
+| -------------------- | -------------------------------------------------------------------- |
+| ▶ **Generate**       | Execute just this node using its current inputs                      |
+| ⏩ **Run From Here** | Execute this node and all downstream nodes that depend on its output |
+| **Run To Here**      | Execute all upstream dependencies first, then this node              |
+| ⚙ **Settings**       | Open this node's configuration in the Config Panel on the right      |
+| ⤢ **Fullscreen**     | View the node's current output (image or video) at full size         |
+| ↓ **Download**       | Download the node's current output to your computer                  |
+| 🗑 **Delete**        | Remove this node and all its connected edges from the canvas         |
+
+The action bar is hidden during execution and when multiple nodes are selected.
+
+**Batch progress indicator:** If a node is running in batch mode, the action bar shows a counter (e.g. `3 / 10`) instead of the generate button while results come in.
+
+---
+
+## Config Panel
+
+Clicking any node (or pressing the ⚙ button in its action bar) opens the **Config Panel** on the right side of the screen. The panel is specific to each node type and contains:
+
+- **Name** — rename the node; the name is used in `@` mention references
+- **Model** — choose which AI model to use for this node
+- **Instructions / Prompt** — write your request; supports `@node-name` to reference upstream outputs
+- Type-specific controls (aspect ratio, resolution, duration, output format, schema editor, etc.)
+
+All changes in the Config Panel are saved immediately.
+
+---
+
+## Visual Feedback During Execution
+
+While a node is running:
+
+- An animated **beam glow** pulses around the node border
+- The node displays a spinning indicator
+
+When a node finishes:
+
+- Its output (text, image, or video thumbnail) appears inside the node preview
+
+If an error occurs:
+
+- A red error message is displayed inside the node
+- You can hover the error to see the full message
+
+---
+
+## Batch Mode
+
+Connect a **List Node** to any generation node and that node automatically runs once per item in the list — no configuration required. See [Building & Running Workflows](/flow-editor/engine) for a full walkthrough.

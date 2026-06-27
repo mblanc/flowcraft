@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Sparkles, Image, Video } from "lucide-react";
+import { Settings, Sparkles, Image, Video, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -33,6 +33,7 @@ export interface AgentSettings {
     videoResolution: string;
     videoDuration: string;
     videoGenerateAudio: boolean;
+    musicModel: string;
 }
 
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
@@ -46,6 +47,7 @@ export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
     videoResolution: "auto",
     videoDuration: "auto",
     videoGenerateAudio: false,
+    musicModel: MODELS.MUSIC.LYRIA_3_CLIP,
 };
 
 const LLM_MODELS = [
@@ -298,6 +300,40 @@ export function CanvasAgentSettingsDialog({
                                     </SelectContent>
                                 </Select>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="border-border border-t" />
+
+                    {/* Music */}
+                    <div className="space-y-3">
+                        <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                            Music Generation
+                        </p>
+                        <div className="space-y-1.5">
+                            <Label className="flex items-center gap-1.5">
+                                <Music className="size-3.5" /> Model
+                            </Label>
+                            <Select
+                                value={draft.musicModel}
+                                onValueChange={(v) => update("musicModel", v)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        value={MODELS.MUSIC.LYRIA_3_CLIP}
+                                    >
+                                        Lyria 3 Clip — short clip (~30s)
+                                    </SelectItem>
+                                    <SelectItem
+                                        value={MODELS.MUSIC.LYRIA_3_PRO}
+                                    >
+                                        Lyria 3 Pro — full song
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 

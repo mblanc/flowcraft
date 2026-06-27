@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { memo, useState, useEffect, useRef } from "react";
-import { useNodeResize } from "@/hooks/use-node-resize";
+import { useMediaNodeResize } from "@/hooks/use-media-node-resize";
 import { useSyncedState } from "@/hooks/use-synced-state";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
@@ -27,7 +27,7 @@ export const TextNode = memo(
         const selectNode = useFlowStore((state) => state.selectNode);
         const deleteNode = useFlowStore((state) => state.deleteNode);
         const [localText, setLocalText] = useSyncedState(data.text);
-        const { dimensions, handleResizeStart } = useNodeResize(
+        const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,
             data.width,
             data.height,
@@ -37,6 +37,7 @@ export const TextNode = memo(
                 minWidth: 200,
                 minHeight: 120,
             },
+            updateNodeData,
         );
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [isHovered, setIsHovered] = useState(false);

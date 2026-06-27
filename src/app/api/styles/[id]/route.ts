@@ -5,6 +5,7 @@ import {
     StyleNotFoundError,
     StyleForbiddenError,
 } from "@/lib/services/style.service";
+import { StyleUpdateSchema } from "@/lib/schemas";
 import logger from "@/app/logger";
 
 type Context = { params: Promise<{ id: string }> };
@@ -24,7 +25,11 @@ function handleStyleError(error: unknown, operation: string) {
 export const GET = withAuth(async (_req, context: Context, session) => {
     try {
         const { id } = await context.params;
-        const style = await styleService.getStyle(id, session.user!.id!);
+        const style = await styleService.getStyle(
+            id,
+            session.user!.id!,
+            session.user!.email ?? undefined,
+        );
         return NextResponse.json(style);
     } catch (error) {
         return handleStyleError(error, "fetching");
@@ -34,9 +39,17 @@ export const GET = withAuth(async (_req, context: Context, session) => {
 export const PUT = withAuth(async (req, context: Context, session) => {
     try {
         const { id } = await context.params;
-        const body = await req.json();
+        const parsed = StyleUpdateSchema.safeParse(await req.json());
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.flatten().fieldErrors },
+                { status: 400 },
+            );
+        }
 
-        const contentStr: string = body.content ?? "";
+        const { content, name, description, ...rest } = parsed.data;
+
+        const contentStr = content ?? "";
         if (Buffer.byteLength(contentStr, "utf8") > 800 * 1024) {
             return NextResponse.json(
                 { error: "Style content exceeds maximum size (800 KB)" },
@@ -44,12 +57,17 @@ export const PUT = withAuth(async (req, context: Context, session) => {
             );
         }
 
-        const style = await styleService.updateStyle(id, session.user!.id!, {
-            name: body.name?.trim(),
-            description: body.description?.trim(),
-            content: body.content,
-            referenceImageUris: body.referenceImageUris,
-        });
+        const style = await styleService.updateStyle(
+            id,
+            session.user!.id!,
+            {
+                name: name?.trim(),
+                description: description?.trim(),
+                content,
+                ...rest,
+            },
+            session.user!.email ?? undefined,
+        );
         return NextResponse.json(style);
     } catch (error) {
         return handleStyleError(error, "updating");

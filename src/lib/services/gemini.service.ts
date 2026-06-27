@@ -23,7 +23,7 @@ import {
     SupportedMimeType,
     MODEL_THINKING_LEVELS,
 } from "../constants";
-import type { ContentPart } from "../types";
+import type { ContentPart, MediaRef } from "../types";
 
 const DATA_URI_REGEX = /^data:([^;]+);base64,(.+)$/;
 
@@ -53,7 +53,7 @@ function contentPartToSdkPart(
 export interface GenerateTextOptions {
     prompts?: string[];
     parts?: ContentPart[];
-    files?: Array<{ url: string; type: string }>;
+    files?: MediaRef[];
     model?: string;
     outputType?: "text" | "json";
     responseSchema?: string;
@@ -65,7 +65,7 @@ export interface GenerateTextOptions {
 export interface GenerateImageOptions {
     prompt?: string;
     parts?: ContentPart[];
-    images?: Array<{ url: string; type: string }>;
+    images?: MediaRef[];
     aspectRatio?: string;
     model?: string;
     imageSize?: string;
@@ -79,7 +79,7 @@ export interface GenerateVideoOptions {
     prompt: string;
     firstFrame?: string;
     lastFrame?: string;
-    images?: Array<{ url: string; type: string }>;
+    images?: MediaRef[];
     aspectRatio?: string;
     duration?: number;
     model?: string;
@@ -165,9 +165,23 @@ export class GeminiService {
             generationConfig.responseMimeType = "application/json";
             if (responseSchema) {
                 try {
-                    generationConfig.responseSchema = JSON.parse(
-                        responseSchema,
-                    ) as Record<string, unknown>;
+                    if (responseSchema.length > 8192) {
+                        throw new Error(
+                            "responseSchema exceeds maximum length",
+                        );
+                    }
+                    const parsed = JSON.parse(responseSchema);
+                    if (
+                        typeof parsed !== "object" ||
+                        Array.isArray(parsed) ||
+                        parsed === null
+                    ) {
+                        throw new Error("responseSchema must be a JSON object");
+                    }
+                    generationConfig.responseSchema = parsed as Record<
+                        string,
+                        unknown
+                    >;
                     if (strictMode) {
                         logger.info(
                             "[GeminiService] Strict mode enabled for JSON output",
@@ -567,6 +581,40 @@ export class GeminiService {
             throw new Error("No GCS URI in upscale response");
 
         return candidate.image.gcsUri;
+    }
+
+    async generateMusic(options: {
+        prompt: string;
+        seed?: number;
+        model?: string;
+    }): Promise<{ audioData: string; mimeType: string }> {
+        const { prompt, model = "lyria-3-clip-preview" } = options;
+
+        logger.info(`[GeminiService] Generating music with model: ${model}`);
+
+        const response = await this.ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                responseModalities: ["AUDIO", "TEXT"],
+            },
+        });
+
+        const audioPart = response.candidates?.[0]?.content?.parts?.find(
+            (part) => part.inlineData,
+        );
+
+        if (!audioPart?.inlineData) {
+            logger.error(
+                `[GeminiService] No audio data in Lyria response: ${JSON.stringify(response, null, 2)}`,
+            );
+            throw new Error("No audio data in Lyria response");
+        }
+
+        return {
+            audioData: audioPart.inlineData.data!,
+            mimeType: audioPart.inlineData.mimeType ?? "audio/wav",
+        };
     }
 }
 

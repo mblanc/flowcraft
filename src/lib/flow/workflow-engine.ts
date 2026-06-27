@@ -1,0 +1,595 @@
+import logger from "@/app/logger";
+import { Edge, Node } from "@xyflow/react";
+import { BATCH_CONCURRENCY } from "@/lib/constants";
+import {
+    NodeData,
+    NodeInputs,
+    CustomWorkflowData,
+    NamedNodeInput,
+} from "../types";
+import { getNodeDefinition, ExecutionContext } from "./node-registry";
+import { isGcsUri } from "@/lib/utils/gcs-uri";
+import { registry } from "@/primitives/registry";
+
+function extractGcsUris(result: Partial<NodeData>): string[] {
+    const uris: string[] = [];
+    if ("images" in result && Array.isArray(result.images)) {
+        uris.push(...result.images.filter((u): u is string => isGcsUri(u)));
+    }
+    if ("videos" in result && Array.isArray(result.videos)) {
+        uris.push(...result.videos.filter((u): u is string => isGcsUri(u)));
+    }
+    return uris;
+}
+
+// --- Batch / Unfold helpers ---
+
+interface BatchPlan {
+    level: 0 | 1 | 2;
+    batchSize: number;
+    collectionKeys: string[];
+}
+
+function detectBatchPlan(inputs: NodeInputs): BatchPlan {
+    const collectionKeys: string[] = [];
+    const lengths: number[] = [];
+
+    const namedNodes = inputs.namedNodes || [];
+    for (const nn of namedNodes) {
+        if (nn.textValues && nn.textValues.length > 0) {
+            collectionKeys.push(`namedNode:text:${nn.nodeId}`);
+            lengths.push(nn.textValues.length);
+        }
+        if (nn.fileValuesList && nn.fileValuesList.length > 0) {
+            collectionKeys.push(`namedNode:file:${nn.nodeId}`);
+            lengths.push(nn.fileValuesList.length);
+        }
+    }
+
+    if (collectionKeys.length === 0) {
+        return { level: 0, batchSize: 1, collectionKeys: [] };
+    }
+
+    const batchSize = Math.min(...lengths);
+    const level = collectionKeys.length === 1 ? 1 : 2;
+    return { level: level as 1 | 2, batchSize, collectionKeys };
+}
+
+function sliceBatchInputs(
+    inputs: NodeInputs,
+    _plan: BatchPlan,
+    index: number,
+): NodeInputs {
+    const sliced = { ...inputs };
+
+    if (inputs.namedNodes) {
+        sliced.namedNodes = inputs.namedNodes.map((nn): NamedNodeInput => {
+            const copy: NamedNodeInput = { ...nn };
+            if (nn.textValues) {
+                copy.textValue = nn.textValues[index] ?? nn.textValues[0];
+                copy.textValues = undefined;
+            }
+            if (nn.fileValuesList) {
+                copy.fileValues =
+                    nn.fileValuesList[index] ?? nn.fileValuesList[0];
+                copy.fileValuesList = undefined;
+                if (copy.fileValues.length > 0) {
+                    sliced.image = copy.fileValues[0].url;
+                }
+            }
+            return copy;
+        });
+    }
+
+    return sliced;
+}
+
+function mergeResults(
+    results: Partial<NodeData>[],
+    nodeType: string,
+): Partial<NodeData> {
+    if (results.length === 0) return {};
+    const primitive = registry.getByFlowType(nodeType);
+    if (primitive?.flow?.mergeResults) {
+        return primitive.flow.mergeResults(results) as Partial<NodeData>;
+    }
+    return results[0];
+}
+
+export class WorkflowEngine {
+    private nodesMap: Map<string, Node<NodeData>>;
+    private edges: Edge[];
+    private onNodeUpdate: (nodeId: string, data: Partial<NodeData>) => void;
+    private executionResults: Map<string, Partial<NodeData>> = new Map();
+
+    getResult(nodeId: string): Partial<NodeData> | undefined {
+        return this.executionResults.get(nodeId);
+    }
+
+    hasResult(nodeId: string): boolean {
+        return this.executionResults.has(nodeId);
+    }
+
+    getOutputs(outputNodeIds: string[]): Record<string, Partial<NodeData>> {
+        const out: Record<string, Partial<NodeData>> = {};
+        for (const id of outputNodeIds) {
+            const result = this.executionResults.get(id);
+            if (result) out[id] = result;
+        }
+        return out;
+    }
+
+    private context: ExecutionContext;
+
+    constructor(
+        nodes: Node<NodeData>[],
+        edges: Edge[],
+        onNodeUpdate: (nodeId: string, data: Partial<NodeData>) => void,
+        context?: ExecutionContext,
+    ) {
+        this.nodesMap = new Map(nodes.map((n) => [n.id, n]));
+        this.edges = edges;
+        this.onNodeUpdate = onNodeUpdate;
+        this.context = context || {};
+    }
+
+    private async runLevels(levels: string[][]) {
+        for (const level of levels) {
+            await Promise.all(
+                level.map((nodeId) => this.executeNodeSync(nodeId)),
+            );
+        }
+    }
+
+    async run() {
+        this.validateCustomWorkflowEdges();
+        await this.runLevels(this.getExecutionLevels());
+    }
+
+    async runFromNode(startNodeId: string) {
+        this.validateCustomWorkflowEdges();
+        await this.runLevels(this.getExecutionLevelsFromNode(startNodeId));
+    }
+
+    async runToNode(targetNodeId: string) {
+        this.validateCustomWorkflowEdges();
+        await this.runLevels(this.getExecutionLevelsToNode(targetNodeId));
+    }
+
+    private getExecutionLevelsToNode(targetNodeId: string): string[][] {
+        const queue = [targetNodeId];
+        const ancestors = new Set<string>([targetNodeId]);
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            for (const edge of this.edges) {
+                if (edge.target === current && !ancestors.has(edge.source)) {
+                    ancestors.add(edge.source);
+                    queue.push(edge.source);
+                }
+            }
+        }
+
+        const allLevels = this.getExecutionLevels();
+        return allLevels
+            .map((level) => level.filter((id) => ancestors.has(id)))
+            .filter((level) => level.length > 0);
+    }
+
+    private getExecutionLevelsFromNode(startNodeId: string): string[][] {
+        const queue = [startNodeId];
+        const downstreamNodes = new Set<string>();
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            downstreamNodes.add(current);
+            const outgoingEdges = this.edges.filter(
+                (e) => e.source === current,
+            );
+            for (const edge of outgoingEdges) {
+                if (!downstreamNodes.has(edge.target)) {
+                    queue.push(edge.target);
+                    downstreamNodes.add(edge.target);
+                }
+            }
+        }
+
+        const allLevels = this.getExecutionLevels();
+        return allLevels
+            .map((level) =>
+                level.filter((nodeId) => downstreamNodes.has(nodeId)),
+            )
+            .filter((level) => level.length > 0);
+    }
+
+    private validateCustomWorkflowEdges() {
+        for (const edge of this.edges) {
+            const sourceNode = this.nodesMap.get(edge.source);
+            if (sourceNode?.data.type === "custom-workflow") {
+                if (!edge.sourceHandle) {
+                    logger.warn(
+                        `[WorkflowEngine] Edge ${edge.id} from custom-workflow "${sourceNode.data.name}" (${edge.source}) ` +
+                            `to node ${edge.target} is missing sourceHandle. ` +
+                            `This may cause the output data to not be extracted correctly. ` +
+                            `Please reconnect the edge from the sub-workflow's output port.`,
+                    );
+                }
+            }
+        }
+    }
+
+    /** Resolves upstream routers before executing the target node. Use `run()` for full DAG execution. */
+    async executeNodeWithRouterResolution(nodeId: string) {
+        await this.executeUpstreamRouters(nodeId);
+        return this.executeNodeSync(nodeId);
+    }
+
+    private async executeUpstreamRouters(nodeId: string): Promise<void> {
+        const incomingEdges = this.edges.filter((e) => e.target === nodeId);
+        for (const edge of incomingEdges) {
+            const sourceNode = this.nodesMap.get(edge.source);
+            if (sourceNode?.data.type === "router") {
+                await this.executeUpstreamRouters(edge.source);
+                await this.executeNodeSync(edge.source);
+            }
+        }
+    }
+
+    private async executeNodeSync(nodeId: string) {
+        const node = this.nodesMap.get(nodeId);
+        if (!node) return;
+
+        const definition = getNodeDefinition(node.data.type);
+        if (!definition) return;
+
+        try {
+            this.onNodeUpdate(nodeId, {
+                executing: true,
+                error: undefined,
+                batchTotal: undefined,
+                batchProgress: undefined,
+            } as Partial<NodeData>);
+
+            const inputs = this.gatherInputs(node);
+            let result: Partial<NodeData>;
+
+            if (node.data.type === "custom-workflow") {
+                result = await this.executeSubWorkflow(node, inputs);
+            } else if (node.data.type === "workflow-input") {
+                result = { ...node.data };
+            } else {
+                const batchPlan = detectBatchPlan(inputs);
+
+                if (batchPlan.level > 0) {
+                    this.onNodeUpdate(nodeId, {
+                        executing: true,
+                        batchTotal: batchPlan.batchSize,
+                        batchProgress: 0,
+                    } as Partial<NodeData>);
+
+                    logger.info(
+                        `[WorkflowEngine] Batch execution: ${node.data.type} node "${node.data.name}" running ${batchPlan.batchSize} iterations`,
+                    );
+
+                    let completedCount = 0;
+                    const batchResults: Partial<NodeData>[] = new Array(
+                        batchPlan.batchSize,
+                    );
+                    const pending = Array.from(
+                        { length: batchPlan.batchSize },
+                        (_, i) => i,
+                    );
+                    const workerCount = Math.min(
+                        BATCH_CONCURRENCY,
+                        batchPlan.batchSize,
+                    );
+                    const execContext = {
+                        ...this.context,
+                        onNodeUpdate: this.onNodeUpdate,
+                    };
+                    const runWorker = async () => {
+                        while (pending.length > 0) {
+                            const i = pending.shift();
+                            if (i === undefined) break;
+                            const singleInputs = sliceBatchInputs(
+                                inputs,
+                                batchPlan,
+                                i,
+                            );
+                            batchResults[i] = await definition.execute(
+                                node,
+                                singleInputs,
+                                execContext,
+                            );
+                            completedCount++;
+                            this.onNodeUpdate(nodeId, {
+                                batchProgress: completedCount,
+                            } as Partial<NodeData>);
+                        }
+                    };
+                    await Promise.all(
+                        Array.from({ length: workerCount }, runWorker),
+                    );
+
+                    result = {
+                        ...mergeResults(batchResults, node.data.type),
+                        batchTotal: batchPlan.batchSize,
+                    } as Partial<NodeData>;
+                } else {
+                    result = await definition.execute(node, inputs, {
+                        ...this.context,
+                        onNodeUpdate: this.onNodeUpdate,
+                    });
+                    (result as Record<string, unknown>).batchTotal = undefined;
+                }
+            }
+
+            this.executionResults.set(nodeId, result);
+
+            // Pre-warm signed URL cache before updating the node so the first
+            // render after execution resolves the URL synchronously (no placeholder flash).
+            const gcsUris = extractGcsUris(result);
+            if (gcsUris.length > 0) {
+                await this.context.signedUrlPrefetch?.(gcsUris);
+            }
+
+            // Fire-and-forget: save generated media to library
+            this.context
+                .onMediaGenerated?.(node, result)
+                .catch((err) =>
+                    logger.warn(
+                        `[WorkflowEngine] Library save failed for node ${nodeId}:`,
+                        err,
+                    ),
+                );
+
+            this.onNodeUpdate(nodeId, {
+                ...result,
+                executing: false,
+                generatedAt: Date.now(),
+                error: undefined,
+            } as Partial<NodeData>);
+
+            const updatedNode: Node<NodeData> = {
+                ...node,
+                data: { ...node.data, ...result } as NodeData,
+            };
+            this.nodesMap.set(nodeId, updatedNode);
+        } catch (error) {
+            logger.error(`Error executing node ${nodeId}:`, error);
+            const errorMessage =
+                error instanceof Error ? error.message : String(error);
+            this.onNodeUpdate(nodeId, {
+                executing: false,
+                error: errorMessage,
+            } as Partial<NodeData>);
+            throw error;
+        }
+    }
+
+    private getExecutionLevels(): string[][] {
+        const nodes = Array.from(this.nodesMap.values());
+        const dependencies = new Map<string, Set<string>>();
+
+        nodes.forEach((node) => {
+            dependencies.set(node.id, new Set());
+        });
+
+        this.edges.forEach((edge) => {
+            dependencies.get(edge.target)?.add(edge.source);
+        });
+
+        const levels: string[][] = [];
+        const processed = new Set<string>();
+
+        while (processed.size < nodes.length) {
+            const currentLevel = nodes
+                .filter((node) => !processed.has(node.id))
+                .filter((node) => {
+                    const deps = dependencies.get(node.id);
+                    return (
+                        !deps ||
+                        Array.from(deps).every((dep) => processed.has(dep))
+                    );
+                })
+                .map((node) => node.id);
+
+            if (currentLevel.length === 0) {
+                const cycleIds = nodes
+                    .filter((node) => !processed.has(node.id))
+                    .map((n) => n.id);
+                if (cycleIds.length > 0) {
+                    throw new Error(
+                        `Cycle detected in flow graph involving nodes: ${cycleIds.join(", ")}`,
+                    );
+                }
+                break;
+            }
+
+            levels.push(currentLevel);
+            currentLevel.forEach((id) => processed.add(id));
+        }
+
+        return levels;
+    }
+
+    private gatherInputs(node: Node<NodeData>): NodeInputs {
+        const definition = getNodeDefinition(node.data.type);
+        if (!definition) return {};
+
+        const getSourceData = (
+            sourceId: string,
+            sourceHandle?: string | null,
+        ): NodeData | null => {
+            const sourceNode = this.nodesMap.get(sourceId);
+            const result = this.executionResults.get(sourceId);
+            if (!sourceNode) {
+                logger.warn(
+                    `[getSourceData] Source node not found: ${sourceId}`,
+                );
+                return null;
+            }
+
+            // Handle custom-workflow (sub-workflow) nodes
+            if (sourceNode.data.type === "custom-workflow") {
+                // First check executionResults from current run, then fall back to stored node data
+                // This is important for single-node execution where upstream nodes weren't re-executed
+                const cwData = sourceNode.data as CustomWorkflowData;
+                const cwResult = (result as
+                    | { results?: Record<string, { value?: unknown }> }
+                    | undefined) || { results: cwData.results };
+
+                // Check if we have results from the sub-workflow execution or stored in node data
+                if (!cwResult?.results) {
+                    logger.warn(
+                        `[getSourceData] Custom workflow ${sourceId} has no results. ` +
+                            `Has it been executed? Try running the full flow first.`,
+                    );
+                    return null;
+                }
+
+                logger.debug(
+                    `[getSourceData] Using ${result ? "execution" : "stored"} results for custom-workflow ${sourceId}`,
+                );
+
+                // sourceHandle is required for custom-workflow nodes to identify which output to use
+                if (!sourceHandle) {
+                    logger.warn(
+                        `[getSourceData] Missing sourceHandle for custom-workflow ${sourceId}. ` +
+                            `Edge may be misconfigured. Available outputs: ${Object.keys(cwResult.results).join(", ")}`,
+                    );
+                    // Attempt to use first available output as fallback
+                    const outputKeys = Object.keys(cwResult.results);
+                    if (outputKeys.length === 1) {
+                        logger.info(
+                            `[getSourceData] Using single available output: ${outputKeys[0]}`,
+                        );
+                        const subOutput = cwResult.results[outputKeys[0]];
+                        return (subOutput?.value || subOutput) as NodeData;
+                    }
+                    return null;
+                }
+
+                // Look up the specific output by sourceHandle (workflow-output node ID)
+                const subOutput = cwResult.results[sourceHandle];
+                if (subOutput === undefined) {
+                    logger.warn(
+                        `[getSourceData] Output "${sourceHandle}" not found in custom-workflow ${sourceId}. ` +
+                            `Available outputs: ${Object.keys(cwResult.results).join(", ")}. ` +
+                            `The sub-workflow may have been modified.`,
+                    );
+                    return null;
+                }
+
+                logger.debug(
+                    `[getSourceData] Extracted sub-workflow output "${sourceHandle}" from ${sourceId}`,
+                );
+
+                // Unwraps { value: ... } if it came from a Workflow Output node
+                // Use nullish coalescing to handle falsy values like empty strings correctly
+                const unwrapped =
+                    subOutput?.value !== undefined
+                        ? subOutput.value
+                        : subOutput;
+                return unwrapped as NodeData;
+            }
+
+            // For regular nodes, merge node data with execution result
+            return { ...sourceNode.data, ...result } as NodeData;
+        };
+
+        return definition.gatherInputs(node, this.edges, getSourceData);
+    }
+
+    private async executeSubWorkflow(
+        node: Node<NodeData>,
+        inputs: NodeInputs,
+    ): Promise<Partial<NodeData>> {
+        const data = node.data as CustomWorkflowData;
+        if (!data.subWorkflowId) {
+            throw new Error("Sub-workflow configuration missing");
+        }
+
+        // 1. Fetch custom node definition from the new API
+        const baseUrl =
+            typeof window !== "undefined"
+                ? window.location.origin
+                : process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+        const res = await (this.context.fetch || fetch)(
+            `${baseUrl}/api/custom-nodes/${data.subWorkflowId}`,
+        );
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch custom node: ${res.statusText}`);
+        }
+
+        const customNodeData = await res.json();
+        const subNodes = customNodeData.nodes as Node<NodeData>[];
+        const subEdges = customNodeData.edges as Edge[];
+
+        // 2. Map external inputs to sub-workflow Input Nodes
+        const initializedSubNodes = subNodes.map((n) => {
+            if (n.type === "workflow-input") {
+                // The key in 'inputs' is the nodeId of the original Workflow Input node
+                const providedValue = inputs[n.id];
+                if (providedValue !== undefined) {
+                    let valueData: Record<string, unknown>;
+
+                    if (
+                        typeof providedValue === "object" &&
+                        providedValue !== null &&
+                        !Array.isArray(providedValue)
+                    ) {
+                        valueData = {
+                            ...(providedValue as Record<string, unknown>),
+                        };
+                        // We remove 'type' from providedValue to not overwrite n.data.type which is 'workflow-input'
+                        delete valueData.type;
+                    } else {
+                        // For strings, arrays, or other primitives, wrap it in a 'value' field
+                        valueData = { value: providedValue };
+                    }
+
+                    return {
+                        ...n,
+                        data: {
+                            ...n.data,
+                            ...valueData,
+                        },
+                    };
+                }
+            }
+            return n;
+        });
+
+        logger.debug(
+            `[WorkflowEngine] Executing custom node ${data.subWorkflowId}`,
+        );
+
+        // 3. Execute sub-workflow
+        // We use a nested engine.
+        // We don't necessarily want to bubble up all internal updates to the main UI
+        // to avoid cluttering, but we could if we wanted to show progress inside the sub-graph.
+        const subEngine = new WorkflowEngine(
+            initializedSubNodes,
+            subEdges,
+            () => {}, // Silent internal updates for now
+            this.context,
+        );
+
+        await subEngine.run();
+
+        // 4. Gather results from sub-workflow Output Nodes
+        const outputNodeIds = subNodes
+            .filter(
+                (n) =>
+                    n.type === "workflow-output" ||
+                    n.data?.type === "workflow-output",
+            )
+            .map((n) => n.id);
+
+        const results = subEngine.getOutputs(outputNodeIds);
+
+        return { results } as Partial<CustomWorkflowData>;
+    }
+}

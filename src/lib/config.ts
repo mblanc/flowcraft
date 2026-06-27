@@ -11,6 +11,12 @@ const envSchema = z.object({
     AUTH_GOOGLE_SECRET: z.string().min(1, "AUTH_GOOGLE_SECRET is required"),
     LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
     ADMIN_EMAILS: z.string().default(""), // Comma-separated list
+    OTEL_EXPORTER: z
+        .enum(["cloud_trace", "langfuse", "none"])
+        .default("cloud_trace"),
+    LANGFUSE_PUBLIC_KEY: z.string().optional(),
+    LANGFUSE_SECRET_KEY: z.string().optional(),
+    LANGFUSE_HOST: z.string().default("https://cloud.langfuse.com"),
 });
 
 const _env = envSchema.safeParse({
@@ -22,6 +28,10 @@ const _env = envSchema.safeParse({
     AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
     LOG_LEVEL: process.env.LOG_LEVEL,
     ADMIN_EMAILS: process.env.ADMIN_EMAILS,
+    OTEL_EXPORTER: process.env.OTEL_EXPORTER,
+    LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY,
+    LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY,
+    LANGFUSE_HOST: process.env.LANGFUSE_HOST,
 });
 
 const isBuildTime =

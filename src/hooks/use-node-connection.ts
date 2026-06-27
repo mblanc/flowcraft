@@ -12,10 +12,10 @@ import {
     getSourcePortType,
     getTargetPortType,
     getNodeDefinition,
-} from "@/lib/node-registry";
+} from "@/lib/flow/node-registry";
 import { isTypeCompatible } from "@/lib/utils";
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { createNode, getUniqueNodeName } from "@/lib/node-factory";
+import { createNode, getUniqueNodeName } from "@/lib/flow/node-factory";
 import { v4 as uuidv4 } from "uuid";
 import type { CustomNodeItem } from "@/components/flow/flow-constants";
 import { nativeItems } from "@/components/flow/flow-constants";

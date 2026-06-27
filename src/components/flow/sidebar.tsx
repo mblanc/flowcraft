@@ -1,7 +1,7 @@
 "use client";
 
 import { useFlowStore } from "@/lib/store/use-flow-store";
-import { ConfigPanel } from "../panels/config-panel";
+import { ConfigPanel } from "../node-config/config-panel";
 import {
     X,
     Bot,

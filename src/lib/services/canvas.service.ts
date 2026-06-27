@@ -1,4 +1,4 @@
-import { getFirestore, formatFirestoreTimestamp } from "@/lib/firestore";
+import { getFirestore, formatFirestoreTimestamp } from "@/lib/db/firestore";
 import { COLLECTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 import type {
@@ -10,19 +10,30 @@ import type {
     CanvasNode,
     ChatMessage,
 } from "@/lib/canvas/types";
+import type { CanvasUpdate } from "@/lib/schemas";
+import { isAdmin } from "@/lib/services/admin";
+
+export class CanvasNotFoundError extends Error {
+    constructor(id: string) {
+        super(`Canvas not found: ${id}`);
+        this.name = "CanvasNotFoundError";
+    }
+}
+
+export class CanvasForbiddenError extends Error {
+    constructor(message = "Forbidden") {
+        super(message);
+        this.name = "CanvasForbiddenError";
+    }
+}
 
 export interface CanvasCreateRequest {
     name: string;
 }
 
-export interface CanvasUpdateRequest {
-    name?: string;
-    nodes?: CanvasNode[];
-    viewport?: { x: number; y: number; zoom: number };
-    messages?: ChatMessage[];
-    thumbnail?: string;
-    activeStyleId?: string | null;
-}
+export type CanvasUpdateRequest = CanvasUpdate;
+
+export type CanvasListTab = "my" | "shared" | "community";
 
 export class CanvasService {
     private firestore = getFirestore();
@@ -46,26 +57,54 @@ export class CanvasService {
             messages: (data?.messages ?? []) as ChatMessage[],
             visibility: (data?.visibility ??
                 "private") as CanvasDocument["visibility"],
-            sharedWith: (data?.sharedWith ?? []) as string[],
+            sharedWith: (data?.sharedWith ??
+                []) as CanvasDocument["sharedWith"],
             sharedWithEmails: (data?.sharedWithEmails ?? []) as string[],
             isTemplate: (data?.isTemplate ?? false) as boolean,
             activeStyleId:
                 (data?.activeStyleId as string | undefined) ?? undefined,
+            disabledSkills: (data?.disabledSkills ?? []) as string[],
             createdAt: formatFirestoreTimestamp(data?.createdAt),
             updatedAt: formatFirestoreTimestamp(data?.updatedAt),
         };
     }
 
-    async listCanvases(userId: string): Promise<CanvasDocument[]> {
-        logger.debug(`[CanvasService] Listing canvases for user: ${userId}`);
+    async listCanvases(
+        userId: string,
+        userEmail?: string,
+        tab: CanvasListTab = "my",
+    ): Promise<CanvasDocument[]> {
+        logger.debug(
+            `[CanvasService] Listing canvases for user: ${userId}, tab: ${tab}`,
+        );
         const ref = this.firestore.collection(COLLECTIONS.CANVASES);
-        const query = ref
-            .where("userId", "==", userId)
-            .orderBy("updatedAt", "desc");
+        let query;
+
+        if (tab === "shared") {
+            if (!userEmail) return [];
+            query = ref
+                .where("sharedWithEmails", "array-contains", userEmail)
+                .orderBy("updatedAt", "desc");
+        } else if (tab === "community") {
+            query = ref
+                .where("isTemplate", "==", true)
+                .where("visibility", "==", "public")
+                .orderBy("updatedAt", "desc");
+        } else {
+            query = ref
+                .where("userId", "==", userId)
+                .orderBy("updatedAt", "desc");
+        }
+
         const snapshot = await query.get();
         return snapshot.docs.map((doc) => this.transformDoc(doc));
     }
-    async getCanvas(canvasId: string, userId: string): Promise<CanvasDocument> {
+
+    async getCanvas(
+        canvasId: string,
+        userId: string,
+        userEmail?: string,
+    ): Promise<CanvasDocument> {
         logger.debug(
             `[CanvasService] Getting canvas: ${canvasId} for user: ${userId}`,
         );
@@ -75,13 +114,18 @@ export class CanvasService {
             .get();
 
         if (!doc.exists) {
-            throw new Error("Canvas not found");
+            throw new CanvasNotFoundError(canvasId);
         }
 
         const canvas = this.transformDoc(doc);
 
-        if (canvas.userId !== userId) {
-            throw new Error("Unauthorized");
+        const isOwner = canvas.userId === userId;
+        const isShared =
+            userEmail && canvas.sharedWithEmails.includes(userEmail);
+        const isPublic = canvas.visibility === "public";
+
+        if (!isOwner && !isShared && !isPublic) {
+            throw new CanvasForbiddenError();
         }
 
         return canvas;
@@ -126,6 +170,7 @@ export class CanvasService {
         canvasId: string,
         userId: string,
         data: CanvasUpdateRequest,
+        userEmail?: string,
     ): Promise<CanvasDocument> {
         logger.info(
             `[CanvasService] Updating canvas: ${canvasId} for user: ${userId}`,
@@ -136,18 +181,49 @@ export class CanvasService {
         const doc = await ref.get();
 
         if (!doc.exists) {
-            throw new Error("Canvas not found");
+            throw new CanvasNotFoundError(canvasId);
         }
 
         const current = this.transformDoc(doc);
-        if (current.userId !== userId) {
-            throw new Error("Unauthorized");
+        const isOwner = current.userId === userId;
+        const isEditor =
+            userEmail &&
+            current.sharedWith.some(
+                (s) => s.email === userEmail && s.role === "edit",
+            );
+
+        if (!isOwner && !isEditor) {
+            throw new CanvasForbiddenError();
+        }
+
+        const isChangingSharingSettings =
+            data.visibility !== undefined || data.sharedWith !== undefined;
+
+        if (isChangingSharingSettings && !isOwner) {
+            throw new CanvasForbiddenError(
+                "Only the owner can change sharing settings",
+            );
+        }
+
+        if (
+            data.isTemplate !== undefined &&
+            data.isTemplate !== current.isTemplate
+        ) {
+            if (!isAdmin(userEmail)) {
+                throw new CanvasForbiddenError(
+                    "Only admins can change template status",
+                );
+            }
         }
 
         const updateData: Record<string, unknown> = {
             ...data,
             updatedAt: new Date(),
         };
+
+        if (data.sharedWith) {
+            updateData.sharedWithEmails = data.sharedWith.map((s) => s.email);
+        }
 
         await ref.update(updateData);
 
@@ -168,15 +244,46 @@ export class CanvasService {
         const doc = await ref.get();
 
         if (!doc.exists) {
-            throw new Error("Canvas not found");
+            throw new CanvasNotFoundError(canvasId);
         }
 
         if (doc.data()?.userId !== userId) {
-            throw new Error("Unauthorized");
+            throw new CanvasForbiddenError();
         }
 
         await ref.delete();
         return { success: true };
+    }
+
+    async cloneCanvas(
+        canvasId: string,
+        userId: string,
+        userEmail?: string,
+    ): Promise<CanvasDocument> {
+        logger.info(
+            `[CanvasService] Cloning canvas: ${canvasId} for user: ${userId}`,
+        );
+
+        const original = await this.getCanvas(canvasId, userId, userEmail);
+
+        const ref = this.firestore.collection(COLLECTIONS.CANVASES);
+        const docRef = await ref.add({
+            userId,
+            name: `Copy of ${original.name}`,
+            nodes: original.nodes,
+            edges: [],
+            viewport: { x: 0, y: 0, zoom: 1 },
+            messages: [],
+            visibility: "private" as const,
+            sharedWith: [],
+            sharedWithEmails: [],
+            isTemplate: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+
+        const doc = await docRef.get();
+        return this.transformDoc(doc);
     }
 }
 

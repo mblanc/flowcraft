@@ -9,6 +9,7 @@ import {
     Image,
     Video,
     Text,
+    Music,
     Zap,
     Check,
     Loader2,
@@ -30,6 +31,7 @@ import type {
 } from "@/lib/canvas/types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { cn } from "@/lib/utils";
+import { QuestionWidget } from "./question-widget";
 
 function formatTime(isoString: string): string {
     try {
@@ -46,6 +48,7 @@ const MEDIA_TYPE_ICON = {
     "canvas-image": Image,
     "canvas-video": Video,
     "canvas-text": Text,
+    "canvas-audio": Music,
 } as const;
 
 function StepStatusIcon({ status }: { status: StepStatus | undefined }) {
@@ -67,6 +70,7 @@ const STEP_TYPE_ICON: Record<
 > = {
     image: Image,
     video: Video,
+    audio: Music,
 };
 
 /** Small pill for a single metadata value */
@@ -162,7 +166,11 @@ function StepCard({
                         )}
                     >
                         {step.label ??
-                            (step.type === "image" ? "Image" : "Video")}{" "}
+                            (step.type === "image"
+                                ? "Image"
+                                : step.type === "audio"
+                                  ? "Audio"
+                                  : "Video")}{" "}
                         <span className="font-normal opacity-50">
                             #{stepIndex + 1}
                         </span>
@@ -454,10 +462,12 @@ function CanvasChatMessageComponent({
     message,
     isLiveAssistant = false,
     onExecutePlan,
+    questionAnswered = false,
 }: {
     message: ChatMessage;
     isLiveAssistant?: boolean;
     onExecutePlan?: (messageId: string, plan: AgentPlan) => void;
+    questionAnswered?: boolean;
 }) {
     const isUser = message.role === "user";
     const isSystem = message.role === "system";
@@ -612,6 +622,14 @@ function CanvasChatMessageComponent({
                             onAction={handleActionClick}
                         />
                     )}
+
+                {!isUser && message.question && (
+                    <QuestionWidget
+                        question={message.question}
+                        onAnswer={handleActionClick}
+                        answered={questionAnswered}
+                    />
+                )}
 
                 <span className="text-muted-foreground px-1 text-[10px]">
                     {formatTime(message.createdAt)}

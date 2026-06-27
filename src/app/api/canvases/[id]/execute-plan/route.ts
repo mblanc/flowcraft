@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
 import { styleService } from "@/lib/services/style.service";
-import { STYLE_TEMPLATES } from "@/lib/style-templates";
+import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import { executePlan } from "@/lib/canvas/generation";
 import logger from "@/app/logger";
-import type { AgentPlan } from "@/lib/canvas/types";
+import type { AgentPlan, CanvasNode } from "@/lib/canvas/types";
+import { isGcsUri } from "@/lib/utils/gcs-uri";
 
 export const maxDuration = 300;
 
@@ -13,21 +14,30 @@ interface ExecutePlanRequestBody {
     plan: AgentPlan;
     messageId: string;
     styleId?: string;
+    musicModel?: string;
 }
 
 function formatSSE(event: string, data: unknown): string {
     return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-function buildNodeUriMap(canvas: {
-    nodes: { id: string; data: Record<string, unknown> }[];
+function buildNodeUriMap(canvas: { nodes: CanvasNode[] }): Map<string, string> {
+    const map = new Map<string, string>();
+    for (const node of canvas.nodes) {
+        const uri = "sourceUrl" in node.data ? node.data.sourceUrl : undefined;
+        if (isGcsUri(uri)) {
+            map.set(node.id, uri);
+        }
+    }
+    return map;
+}
+
+function buildNodeTypeMap(canvas: {
+    nodes: CanvasNode[];
 }): Map<string, string> {
     const map = new Map<string, string>();
     for (const node of canvas.nodes) {
-        const uri = node.data.sourceUrl as string | undefined;
-        if (uri?.startsWith("gs://")) {
-            map.set(node.id, uri);
-        }
+        map.set(node.id, node.type);
     }
     return map;
 }
@@ -125,6 +135,7 @@ export async function POST(
     }
 
     const nodeUriMap = buildNodeUriMap(canvas);
+    const nodeTypeMap = buildNodeTypeMap(canvas);
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
@@ -141,6 +152,9 @@ export async function POST(
                     activeStyleContent,
                     resolvedStyleId ?? undefined,
                     activeStyleName,
+                    body.musicModel,
+                    nodeTypeMap,
+                    canvas.nodes,
                 )) {
                     switch (stepEvent.type) {
                         case "step_start":

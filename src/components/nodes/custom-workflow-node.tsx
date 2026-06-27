@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useState, useRef } from "react";
-import { useNodeResize } from "@/hooks/use-node-resize";
+import { useMediaNodeResize } from "@/hooks/use-media-node-resize";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Box, Play } from "lucide-react";
 import { CustomWorkflowData } from "@/lib/types";
@@ -153,12 +153,28 @@ export const CustomWorkflowNode = memo(
         const [interfaceData, setInterfaceData] = useState<{
             inputs: { id: string; name: string; type: string }[];
             outputs: { id: string; name: string; type: string }[];
-        } | null>(null);
+        } | null>(() => {
+            if (data.inputs && data.outputs) {
+                return {
+                    inputs: Object.entries(data.inputs).map(([id, type]) => ({
+                        id,
+                        name: id,
+                        type,
+                    })),
+                    outputs: Object.entries(data.outputs).map(([id, type]) => ({
+                        id,
+                        name: id,
+                        type,
+                    })),
+                };
+            }
+            return null;
+        });
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState<string | null>(null);
         const [isHovered, setIsHovered] = useState(false);
 
-        const { dimensions, handleResizeStart } = useNodeResize(
+        const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,
             data.width,
             data.height,
@@ -168,6 +184,7 @@ export const CustomWorkflowNode = memo(
                 minWidth: 250,
                 minHeight: 200,
             },
+            updateNodeData,
         );
         const lastFetchedRef = useRef<string | null>(null);
 

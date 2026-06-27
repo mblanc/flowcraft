@@ -1,15 +1,16 @@
-import { LLMNode } from "../nodes/llm-node";
-import { TextNode } from "../nodes/text-node";
-import { ImageNode } from "../nodes/image-node";
-import { VideoNode } from "../nodes/video-node";
-import { FileNode } from "../nodes/file-node";
-import { UpscaleNode } from "../nodes/upscale-node";
-import { ResizeNode } from "../nodes/resize-node";
-import { WorkflowInputNode } from "../nodes/workflow-input-node";
-import { WorkflowOutputNode } from "../nodes/workflow-output-node";
-import { CustomWorkflowNode } from "../nodes/custom-workflow-node";
-import { ListNode } from "../nodes/list-node";
-import { RouterNode } from "../nodes/router-node";
+import { FlowNode as LLMNode } from "@/primitives/llm/FlowNode";
+import { FlowNode as TextNode } from "@/primitives/text/FlowNode";
+import { FlowNode as ImageNode } from "@/primitives/image/FlowNode";
+import { FlowNode as VideoNode } from "@/primitives/video/FlowNode";
+import { FlowNode as UpscaleNode } from "@/primitives/upscale/FlowNode";
+import { FlowNode as ResizeNode } from "@/primitives/resize/FlowNode";
+import { FlowNode as FileNode } from "@/primitives/file/FlowNode";
+import { FlowNode as WorkflowInputNode } from "@/primitives/workflow-input/FlowNode";
+import { FlowNode as WorkflowOutputNode } from "@/primitives/workflow-output/FlowNode";
+import { FlowNode as CustomWorkflowNode } from "@/primitives/custom-workflow/FlowNode";
+import { FlowNode as ListNode } from "@/primitives/list/FlowNode";
+import { FlowNode as RouterNode } from "@/primitives/router/FlowNode";
+import { FlowNode as MusicNode } from "@/primitives/music/FlowNode";
 import type { CustomNodePort } from "@/lib/types";
 import {
     Bot,
@@ -23,6 +24,7 @@ import {
     LogIn,
     LogOut,
     ListOrdered,
+    Music,
 } from "lucide-react";
 
 export interface CustomNodeItem {
@@ -45,6 +47,7 @@ export const nodeTypes = {
     "workflow-output": WorkflowOutputNode,
     "custom-workflow": CustomWorkflowNode,
     router: RouterNode,
+    music: MusicNode,
 };
 
 export const NODE_COLORS: Record<string, string> = {
@@ -104,6 +107,12 @@ export const nativeItems = [
         icon: Video,
         color: "text-muted-foreground hover:bg-accent hover:text-foreground",
         label: "Video",
+    },
+    {
+        type: "music",
+        icon: Music,
+        color: "text-muted-foreground hover:bg-accent hover:text-foreground",
+        label: "Music",
     },
     {
         type: "upscale",

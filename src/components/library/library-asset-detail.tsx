@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import type { LibraryAsset } from "@/lib/library-types";
 import { LibraryProvenance } from "./library-provenance";
@@ -13,6 +14,7 @@ interface LibraryAssetDetailProps {
     onClose: () => void;
     onDelete: (id: string) => void;
     onTagsChange: (id: string, tags: string[]) => void;
+    onShared: () => void;
 }
 
 export function LibraryAssetDetail({
@@ -20,7 +22,9 @@ export function LibraryAssetDetail({
     onClose,
     onDelete,
     onTagsChange,
+    onShared,
 }: LibraryAssetDetailProps) {
+    const { data: session } = useSession();
     const { displayUrl } = useSignedUrl(asset.gcsUri);
 
     useEffect(() => {
@@ -121,7 +125,10 @@ export function LibraryAssetDetail({
                         <LibraryAssetActions
                             assetId={asset.id}
                             gcsUri={asset.gcsUri}
+                            visibility={asset.visibility}
+                            isOwner={asset.userId === session?.user?.id}
                             onDelete={() => onDelete(asset.id)}
+                            onShared={onShared}
                         />
                     </div>
                 </div>

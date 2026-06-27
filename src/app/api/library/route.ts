@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withAuth } from "@/lib/utils/api";
-import { libraryService } from "@/lib/services/library.service";
+import { libraryService, LibraryService } from "@/lib/services/library.service";
 import logger from "@/app/logger";
 import type { LibraryAssetType } from "@/lib/library-types";
 
@@ -15,6 +15,7 @@ const createAssetSchema = z.object({
     aspectRatio: z.string().optional(),
     model: z.string().optional(),
     tags: z.array(z.string()).default([]),
+    visibility: z.enum(["private", "public"]).default("private"),
     provenance: z.object({
         sourceType: z.enum(["flow", "canvas"]),
         sourceId: z.string().min(1),
@@ -51,13 +52,26 @@ export const GET = withAuth(async (req, _context, session) => {
             before = parsed;
         }
         const limitRaw = limitParam ? parseInt(limitParam, 10) : undefined;
+        if (limitRaw !== undefined && (isNaN(limitRaw) || limitRaw < 1)) {
+            return NextResponse.json(
+                { error: "Invalid 'limit' parameter" },
+                { status: 400 },
+            );
+        }
         const limit =
-            limitRaw !== undefined && isNaN(limitRaw) ? undefined : limitRaw;
+            limitRaw !== undefined
+                ? Math.min(limitRaw, LibraryService.MAX_ASSETS_LIMIT)
+                : undefined;
         const search = searchParams.get("search") ?? undefined;
+        const visibilityParam = searchParams.get("visibility");
+        const visibility =
+            visibilityParam === "public" || visibilityParam === "private"
+                ? visibilityParam
+                : undefined;
         const assets = await libraryService.listAssets(
             session.user!.id!,
             type ?? undefined,
-            { before, limit, search },
+            { before, limit, search, visibility },
         );
         return NextResponse.json({ assets });
     } catch (error) {

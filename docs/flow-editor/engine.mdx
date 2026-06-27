@@ -1,0 +1,115 @@
+---
+title: "Building & Running Workflows"
+description: "Data flow, mention referencing, execution modes, and batch processing."
+---
+
+Once you understand what nodes do, you can combine them into powerful generation pipelines. This guide covers how data flows between nodes using `@` mentions, how to run workflows step by step, and how to use batch mode to generate at scale.
+
+---
+
+## How Data Flows: `@` Mention Referencing
+
+In FlowCraft you don't copy-paste results between nodes. You reference upstream outputs dynamically using the `@` symbol inside any **Instructions** or **Prompt** field.
+
+### Step-by-step
+
+1. Connect the output handle of an upstream node (e.g. an **Image Node** named `cover-image`) to the input handle of a downstream node (e.g. an **LLM Node**).
+2. Inside the LLM's **Instructions** field, type `@`.
+3. A dropdown appears listing all connected upstream nodes.
+4. Select `cover-image`. The editor inserts `[@cover-image]`.
+5. When the workflow runs, FlowCraft fetches the generated image from `cover-image` and feeds it to the model alongside your instruction.
+
+**Example instruction using a mention:**
+
+```
+Write a detailed alt-text description for the image [@cover-image].
+Output only the description, no preamble.
+```
+
+Mentions work with any node output: text strings, images, videos, JSON objects, uploaded files.
+
+---
+
+## Execution Modes
+
+FlowCraft does not have a single "Run All" button. Execution is **per-node**, giving you precise control over which parts of the pipeline to (re-)run.
+
+Each node exposes three execution modes via its [action bar](/flow-editor/overview#node-action-bar):
+
+| Mode                            | What runs                                                                                                                |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| ▶ **Generate (this node only)** | Executes just this node. Upstream outputs must already exist.                                                            |
+| ⏩ **Run From Here**            | Executes this node, then all downstream nodes that depend on its output, in order.                                       |
+| **Run To Here**                 | Executes all upstream dependencies first, then this node last. Useful for running the whole chain up to a specific step. |
+
+**Typical usage pattern:**
+
+- First run: hover the last node → **Run To Here** (runs the entire chain in order).
+- Iterating: change a prompt midway, hover that node → **Run From Here** (re-runs from that point without touching the nodes before it).
+
+---
+
+## Visual Feedback
+
+| State             | What you see                                                           |
+| ----------------- | ---------------------------------------------------------------------- |
+| Running           | Animated beam glow around the node border                              |
+| Success           | Output (text, image thumbnail, video preview) rendered inside the node |
+| Error             | Red error message inside the node; hover for the full message          |
+| Batch in progress | Progress counter in the action bar (e.g. `3 / 10`)                     |
+
+---
+
+## Batch Processing
+
+One of FlowCraft's most powerful features is **automatic Batch Mode**. Connect a **List Node** to any generation node and FlowCraft automatically fans out execution across all list items — no toggle or configuration needed.
+
+<Tip>
+    Batch mode is triggered automatically whenever a node receives a list of
+    inputs. FlowCraft detects the list and runs the downstream node once per
+    item, in parallel up to the concurrency limit.
+</Tip>
+
+### Example: 5 product descriptions from a list
+
+1. Place a **List Node** on the canvas. Set item type to _Text_ and add 5 product names.
+2. Connect the List Node's output to an **LLM Node**.
+3. In the LLM Node's Instructions, write: _"Write a 50-word product description for [@list-node]."_
+4. Hover the LLM Node → click **Run From Here**.
+5. FlowCraft detects the list, fans out 5 parallel LLM calls, and shows a `1/5 → 5/5` counter in the action bar.
+
+### Batch with images
+
+The same pattern works with image lists:
+
+1. Place a **List Node** with item type set to _Image_. Upload 10 product photos.
+2. Connect to an **Image Node** with a style prompt.
+3. Run → 10 styled variants are generated in parallel.
+
+### Downstream batch propagation
+
+Batch mode propagates automatically. If a List Node feeds into an LLM Node, and the LLM Node's output connects to an Image Node, the entire chain runs in batch — the Image Node receives 5 text outputs and generates 5 images accordingly.
+
+---
+
+## Chaining Complex Pipelines
+
+### Text → Image → Caption example
+
+```
+[Text Node: topic] ──→ [LLM: write article] ──→ [LLM: extract image concept]
+                                                            │
+                                                            ▼
+                                               [Image Node: generate cover]
+                                                            │
+                                                            ▼
+                                               [LLM: write alt text for [@cover]]
+```
+
+**Execution:** Hover the final LLM Node → **Run To Here**. FlowCraft resolves the dependency order automatically: Text → first LLM → second LLM → Image → final LLM.
+
+### Sub-workflows
+
+Use a **Custom Workflow Node** to embed a saved workflow as a reusable component. Its declared **Workflow Input** and **Workflow Output** nodes become the node's connection handles in the parent flow.
+
+**Example:** Build a "Blog Post Generator" workflow with a `topic` input and `article` + `cover_image` outputs. Embed it in a larger syndication flow as a single node.

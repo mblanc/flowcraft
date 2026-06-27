@@ -8,7 +8,8 @@ import logger from "@/app/logger";
 import {
     getCachedSignedUrl,
     fetchAndCacheSignedUrl,
-} from "@/lib/cache/signed-url-cache";
+} from "@/lib/cache/signed-urls";
+import { isGcsUri } from "@/lib/utils/gcs-uri";
 
 interface BatchMediaGalleryProps {
     items: string[];
@@ -28,7 +29,7 @@ export const BatchMediaGallery = memo(
             () => {
                 const map = new Map<string, string>();
                 items.forEach((url) => {
-                    if (url.startsWith("gs://")) {
+                    if (isGcsUri(url)) {
                         const cached = getCachedSignedUrl(url);
                         if (cached) map.set(url, cached);
                     }
@@ -39,7 +40,7 @@ export const BatchMediaGallery = memo(
 
         useEffect(() => {
             const urlsToFetch = items.filter(
-                (url) => url.startsWith("gs://") && !signedUrls.has(url),
+                (url) => isGcsUri(url) && !signedUrls.has(url),
             );
 
             if (urlsToFetch.length === 0) return;
@@ -68,7 +69,7 @@ export const BatchMediaGallery = memo(
         }, [items]);
 
         const getDisplayUrl = (url: string) => {
-            if (url.startsWith("gs://")) {
+            if (isGcsUri(url)) {
                 return signedUrls.get(url) || "/placeholder.svg";
             }
             return url;

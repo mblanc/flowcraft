@@ -13,14 +13,16 @@
         "test:eval": "vitest run --config vitest.config.eval.ts",
         "test:ui": "vitest --ui",
         "test:coverage": "vitest --coverage",
-        "preflight": "bun run format && bun run check && bun run lint && bun run test",
-        "prepare": "husky"
+        "preflight": "bun run format && concurrently --kill-others-on-fail -n check,lint,test \"bun run check\" \"bun run lint\" \"bun run test\"",
+        "prepare": "husky",
+        "docs:dev": "cd docs && bun run dev",
+        "docs:build": "cd docs && bun run build"
     },
     "dependencies": {
         "@google-cloud/firestore": "^8.3.0",
         "@google-cloud/storage": "^7.19.0",
         "@google/adk": "^1.2.0",
-        "@google/genai": "1.45.0",
+        "@google/genai": "^2.10.0",
         "@hookform/resolvers": "^5.4.0",
         "@mdxeditor/editor": "^4.0.4",
         "@mediabunny/server": "^1.49.0",
@@ -58,6 +60,7 @@
         "cmdk": "1.1.1",
         "date-fns": "4.4.0",
         "embla-carousel-react": "8.6.0",
+        "file-type": "^22.0.1",
         "geist": "^1.7.2",
         "input-otp": "1.4.2",
         "lucide-react": "^0.577.0",
@@ -81,11 +84,12 @@
         "uuid": "^13.0.2",
         "vaul": "^1.1.2",
         "winston": "^3.19.0",
-        "zod": "4.4.3",
+        "zod": "4.3.6",
         "zustand": "^5.0.14"
     },
     "devDependencies": {
         "@tailwindcss/postcss": "^4.3.1",
+        "@tailwindcss/typography": "^0.5.20",
         "@testing-library/dom": "^10.4.1",
         "@testing-library/jest-dom": "^6.9.1",
         "@testing-library/react": "^16.3.2",
@@ -95,7 +99,8 @@
         "@types/react-dom": "19.2.3",
         "@vitejs/plugin-react": "^6.0.3",
         "@vitest/coverage-v8": "^4.1.9",
-        "eslint": "^10.6.0",
+        "concurrently": "^10.0.3",
+        "eslint": "^9.21.0",
         "eslint-config-next": "^16.2.9",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -115,7 +120,9 @@
     "overrides": {
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
-        "tinyexec": "1.2.4"
+        "tinyexec": "1.2.4",
+        "vite": "^8.1.0",
+        "zod": "4.3.6"
     },
     "trustedDependencies": [
         "node-av",

@@ -54,12 +54,15 @@ export function CanvasChatMessages({ onExecutePlan }: CanvasChatMessagesProps) {
     return (
         <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col gap-1 py-2">
-                {messages.map((message) => (
+                {messages.map((message, index) => (
                     <CanvasChatMessage
                         key={message.id}
                         message={message}
                         isLiveAssistant={message.id === liveAssistantId}
                         onExecutePlan={onExecutePlan}
+                        questionAnswered={messages
+                            .slice(index + 1)
+                            .some((m) => m.role === "user")}
                     />
                 ))}
 

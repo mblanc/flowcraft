@@ -20,6 +20,20 @@ function migrateVideoModel(val: unknown): unknown {
 
 const AspectRatio169_916Schema = z.enum(["16:9", "9:16"]);
 
+const MediaRefSchema = z.object({
+    url: z.string(),
+    type: z.string(),
+});
+
+const NamedNodeInputSchema = z.object({
+    nodeId: z.string(),
+    name: z.string(),
+    textValue: z.string().nullable(),
+    textValues: z.array(z.string()).optional(),
+    fileValues: z.array(MediaRefSchema),
+    fileValuesList: z.array(z.array(MediaRefSchema)).optional(),
+});
+
 const ImageDataAspectRatioSchema = z.enum([
     "Auto",
     "16:9",
@@ -137,7 +151,7 @@ export const FileDataSchema = BaseNodeDataSchema.extend({
     type: z.literal("file"),
     fileType: z.enum(["image", "video", "pdf"]).nullable(),
     fileUrl: z.string(),
-    fileName: z.string(),
+    fileName: z.string().max(255),
     gcsUri: z.string().optional(),
     width: z.number().optional(),
     height: z.number().optional(),
@@ -202,6 +216,17 @@ export const RouterDataSchema = BaseNodeDataSchema.extend({
     valueMediaType: z.enum(["image", "video", "pdf"]).optional(),
 });
 
+export const MusicDataSchema = BaseNodeDataSchema.extend({
+    type: z.literal("music"),
+    prompt: z.string().default(""),
+    model: z
+        .enum(["lyria-3-clip-preview", "lyria-3-pro-preview"])
+        .optional()
+        .default("lyria-3-clip-preview"),
+    audioUrl: z.string().optional(),
+    mimeType: z.string().optional(),
+});
+
 export const NodeDataSchema = z.discriminatedUnion("type", [
     LLMDataSchema,
     TextDataSchema,
@@ -215,6 +240,7 @@ export const NodeDataSchema = z.discriminatedUnion("type", [
     WorkflowOutputDataSchema,
     CustomWorkflowDataSchema,
     RouterDataSchema,
+    MusicDataSchema,
 ]);
 
 export const NodeSchema = z.object({
@@ -276,6 +302,7 @@ export const GenerateImageSchema = z
         groundingGoogleSearch: z.boolean().optional().default(false),
         groundingImageSearch: z.boolean().optional().default(false),
         thinkingLevel: z.string().optional(),
+        namedNodes: z.array(NamedNodeInputSchema).optional(),
     })
     .superRefine((data, ctx) => {
         const hasParts = data.parts && data.parts.length > 0;
@@ -291,6 +318,8 @@ export const GenerateImageSchema = z
 
 export const GenerateTextSchema = z
     .object({
+        instructions: z.string().optional(),
+        namedNodes: z.array(NamedNodeInputSchema).optional(),
         prompts: z.array(z.string()).optional().default([]),
         parts: z.array(ContentPartSchema).optional(),
         files: z
@@ -353,20 +382,34 @@ export const GenerateVideoSchema = z.object({
     ),
     generateAudio: z.boolean().optional().default(true),
     resolution: z.enum(["720p", "1080p", "4K"]).optional().default("720p"),
+    namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 
 export const ResizeImageSchema = z.object({
     image: z.string().min(1, "Image is required"),
     aspectRatio: AspectRatio169_916Schema,
+    namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 
 export const UpscaleImageSchema = z.object({
     image: z.string().min(1, "Image is required"),
     upscaleFactor: z.enum(["x2", "x3", "x4"]).optional().default("x2"),
+    namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 
-export const GetSignedUrlSchema = z.object({
-    gcsUri: z.string().min(1, "gcsUri is required"),
+export const CanvasCreateSchema = z.object({
+    name: z.string().min(1, "Name is required").max(256),
+});
+
+export const StyleCreateSchema = z.object({
+    name: z.string().min(1, "Name is required").max(256),
+    description: z.string().max(2048).optional().default(""),
+    content: z.string().max(819200).optional().default(""),
+    referenceImageUris: z
+        .array(z.string().startsWith("gs://").max(1024))
+        .max(20)
+        .optional()
+        .default([]),
 });
 
 export const FlowCreateSchema = z.object({
@@ -375,11 +418,15 @@ export const FlowCreateSchema = z.object({
     edges: z.array(EdgeSchema),
 });
 
+export const FlowImportSchema = FlowCreateSchema.extend({
+    name: z.string().optional(),
+});
+
 export const FlowUpdateSchema = z.object({
     name: z.string().optional(),
     nodes: z.array(NodeSchema).optional(),
     edges: z.array(EdgeSchema).optional(),
-    thumbnail: z.string().optional(),
+    thumbnail: z.string().url().max(2048).optional(),
     visibility: z.enum(["private", "public", "restricted"]).optional(),
     isTemplate: z.boolean().optional(),
     sharedWith: z
@@ -404,6 +451,79 @@ export const FlowShareSchema = z.object({
         .optional(),
 });
 
+const SharedWithSchema = z.array(
+    z.object({
+        email: z.string().email(),
+        role: z.enum(["view", "edit"]),
+    }),
+);
+
+export const CanvasSharingPatchSchema = z.object({
+    visibility: z.enum(["private", "public"]).optional(),
+    sharedWith: SharedWithSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
+
+const ChatMessageSchema = z
+    .object({
+        id: z.string(),
+        role: z.enum(["user", "assistant", "system"]),
+        content: z.string(),
+        createdAt: z.string(),
+    })
+    .passthrough();
+
+export const CanvasUpdateSchema = z.object({
+    name: z.string().max(256).optional(),
+    nodes: z.array(z.unknown()).optional(),
+    viewport: z
+        .object({ x: z.number(), y: z.number(), zoom: z.number() })
+        .optional(),
+    messages: z.array(ChatMessageSchema).optional(),
+    thumbnail: z.string().url().max(2048).optional(),
+    activeStyleId: z.string().nullable().optional(),
+    disabledSkills: z.array(z.string()).optional(),
+    visibility: z.enum(["private", "public"]).optional(),
+    sharedWith: SharedWithSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
+
+export const StyleSharingPatchSchema = z.object({
+    visibility: z.enum(["private", "public"]).optional(),
+    sharedWith: SharedWithSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
+
+export const StyleUpdateSchema = z.object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    content: z.string().optional(),
+    referenceImageUris: z.array(z.string()).optional(),
+    visibility: z.enum(["private", "public"]).optional(),
+    sharedWith: SharedWithSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
+
+export const CreateSkillSchema = z.object({
+    name: z.string().min(2).max(64),
+    description: z.string().min(10).max(1024),
+    instructions: z.string().min(10),
+});
+
+export const UpdateSkillSchema = z.object({
+    name: z.string().min(2).max(64).optional(),
+    description: z.string().min(10).max(1024).optional(),
+    instructions: z.string().min(10).optional(),
+    visibility: z.enum(["private", "public"]).optional(),
+    isTemplate: z.boolean().optional(),
+});
+
+export const AssetSharingPatchSchema = z
+    .object({
+        visibility: z.enum(["private", "public"]),
+    })
+    .strict();
+
 // --- Custom Node Schemas ---
 
 export const CustomNodePortSchema = z.object({
@@ -422,7 +542,7 @@ export const CustomNodeUpdateSchema = z.object({
     name: z.string().optional(),
     nodes: z.array(NodeSchema).optional(),
     edges: z.array(EdgeSchema).optional(),
-    thumbnail: z.string().optional(),
+    thumbnail: z.string().url().max(2048).optional(),
 });
 
 // --- Infer Types ---
@@ -432,7 +552,6 @@ export type GenerateTextRequest = z.infer<typeof GenerateTextSchema>;
 export type GenerateVideoRequest = z.infer<typeof GenerateVideoSchema>;
 export type ResizeImageRequest = z.infer<typeof ResizeImageSchema>;
 export type UpscaleImageRequest = z.infer<typeof UpscaleImageSchema>;
-export type GetSignedUrlRequest = z.infer<typeof GetSignedUrlSchema>;
 export type FlowCreateRequest = z.infer<typeof FlowCreateSchema>;
 export type FlowUpdateRequest = z.infer<typeof FlowUpdateSchema>;
 export type CustomNodeCreateRequest = z.infer<typeof CustomNodeCreateSchema>;
@@ -453,4 +572,14 @@ export type WorkflowInputData = z.infer<typeof WorkflowInputDataSchema>;
 export type WorkflowOutputData = z.infer<typeof WorkflowOutputDataSchema>;
 export type CustomWorkflowData = z.infer<typeof CustomWorkflowDataSchema>;
 export type RouterData = z.infer<typeof RouterDataSchema>;
+export type MusicData = z.infer<typeof MusicDataSchema>;
 export type NodeData = z.infer<typeof NodeDataSchema>;
+export type CanvasCreate = z.infer<typeof CanvasCreateSchema>;
+export type StyleCreate = z.infer<typeof StyleCreateSchema>;
+export type CanvasSharingPatch = z.infer<typeof CanvasSharingPatchSchema>;
+export type CanvasUpdate = z.infer<typeof CanvasUpdateSchema>;
+export type StyleSharingPatch = z.infer<typeof StyleSharingPatchSchema>;
+export type StyleUpdate = z.infer<typeof StyleUpdateSchema>;
+export type AssetSharingPatch = z.infer<typeof AssetSharingPatchSchema>;
+export type SkillCreate = z.infer<typeof CreateSkillSchema>;
+export type SkillUpdate = z.infer<typeof UpdateSkillSchema>;

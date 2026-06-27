@@ -13,11 +13,16 @@ import type {
 export interface CanvasStore {
     // Canvas data
     canvasId: string | null;
+    canvasUserId: string | null;
     canvasName: string;
+    canvasVisibility: "private" | "public";
+    canvasSharedWith: { email: string; role: "view" | "edit" }[];
+    canvasIsTemplate: boolean;
     nodes: CanvasNode[];
     viewport: { x: number; y: number; zoom: number };
     messages: ChatMessage[];
     activeStyleId: string | null;
+    disabledSkills: string[];
     sessionId: string;
 
     // UI state
@@ -52,6 +57,8 @@ export interface CanvasStore {
     clearMessages: () => void;
     resetSession: () => void;
     setActiveStyleId: (id: string | null) => void;
+    toggleDisabledSkill: (skillName: string) => void;
+    setDisabledSkills: (skills: string[]) => void;
 
     // Action prompt (set by suggested-action buttons, consumed by chat input)
     pendingActionPrompt: string | null;
@@ -68,10 +75,10 @@ export interface CanvasStore {
 
     // Node ID generation
     getNextLabel: (
-        type: "canvas-image" | "canvas-video" | "canvas-text",
+        type: "canvas-image" | "canvas-video" | "canvas-text" | "canvas-audio",
     ) => string;
     getNextNodeId: (
-        type: "canvas-image" | "canvas-video" | "canvas-text",
+        type: "canvas-image" | "canvas-video" | "canvas-text" | "canvas-audio",
     ) => string;
 }
 
@@ -79,11 +86,16 @@ const TYPE_PREFIX_MAP = {
     "canvas-image": "Image",
     "canvas-video": "Video",
     "canvas-text": "Text",
+    "canvas-audio": "Audio",
 } as const;
 
 export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     canvasId: null,
+    canvasUserId: null,
     canvasName: "Untitled Canvas",
+    canvasVisibility: "private",
+    canvasSharedWith: [],
+    canvasIsTemplate: false,
     nodes: [],
     viewport: { x: 0, y: 0, zoom: 1 },
     messages: [],
@@ -96,16 +108,22 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     generatingNodeIds: [],
     pendingActionPrompt: null,
     planStepStatuses: {},
+    disabledSkills: [],
     lastModified: 0,
 
     setCanvas: (canvas) =>
         set({
             canvasId: canvas.id,
+            canvasUserId: canvas.userId,
             canvasName: canvas.name,
+            canvasVisibility: canvas.visibility,
+            canvasSharedWith: canvas.sharedWith,
+            canvasIsTemplate: canvas.isTemplate,
             nodes: canvas.nodes,
             viewport: canvas.viewport,
             messages: canvas.messages,
             activeStyleId: canvas.activeStyleId ?? null,
+            disabledSkills: canvas.disabledSkills ?? [],
             selectedNodeIds: [],
             lastModified: 0,
         }),
@@ -205,6 +223,19 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     resetSession: () => set({ sessionId: crypto.randomUUID() }),
 
     setActiveStyleId: (id) => set({ activeStyleId: id }),
+
+    toggleDisabledSkill: (skillName) =>
+        set((state) => {
+            const isCurrentlyDisabled =
+                state.disabledSkills.includes(skillName);
+            const nextDisabled = isCurrentlyDisabled
+                ? state.disabledSkills.filter((name) => name !== skillName)
+                : [...state.disabledSkills, skillName];
+            return { disabledSkills: nextDisabled, lastModified: Date.now() };
+        }),
+
+    setDisabledSkills: (skills) =>
+        set({ disabledSkills: skills, lastModified: Date.now() }),
 
     setIsChatLoading: (loading) => set({ isChatLoading: loading }),
 

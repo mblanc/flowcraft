@@ -8,6 +8,8 @@ import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { CanvasEditor } from "@/components/canvas/canvas-editor";
 import { useCanvasPersistence } from "@/hooks/use-canvas-persistence";
 import logger from "@/app/logger";
+import type { CanvasDocument } from "@/lib/canvas/types";
+import { deriveCanvasRole } from "@/lib/canvas/derive-role";
 
 function CanvasContent() {
     const params = useParams();
@@ -16,20 +18,26 @@ function CanvasContent() {
     const setCanvas = useCanvasStore((s) => s.setCanvas);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
+    const [readOnly, setReadOnly] = useState(false);
     const loadedCanvasId = useRef<string | null>(null);
 
-    // Initialize auto-save
-    useCanvasPersistence();
+    useCanvasPersistence(readOnly);
 
     const fetchCanvas = useCallback(
         async (id: string) => {
             try {
                 const response = await fetch(`/api/canvases/${id}`);
                 if (response.ok) {
-                    const canvas = await response.json();
+                    const canvas: CanvasDocument = await response.json();
                     setCanvas(canvas);
+                    const role = deriveCanvasRole(
+                        canvas,
+                        session?.user?.id,
+                        session?.user?.email,
+                    );
+                    setReadOnly(role === "viewer");
                     setLoading(false);
-                } else if (response.status === 404) {
+                } else if (response.status === 404 || response.status === 403) {
                     setNotFound(true);
                     setLoading(false);
                 } else {
@@ -41,7 +49,7 @@ function CanvasContent() {
                 setLoading(false);
             }
         },
-        [setCanvas],
+        [setCanvas, session],
     );
 
     useEffect(() => {
@@ -84,7 +92,7 @@ function CanvasContent() {
         );
     }
 
-    return <CanvasEditor />;
+    return <CanvasEditor readOnly={readOnly} />;
 }
 
 export default function CanvasPage() {

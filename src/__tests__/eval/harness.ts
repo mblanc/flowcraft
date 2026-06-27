@@ -12,7 +12,7 @@
  *   assertEvalPasses(results);  // throws if any case is below threshold
  */
 
-import type { CanvasAgentRunner } from "../../lib/canvas/adk/runner";
+import type { CanvasAgentRunner } from "../../lib/canvas/agent/agent-runner";
 import type { AgentEvent, AgentInput } from "../../lib/canvas/types";
 import type { GenerationStep } from "../../lib/canvas/types";
 
@@ -67,7 +67,10 @@ export const criteria = {
     }),
 
     /** Plan must have at least `n` steps of a given type. */
-    minStepsOfType: (type: "image" | "video", n: number): Criterion => ({
+    minStepsOfType: (
+        type: "image" | "video" | "audio",
+        n: number,
+    ): Criterion => ({
         name: `min_${type}_steps_${n}`,
         score: (steps) =>
             steps.filter((s) => s.type === type).length >= n ? 1 : 0,
@@ -180,6 +183,23 @@ export const criteria = {
         name: "has_text_nodes",
         score: (_, events) =>
             events.some((e) => e.type === "text_nodes") ? 1 : 0,
+    }),
+
+    /** Agent must emit a question event (i.e. called ask_user). */
+    hasQuestion: (): Criterion => ({
+        name: "has_question",
+        score: (_, events) =>
+            events.some((e) => e.type === "question") ? 1 : 0,
+    }),
+
+    /** Agent must not emit a plan when a question is pending. */
+    noPlanWithQuestion: (): Criterion => ({
+        name: "no_plan_with_question",
+        score: (steps, events) => {
+            const hasQ = events.some((e) => e.type === "question");
+            if (!hasQ) return 1;
+            return steps.length === 0 ? 1 : 0;
+        },
     }),
 
     /** plan_text_nodes must be emitted before any plan event. */

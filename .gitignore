@@ -50,3 +50,8 @@ next-env.d.ts
 .gemini/
 .codegraph/
 .antigravitycli/
+
+# docs workspace ignores
+/docs/node_modules/
+/docs/.next/
+/docs/out/

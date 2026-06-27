@@ -77,6 +77,10 @@ export interface GraphSlice {
     deleteNode: (nodeId: string) => void;
     removeEdges: (edgeIds: string[]) => void;
 
+    // --- Save status ---
+    saveStatus: "saved" | "saving" | "error";
+    setSaveStatus: (status: "saved" | "saving" | "error") => void;
+
     // --- Load / reset ---
     loadFlow: (
         id: string,
@@ -99,9 +103,7 @@ export interface GraphSlice {
  * status, sidebar visibility, etc.
  */
 export interface UISlice {
-    isRunning: boolean;
     isConfigSidebarOpen: boolean;
-    setIsRunning: (isRunning: boolean) => void;
     setIsConfigSidebarOpen: (isOpen: boolean) => void;
 }
 

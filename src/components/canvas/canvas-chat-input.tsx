@@ -8,7 +8,7 @@ import {
     useEffect,
     type KeyboardEvent,
 } from "react";
-import { SendHorizonal, Loader2, Check } from "lucide-react";
+import { SendHorizonal, Loader2, Check, Sparkles } from "lucide-react";
 import { StyleThumbnail } from "./style-thumbnail";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
@@ -33,23 +33,35 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { StyleDocument } from "@/lib/style-types";
-import { STYLE_TEMPLATES } from "@/lib/style-templates";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { SkillsLibrary } from "./skills-library";
+import type { StyleDocument } from "@/lib/styles/style-types";
+import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { CanvasAttachmentBar } from "./canvas-attachment-bar";
 import {
     CanvasMentionDropdown,
     type MentionItem,
 } from "./canvas-mention-dropdown";
+import { CanvasSlashAutocomplete } from "./canvas-slash-autocomplete";
 import type {
     ChatMessage,
     ChatAttachment,
     CanvasImageData,
     CanvasVideoData,
+    CanvasAudioData,
     GeneratedMediaRef,
     NodePayload,
     GenerationStep,
     AgentPlan,
+    QuestionPayload,
 } from "@/lib/canvas/types";
 import { calculateNodePositions } from "@/lib/canvas/layout";
 
@@ -112,6 +124,54 @@ export function CanvasChatInput({
         new Set(),
     );
     const mentionTriggerPos = useRef<number | null>(null);
+
+    // Slash command autocomplete state
+    const [userSkillsForAutocomplete, setUserSkillsForAutocomplete] = useState<
+        { name: string }[]
+    >([]);
+    const [slashQuery, setSlashQuery] = useState<string | null>(null);
+    const [slashIndex, setSlashIndex] = useState(0);
+    const [slashPos, setSlashPos] = useState({ top: 0, left: 0 });
+    const slashTriggerPos = useRef<number | null>(null);
+
+    // Fetch user skills on mount to populate autocomplete suggestions
+    useEffect(() => {
+        const fetchSkillsForAutocomplete = async () => {
+            try {
+                const res = await fetch("/api/skills?tab=my");
+                if (res.ok) {
+                    const data = await res.json();
+                    setUserSkillsForAutocomplete(data.skills ?? []);
+                }
+            } catch (err) {
+                console.error("Failed to fetch skills for autocomplete", err);
+            }
+        };
+        void fetchSkillsForAutocomplete();
+    }, []);
+
+    const disabledSkills = useCanvasStore((s) => s.disabledSkills);
+
+    const availableSkills = useMemo(() => {
+        const BUILT_IN_SKILL_NAMES = [
+            "character-generation",
+            "multi-shot-video",
+            "storyboard",
+            "virtual-tryon",
+        ];
+        const customNames = userSkillsForAutocomplete.map((s) => s.name);
+        const allNames = Array.from(
+            new Set([...BUILT_IN_SKILL_NAMES, ...customNames]),
+        );
+        // Filter out disabled ones
+        return allNames.filter((name) => !disabledSkills.includes(name));
+    }, [userSkillsForAutocomplete, disabledSkills]);
+
+    const filteredSlashSkills = useMemo(() => {
+        if (slashQuery === null) return [];
+        const q = slashQuery.toLowerCase();
+        return availableSkills.filter((name) => name.toLowerCase().includes(q));
+    }, [availableSkills, slashQuery]);
 
     // Dismissed selection-based attachment node IDs
     const [dismissedNodeIds, setDismissedNodeIds] = useState<Set<string>>(
@@ -392,6 +452,67 @@ export function CanvasChatInput({
         [input, closeMention],
     );
 
+    // Slash command detection in textarea
+    const detectSlashCommand = useCallback(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+
+        const cursorPos = el.selectionStart;
+        const textBeforeCursor = el.value.slice(0, cursorPos);
+
+        // We only trigger slash command autocomplete if the "/" is at the start of a line
+        const lastNewLine = textBeforeCursor.lastIndexOf("\n");
+        const lineStart = lastNewLine === -1 ? 0 : lastNewLine + 1;
+
+        if (textBeforeCursor[lineStart] !== "/") {
+            setSlashQuery(null);
+            slashTriggerPos.current = null;
+            return;
+        }
+
+        const slashIndexInLine = lineStart;
+        const query = textBeforeCursor.slice(slashIndexInLine + 1);
+
+        if (query.includes(" ")) {
+            setSlashQuery(null);
+            slashTriggerPos.current = null;
+            return;
+        }
+
+        slashTriggerPos.current = slashIndexInLine;
+        setSlashQuery(query);
+        setSlashIndex(0);
+
+        const rect = el.getBoundingClientRect();
+        setSlashPos({
+            top: rect.top - 4,
+            left: rect.left + 12,
+        });
+    }, []);
+
+    const handleSlashSelect = useCallback(
+        (skillName: string) => {
+            const el = textareaRef.current;
+            if (!el || slashTriggerPos.current === null) return;
+
+            const before = input.slice(0, slashTriggerPos.current);
+            const after = input.slice(el.selectionStart);
+            const newValue = `${before}/${skillName} ${after}`;
+
+            setInput(newValue);
+            setSlashQuery(null);
+            slashTriggerPos.current = null;
+
+            const cursorPos = before.length + 1 + skillName.length + 1;
+            requestAnimationFrame(() => {
+                el.focus();
+                el.selectionStart = cursorPos;
+                el.selectionEnd = cursorPos;
+            });
+        },
+        [input],
+    );
+
     /** Create a placeholder node for a generation step, collision-aware.
      *  Returns { rect, nodeId } — nodeId is a fresh uuid, NOT step.id,
      *  so multiple runs never produce duplicate canvas node IDs. */
@@ -439,7 +560,11 @@ export function CanvasChatInput({
 
             const nodeId = uuidv4();
             const nodeType =
-                step.type === "image" ? "canvas-image" : "canvas-video";
+                step.type === "image"
+                    ? "canvas-image"
+                    : step.type === "audio"
+                      ? "canvas-audio"
+                      : "canvas-video";
             const label = step.label ?? getNextLabel(nodeType);
 
             if (step.type === "image") {
@@ -463,6 +588,24 @@ export function CanvasChatInput({
                     data,
                     width,
                     height,
+                });
+            } else if (step.type === "audio") {
+                const data: CanvasAudioData = {
+                    type: "canvas-audio",
+                    label,
+                    sourceUrl: "",
+                    mimeType: "audio/wav",
+                    prompt: step.prompt,
+                    model: step.model,
+                    status: "pending",
+                };
+                addNode({
+                    id: nodeId,
+                    type: "canvas-audio",
+                    position,
+                    data,
+                    width: 288,
+                    height: 100,
                 });
             } else {
                 const data: CanvasVideoData = {
@@ -546,7 +689,11 @@ export function CanvasChatInput({
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ plan, messageId }),
+                        body: JSON.stringify({
+                            plan,
+                            messageId,
+                            musicModel: agentSettings.musicModel,
+                        }),
                     },
                 );
 
@@ -979,6 +1126,12 @@ export function CanvasChatInput({
                                     break;
                                 }
 
+                                case "question":
+                                    updateMessage(assistantMsgId, {
+                                        question: payload as QuestionPayload,
+                                    });
+                                    break;
+
                                 case "error":
                                     throw new Error(
                                         payload.message || "Stream error",
@@ -1051,6 +1204,33 @@ export function CanvasChatInput({
 
     const handleKeyDown = useCallback(
         (e: KeyboardEvent<HTMLTextAreaElement>) => {
+            // Handle slash command autocomplete navigation
+            if (slashQuery !== null && filteredSlashSkills.length > 0) {
+                if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setSlashIndex((i) =>
+                        Math.min(i + 1, filteredSlashSkills.length - 1),
+                    );
+                    return;
+                }
+                if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setSlashIndex((i) => Math.max(i - 1, 0));
+                    return;
+                }
+                if (e.key === "Enter" || e.key === "Tab") {
+                    e.preventDefault();
+                    handleSlashSelect(filteredSlashSkills[slashIndex]);
+                    return;
+                }
+                if (e.key === "Escape") {
+                    e.preventDefault();
+                    setSlashQuery(null);
+                    slashTriggerPos.current = null;
+                    return;
+                }
+            }
+
             // Handle mention dropdown navigation
             if (mentionQuery !== null && filteredMentionItems.length > 0) {
                 if (e.key === "ArrowDown") {
@@ -1089,6 +1269,10 @@ export function CanvasChatInput({
             mentionIndex,
             handleMentionSelect,
             closeMention,
+            slashQuery,
+            filteredSlashSkills,
+            slashIndex,
+            handleSlashSelect,
         ],
     );
 
@@ -1100,13 +1284,15 @@ export function CanvasChatInput({
             el.style.height = `${Math.min(el.scrollHeight, 150)}px`;
 
             detectMention();
+            detectSlashCommand();
         },
-        [detectMention],
+        [detectMention, detectSlashCommand],
     );
 
     const handleTextareaClick = useCallback(() => {
         detectMention();
-    }, [detectMention]);
+        detectSlashCommand();
+    }, [detectMention, detectSlashCommand]);
 
     return (
         <div className="border-border rounded-b-lg border-t p-3">
@@ -1154,6 +1340,17 @@ export function CanvasChatInput({
                                 onHover={setMentionIndex}
                             />
                         )}
+
+                    {slashQuery !== null && filteredSlashSkills.length > 0 && (
+                        <CanvasSlashAutocomplete
+                            items={filteredSlashSkills}
+                            query={slashQuery}
+                            selectedIndex={slashIndex}
+                            position={slashPos}
+                            onSelect={handleSlashSelect}
+                            onHover={setSlashIndex}
+                        />
+                    )}
                 </div>
 
                 <div className="flex items-center justify-between gap-2 px-2 pb-2">
@@ -1264,6 +1461,46 @@ export function CanvasChatInput({
                                 )}
                             </DropdownMenuContent>
                         </DropdownMenu>
+
+                        <div className="bg-border h-4 w-px" />
+
+                        <Dialog>
+                            <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-muted-foreground hover:text-foreground h-9 gap-2 border-none px-2 text-xs shadow-none"
+                                            >
+                                                <Sparkles className="size-3.5" />
+                                                <span>Skills</span>
+                                            </Button>
+                                        </DialogTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        Active canvas-level skills
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <DialogContent className="flex max-h-[85vh] max-w-xl flex-col overflow-y-auto p-6">
+                                <DialogHeader className="border-border/40 shrink-0 border-b pb-4">
+                                    <DialogTitle className="flex items-center gap-1.5 text-sm font-bold">
+                                        <Sparkles className="text-primary size-4 animate-pulse" />
+                                        Active Canvas Skills
+                                    </DialogTitle>
+                                    <DialogDescription className="text-xs">
+                                        Enable or disable pattern skills for
+                                        this canvas. Enabled skills will be
+                                        followed by the AI Agent.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="mt-4 flex min-h-[400px] flex-1 flex-col overflow-hidden">
+                                    <SkillsLibrary />
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </div>
 
                     <Button

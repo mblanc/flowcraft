@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import React from "react";
 import { vi } from "vitest";
 
 // Mock next/navigation
@@ -27,6 +28,15 @@ Object.defineProperty(window, "matchMedia", {
         dispatchEvent: vi.fn(),
     })),
 });
+
+// Mock next-auth/react
+vi.mock("next-auth/react", () => ({
+    useSession: vi.fn(() => ({
+        data: { user: { id: "test-user-id", email: "test@example.com" } },
+        status: "authenticated",
+    })),
+    SessionProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 // Mock next-auth
 vi.mock("next-auth", () => {

@@ -19,6 +19,10 @@ export const MODELS = {
         VEO_3_1_FAST: "veo-3.1-fast-generate-001",
         VEO_3_1_PRO: "veo-3.1-generate-001",
     },
+    MUSIC: {
+        LYRIA_3_CLIP: "lyria-3-clip-preview",
+        LYRIA_3_PRO: "lyria-3-pro-preview",
+    },
 } as const;
 
 export const MODEL_THINKING_LEVELS: Record<string, string[]> = {
@@ -104,6 +108,7 @@ export const COLLECTIONS = {
     CANVASES: "canvases",
     LIBRARY_ASSETS: "library_assets",
     STYLES: "styles",
+    USER_SKILLS: "user_skills",
 } as const;
 
 export const SUPPORTED_MIME_TYPES = {

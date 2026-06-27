@@ -14,6 +14,7 @@ import {
     Users,
     Copy,
 } from "lucide-react";
+import type { FlowState } from "@/lib/store/use-flow-store";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { useFlowPersistence } from "@/hooks/use-flow-persistence";
 import { UserProfile } from "./user-profile";
@@ -33,6 +34,7 @@ export function Header() {
     const sharedWith = useFlowStore((state) => state.sharedWith);
     const isTemplate = useFlowStore((state) => state.isTemplate);
     const visibility = useFlowStore((state) => state.visibility);
+    const saveStatus = useFlowStore((state: FlowState) => state.saveStatus);
 
     const router = useRouter();
     const [isEditing, setIsEditing] = useState(false);
@@ -158,6 +160,21 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-2">
+                {flowId && (
+                    <span
+                        className={`text-xs ${
+                            saveStatus === "error"
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                        }`}
+                    >
+                        {saveStatus === "saving"
+                            ? "Saving..."
+                            : saveStatus === "error"
+                              ? "Error saving"
+                              : "Saved"}
+                    </span>
+                )}
                 {flowId && !isCustomNode && isOwner && (
                     <Button
                         variant="ghost"
@@ -167,21 +184,6 @@ export function Header() {
                         <Users className="mr-2 h-4 w-4" />
                         Share
                     </Button>
-                )}
-                {flowId && isEditable && (
-                    <>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={async () => {
-                                await saveFlow();
-                                toast.success("Flow saved successfully");
-                            }}
-                        >
-                            <Save className="mr-2 h-4 w-4" />
-                            Save
-                        </Button>
-                    </>
                 )}
                 {flowId && !isEditable && (
                     <Button

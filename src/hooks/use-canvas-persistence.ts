@@ -1,28 +1,27 @@
 "use client";
 
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback } from "react";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import logger from "@/app/logger";
+import { useAutoSave } from "@/hooks/use-auto-save";
 
-const AUTO_SAVE_DEBOUNCE_MS = 500;
+const AUTO_SAVE_DEBOUNCE_MS = 2000;
 
-export function useCanvasPersistence() {
+export function useCanvasPersistence(readOnly = false) {
     const canvasId = useCanvasStore((s) => s.canvasId);
     const lastModified = useCanvasStore((s) => s.lastModified);
     const setSaveStatus = useCanvasStore((s) => s.setSaveStatus);
-    const lastSavedRef = useRef<number>(0);
 
     const saveCanvas = useCallback(async () => {
         const { canvasId, canvasName, nodes, viewport, messages } =
             useCanvasStore.getState();
-        if (!canvasId) return;
+        if (!canvasId || readOnly) return;
 
-        const currentModified = useCanvasStore.getState().lastModified;
-        lastSavedRef.current = currentModified;
         setSaveStatus("saving");
 
+        let response: Response;
         try {
-            const response = await fetch(`/api/canvases/${canvasId}`, {
+            response = await fetch(`/api/canvases/${canvasId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -32,30 +31,28 @@ export function useCanvasPersistence() {
                     messages,
                 }),
             });
-
-            if (response.ok) {
-                setSaveStatus("saved");
-                logger.info("Canvas saved successfully");
-            } else {
-                setSaveStatus("error");
-                logger.error("Error saving canvas: bad response");
-            }
         } catch (error) {
             setSaveStatus("error");
             logger.error("Error saving canvas:", error);
+            throw error;
         }
-    }, [setSaveStatus]);
 
-    useEffect(() => {
-        if (!canvasId || !lastModified) return;
-        if (lastModified <= lastSavedRef.current) return;
+        if (response.ok) {
+            setSaveStatus("saved");
+            logger.info("Canvas saved successfully");
+        } else {
+            setSaveStatus("error");
+            logger.error("Error saving canvas: bad response");
+            throw new Error("Save failed: bad response");
+        }
+    }, [setSaveStatus, readOnly]);
 
-        const timeout = setTimeout(() => {
-            void saveCanvas();
-        }, AUTO_SAVE_DEBOUNCE_MS);
-
-        return () => clearTimeout(timeout);
-    }, [lastModified, canvasId, saveCanvas]);
+    useAutoSave({
+        entityId: canvasId,
+        lastModified,
+        onSave: saveCanvas,
+        debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+    });
 
     return { saveCanvas };
 }

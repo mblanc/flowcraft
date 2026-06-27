@@ -9,8 +9,8 @@ import {
     getFirestore,
     formatFirestoreTimestamp,
     FlowDocument,
-} from "@/lib/firestore";
-import { config } from "@/lib/config";
+} from "@/lib/db/firestore";
+import { isAdmin } from "@/lib/services/admin";
 
 export class FlowService {
     private firestore = getFirestore();
@@ -91,11 +91,7 @@ export class FlowService {
     }
 
     async isAdmin(email: string) {
-        if (!email) return false;
-        const adminEmails = config.ADMIN_EMAILS.split(",").map((e: string) =>
-            e.trim().toLowerCase(),
-        );
-        return adminEmails.includes(email.toLowerCase());
+        return isAdmin(email);
     }
 
     async createFlow(userId: string, data: FlowCreateRequest) {

@@ -1,1 +1,0 @@
-MDXEditor => Mardown editor

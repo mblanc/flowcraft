@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
 import { styleService } from "@/lib/services/style.service";
-import { STYLE_TEMPLATES } from "@/lib/style-templates";
-import { CanvasAgentRunner } from "@/lib/canvas/adk/runner";
+import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
+import { CanvasAgentRunner } from "@/lib/canvas/agent/agent-runner";
 import {
     IMAGE_MODELS,
     VIDEO_MODELS,
     IMAGE_ASPECT_RATIOS,
     VIDEO_ASPECT_RATIOS,
-} from "@/lib/canvas/adk/tools";
+} from "@/lib/canvas/agent/tools";
 import type { ChatAttachment } from "@/lib/canvas/types";
 import { MODELS, IMAGE_SIZES, VIDEO_RESOLUTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
@@ -212,6 +212,8 @@ export async function POST(
                     activeStyle,
                     canvasId,
                     userId: session.user.id,
+                    userName: session.user.name ?? undefined,
+                    disabledSkills: canvas.disabledSkills,
                 });
 
                 for await (const event of agentStream) {
@@ -273,6 +275,12 @@ export async function POST(
                                         nodes: event.nodes,
                                     }),
                                 ),
+                            );
+                            break;
+
+                        case "question":
+                            controller.enqueue(
+                                encode(formatSSE("question", event.question)),
                             );
                             break;
 

@@ -6,7 +6,7 @@ import {
     getMimeTypeFromGCS,
     gcsUriToSharp,
     gcsUriToBase64,
-} from "../storage";
+} from "../db/storage";
 import { v4 as uuidv4 } from "uuid";
 
 export class StorageService {

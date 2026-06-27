@@ -18,7 +18,6 @@ export interface CanvasImageData {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
-    [key: string]: unknown;
 }
 
 export interface CanvasVideoData {
@@ -29,6 +28,7 @@ export interface CanvasVideoData {
     prompt?: string;
     duration?: number;
     aspectRatio?: string;
+    resolution?: string;
     model?: string;
     status: "pending" | "ready" | "generating" | "error";
     progress?: number;
@@ -43,7 +43,6 @@ export interface CanvasVideoData {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
-    [key: string]: unknown;
 }
 
 export interface CanvasTextData {
@@ -54,14 +53,35 @@ export interface CanvasTextData {
     fontSize?: number;
     width: number;
     height: number;
-    [key: string]: unknown;
 }
 
-export type CanvasNodeData = CanvasImageData | CanvasVideoData | CanvasTextData;
+export interface CanvasAudioData {
+    type: "canvas-audio";
+    label: string;
+    sourceUrl: string;
+    mimeType: string;
+    prompt?: string;
+    duration?: number;
+    model?: string;
+    width?: number;
+    height?: number;
+    status: "pending" | "ready" | "generating" | "error";
+    error?: string;
+    /** Director plan lineage */
+    operation?: MediaOperation;
+    planNodeId?: string;
+    derivedFrom?: string[];
+}
+
+export type CanvasNodeData =
+    | CanvasImageData
+    | CanvasVideoData
+    | CanvasTextData
+    | CanvasAudioData;
 
 export interface CanvasNode {
     id: string;
-    type: "canvas-image" | "canvas-video" | "canvas-text";
+    type: "canvas-image" | "canvas-video" | "canvas-text" | "canvas-audio";
     position: { x: number; y: number };
     data: CanvasNodeData;
     width?: number;
@@ -72,7 +92,7 @@ export interface CanvasNode {
 export interface ChatAttachment {
     nodeId: string;
     label: string;
-    type: "canvas-image" | "canvas-video" | "canvas-text";
+    type: "canvas-image" | "canvas-video" | "canvas-text" | "canvas-audio";
     thumbnailUrl?: string;
 }
 
@@ -82,16 +102,28 @@ export interface ChatAction {
     prompt: string;
 }
 
+export interface QuestionOption {
+    id: string;
+    label: string;
+    description?: string;
+}
+
+export interface QuestionPayload {
+    id: string;
+    question: string;
+    options: QuestionOption[];
+}
+
 export interface GeneratedMediaRef {
     nodeId: string;
-    type: "canvas-image" | "canvas-video";
+    type: "canvas-image" | "canvas-video" | "canvas-audio";
 }
 
 export type StepStatus = "pending" | "generating" | "done" | "error";
 
 export interface GenerationStep {
     id: string;
-    type: "image" | "video" | "concat";
+    type: "image" | "video" | "concat" | "audio";
     prompt: string;
     label?: string;
     aspectRatio?: string;
@@ -110,6 +142,8 @@ export interface GenerationStep {
     lastFrameNodeId?: string;
     /** Step IDs within this plan whose output to use as references */
     dependsOn?: string[];
+    /** For concat steps: ordered list of all input node/step IDs to concatenate */
+    concatInputs?: string[];
 }
 
 export interface AgentPlan {
@@ -118,7 +152,7 @@ export interface AgentPlan {
 
 export interface NodePayload {
     id: string;
-    type: "canvas-image" | "canvas-video";
+    type: "canvas-image" | "canvas-video" | "canvas-audio";
     label: string;
     sourceUrl: string;
     mimeType?: string;
@@ -156,6 +190,7 @@ export interface ChatMessage {
     planStatus?: PlanStatus;
     model?: string;
     directorLog?: DirectorLogEntry[];
+    question?: QuestionPayload;
     createdAt: string;
 }
 
@@ -169,10 +204,11 @@ export interface CanvasDocument {
     viewport: { x: number; y: number; zoom: number };
     messages: ChatMessage[];
     visibility: "private" | "public";
-    sharedWith: string[];
+    sharedWith: { email: string; role: "view" | "edit" }[];
     sharedWithEmails: string[];
     isTemplate: boolean;
     activeStyleId?: string;
+    disabledSkills?: string[];
     createdAt: string;
     updatedAt: string;
 }
@@ -205,7 +241,9 @@ export interface AgentInput {
     activeStyle?: { name: string; content: string } | null;
     canvasId?: string;
     userId?: string;
+    userName?: string;
     sessionId?: string;
+    disabledSkills?: string[];
 }
 
 export interface TextNodePayload {
@@ -222,6 +260,7 @@ export type AgentEvent =
     | { type: "plan"; plan: AgentPlan }
     | { type: "actions"; actions: ChatAction[] }
     | { type: "text_nodes"; nodes: TextNodePayload[] }
+    | { type: "question"; question: QuestionPayload }
     | { type: "error"; message: string }
     | { type: "done" };
 

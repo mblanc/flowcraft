@@ -4,6 +4,7 @@ import { Palette } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useSignedUrl } from "@/hooks/use-signed-url";
+import { isGcsUri } from "@/lib/utils/gcs-uri";
 
 interface StyleThumbnailProps {
     imageUri?: string | null;
@@ -28,7 +29,7 @@ export function StyleThumbnail({
     const iconSizeClasses = size === "sm" ? "size-4" : "size-5";
 
     // Valid if we have a display URL and it's not a raw GCS URI
-    const isValidUrl = displayUrl && !displayUrl.startsWith("gs://");
+    const isValidUrl = displayUrl && !isGcsUri(displayUrl);
 
     if (!isValidUrl) {
         return (

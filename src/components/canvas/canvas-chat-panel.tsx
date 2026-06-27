@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Plus, Minus, MessageSquare } from "lucide-react";
+import { Plus, Minus, MessageSquare, Sparkles } from "lucide-react";
 import { CanvasChatMessages } from "./canvas-chat-messages";
 import { CanvasChatInput } from "./canvas-chat-input";
 import { Button } from "@/components/ui/button";
@@ -61,10 +61,13 @@ export function CanvasChatPanel({
     }
 
     return (
-        <div className="border-border bg-card absolute top-4 right-4 bottom-4 z-50 flex w-[380px] flex-col rounded-lg border shadow-md">
+        <div className="border-border bg-card/80 absolute top-4 right-4 bottom-4 z-50 flex w-[380px] flex-col overflow-hidden rounded-lg border shadow-md backdrop-blur-md">
             {/* Header */}
-            <div className="flex h-12 shrink-0 items-center justify-between rounded-t-lg px-4">
-                <h2 className="text-foreground text-sm font-semibold">Chat</h2>
+            <div className="border-border/40 flex h-12 shrink-0 items-center justify-between border-b px-4">
+                <h2 className="text-foreground flex items-center gap-1.5 text-sm font-semibold">
+                    <Sparkles className="text-primary h-4 w-4" />
+                    Director Assistant
+                </h2>
                 <div className="flex items-center gap-1">
                     <Dialog>
                         <DialogTrigger asChild>
@@ -72,6 +75,7 @@ export function CanvasChatPanel({
                                 variant="ghost"
                                 size="icon"
                                 className="text-muted-foreground hover:text-foreground size-7"
+                                title="Clear chat history"
                             >
                                 <Plus className="size-4" />
                             </Button>
@@ -111,10 +115,12 @@ export function CanvasChatPanel({
             </div>
 
             {/* Messages */}
-            <CanvasChatMessages onExecutePlan={handleExecutePlan} />
+            <div className="flex min-h-0 flex-1 flex-col">
+                <CanvasChatMessages onExecutePlan={handleExecutePlan} />
+            </div>
 
             {/* Input */}
-            <div className="rounded-b-lg">
+            <div className="border-border/40 shrink-0 rounded-b-lg border-t">
                 <CanvasChatInput
                     getViewportCenter={getViewportCenter}
                     centerOnNodes={centerOnNodes}

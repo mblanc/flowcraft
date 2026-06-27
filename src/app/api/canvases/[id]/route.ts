@@ -1,7 +1,33 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/utils/api";
-import { canvasService } from "@/lib/services/canvas.service";
+import {
+    canvasService,
+    CanvasNotFoundError,
+    CanvasForbiddenError,
+} from "@/lib/services/canvas.service";
+import { CanvasUpdateSchema } from "@/lib/schemas";
 import logger from "@/app/logger";
+
+function handleCanvasError(error: unknown, operation: string) {
+    if (error instanceof CanvasNotFoundError)
+        return NextResponse.json(
+            { error: "Canvas not found" },
+            { status: 404 },
+        );
+    if (error instanceof CanvasForbiddenError)
+        return NextResponse.json({ error: error.message }, { status: 403 });
+    if (error instanceof SyntaxError) {
+        return NextResponse.json(
+            { error: "Invalid JSON body" },
+            { status: 400 },
+        );
+    }
+    logger.error(`Error ${operation} canvas:`, error);
+    return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+    );
+}
 
 export const GET = withAuth<{ params: Promise<{ id: string }> }>(
     async (_req, { params }, session) => {
@@ -10,28 +36,11 @@ export const GET = withAuth<{ params: Promise<{ id: string }> }>(
             const canvas = await canvasService.getCanvas(
                 canvasId,
                 session.user!.id!,
+                session.user!.email ?? undefined,
             );
             return NextResponse.json(canvas);
         } catch (error) {
-            if (error instanceof Error) {
-                if (error.message === "Canvas not found") {
-                    return NextResponse.json(
-                        { error: error.message },
-                        { status: 404 },
-                    );
-                }
-                if (error.message === "Unauthorized") {
-                    return NextResponse.json(
-                        { error: error.message },
-                        { status: 403 },
-                    );
-                }
-            }
-            logger.error("Error fetching canvas:", error);
-            return NextResponse.json(
-                { error: "Internal server error" },
-                { status: 500 },
-            );
+            return handleCanvasError(error, "fetching");
         }
     },
 );
@@ -40,34 +49,23 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(
     async (req, { params }, session) => {
         const { id: canvasId } = await params;
         try {
-            const body = await req.json();
+            const parsed = CanvasUpdateSchema.safeParse(await req.json());
+            if (!parsed.success) {
+                return NextResponse.json(
+                    { error: parsed.error.flatten().fieldErrors },
+                    { status: 400 },
+                );
+            }
 
             const updatedCanvas = await canvasService.updateCanvas(
                 canvasId,
                 session.user!.id!,
-                body,
+                parsed.data,
+                session.user!.email ?? undefined,
             );
             return NextResponse.json(updatedCanvas);
         } catch (error) {
-            if (error instanceof Error) {
-                if (error.message === "Canvas not found") {
-                    return NextResponse.json(
-                        { error: error.message },
-                        { status: 404 },
-                    );
-                }
-                if (error.message === "Unauthorized") {
-                    return NextResponse.json(
-                        { error: error.message },
-                        { status: 403 },
-                    );
-                }
-            }
-            logger.error("Error updating canvas:", error);
-            return NextResponse.json(
-                { error: "Internal server error" },
-                { status: 500 },
-            );
+            return handleCanvasError(error, "updating");
         }
     },
 );
@@ -82,25 +80,7 @@ export const DELETE = withAuth<{ params: Promise<{ id: string }> }>(
             );
             return NextResponse.json(result);
         } catch (error) {
-            if (error instanceof Error) {
-                if (error.message === "Canvas not found") {
-                    return NextResponse.json(
-                        { error: error.message },
-                        { status: 404 },
-                    );
-                }
-                if (error.message === "Unauthorized") {
-                    return NextResponse.json(
-                        { error: error.message },
-                        { status: 403 },
-                    );
-                }
-            }
-            logger.error("Error deleting canvas:", error);
-            return NextResponse.json(
-                { error: "Internal server error" },
-                { status: 500 },
-            );
+            return handleCanvasError(error, "deleting");
         }
     },
 );

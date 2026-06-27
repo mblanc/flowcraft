@@ -1,11 +1,17 @@
 import { randomUUID } from "crypto";
-import { geminiService } from "@/lib/services/gemini.service";
-import { storageService } from "@/lib/services/storage.service";
-import { concatService } from "@/lib/services/concat.service";
+import path from "path";
 import { libraryService } from "@/lib/services/library.service";
 import logger from "@/app/logger";
-import { topoSort } from "./adk/topology";
-import type { AgentPlan, GenerationStep, NodePayload, PlanEdge } from "./types";
+import { topoSort } from "./agent/topology";
+import type {
+    AgentPlan,
+    CanvasNode,
+    GenerationStep,
+    NodePayload,
+    PlanEdge,
+} from "./types";
+import { serverRegistry as registry } from "@/primitives/server-registry";
+import { PromptEngineer } from "./agent/prompt-engineer";
 
 export type StepEvent =
     | { type: "step_start"; stepId: string }
@@ -17,6 +23,8 @@ interface ExecutionContext {
     completedStepUris: Map<string, string>;
     /** Maps nodeId → GCS URI from the user's existing canvas attachments */
     attachmentUris: Map<string, string>;
+    /** Maps stepId/nodeId → its media type */
+    nodeTypes: Map<string, string>;
 }
 
 /**
@@ -35,23 +43,42 @@ function resolveReferences(
     const getUri = (nodeId: string): string | undefined =>
         ctx.attachmentUris.get(nodeId);
 
-    // Resolve dependsOn to URIs from completed steps
+    const isAudio = (id: string): boolean => {
+        const type = ctx.nodeTypes.get(id);
+        return type === "audio" || type === "canvas-audio";
+    };
+
+    // Resolve dependsOn to URIs from completed steps, filtering out audio dependencies for visual steps
     const dependencyUrls: string[] = (step.dependsOn ?? [])
+        .filter((depId) => {
+            if (step.type === "video" || step.type === "image") {
+                return !isAudio(depId);
+            }
+            return true;
+        })
         .map((depId) => ctx.completedStepUris.get(depId))
         .filter((uri): uri is string => !!uri);
 
-    // Resolve existing canvas node references
+    // Resolve existing canvas node references, filtering out audio references for visual steps
     const referenceUrls: string[] = (step.referenceNodeIds ?? [])
+        .filter((id) => {
+            if (step.type === "video" || step.type === "image") {
+                return !isAudio(id);
+            }
+            return true;
+        })
         .map((id) => getUri(id))
         .filter((uri): uri is string => !!uri);
 
-    // For video: first/last frame from existing canvas nodes
-    const firstFrameUrl = step.firstFrameNodeId
-        ? getUri(step.firstFrameNodeId)
-        : undefined;
-    const lastFrameUrl = step.lastFrameNodeId
-        ? getUri(step.lastFrameNodeId)
-        : undefined;
+    // For video: first/last frame from existing canvas nodes, ensuring they are not audio
+    const firstFrameUrl =
+        step.firstFrameNodeId && !isAudio(step.firstFrameNodeId)
+            ? getUri(step.firstFrameNodeId)
+            : undefined;
+    const lastFrameUrl =
+        step.lastFrameNodeId && !isAudio(step.lastFrameNodeId)
+            ? getUri(step.lastFrameNodeId)
+            : undefined;
 
     if (step.type === "video" && !firstFrameUrl && !lastFrameUrl) {
         // For video: promote the first available image to firstFrame (via source.image).
@@ -80,137 +107,6 @@ function resolveReferences(
         referenceUrls: [...referenceUrls, ...dependencyUrls],
         firstFrameUrl,
         lastFrameUrl,
-    };
-}
-
-async function executeImageStep(
-    step: GenerationStep,
-    ctx: ExecutionContext,
-    styleContent?: string,
-    styleId?: string,
-    styleName?: string,
-): Promise<NodePayload> {
-    const { referenceUrls } = resolveReferences(step, ctx);
-
-    const { data, mimeType } = await geminiService.generateImage({
-        prompt: step.prompt,
-        images: referenceUrls.map((url) => ({ url, type: "image/png" })),
-        aspectRatio: step.aspectRatio,
-        imageSize: step.imageSize,
-        model: step.model,
-        systemInstruction: styleContent,
-    });
-
-    const extension = mimeType.split("/")[1] || "png";
-    const sanitizedLabel = (step.label || "image")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-    const baseName = sanitizedLabel || "image";
-
-    const sourceUrl = await storageService.uploadImage(
-        data,
-        `${baseName}-${randomUUID()}.${extension}`,
-    );
-
-    return {
-        id: randomUUID(),
-        type: "canvas-image",
-        label: step.label ?? "Image",
-        sourceUrl,
-        mimeType,
-        prompt: step.prompt,
-        aspectRatio: step.aspectRatio,
-        imageSize: step.imageSize,
-        model: step.model,
-        referenceNodeIds: step.referenceNodeIds,
-        styleId,
-        styleName,
-        planNodeId: step.id,
-        operation: "t2i" as const,
-        ...(step.dependsOn && step.dependsOn.length > 0
-            ? { derivedFrom: step.dependsOn }
-            : {}),
-    };
-}
-
-async function executeVideoStep(
-    step: GenerationStep,
-    ctx: ExecutionContext,
-    styleContent?: string,
-    styleId?: string,
-    styleName?: string,
-): Promise<NodePayload> {
-    const { referenceUrls, firstFrameUrl, lastFrameUrl } = resolveReferences(
-        step,
-        ctx,
-    );
-
-    const sourceUrl = await geminiService.generateVideo({
-        prompt: step.prompt,
-        firstFrame: firstFrameUrl,
-        lastFrame: lastFrameUrl,
-        images:
-            referenceUrls.length > 0
-                ? referenceUrls.map((url) => ({ url, type: "image/png" }))
-                : undefined,
-        aspectRatio: step.aspectRatio,
-        duration: step.duration,
-        model: step.model,
-        generateAudio: step.generateAudio,
-        resolution: step.resolution,
-        styleInstruction: styleContent,
-    });
-
-    return {
-        id: randomUUID(),
-        type: "canvas-video",
-        label: step.label ?? "Video",
-        sourceUrl,
-        mimeType: "video/mp4",
-        prompt: step.prompt,
-        aspectRatio: step.aspectRatio,
-        resolution: step.resolution,
-        model: step.model,
-        referenceNodeIds: step.referenceNodeIds,
-        styleId,
-        styleName,
-        planNodeId: step.id,
-        operation: step.firstFrameNodeId ? ("i2v" as const) : ("t2v" as const),
-        ...(step.dependsOn && step.dependsOn.length > 0
-            ? { derivedFrom: step.dependsOn }
-            : {}),
-    };
-}
-
-async function executeConcatStep(
-    step: GenerationStep,
-    ctx: ExecutionContext,
-): Promise<NodePayload> {
-    // Collect URIs from dependsOn steps in declaration order (narrative order)
-    const inputUris = (step.dependsOn ?? [])
-        .map((depId) => ctx.completedStepUris.get(depId))
-        .filter((uri): uri is string => !!uri);
-
-    if (inputUris.length === 0) {
-        throw new Error(
-            `Concat step "${step.id}" has no resolved input URIs — all dependsOn steps must complete first`,
-        );
-    }
-
-    const sourceUrl = await concatService.concatVideos(inputUris);
-
-    return {
-        id: randomUUID(),
-        type: "canvas-video",
-        label: step.label ?? "Final cut",
-        sourceUrl,
-        mimeType: "video/mp4",
-        prompt: step.prompt,
-        operation: "concat" as const,
-        ...(step.dependsOn && step.dependsOn.length > 0
-            ? { derivedFrom: step.dependsOn }
-            : {}),
     };
 }
 
@@ -247,15 +143,60 @@ export async function* executePlan(
     activeStyleContent?: string,
     activeStyleId?: string,
     activeStyleName?: string,
+    defaultMusicModel?: string,
+    nodeTypes?: Map<string, string>,
+    canvasNodes?: CanvasNode[],
 ): AsyncGenerator<StepEvent> {
+    let enrichedSteps = plan.steps;
+    if (canvasNodes && canvasNodes.length > 0) {
+        const SKILLS_DIR = path.join(
+            process.cwd(),
+            "src/lib/canvas/agent/skills",
+        );
+        const PRIMITIVES_DIR = path.join(SKILLS_DIR, "primitives");
+        const promptEngineer = new PromptEngineer(PRIMITIVES_DIR);
+        const activeStyle =
+            activeStyleName && activeStyleContent
+                ? { name: activeStyleName, content: activeStyleContent }
+                : null;
+        try {
+            logger.info(
+                `[CanvasGeneration] Running prompt engineering on ${plan.steps.length} plan steps`,
+            );
+            enrichedSteps = await promptEngineer.enrichSteps(
+                plan.steps,
+                canvasNodes,
+                activeStyle,
+            );
+        } catch (err) {
+            logger.error(
+                "[CanvasGeneration] Prompt engineering failed, falling back to raw steps:",
+                err,
+            );
+        }
+    }
+
     const ctx: ExecutionContext = {
         completedStepUris: new Map(),
         attachmentUris: nodeUris,
+        nodeTypes: new Map<string, string>(),
     };
 
-    const waves = buildExecutionWaves(plan.steps);
+    // Pre-populate all step types from the plan
+    for (const step of enrichedSteps) {
+        ctx.nodeTypes.set(step.id, step.type);
+    }
+
+    // Populate types for existing canvas nodes
+    if (nodeTypes) {
+        for (const [id, type] of nodeTypes.entries()) {
+            ctx.nodeTypes.set(id, type);
+        }
+    }
+
+    const waves = buildExecutionWaves(enrichedSteps);
     logger.info(
-        `[CanvasGeneration] Executing plan: ${plan.steps.length} steps in ${waves.length} wave(s)`,
+        `[CanvasGeneration] Executing plan: ${enrichedSteps.length} steps in ${waves.length} wave(s)`,
     );
 
     for (const wave of waves) {
@@ -268,57 +209,122 @@ export async function* executePlan(
         const results = await Promise.allSettled(
             wave.map(async (step) => {
                 try {
-                    let node: NodePayload;
-                    if (step.type === "image") {
-                        node = await executeImageStep(
-                            step,
-                            ctx,
-                            activeStyleContent,
-                            activeStyleId,
-                            activeStyleName,
-                        );
-                    } else if (step.type === "concat") {
-                        node = await executeConcatStep(step, ctx);
-                    } else {
-                        node = await executeVideoStep(
-                            step,
-                            ctx,
-                            activeStyleContent,
-                            activeStyleId,
-                            activeStyleName,
+                    const primitive = registry.getByCanvasType(
+                        `canvas-${step.type}`,
+                    );
+                    if (!primitive?.canvas || !primitive.execute) {
+                        throw new Error(
+                            `[CanvasGeneration] No primitive for step type: ${step.type}`,
                         );
                     }
+
+                    // Resolve canvas references before calling into the primitive.
+                    const { referenceUrls, firstFrameUrl, lastFrameUrl } =
+                        resolveReferences(step, ctx);
+
+                    const enrichedStep = {
+                        ...step,
+                        // Apply music model default when agent hasn't set one
+                        ...(step.type === "audio" &&
+                        !step.model &&
+                        defaultMusicModel
+                            ? { model: defaultMusicModel }
+                            : {}),
+                        images: referenceUrls.map((url) => ({
+                            url,
+                            type: "image/png",
+                        })),
+                        firstFrame: firstFrameUrl,
+                        lastFrame: lastFrameUrl,
+                        // concat: pre-resolve dependsOn / canvas URIs in order
+                        inputUris:
+                            step.type === "concat"
+                                ? (
+                                      step.concatInputs ?? [
+                                          ...(step.referenceNodeIds ?? []),
+                                          ...(step.dependsOn ?? []),
+                                      ]
+                                  )
+                                      .map(
+                                          (id) =>
+                                              ctx.completedStepUris.get(id) ??
+                                              ctx.attachmentUris.get(id),
+                                      )
+                                      .filter(
+                                          (uri): uri is string => uri != null,
+                                      )
+                                : undefined,
+                        // style forwarded as convention fields
+                        systemInstruction:
+                            step.type === "image"
+                                ? activeStyleContent
+                                : undefined,
+                        styleInstruction:
+                            step.type === "video"
+                                ? activeStyleContent
+                                : undefined,
+                        styleId: activeStyleId,
+                        styleName: activeStyleName,
+                        // operation inferred for video
+                        operation:
+                            step.type === "video"
+                                ? firstFrameUrl
+                                    ? "i2v"
+                                    : "t2v"
+                                : undefined,
+                        planNodeId: step.id,
+                        derivedFrom: step.dependsOn?.length
+                            ? step.dependsOn
+                            : undefined,
+                    };
+
+                    const request = primitive.canvas.toRequest(enrichedStep, {
+                        userId,
+                    });
+                    const output = await primitive.execute(request, { userId });
+                    const nodeData = primitive.canvas.toCanvasData(
+                        enrichedStep,
+                        output,
+                    );
+                    const node: NodePayload = {
+                        ...(nodeData as NodePayload),
+                        id: randomUUID(),
+                    };
 
                     // Record URI so dependent steps can reference it
                     ctx.completedStepUris.set(step.id, node.sourceUrl);
 
-                    // Fire-and-forget: save to library
-                    const libraryType =
-                        step.type === "concat" ? "video" : step.type;
-                    libraryService
-                        .createAsset({
-                            userId,
-                            type: libraryType,
-                            gcsUri: node.sourceUrl,
-                            mimeType: node.mimeType ?? "image/png",
-                            aspectRatio: node.aspectRatio,
-                            model: node.model,
-                            tags: [],
-                            provenance: {
-                                sourceType: "canvas",
-                                sourceId: canvasId,
-                                sourceName: canvasName,
-                                nodeId: node.id,
-                                nodeLabel: node.label,
-                                prompt: node.prompt,
-                            },
-                        })
-                        .catch((err) =>
-                            logger.warn(
-                                "[CanvasGeneration] Library save failed:",
-                                err,
-                            ),
-                        );
+                    // Fire-and-forget: save to library (audio not yet supported)
+                    if (node.type !== "canvas-audio") {
+                        const libraryType = (
+                            node.type === "canvas-video" ? "video" : "image"
+                        ) as "video" | "image";
+                        libraryService
+                            .createAsset({
+                                userId,
+                                type: libraryType,
+                                gcsUri: node.sourceUrl,
+                                mimeType: node.mimeType ?? "image/png",
+                                aspectRatio: node.aspectRatio,
+                                model: node.model,
+                                tags: [],
+                                visibility: "private" as const,
+                                provenance: {
+                                    sourceType: "canvas",
+                                    sourceId: canvasId,
+                                    sourceName: canvasName,
+                                    nodeId: node.id,
+                                    nodeLabel: node.label,
+                                    prompt: node.prompt,
+                                },
+                            })
+                            .catch((err) =>
+                                logger.warn(
+                                    "[CanvasGeneration] Library save failed:",
+                                    err,
+                                ),
+                            );
+                    }
 
                     return { step, node };
                 } catch (error) {
