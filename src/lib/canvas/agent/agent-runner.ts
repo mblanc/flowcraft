@@ -22,6 +22,7 @@ import { extractAgentEvents } from "./event-extractor";
 import {
     buildCanvasContext,
     buildDirectorInstruction,
+    buildRulesetInstruction,
     buildStyleInstruction,
 } from "./prompts";
 import type { AgentEvent, AgentInput, ChatMessage } from "../types";
@@ -131,7 +132,9 @@ export class CanvasAgentRunner {
                 input.imageDefaults,
                 input.videoDefaults,
                 input.userName,
-            ) + forceInstruction;
+            ) +
+            buildRulesetInstruction(input.activeRuleset) +
+            forceInstruction;
 
         const llmAgent = await this.agent.build(
             model,

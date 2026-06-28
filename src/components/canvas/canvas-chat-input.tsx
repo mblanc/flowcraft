@@ -8,7 +8,14 @@ import {
     useEffect,
     type KeyboardEvent,
 } from "react";
-import { SendHorizonal, Loader2, Check, Sparkles } from "lucide-react";
+import {
+    SendHorizonal,
+    Loader2,
+    Check,
+    Sparkles,
+    ShieldCheck,
+    ChevronDown,
+} from "lucide-react";
 import { StyleThumbnail } from "./style-thumbnail";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
@@ -94,6 +101,26 @@ function parseSSEEvents(
     }
 
     return { events, remaining };
+}
+
+function RulesetThumbnail({ active }: { active: boolean }) {
+    return (
+        <div
+            className={cn(
+                "bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
+                active && "border-emerald-500/20",
+            )}
+        >
+            <ShieldCheck
+                className={cn(
+                    "size-4",
+                    active
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-muted-foreground",
+                )}
+            />
+        </div>
+    );
 }
 
 interface CanvasChatInputProps {
@@ -184,6 +211,9 @@ export function CanvasChatInput({
     const [activeStyleImageUrl, setActiveStyleImageUrl] = useState<
         string | null
     >(null);
+    const [userRulesets, setUserRulesets] = useState<
+        { id: string; name: string }[]
+    >([]);
 
     const canvasId = useCanvasStore((s) => s.canvasId);
     const sessionId = useCanvasStore((s) => s.sessionId);
@@ -191,6 +221,9 @@ export function CanvasChatInput({
     const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
     const activeStyleId = useCanvasStore((s) => s.activeStyleId);
     const setActiveStyleId = useCanvasStore((s) => s.setActiveStyleId);
+    const activeRulesetId = useCanvasStore((s) => s.activeRulesetId);
+    const activeRulesetName = useCanvasStore((s) => s.activeRulesetName);
+    const setActiveRuleset = useCanvasStore((s) => s.setActiveRuleset);
     const addMessage = useCanvasStore((s) => s.addMessage);
     const updateMessage = useCanvasStore((s) => s.updateMessage);
     const isChatLoading = useCanvasStore((s) => s.isChatLoading);
@@ -363,6 +396,58 @@ export function CanvasChatInput({
             toast.error("Failed to clear style");
         }
     }, [canvasId, setActiveStyleId]);
+
+    // Fetch rulesets for the picker
+    useEffect(() => {
+        void fetch("/api/rulesets?tab=my")
+            .then((r) => {
+                if (!r.ok) throw new Error("Failed to load rulesets");
+                return r.json();
+            })
+            .then((data: { rulesets: { id: string; name: string }[] }) =>
+                setUserRulesets(data.rulesets ?? []),
+            )
+            .catch(() => {});
+    }, []);
+
+    const handleSelectRuleset = useCallback(
+        async (id: string, name: string) => {
+            if (!canvasId) return;
+            try {
+                const res = await fetch(`/api/canvases/${canvasId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        activeRulesetId: id,
+                        activeRulesetName: name,
+                    }),
+                });
+                if (!res.ok) throw new Error("Failed to set ruleset");
+                setActiveRuleset(id, name);
+            } catch {
+                toast.error("Failed to apply ruleset");
+            }
+        },
+        [canvasId, setActiveRuleset],
+    );
+
+    const handleClearRuleset = useCallback(async () => {
+        if (!canvasId) return;
+        try {
+            const res = await fetch(`/api/canvases/${canvasId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    activeRulesetId: null,
+                    activeRulesetName: null,
+                }),
+            });
+            if (!res.ok) throw new Error("Failed to clear ruleset");
+            setActiveRuleset(null, null);
+        } catch {
+            toast.error("Failed to clear ruleset");
+        }
+    }, [canvasId, setActiveRuleset]);
 
     const handleRemoveAttachment = useCallback(
         (nodeId: string) => {
@@ -760,6 +845,10 @@ export function CanvasChatInput({
                                         payload.stepId,
                                     );
                                     if (nodeId) {
+                                        const isImageWithRuleset =
+                                            node.type === "canvas-image" &&
+                                            !!useCanvasStore.getState()
+                                                .activeRulesetId;
                                         useCanvasStore
                                             .getState()
                                             .updateNodeData(nodeId, {
@@ -772,7 +861,12 @@ export function CanvasChatInput({
                                                 ...(node.type === "canvas-video"
                                                     ? { progress: 100 }
                                                     : {}),
+                                                // show spinner while validation runs
+                                                ...(isImageWithRuleset
+                                                    ? { validating: true }
+                                                    : {}),
                                             });
+
                                         const currentMsg = useCanvasStore
                                             .getState()
                                             .messages.find(
@@ -786,6 +880,44 @@ export function CanvasChatInput({
                                                 { nodeId, type: node.type },
                                             ],
                                         });
+                                    }
+                                    break;
+                                }
+
+                                case "step_validated": {
+                                    const nodeId = stepNodeMap.get(
+                                        payload.stepId,
+                                    );
+                                    if (nodeId) {
+                                        useCanvasStore
+                                            .getState()
+                                            .updateNodeData(nodeId, {
+                                                validating: false,
+                                                validationResults:
+                                                    payload.validationResults,
+                                                // replace image if retry produced a new one
+                                                ...(payload.node
+                                                    ? {
+                                                          sourceUrl:
+                                                              payload.node
+                                                                  .sourceUrl,
+                                                          mimeType:
+                                                              payload.node
+                                                                  .mimeType,
+                                                      }
+                                                    : {}),
+                                            });
+
+                                        const failures =
+                                            payload.validationResults.filter(
+                                                (r: { status: string }) =>
+                                                    r.status === "fail",
+                                            );
+                                        if (failures.length > 0) {
+                                            toast.warning(
+                                                `${failures.length} rule${failures.length !== 1 ? "s" : ""} failed — see badge on image for details`,
+                                            );
+                                        }
                                     }
                                     break;
                                 }
@@ -1298,19 +1430,170 @@ export function CanvasChatInput({
     return (
         <div className="border-border rounded-b-lg border-t p-3">
             <div className="bg-muted/50 rounded-md border">
+                {/* Style + Ruleset selectors */}
+                <div className="flex items-center gap-1 px-2 pt-2 pb-0.5">
+                    {/* Style selector */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                className={cn(
+                                    "inline-flex max-w-[160px] items-center gap-1 rounded-full px-2 py-0.5 text-xs transition-colors",
+                                    activeStyleId
+                                        ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                                )}
+                            >
+                                <StyleThumbnail
+                                    imageUri={activeStyleImageUrl ?? undefined}
+                                />
+                                <span className="truncate">
+                                    {activeStyleName ?? "Style"}
+                                </span>
+                                <ChevronDown className="size-2.5 shrink-0 opacity-60" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-64">
+                            {userStyles.length > 0 && (
+                                <>
+                                    <DropdownMenuLabel className="text-xs">
+                                        My Styles
+                                    </DropdownMenuLabel>
+                                    {userStyles.map((s) => (
+                                        <DropdownMenuItem
+                                            key={s.id}
+                                            onClick={() =>
+                                                handleSelectStyle(s.id)
+                                            }
+                                            className="gap-3 py-2"
+                                        >
+                                            <div className="flex w-5 items-center justify-center">
+                                                {activeStyleId === s.id && (
+                                                    <Check className="size-3.5" />
+                                                )}
+                                            </div>
+                                            <StyleThumbnail
+                                                imageUri={
+                                                    s.referenceImageUris?.[0]
+                                                }
+                                            />
+                                            <span className="truncate">
+                                                {s.name}
+                                            </span>
+                                        </DropdownMenuItem>
+                                    ))}
+                                    <DropdownMenuSeparator />
+                                </>
+                            )}
+                            <DropdownMenuLabel className="text-xs">
+                                Templates
+                            </DropdownMenuLabel>
+                            {STYLE_TEMPLATES.map((t) => (
+                                <DropdownMenuItem
+                                    key={t.id}
+                                    onClick={() => handleSelectStyle(t.id)}
+                                    className="gap-3 py-2"
+                                >
+                                    <div className="flex w-5 items-center justify-center">
+                                        {activeStyleId === t.id && (
+                                            <Check className="size-3.5" />
+                                        )}
+                                    </div>
+                                    <StyleThumbnail
+                                        imageUri={t.referenceImageUris?.[0]}
+                                    />
+                                    <span className="truncate">{t.name}</span>
+                                </DropdownMenuItem>
+                            ))}
+                            {activeStyleId && (
+                                <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onClick={handleClearStyle}
+                                        className="text-muted-foreground"
+                                    >
+                                        No style
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Ruleset selector */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                className={cn(
+                                    "inline-flex max-w-[160px] items-center gap-1 rounded-full px-2 py-0.5 text-xs transition-colors",
+                                    activeRulesetId
+                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                                )}
+                            >
+                                <RulesetThumbnail active={!!activeRulesetId} />
+                                <span className="truncate">
+                                    {activeRulesetName ?? "Ruleset"}
+                                </span>
+                                <ChevronDown className="size-2.5 shrink-0 opacity-60" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-64">
+                            {userRulesets.length === 0 ? (
+                                <div className="text-muted-foreground px-2 py-1.5 text-xs">
+                                    No rulesets yet
+                                </div>
+                            ) : (
+                                <>
+                                    <DropdownMenuLabel className="text-xs">
+                                        My Rulesets
+                                    </DropdownMenuLabel>
+                                    {userRulesets.map((r) => (
+                                        <DropdownMenuItem
+                                            key={r.id}
+                                            onClick={() =>
+                                                void handleSelectRuleset(
+                                                    r.id,
+                                                    r.name,
+                                                )
+                                            }
+                                            className="gap-3 py-2"
+                                        >
+                                            <div className="flex w-5 items-center justify-center">
+                                                {activeRulesetId === r.id && (
+                                                    <Check className="size-3.5" />
+                                                )}
+                                            </div>
+                                            <RulesetThumbnail
+                                                active={
+                                                    activeRulesetId === r.id
+                                                }
+                                            />
+                                            <span className="truncate">
+                                                {r.name}
+                                            </span>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </>
+                            )}
+                            {activeRulesetId && (
+                                <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onClick={() =>
+                                            void handleClearRuleset()
+                                        }
+                                        className="text-muted-foreground"
+                                    >
+                                        No ruleset
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
                 <CanvasAttachmentBar
                     attachments={allAttachments}
                     onRemove={handleRemoveAttachment}
-                    activeStyle={
-                        activeStyleId && activeStyleName
-                            ? {
-                                  id: activeStyleId,
-                                  name: activeStyleName,
-                                  imageUrl: activeStyleImageUrl,
-                              }
-                            : null
-                    }
-                    onClearStyle={handleClearStyle}
                 />
 
                 <div className="relative">
@@ -1355,154 +1638,10 @@ export function CanvasChatInput({
                 </div>
 
                 <div className="flex items-center justify-between gap-2 px-2 pb-2">
-                    <div className="flex items-center gap-1.5">
-                        <CanvasAgentSettingsDialog
-                            settings={agentSettings}
-                            onSettingsChange={setAgentSettings}
-                        />
-
-                        <div className="bg-border h-4 w-px" />
-
-                        <DropdownMenu>
-                            <TooltipProvider delayDuration={300}>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className={cn(
-                                                    "h-9 gap-2 border-none px-2 text-xs shadow-none",
-                                                    activeStyleId
-                                                        ? "text-violet-600 dark:text-violet-400"
-                                                        : "",
-                                                )}
-                                            >
-                                                <StyleThumbnail
-                                                    imageUri={
-                                                        activeStyleImageUrl
-                                                    }
-                                                />
-                                                <span className="max-w-[100px] truncate">
-                                                    {activeStyleName ?? "Style"}
-                                                </span>
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">
-                                        Visual style guide
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                            <DropdownMenuContent align="start" className="w-64">
-                                {userStyles.length > 0 && (
-                                    <>
-                                        <DropdownMenuLabel className="text-xs">
-                                            My Styles
-                                        </DropdownMenuLabel>
-                                        {userStyles.map((s) => (
-                                            <DropdownMenuItem
-                                                key={s.id}
-                                                onClick={() =>
-                                                    handleSelectStyle(s.id)
-                                                }
-                                                className="gap-3 py-2"
-                                            >
-                                                <div className="flex w-5 items-center justify-center">
-                                                    {activeStyleId === s.id && (
-                                                        <Check className="size-3.5" />
-                                                    )}
-                                                </div>
-                                                <StyleThumbnail
-                                                    imageUri={
-                                                        s
-                                                            .referenceImageUris?.[0]
-                                                    }
-                                                />
-                                                <span className="truncate">
-                                                    {s.name}
-                                                </span>
-                                            </DropdownMenuItem>
-                                        ))}
-                                        <DropdownMenuSeparator />
-                                    </>
-                                )}
-                                <DropdownMenuLabel className="text-xs">
-                                    Templates
-                                </DropdownMenuLabel>
-                                {STYLE_TEMPLATES.map((t) => (
-                                    <DropdownMenuItem
-                                        key={t.id}
-                                        onClick={() => handleSelectStyle(t.id)}
-                                        className="gap-3 py-2"
-                                    >
-                                        <div className="flex w-5 items-center justify-center">
-                                            {activeStyleId === t.id && (
-                                                <Check className="size-3.5" />
-                                            )}
-                                        </div>
-                                        <StyleThumbnail
-                                            imageUri={t.referenceImageUris?.[0]}
-                                        />
-                                        <span className="truncate">
-                                            {t.name}
-                                        </span>
-                                    </DropdownMenuItem>
-                                ))}
-                                {activeStyleId && (
-                                    <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            onClick={handleClearStyle}
-                                            className="text-muted-foreground"
-                                        >
-                                            Clear style
-                                        </DropdownMenuItem>
-                                    </>
-                                )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <div className="bg-border h-4 w-px" />
-
-                        <Dialog>
-                            <TooltipProvider delayDuration={300}>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-muted-foreground hover:text-foreground h-9 gap-2 border-none px-2 text-xs shadow-none"
-                                            >
-                                                <Sparkles className="size-3.5" />
-                                                <span>Skills</span>
-                                            </Button>
-                                        </DialogTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">
-                                        Active canvas-level skills
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                            <DialogContent className="flex max-h-[85vh] max-w-xl flex-col overflow-y-auto p-6">
-                                <DialogHeader className="border-border/40 shrink-0 border-b pb-4">
-                                    <DialogTitle className="flex items-center gap-1.5 text-sm font-bold">
-                                        <Sparkles className="text-primary size-4 animate-pulse" />
-                                        Active Canvas Skills
-                                    </DialogTitle>
-                                    <DialogDescription className="text-xs">
-                                        Enable or disable pattern skills for
-                                        this canvas. Enabled skills will be
-                                        followed by the AI Agent.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="mt-4 flex min-h-[400px] flex-1 flex-col overflow-hidden">
-                                    <SkillsLibrary />
-                                </div>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
+                    <CanvasAgentSettingsDialog
+                        settings={agentSettings}
+                        onSettingsChange={setAgentSettings}
+                    />
 
                     <Button
                         size="icon-sm"

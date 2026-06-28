@@ -1,4 +1,9 @@
-import type { AgentInput, MediaDefaults, VideoDefaults } from "../types";
+import type {
+    AgentInput,
+    MediaDefaults,
+    RulesetRef,
+    VideoDefaults,
+} from "../types";
 
 export const DIRECTOR_PROMPT = `You are the Director for a visual media canvas. Your sole job is to plan media production — never generate media yourself.
 
@@ -104,6 +109,16 @@ export function buildStyleInstruction(
 ): string {
     if (!style) return "";
     return `\n\n## Active Style: ${style.name}\nApply this style to EVERY generation step:\n\n${style.content}`;
+}
+
+export function buildRulesetInstruction(
+    ruleset: RulesetRef | null | undefined,
+): string {
+    if (!ruleset || ruleset.rules.length === 0) return "";
+    const ruleLines = ruleset.rules
+        .map((r) => `- [${r.severity}] ${r.description}`)
+        .join("\n");
+    return `\n\nACTIVE RULESET — ${ruleset.name}:\nThe following rules must be respected in all generations:\n${ruleLines}\nPlan your production with these constraints in mind.`;
 }
 
 function buildDefaultsInstruction(

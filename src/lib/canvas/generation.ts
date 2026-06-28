@@ -9,13 +9,22 @@ import type {
     GenerationStep,
     NodePayload,
     PlanEdge,
+    ValidationResult,
 } from "./types";
 import { serverRegistry as registry } from "@/primitives/server-registry";
 import { PromptEngineer } from "./agent/prompt-engineer";
+import { validateImage } from "./validation";
+import type { RulesetDocument } from "@/lib/services/ruleset.service";
 
 export type StepEvent =
     | { type: "step_start"; stepId: string }
     | { type: "step_done"; stepId: string; node: NodePayload }
+    | {
+          type: "step_validated";
+          stepId: string;
+          validationResults: ValidationResult[];
+          node?: NodePayload; // present when retry produced a different image
+      }
     | { type: "step_error"; stepId: string; message: string };
 
 interface ExecutionContext {
@@ -25,6 +34,8 @@ interface ExecutionContext {
     attachmentUris: Map<string, string>;
     /** Maps stepId/nodeId → its media type */
     nodeTypes: Map<string, string>;
+    /** Active ruleset for validation, if any */
+    ruleset?: RulesetDocument;
 }
 
 /**
@@ -131,6 +142,129 @@ function buildExecutionWaves(steps: GenerationStep[]): GenerationStep[][] {
 }
 
 /**
+ * Run the validation+retry loop for an image step.
+ * Returns the final node and validation results after all retries are exhausted.
+ */
+async function runWithValidation(
+    initialNode: NodePayload,
+    enrichedStep: Record<string, unknown>,
+    step: GenerationStep,
+    ruleset: RulesetDocument,
+    primitive: {
+        canvas: {
+            toRequest: (s: unknown, ctx: unknown) => unknown;
+            toCanvasData: (s: unknown, o: unknown) => unknown;
+        };
+        execute: (req: unknown, ctx: unknown) => Promise<unknown>;
+    },
+    userId: string,
+    promptEngineer: PromptEngineer | null,
+    canvasNodes: CanvasNode[],
+    activeStyle: { name: string; content: string } | null,
+): Promise<{ node: NodePayload; validationResults: ValidationResult[] }> {
+    let node = initialNode;
+    let validationResults = await validateImage(
+        node.sourceUrl,
+        ruleset,
+        node.mimeType,
+    );
+
+    // Build per-rule retry counters
+    const retryCountsLeft = new Map<string, number>();
+    for (const rule of ruleset.rules) {
+        if (rule.failureStrategy === "retry") {
+            retryCountsLeft.set(rule.id, rule.maxRetries ?? 1);
+        }
+    }
+
+    let attemptNumber = 1;
+
+    while (true) {
+        const failingRetryRules = validationResults.filter(
+            (r) =>
+                r.status === "fail" &&
+                retryCountsLeft.has(r.ruleId) &&
+                (retryCountsLeft.get(r.ruleId) ?? 0) > 0,
+        );
+
+        if (failingRetryRules.length === 0) break;
+
+        attemptNumber++;
+        for (const r of failingRetryRules) {
+            retryCountsLeft.set(
+                r.ruleId,
+                (retryCountsLeft.get(r.ruleId) ?? 1) - 1,
+            );
+        }
+
+        logger.info(
+            `[CanvasGeneration] Retrying step ${step.id} (attempt ${attemptNumber}) for ${failingRetryRules.length} failing rule(s)`,
+        );
+
+        // Re-engineer prompt with violation feedback
+        let retriedPrompt = step.prompt;
+        if (promptEngineer) {
+            const maxRetries = Math.max(
+                ...failingRetryRules.map(
+                    (r) =>
+                        ruleset.rules.find((rule) => rule.id === r.ruleId)
+                            ?.maxRetries ?? 1,
+                ),
+            );
+            const violationFeedback = buildViolationFeedback(
+                failingRetryRules,
+                attemptNumber - 1,
+                maxRetries,
+            );
+            retriedPrompt = await promptEngineer.engineerPrompt(
+                step,
+                canvasNodes,
+                activeStyle,
+                violationFeedback,
+                ruleset,
+            );
+        }
+
+        const retriedEnrichedStep = { ...enrichedStep, prompt: retriedPrompt };
+        const retriedRequest = primitive.canvas.toRequest(retriedEnrichedStep, {
+            userId,
+        });
+        const retriedOutput = await primitive.execute(retriedRequest, {
+            userId,
+        });
+        const retriedNodeData = primitive.canvas.toCanvasData(
+            retriedEnrichedStep,
+            retriedOutput,
+        );
+        node = { ...(retriedNodeData as NodePayload), id: randomUUID() };
+
+        validationResults = await validateImage(
+            node.sourceUrl,
+            ruleset,
+            node.mimeType,
+        );
+    }
+
+    return { node, validationResults };
+}
+
+function buildViolationFeedback(
+    failingResults: ValidationResult[],
+    attemptNumber: number,
+    maxRetries: number,
+): string {
+    const lines = failingResults.map(
+        (r) => `- Rule ${r.ruleId} (${r.severity}): ${r.reason}`,
+    );
+    return [
+        `VALIDATION FEEDBACK (attempt ${attemptNumber}/${maxRetries}):`,
+        "The previous generation failed the following rules:",
+        ...lines,
+        "Adjust the prompt to address these violations explicitly.",
+    ].join("\n");
+}
+
+/**
  * Execute a generation plan, yielding step events as each step starts/completes.
  * Steps without dependencies are executed in parallel within the same wave.
  */
@@ -146,19 +280,19 @@ export async function* executePlan(
     defaultMusicModel?: string,
     nodeTypes?: Map<string, string>,
     canvasNodes?: CanvasNode[],
+    activeRulesetId?: string,
+    activeRuleset?: RulesetDocument,
 ): AsyncGenerator<StepEvent> {
+    const SKILLS_DIR = path.join(process.cwd(), "src/lib/canvas/agent/skills");
+    const PRIMITIVES_DIR = path.join(SKILLS_DIR, "primitives");
+    const promptEngineer = new PromptEngineer(PRIMITIVES_DIR);
+    const activeStyle =
+        activeStyleName && activeStyleContent
+            ? { name: activeStyleName, content: activeStyleContent }
+            : null;
+
     let enrichedSteps = plan.steps;
     if (canvasNodes && canvasNodes.length > 0) {
-        const SKILLS_DIR = path.join(
-            process.cwd(),
-            "src/lib/canvas/agent/skills",
-        );
-        const PRIMITIVES_DIR = path.join(SKILLS_DIR, "primitives");
-        const promptEngineer = new PromptEngineer(PRIMITIVES_DIR);
-        const activeStyle =
-            activeStyleName && activeStyleContent
-                ? { name: activeStyleName, content: activeStyleContent }
-                : null;
         try {
             logger.info(
                 `[CanvasGeneration] Running prompt engineering on ${plan.steps.length} plan steps`,
@@ -167,6 +301,7 @@ export async function* executePlan(
                 plan.steps,
                 canvasNodes,
                 activeStyle,
+                activeRuleset,
             );
         } catch (err) {
             logger.error(
@@ -180,6 +315,7 @@ export async function* executePlan(
         completedStepUris: new Map(),
         attachmentUris: nodeUris,
         nodeTypes: new Map<string, string>(),
+        ruleset: activeRuleset,
     };
 
     // Pre-populate all step types from the plan
@@ -192,6 +328,12 @@ export async function* executePlan(
         for (const [id, type] of nodeTypes.entries()) {
             ctx.nodeTypes.set(id, type);
         }
+    }
+
+    if (activeRulesetId && !activeRuleset) {
+        logger.warn(
+            `[CanvasGeneration] activeRulesetId set but no ruleset provided — validation skipped`,
+        );
     }
 
     const waves = buildExecutionWaves(enrichedSteps);
@@ -291,42 +433,10 @@ export async function* executePlan(
                         id: randomUUID(),
                     };
 
-                    // Record URI so dependent steps can reference it
+                    // Record initial URI (may be overwritten after validation retry)
                     ctx.completedStepUris.set(step.id, node.sourceUrl);
 
-                    // Fire-and-forget: save to library (audio not yet supported)
-                    if (node.type !== "canvas-audio") {
-                        const libraryType = (
-                            node.type === "canvas-video" ? "video" : "image"
-                        ) as "video" | "image";
-                        libraryService
-                            .createAsset({
-                                userId,
-                                type: libraryType,
-                                gcsUri: node.sourceUrl,
-                                mimeType: node.mimeType ?? "image/png",
-                                aspectRatio: node.aspectRatio,
-                                model: node.model,
-                                tags: [],
-                                visibility: "private" as const,
-                                provenance: {
-                                    sourceType: "canvas",
-                                    sourceId: canvasId,
-                                    sourceName: canvasName,
-                                    nodeId: node.id,
-                                    nodeLabel: node.label,
-                                    prompt: node.prompt,
-                                },
-                            })
-                            .catch((err) =>
-                                logger.warn(
-                                    "[CanvasGeneration] Library save failed:",
-                                    err,
-                                ),
-                            );
-                    }
-
-                    return { step, node };
+                    return { step, node, enrichedStep };
                 } catch (error) {
                     logger.error(
                         `[CanvasGeneration] Step ${step.id} failed:`,
@@ -337,17 +447,61 @@ export async function* executePlan(
             }),
         );
 
-        // Yield events for each result in original step order
+        // Emit step_done immediately — image is visible to the user now
+        const toValidate: Array<{
+            step: GenerationStep;
+            initialNode: NodePayload;
+            enrichedStep: Record<string, unknown>;
+        }> = [];
+
         for (let i = 0; i < wave.length; i++) {
             const result = results[i];
             const step = wave[i];
 
             if (result.status === "fulfilled") {
-                yield {
-                    type: "step_done",
-                    stepId: step.id,
-                    node: result.value.node,
-                };
+                const { node } = result.value;
+
+                // Fire-and-forget: save to library (audio not yet supported)
+                if (node.type !== "canvas-audio") {
+                    const libraryType = (
+                        node.type === "canvas-video" ? "video" : "image"
+                    ) as "video" | "image";
+                    libraryService
+                        .createAsset({
+                            userId,
+                            type: libraryType,
+                            gcsUri: node.sourceUrl,
+                            mimeType: node.mimeType ?? "image/png",
+                            aspectRatio: node.aspectRatio,
+                            model: node.model,
+                            tags: [],
+                            visibility: "private" as const,
+                            provenance: {
+                                sourceType: "canvas",
+                                sourceId: canvasId,
+                                sourceName: canvasName,
+                                nodeId: node.id,
+                                nodeLabel: node.label,
+                                prompt: node.prompt,
+                            },
+                        })
+                        .catch((err) =>
+                            logger.warn(
+                                "[CanvasGeneration] Library save failed:",
+                                err,
+                            ),
+                        );
+                }
+
+                yield { type: "step_done", stepId: step.id, node };
+
+                if (ctx.ruleset && step.type === "image") {
+                    toValidate.push({
+                        step,
+                        initialNode: node,
+                        enrichedStep: result.value.enrichedStep,
+                    });
+                }
             } else {
                 const err = result.reason as { error: unknown };
                 yield {
@@ -358,6 +512,64 @@ export async function* executePlan(
                             ? err.error.message
                             : "Generation failed",
                 };
+            }
+        }
+
+        // Validation phase — runs after step_done events so images appear first
+        if (toValidate.length > 0 && ctx.ruleset) {
+            type PrimitiveShape = {
+                canvas: {
+                    toRequest: (s: unknown, ctx: unknown) => unknown;
+                    toCanvasData: (s: unknown, o: unknown) => unknown;
+                };
+                execute: (req: unknown, ctx: unknown) => Promise<unknown>;
+            };
+
+            const valResults = await Promise.allSettled(
+                toValidate.map(({ step, initialNode, enrichedStep }) => {
+                    const prim = registry.getByCanvasType(
+                        `canvas-${step.type}`,
+                    ) as PrimitiveShape;
+                    return runWithValidation(
+                        initialNode,
+                        enrichedStep,
+                        step,
+                        ctx.ruleset!,
+                        prim,
+                        userId,
+                        canvasNodes && canvasNodes.length > 0
+                            ? promptEngineer
+                            : null,
+                        canvasNodes ?? [],
+                        activeStyle,
+                    );
+                }),
+            );
+
+            for (let i = 0; i < toValidate.length; i++) {
+                const { step, initialNode } = toValidate[i];
+                const valResult = valResults[i];
+                if (valResult.status === "fulfilled") {
+                    const { node: finalNode, validationResults } =
+                        valResult.value;
+                    if (finalNode.sourceUrl !== initialNode.sourceUrl) {
+                        ctx.completedStepUris.set(step.id, finalNode.sourceUrl);
+                    }
+                    yield {
+                        type: "step_validated",
+                        stepId: step.id,
+                        validationResults,
+                        node:
+                            finalNode.sourceUrl !== initialNode.sourceUrl
+                                ? finalNode
+                                : undefined,
+                    };
+                } else {
+                    logger.warn(
+                        `[CanvasGeneration] Validation failed for step ${step.id}:`,
+                        valResult.reason,
+                    );
+                }
             }
         }
     }

@@ -18,6 +18,8 @@ export interface CanvasImageData {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
+    validationResults?: ValidationResult[];
+    validating?: boolean;
 }
 
 export interface CanvasVideoData {
@@ -194,6 +196,19 @@ export interface ChatMessage {
     createdAt: string;
 }
 
+export interface RulesetRef {
+    name: string;
+    rules: { id: string; description: string; severity: "hard" | "soft" }[];
+}
+
+export interface ValidationResult {
+    ruleId: string;
+    ruleDescription: string;
+    severity: "hard" | "soft";
+    status: "pass" | "fail";
+    reason: string;
+}
+
 export interface CanvasDocument {
     id: string;
     userId: string;
@@ -208,6 +223,8 @@ export interface CanvasDocument {
     sharedWithEmails: string[];
     isTemplate: boolean;
     activeStyleId?: string;
+    activeRulesetId?: string;
+    activeRulesetName?: string;
     disabledSkills?: string[];
     createdAt: string;
     updatedAt: string;
@@ -239,6 +256,7 @@ export interface AgentInput {
     imageDefaults?: MediaDefaults;
     videoDefaults?: VideoDefaults;
     activeStyle?: { name: string; content: string } | null;
+    activeRuleset?: RulesetRef | null;
     canvasId?: string;
     userId?: string;
     userName?: string;

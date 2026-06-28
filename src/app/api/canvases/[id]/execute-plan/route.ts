@@ -4,6 +4,10 @@ import { canvasService } from "@/lib/services/canvas.service";
 import { styleService } from "@/lib/services/style.service";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import { executePlan } from "@/lib/canvas/generation";
+import {
+    rulesetService,
+    type RulesetDocument,
+} from "@/lib/services/ruleset.service";
 import logger from "@/app/logger";
 import type { AgentPlan, CanvasNode } from "@/lib/canvas/types";
 import { isGcsUri } from "@/lib/utils/gcs-uri";
@@ -109,6 +113,22 @@ export async function POST(
         );
     }
 
+    // Resolve active ruleset
+    let activeRuleset: RulesetDocument | undefined;
+    if (canvas.activeRulesetId) {
+        try {
+            activeRuleset = await rulesetService.getRuleset(
+                canvas.activeRulesetId,
+                session.user.id,
+                session.user.email ?? undefined,
+            );
+        } catch {
+            logger.warn(
+                `[ExecutePlanAPI] Could not fetch active ruleset: ${canvas.activeRulesetId}`,
+            );
+        }
+    }
+
     // Resolve active style — use request-body override (for regeneration) or canvas default
     const resolvedStyleId = body.styleId ?? canvas.activeStyleId;
     let activeStyleContent: string | undefined;
@@ -155,6 +175,8 @@ export async function POST(
                     body.musicModel,
                     nodeTypeMap,
                     canvas.nodes,
+                    canvas.activeRulesetId ?? undefined,
+                    activeRuleset,
                 )) {
                     switch (stepEvent.type) {
                         case "step_start":
@@ -171,6 +193,18 @@ export async function POST(
                                 encode(
                                     formatSSE("step_done", {
                                         stepId: stepEvent.stepId,
+                                        node: stepEvent.node,
+                                    }),
+                                ),
+                            );
+                            break;
+                        case "step_validated":
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("step_validated", {
+                                        stepId: stepEvent.stepId,
+                                        validationResults:
+                                            stepEvent.validationResults,
                                         node: stepEvent.node,
                                     }),
                                 ),

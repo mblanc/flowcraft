@@ -482,6 +482,8 @@ export const CanvasUpdateSchema = z.object({
     messages: z.array(ChatMessageSchema).optional(),
     thumbnail: z.string().url().max(2048).optional(),
     activeStyleId: z.string().nullable().optional(),
+    activeRulesetId: z.string().nullable().optional(),
+    activeRulesetName: z.string().max(256).nullable().optional(),
     disabledSkills: z.array(z.string()).optional(),
     visibility: z.enum(["private", "public"]).optional(),
     sharedWith: SharedWithSchema.optional(),
@@ -517,6 +519,30 @@ export const UpdateSkillSchema = z.object({
     visibility: z.enum(["private", "public"]).optional(),
     isTemplate: z.boolean().optional(),
 });
+
+// --- Ruleset Schemas ---
+
+export const RuleSchema = z.object({
+    id: z.string().uuid(),
+    description: z.string().trim().min(1).max(512),
+    severity: z.enum(["hard", "soft"]),
+    failureStrategy: z.enum(["retry", "surface"]).default("surface"),
+    maxRetries: z.number().int().min(1).max(5).optional(),
+});
+
+export const CreateRulesetSchema = z.object({
+    name: z.string().trim().min(1).max(256),
+    description: z.string().max(2048).optional(),
+    rules: z.array(RuleSchema).default([]),
+    visibility: z.enum(["private", "public"]).default("private"),
+    sharedWith: SharedWithSchema.optional().default([]),
+});
+
+export const UpdateRulesetSchema = CreateRulesetSchema.partial();
+
+export type Rule = z.infer<typeof RuleSchema>;
+export type CreateRuleset = z.infer<typeof CreateRulesetSchema>;
+export type UpdateRuleset = z.infer<typeof UpdateRulesetSchema>;
 
 export const AssetSharingPatchSchema = z
     .object({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canvasService } from "@/lib/services/canvas.service";
 import { styleService } from "@/lib/services/style.service";
+import { rulesetService } from "@/lib/services/ruleset.service";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import { CanvasAgentRunner } from "@/lib/canvas/agent/agent-runner";
 import {
@@ -10,7 +11,7 @@ import {
     IMAGE_ASPECT_RATIOS,
     VIDEO_ASPECT_RATIOS,
 } from "@/lib/canvas/agent/tools";
-import type { ChatAttachment } from "@/lib/canvas/types";
+import type { ChatAttachment, RulesetRef } from "@/lib/canvas/types";
 import { MODELS, IMAGE_SIZES, VIDEO_RESOLUTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 
@@ -169,6 +170,26 @@ export async function POST(
         );
     }
 
+    // Resolve active ruleset for preventive injection
+    let activeRuleset: RulesetRef | null = null;
+    if (canvas.activeRulesetId) {
+        try {
+            const ruleset = await rulesetService.getRuleset(
+                canvas.activeRulesetId,
+                session.user.id,
+                session.user.email ?? undefined,
+            );
+            activeRuleset = {
+                name: ruleset.name,
+                rules: ruleset.rules,
+            };
+        } catch {
+            logger.warn(
+                `[ChatAPI] Could not fetch active ruleset: ${canvas.activeRulesetId}`,
+            );
+        }
+    }
+
     // Resolve active style content
     let activeStyle: { name: string; content: string } | null = null;
     if (canvas.activeStyleId) {
@@ -210,6 +231,7 @@ export async function POST(
                     imageDefaults: body.imageDefaults,
                     videoDefaults: body.videoDefaults,
                     activeStyle,
+                    activeRuleset,
                     canvasId,
                     userId: session.user.id,
                     userName: session.user.name ?? undefined,

@@ -22,6 +22,8 @@ export interface CanvasStore {
     viewport: { x: number; y: number; zoom: number };
     messages: ChatMessage[];
     activeStyleId: string | null;
+    activeRulesetId: string | null;
+    activeRulesetName: string | null;
     disabledSkills: string[];
     sessionId: string;
 
@@ -57,6 +59,7 @@ export interface CanvasStore {
     clearMessages: () => void;
     resetSession: () => void;
     setActiveStyleId: (id: string | null) => void;
+    setActiveRuleset: (id: string | null, name: string | null) => void;
     toggleDisabledSkill: (skillName: string) => void;
     setDisabledSkills: (skills: string[]) => void;
 
@@ -100,6 +103,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     viewport: { x: 0, y: 0, zoom: 1 },
     messages: [],
     activeStyleId: null,
+    activeRulesetId: null,
+    activeRulesetName: null,
     sessionId: crypto.randomUUID(),
     selectedNodeIds: [],
     isSaving: false,
@@ -123,6 +128,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
             viewport: canvas.viewport,
             messages: canvas.messages,
             activeStyleId: canvas.activeStyleId ?? null,
+            activeRulesetId: canvas.activeRulesetId ?? null,
+            activeRulesetName: canvas.activeRulesetName ?? null,
             disabledSkills: canvas.disabledSkills ?? [],
             selectedNodeIds: [],
             lastModified: 0,
@@ -223,6 +230,9 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     resetSession: () => set({ sessionId: crypto.randomUUID() }),
 
     setActiveStyleId: (id) => set({ activeStyleId: id }),
+
+    setActiveRuleset: (id, name) =>
+        set({ activeRulesetId: id, activeRulesetName: name }),
 
     toggleDisabledSkill: (skillName) =>
         set((state) => {

@@ -13,6 +13,7 @@ import {
     GenerateContentResponse,
     Tool,
     ThinkingLevel,
+    MediaResolution,
 } from "@google/genai";
 import logger from "@/app/logger";
 import { config } from "../config";
@@ -161,6 +162,8 @@ export class GeminiService {
         }
 
         const generationConfig: GenerateContentConfig = {};
+        generationConfig.mediaResolution =
+            MediaResolution.MEDIA_RESOLUTION_HIGH;
         if (outputType === "json") {
             generationConfig.responseMimeType = "application/json";
             if (responseSchema) {
