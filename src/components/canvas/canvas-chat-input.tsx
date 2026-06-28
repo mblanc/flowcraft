@@ -103,6 +103,26 @@ function parseSSEEvents(
     return { events, remaining };
 }
 
+function RulesetThumbnail({ active }: { active: boolean }) {
+    return (
+        <div
+            className={cn(
+                "bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
+                active && "border-emerald-500/20",
+            )}
+        >
+            <ShieldCheck
+                className={cn(
+                    "size-4",
+                    active
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-muted-foreground",
+                )}
+            />
+        </div>
+    );
+}
+
 interface CanvasChatInputProps {
     getViewportCenter: () => { x: number; y: number };
     centerOnNodes: (x: number, y: number) => void;
@@ -1507,14 +1527,14 @@ export function CanvasChatInput({
                                         : "text-muted-foreground hover:text-foreground hover:bg-muted",
                                 )}
                             >
-                                <ShieldCheck className="size-3 shrink-0" />
+                                <RulesetThumbnail active={!!activeRulesetId} />
                                 <span className="truncate">
                                     {activeRulesetName ?? "Ruleset"}
                                 </span>
                                 <ChevronDown className="size-2.5 shrink-0 opacity-60" />
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-56">
+                        <DropdownMenuContent align="start" className="w-64">
                             {userRulesets.length === 0 ? (
                                 <div className="text-muted-foreground px-2 py-1.5 text-xs">
                                     No rulesets yet
@@ -1540,6 +1560,11 @@ export function CanvasChatInput({
                                                     <Check className="size-3.5" />
                                                 )}
                                             </div>
+                                            <RulesetThumbnail
+                                                active={
+                                                    activeRulesetId === r.id
+                                                }
+                                            />
                                             <span className="truncate">
                                                 {r.name}
                                             </span>
