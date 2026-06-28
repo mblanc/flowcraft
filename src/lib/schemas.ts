@@ -524,14 +524,14 @@ export const UpdateSkillSchema = z.object({
 
 export const RuleSchema = z.object({
     id: z.string().uuid(),
-    description: z.string().min(1).max(512),
+    description: z.string().trim().min(1).max(512),
     severity: z.enum(["hard", "soft"]),
     failureStrategy: z.enum(["retry", "surface"]).default("surface"),
     maxRetries: z.number().int().min(1).max(5).optional(),
 });
 
 export const CreateRulesetSchema = z.object({
-    name: z.string().min(1).max(256),
+    name: z.string().trim().min(1).max(256),
     description: z.string().max(2048).optional(),
     rules: z.array(RuleSchema).default([]),
     visibility: z.enum(["private", "public"]).default("private"),

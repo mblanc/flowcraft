@@ -412,6 +412,7 @@ export function CanvasChatInput({
 
     const handleSelectRuleset = useCallback(
         async (id: string, name: string) => {
+            if (!canvasId) return;
             try {
                 const res = await fetch(`/api/canvases/${canvasId}`, {
                     method: "PATCH",
@@ -431,6 +432,7 @@ export function CanvasChatInput({
     );
 
     const handleClearRuleset = useCallback(async () => {
+        if (!canvasId) return;
         try {
             const res = await fetch(`/api/canvases/${canvasId}`, {
                 method: "PATCH",

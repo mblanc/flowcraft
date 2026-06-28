@@ -246,16 +246,19 @@ export function RulesetEditor({
                                                 min={1}
                                                 max={5}
                                                 value={rule.maxRetries ?? 1}
-                                                onChange={(e) =>
+                                                onChange={(e) => {
+                                                    const n = parseInt(
+                                                        e.target.value,
+                                                        10,
+                                                    );
                                                     updateRule(
                                                         rule.id,
                                                         "maxRetries",
-                                                        parseInt(
-                                                            e.target.value,
-                                                            10,
-                                                        ),
-                                                    )
-                                                }
+                                                        Number.isNaN(n)
+                                                            ? undefined
+                                                            : n,
+                                                    );
+                                                }}
                                                 className="h-7 w-16 text-xs"
                                                 placeholder="1"
                                                 title="Max retries"
