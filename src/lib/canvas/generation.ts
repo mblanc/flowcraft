@@ -9,13 +9,19 @@ import type {
     GenerationStep,
     NodePayload,
     PlanEdge,
+    ValidationResult,
 } from "./types";
 import { serverRegistry as registry } from "@/primitives/server-registry";
 import { PromptEngineer } from "./agent/prompt-engineer";
 
 export type StepEvent =
     | { type: "step_start"; stepId: string }
-    | { type: "step_done"; stepId: string; node: NodePayload }
+    | {
+          type: "step_done";
+          stepId: string;
+          node: NodePayload;
+          validationResults?: ValidationResult[];
+      }
     | { type: "step_error"; stepId: string; message: string };
 
 interface ExecutionContext {

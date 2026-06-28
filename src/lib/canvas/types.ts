@@ -194,6 +194,14 @@ export interface ChatMessage {
     createdAt: string;
 }
 
+export interface ValidationResult {
+    ruleId: string;
+    ruleDescription: string;
+    severity: "hard" | "soft";
+    status: "pass" | "fail";
+    reason: string;
+}
+
 export interface CanvasDocument {
     id: string;
     userId: string;
@@ -208,6 +216,8 @@ export interface CanvasDocument {
     sharedWithEmails: string[];
     isTemplate: boolean;
     activeStyleId?: string;
+    activeRulesetId?: string;
+    activeRulesetName?: string;
     disabledSkills?: string[];
     createdAt: string;
     updatedAt: string;
