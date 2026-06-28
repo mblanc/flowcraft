@@ -483,7 +483,7 @@ export const CanvasUpdateSchema = z.object({
     thumbnail: z.string().url().max(2048).optional(),
     activeStyleId: z.string().nullable().optional(),
     activeRulesetId: z.string().nullable().optional(),
-    activeRulesetName: z.string().nullable().optional(),
+    activeRulesetName: z.string().max(256).nullable().optional(),
     disabledSkills: z.array(z.string()).optional(),
     visibility: z.enum(["private", "public"]).optional(),
     sharedWith: SharedWithSchema.optional(),
@@ -523,8 +523,8 @@ export const UpdateSkillSchema = z.object({
 // --- Ruleset Schemas ---
 
 export const RuleSchema = z.object({
-    id: z.string(),
-    description: z.string().min(1),
+    id: z.string().uuid(),
+    description: z.string().min(1).max(512),
     severity: z.enum(["hard", "soft"]),
     failureStrategy: z.enum(["retry", "surface"]).default("surface"),
     maxRetries: z.number().int().min(1).max(5).optional(),

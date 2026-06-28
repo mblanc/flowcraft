@@ -273,6 +273,19 @@ describe("RulesetService", () => {
             ).rejects.toThrow("Forbidden");
         });
 
+        it("rejects a shared user (edit role) trying to update", async () => {
+            mockGet.mockResolvedValue(
+                makeDocSnap({
+                    ...baseData(),
+                    sharedWith: [{ email: "editor@example.com", role: "edit" }],
+                    sharedWithEmails: ["editor@example.com"],
+                }),
+            );
+            await expect(
+                service.updateRuleset("ruleset-1", "editor-uid", { name: "X" }),
+            ).rejects.toThrow("Forbidden");
+        });
+
         it("throws when ruleset does not exist", async () => {
             mockGet.mockResolvedValue({
                 exists: false,
@@ -297,6 +310,19 @@ describe("RulesetService", () => {
             mockGet.mockResolvedValue(makeDocSnap(baseData()));
             await expect(
                 service.deleteRuleset("ruleset-1", "stranger"),
+            ).rejects.toThrow("Forbidden");
+        });
+
+        it("throws Forbidden when shared user tries to delete", async () => {
+            mockGet.mockResolvedValue(
+                makeDocSnap({
+                    ...baseData(),
+                    sharedWith: [{ email: "editor@example.com", role: "edit" }],
+                    sharedWithEmails: ["editor@example.com"],
+                }),
+            );
+            await expect(
+                service.deleteRuleset("ruleset-1", "editor-uid"),
             ).rejects.toThrow("Forbidden");
         });
 

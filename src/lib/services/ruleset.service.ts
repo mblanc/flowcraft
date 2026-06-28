@@ -172,7 +172,17 @@ export class RulesetService {
         if (current.userId !== userId) throw new RulesetForbiddenError();
 
         const updateData: Record<string, unknown> = {
-            ...data,
+            ...(data.name !== undefined && { name: data.name }),
+            ...(data.description !== undefined && {
+                description: data.description,
+            }),
+            ...(data.rules !== undefined && { rules: data.rules }),
+            ...(data.visibility !== undefined && {
+                visibility: data.visibility,
+            }),
+            ...(data.sharedWith !== undefined && {
+                sharedWith: data.sharedWith,
+            }),
             updatedAt: FieldValue.serverTimestamp(),
         };
 

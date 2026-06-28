@@ -197,7 +197,7 @@ export interface ChatMessage {
 
 export interface RulesetRef {
     name: string;
-    rules: { id: string; description: string; severity: string }[];
+    rules: { id: string; description: string; severity: "hard" | "soft" }[];
 }
 
 export interface ValidationResult {

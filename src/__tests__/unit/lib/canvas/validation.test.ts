@@ -161,4 +161,22 @@ describe("validateImage", () => {
         expect(results).toHaveLength(2);
         expect(results.find((r) => r.ruleId === "unknown-id")).toBeUndefined();
     });
+
+    it("forwards the provided mimeType to Gemini", async () => {
+        mockGenerateText.mockResolvedValue(
+            "RULE rule-1: PASS — ok\nRULE rule-2: PASS — ok",
+        );
+        await validateImage(
+            "gs://bucket/image.jpg",
+            baseRuleset(),
+            "image/jpeg",
+        );
+        expect(mockGenerateText).toHaveBeenCalledWith(
+            expect.objectContaining({
+                parts: expect.arrayContaining([
+                    expect.objectContaining({ mimeType: "image/jpeg" }),
+                ]),
+            }),
+        );
+    });
 });
