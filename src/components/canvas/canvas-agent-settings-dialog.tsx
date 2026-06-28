@@ -12,6 +12,14 @@ import {
 } from "@/components/ui/dialog";
 import { SkillsLibrary } from "./skills-library";
 import {
+    Dialog as SkillsDialog,
+    DialogContent as SkillsDialogContent,
+    DialogDescription as SkillsDialogDescription,
+    DialogHeader as SkillsDialogHeader,
+    DialogTitle as SkillsDialogTitle,
+    DialogTrigger as SkillsDialogTrigger,
+} from "@/components/ui/dialog";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -345,7 +353,33 @@ export function CanvasAgentSettingsDialog({
                         <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                             Pattern Skills
                         </p>
-                        <SkillsLibrary />
+                        <SkillsDialog>
+                            <SkillsDialogTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full gap-2"
+                                >
+                                    <Sparkles className="size-3.5" />
+                                    Manage Skills
+                                </Button>
+                            </SkillsDialogTrigger>
+                            <SkillsDialogContent className="flex max-h-[85vh] max-w-xl flex-col overflow-y-auto p-6">
+                                <SkillsDialogHeader className="border-border/40 shrink-0 border-b pb-4">
+                                    <SkillsDialogTitle className="flex items-center gap-1.5 text-sm font-bold">
+                                        <Sparkles className="text-primary size-4 animate-pulse" />
+                                        Active Canvas Skills
+                                    </SkillsDialogTitle>
+                                    <SkillsDialogDescription className="text-xs">
+                                        Enable or disable pattern skills for
+                                        this canvas.
+                                    </SkillsDialogDescription>
+                                </SkillsDialogHeader>
+                                <div className="mt-4 flex min-h-[400px] flex-1 flex-col overflow-hidden">
+                                    <SkillsLibrary />
+                                </div>
+                            </SkillsDialogContent>
+                        </SkillsDialog>
                     </div>
 
                     <div className="border-border border-t" />
