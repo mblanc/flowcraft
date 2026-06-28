@@ -16,8 +16,11 @@ import {
     RefreshCw,
     Copy,
     Check,
+    ShieldCheck,
+    ShieldAlert,
+    ShieldX,
 } from "lucide-react";
-import type { CanvasImageData } from "@/lib/canvas/types";
+import type { CanvasImageData, ValidationResult } from "@/lib/canvas/types";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import { NodeResizeHandle } from "@/components/nodes/node-resize-handle";
 import { useMediaNodeResize } from "@/hooks/use-media-node-resize";
@@ -52,6 +55,96 @@ function ReferenceImageThumbnail({ nodeId }: { nodeId: string }) {
                 className="object-cover"
                 unoptimized
             />
+        </div>
+    );
+}
+
+function ValidationBadge({ results }: { results: ValidationResult[] }) {
+    const [showPopover, setShowPopover] = useState(false);
+    const hasHardFail = results.some(
+        (r) => r.status === "fail" && r.severity === "hard",
+    );
+    const hasSoftFail = results.some(
+        (r) => r.status === "fail" && r.severity === "soft",
+    );
+
+    const Icon = hasHardFail
+        ? ShieldX
+        : hasSoftFail
+          ? ShieldAlert
+          : ShieldCheck;
+    const colorClass = hasHardFail
+        ? "text-red-500 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
+        : hasSoftFail
+          ? "text-yellow-500 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800"
+          : "text-green-500 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800";
+
+    return (
+        <div className="pointer-events-auto absolute right-2 bottom-2 z-20">
+            <button
+                type="button"
+                className={cn(
+                    "flex items-center justify-center rounded-full border p-1 shadow-sm transition-transform hover:scale-110",
+                    colorClass,
+                )}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setShowPopover((v) => !v);
+                }}
+                title="Validation results"
+            >
+                <Icon className="h-3.5 w-3.5" />
+            </button>
+
+            {showPopover && (
+                <div
+                    className="bg-background/95 absolute right-0 bottom-8 z-50 w-64 rounded-xl border p-3 shadow-xl backdrop-blur-md"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                >
+                    <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-semibold">
+                            Validation
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setShowPopover(false)}
+                            className="text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="h-3 w-3" />
+                        </button>
+                    </div>
+                    <div className="space-y-1.5">
+                        {results.map((r) => (
+                            <div
+                                key={r.ruleId}
+                                className="rounded-md border px-2 py-1.5"
+                            >
+                                <div className="flex items-center gap-1.5">
+                                    {r.status === "pass" ? (
+                                        <Check className="h-3 w-3 text-green-500" />
+                                    ) : (
+                                        <AlertCircle
+                                            className={cn(
+                                                "h-3 w-3",
+                                                r.severity === "hard"
+                                                    ? "text-red-500"
+                                                    : "text-yellow-500",
+                                            )}
+                                        />
+                                    )}
+                                    <span className="truncate text-[11px] font-medium">
+                                        {r.ruleDescription}
+                                    </span>
+                                </div>
+                                <p className="text-muted-foreground mt-0.5 text-[10px] leading-relaxed">
+                                    {r.reason}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -323,6 +416,11 @@ export const CanvasNode = memo(
                             </div>
                         )}
                     </div>
+
+                    {/* Validation Badge */}
+                    {d.validationResults && d.validationResults.length > 0 && (
+                        <ValidationBadge results={d.validationResults} />
+                    )}
 
                     {/* Info Capsule Layer */}
                     {selected && isInfoOpen && (

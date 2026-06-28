@@ -10,6 +10,7 @@ import {
 } from "react";
 import { SendHorizonal, Loader2, Check, Sparkles } from "lucide-react";
 import { StyleThumbnail } from "./style-thumbnail";
+import { RulesetPicker } from "./ruleset-picker";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -772,7 +773,28 @@ export function CanvasChatInput({
                                                 ...(node.type === "canvas-video"
                                                     ? { progress: 100 }
                                                     : {}),
+                                                ...(payload.validationResults
+                                                    ? {
+                                                          validationResults:
+                                                              payload.validationResults,
+                                                      }
+                                                    : {}),
                                             });
+
+                                        // Surface validation failures
+                                        if (payload.validationResults) {
+                                            const failures =
+                                                payload.validationResults.filter(
+                                                    (r: { status: string }) =>
+                                                        r.status === "fail",
+                                                );
+                                            if (failures.length > 0) {
+                                                toast.warning(
+                                                    `${failures.length} rule${failures.length !== 1 ? "s" : ""} failed — see badge on image for details`,
+                                                );
+                                            }
+                                        }
+
                                         const currentMsg = useCanvasStore
                                             .getState()
                                             .messages.find(
@@ -1502,6 +1524,10 @@ export function CanvasChatInput({
                                 </div>
                             </DialogContent>
                         </Dialog>
+
+                        <div className="bg-border h-4 w-px" />
+
+                        <RulesetPicker />
                     </div>
 
                     <Button

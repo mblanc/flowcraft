@@ -18,6 +18,7 @@ export interface CanvasImageData {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
+    validationResults?: ValidationResult[];
 }
 
 export interface CanvasVideoData {

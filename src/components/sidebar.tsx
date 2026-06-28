@@ -11,6 +11,7 @@ import {
     BookImage,
     Settings,
     Sparkles,
+    ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserProfile } from "@/components/flow/user-profile";
@@ -21,6 +22,7 @@ const sidebarItems = [
     { name: "Agents", href: "/agents", icon: Bot },
     { name: "Styles", href: "/styles", icon: Palette },
     { name: "Skills", href: "/skills", icon: Sparkles },
+    { name: "Rulesets", href: "/rulesets", icon: ShieldCheck },
     { name: "Library", href: "/library", icon: BookImage },
 ];
 
