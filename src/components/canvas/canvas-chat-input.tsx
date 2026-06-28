@@ -1572,8 +1572,6 @@ export function CanvasChatInput({
                             </DropdownMenuContent>
                         </DropdownMenu>
 
-                        <div className="bg-border h-4 w-px" />
-
                         <Dialog>
                             <TooltipProvider delayDuration={300}>
                                 <Tooltip>
@@ -1612,8 +1610,6 @@ export function CanvasChatInput({
                             </DialogContent>
                         </Dialog>
 
-                        <div className="bg-border h-4 w-px" />
-
                         <DropdownMenu>
                             <TooltipProvider delayDuration={300}>
                                 <Tooltip>
@@ -1623,14 +1619,14 @@ export function CanvasChatInput({
                                                 variant="ghost"
                                                 size="sm"
                                                 className={cn(
-                                                    "h-9 gap-2 border-none px-2 text-xs shadow-none",
+                                                    "h-9 max-w-[140px] gap-1.5 overflow-hidden border-none px-2 text-xs shadow-none",
                                                     activeRulesetId
                                                         ? "text-emerald-600 dark:text-emerald-400"
                                                         : "",
                                                 )}
                                             >
-                                                <ShieldCheck className="size-3.5" />
-                                                <span className="max-w-[100px] truncate">
+                                                <ShieldCheck className="size-3.5 shrink-0" />
+                                                <span className="truncate">
                                                     {activeRulesetName ??
                                                         "Ruleset"}
                                                 </span>
