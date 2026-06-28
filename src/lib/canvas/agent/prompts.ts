@@ -106,6 +106,22 @@ export function buildStyleInstruction(
     return `\n\n## Active Style: ${style.name}\nApply this style to EVERY generation step:\n\n${style.content}`;
 }
 
+export function buildRulesetInstruction(
+    ruleset:
+        | {
+              name: string;
+              rules: { id: string; description: string; severity: string }[];
+          }
+        | null
+        | undefined,
+): string {
+    if (!ruleset || ruleset.rules.length === 0) return "";
+    const ruleLines = ruleset.rules
+        .map((r) => `- [${r.severity}] ${r.description}`)
+        .join("\n");
+    return `\n\nACTIVE RULESET — ${ruleset.name}:\nThe following rules must be respected in all generations:\n${ruleLines}\nPlan your production with these constraints in mind.`;
+}
+
 function buildDefaultsInstruction(
     imageDefaults?: MediaDefaults,
     videoDefaults?: VideoDefaults,

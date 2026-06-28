@@ -13,6 +13,8 @@ import type {
 } from "./types";
 import { serverRegistry as registry } from "@/primitives/server-registry";
 import { PromptEngineer } from "./agent/prompt-engineer";
+import { validateImage } from "./validation";
+import type { RulesetDocument } from "@/lib/services/ruleset.service";
 
 export type StepEvent =
     | { type: "step_start"; stepId: string }
@@ -31,6 +33,8 @@ interface ExecutionContext {
     attachmentUris: Map<string, string>;
     /** Maps stepId/nodeId → its media type */
     nodeTypes: Map<string, string>;
+    /** Active ruleset for validation, if any */
+    ruleset?: RulesetDocument;
 }
 
 /**
@@ -137,6 +141,121 @@ function buildExecutionWaves(steps: GenerationStep[]): GenerationStep[][] {
 }
 
 /**
+ * Run the validation+retry loop for an image step.
+ * Returns the final node and validation results after all retries are exhausted.
+ */
+async function runWithValidation(
+    initialNode: NodePayload,
+    enrichedStep: Record<string, unknown>,
+    step: GenerationStep,
+    ruleset: RulesetDocument,
+    primitive: {
+        canvas: {
+            toRequest: (s: unknown, ctx: unknown) => unknown;
+            toCanvasData: (s: unknown, o: unknown) => unknown;
+        };
+        execute: (req: unknown, ctx: unknown) => Promise<unknown>;
+    },
+    userId: string,
+    promptEngineer: PromptEngineer | null,
+    canvasNodes: CanvasNode[],
+    activeStyle: { name: string; content: string } | null,
+): Promise<{ node: NodePayload; validationResults: ValidationResult[] }> {
+    let node = initialNode;
+    let validationResults = await validateImage(node.sourceUrl, ruleset);
+
+    // Build per-rule retry counters
+    const retryCountsLeft = new Map<string, number>();
+    for (const rule of ruleset.rules) {
+        if (rule.failureStrategy === "retry") {
+            retryCountsLeft.set(rule.id, rule.maxRetries ?? 1);
+        }
+    }
+
+    let attemptNumber = 1;
+
+    while (true) {
+        const failingRetryRules = validationResults.filter(
+            (r) =>
+                r.status === "fail" &&
+                retryCountsLeft.has(r.ruleId) &&
+                (retryCountsLeft.get(r.ruleId) ?? 0) > 0,
+        );
+
+        if (failingRetryRules.length === 0) break;
+
+        attemptNumber++;
+        for (const r of failingRetryRules) {
+            retryCountsLeft.set(
+                r.ruleId,
+                (retryCountsLeft.get(r.ruleId) ?? 1) - 1,
+            );
+        }
+
+        logger.info(
+            `[CanvasGeneration] Retrying step ${step.id} (attempt ${attemptNumber}) for ${failingRetryRules.length} failing rule(s)`,
+        );
+
+        // Re-engineer prompt with violation feedback
+        let retriedPrompt = step.prompt;
+        if (promptEngineer) {
+            const maxRetries = Math.max(
+                ...failingRetryRules.map(
+                    (r) =>
+                        ruleset.rules.find((rule) => rule.id === r.ruleId)
+                            ?.maxRetries ?? 1,
+                ),
+            );
+            const violationFeedback = buildViolationFeedback(
+                failingRetryRules,
+                attemptNumber - 1,
+                maxRetries,
+            );
+            retriedPrompt = await promptEngineer.engineerPrompt(
+                step,
+                canvasNodes,
+                activeStyle,
+                violationFeedback,
+                ruleset,
+            );
+        }
+
+        const retriedEnrichedStep = { ...enrichedStep, prompt: retriedPrompt };
+        const retriedRequest = primitive.canvas.toRequest(retriedEnrichedStep, {
+            userId,
+        });
+        const retriedOutput = await primitive.execute(retriedRequest, {
+            userId,
+        });
+        const retriedNodeData = primitive.canvas.toCanvasData(
+            retriedEnrichedStep,
+            retriedOutput,
+        );
+        node = { ...(retriedNodeData as NodePayload), id: randomUUID() };
+
+        validationResults = await validateImage(node.sourceUrl, ruleset);
+    }
+
+    return { node, validationResults };
+}
+
+function buildViolationFeedback(
+    failingResults: ValidationResult[],
+    attemptNumber: number,
+    maxRetries: number,
+): string {
+    const lines = failingResults.map(
+        (r) => `- Rule ${r.ruleId} (${r.severity}): ${r.reason}`,
+    );
+    return [
+        `VALIDATION FEEDBACK (attempt ${attemptNumber}/${maxRetries}):`,
+        "The previous generation failed the following rules:",
+        ...lines,
+        "Adjust the prompt to address these violations explicitly.",
+    ].join("\n");
+}
+
+/**
  * Execute a generation plan, yielding step events as each step starts/completes.
  * Steps without dependencies are executed in parallel within the same wave.
  */
@@ -152,19 +271,19 @@ export async function* executePlan(
     defaultMusicModel?: string,
     nodeTypes?: Map<string, string>,
     canvasNodes?: CanvasNode[],
+    activeRulesetId?: string,
+    activeRuleset?: RulesetDocument,
 ): AsyncGenerator<StepEvent> {
+    const SKILLS_DIR = path.join(process.cwd(), "src/lib/canvas/agent/skills");
+    const PRIMITIVES_DIR = path.join(SKILLS_DIR, "primitives");
+    const promptEngineer = new PromptEngineer(PRIMITIVES_DIR);
+    const activeStyle =
+        activeStyleName && activeStyleContent
+            ? { name: activeStyleName, content: activeStyleContent }
+            : null;
+
     let enrichedSteps = plan.steps;
     if (canvasNodes && canvasNodes.length > 0) {
-        const SKILLS_DIR = path.join(
-            process.cwd(),
-            "src/lib/canvas/agent/skills",
-        );
-        const PRIMITIVES_DIR = path.join(SKILLS_DIR, "primitives");
-        const promptEngineer = new PromptEngineer(PRIMITIVES_DIR);
-        const activeStyle =
-            activeStyleName && activeStyleContent
-                ? { name: activeStyleName, content: activeStyleContent }
-                : null;
         try {
             logger.info(
                 `[CanvasGeneration] Running prompt engineering on ${plan.steps.length} plan steps`,
@@ -173,6 +292,7 @@ export async function* executePlan(
                 plan.steps,
                 canvasNodes,
                 activeStyle,
+                activeRuleset,
             );
         } catch (err) {
             logger.error(
@@ -186,6 +306,7 @@ export async function* executePlan(
         completedStepUris: new Map(),
         attachmentUris: nodeUris,
         nodeTypes: new Map<string, string>(),
+        ruleset: activeRuleset,
     };
 
     // Pre-populate all step types from the plan
@@ -198,6 +319,12 @@ export async function* executePlan(
         for (const [id, type] of nodeTypes.entries()) {
             ctx.nodeTypes.set(id, type);
         }
+    }
+
+    if (activeRulesetId && !activeRuleset) {
+        logger.warn(
+            `[CanvasGeneration] activeRulesetId set but no ruleset provided — validation skipped`,
+        );
     }
 
     const waves = buildExecutionWaves(enrichedSteps);
@@ -292,10 +419,45 @@ export async function* executePlan(
                         enrichedStep,
                         output,
                     );
-                    const node: NodePayload = {
+                    let node: NodePayload = {
                         ...(nodeData as NodePayload),
                         id: randomUUID(),
                     };
+
+                    // Validate image steps when a ruleset is active
+                    let validationResults: ValidationResult[] | undefined;
+                    if (ctx.ruleset && step.type === "image") {
+                        const result = await runWithValidation(
+                            node,
+                            enrichedStep,
+                            step,
+                            ctx.ruleset,
+                            primitive as {
+                                canvas: {
+                                    toRequest: (
+                                        s: unknown,
+                                        ctx: unknown,
+                                    ) => unknown;
+                                    toCanvasData: (
+                                        s: unknown,
+                                        o: unknown,
+                                    ) => unknown;
+                                };
+                                execute: (
+                                    req: unknown,
+                                    ctx: unknown,
+                                ) => Promise<unknown>;
+                            },
+                            userId,
+                            canvasNodes && canvasNodes.length > 0
+                                ? promptEngineer
+                                : null,
+                            canvasNodes ?? [],
+                            activeStyle,
+                        );
+                        node = result.node;
+                        validationResults = result.validationResults;
+                    }
 
                     // Record URI so dependent steps can reference it
                     ctx.completedStepUris.set(step.id, node.sourceUrl);
@@ -332,7 +494,7 @@ export async function* executePlan(
                             );
                     }
 
-                    return { step, node };
+                    return { step, node, validationResults };
                 } catch (error) {
                     logger.error(
                         `[CanvasGeneration] Step ${step.id} failed:`,
@@ -353,6 +515,7 @@ export async function* executePlan(
                     type: "step_done",
                     stepId: step.id,
                     node: result.value.node,
+                    validationResults: result.value.validationResults,
                 };
             } else {
                 const err = result.reason as { error: unknown };

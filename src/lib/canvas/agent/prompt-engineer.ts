@@ -67,6 +67,11 @@ export class PromptEngineer {
         step: GenerationStep,
         canvasNodes: CanvasNode[],
         activeStyle?: { name: string; content: string } | null,
+        violationFeedback?: string,
+        activeRuleset?: {
+            name: string;
+            rules: { id: string; description: string; severity: string }[];
+        } | null,
     ): string {
         const skillName = this.getSkillName(step.type);
         const skillContent = this.loadSkill(skillName);
@@ -106,6 +111,20 @@ export class PromptEngineer {
             lines.push(activeStyle.content);
         }
 
+        if (activeRuleset && activeRuleset.rules.length > 0) {
+            const ruleLines = activeRuleset.rules
+                .map((r) => `- [${r.severity}] ${r.description}`)
+                .join("\n");
+            lines.push(
+                `ACTIVE RULESET — ${activeRuleset.name}:\n${ruleLines}\nEvery prompt you produce must explicitly satisfy these rules.`,
+            );
+        }
+
+        if (violationFeedback) {
+            lines.push("");
+            lines.push(violationFeedback);
+        }
+
         lines.push("");
         lines.push("Write the structured prompt now.");
         return lines.join("\n");
@@ -115,13 +134,24 @@ export class PromptEngineer {
         step: GenerationStep,
         canvasNodes: CanvasNode[],
         activeStyle?: { name: string; content: string } | null,
+        violationFeedback?: string,
+        activeRuleset?: {
+            name: string;
+            rules: { id: string; description: string; severity: string }[];
+        } | null,
     ): Promise<string> {
         const skillName = this.getSkillName(step.type);
         if (!skillName || !this.loadSkill(skillName)) {
             return step.prompt;
         }
 
-        const request = this.buildRequest(step, canvasNodes, activeStyle);
+        const request = this.buildRequest(
+            step,
+            canvasNodes,
+            activeStyle,
+            violationFeedback,
+            activeRuleset,
+        );
 
         try {
             const text = await geminiService.generateText({
@@ -143,6 +173,10 @@ export class PromptEngineer {
         steps: GenerationStep[],
         canvasNodes: CanvasNode[],
         activeStyle?: { name: string; content: string } | null,
+        activeRuleset?: {
+            name: string;
+            rules: { id: string; description: string; severity: string }[];
+        } | null,
     ): Promise<GenerationStep[]> {
         const enrichable = steps.filter((s) => !!this.getSkillName(s.type));
         if (enrichable.length === 0) return steps;
@@ -154,6 +188,8 @@ export class PromptEngineer {
                     step,
                     canvasNodes,
                     activeStyle,
+                    undefined,
+                    activeRuleset,
                 );
                 return { ...step, prompt: engineeredPrompt };
             }),
