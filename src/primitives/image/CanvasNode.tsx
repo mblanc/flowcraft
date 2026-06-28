@@ -59,25 +59,35 @@ function ReferenceImageThumbnail({ nodeId }: { nodeId: string }) {
     );
 }
 
+const VALIDATION_STATUS = {
+    "hard-fail": {
+        Icon: ShieldX,
+        colorClass:
+            "text-red-500 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800",
+    },
+    "soft-fail": {
+        Icon: ShieldAlert,
+        colorClass:
+            "text-yellow-500 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800",
+    },
+    pass: {
+        Icon: ShieldCheck,
+        colorClass:
+            "text-green-500 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800",
+    },
+} as const;
+
 function ValidationBadge({ results }: { results: ValidationResult[] }) {
     const [showPopover, setShowPopover] = useState(false);
-    const hasHardFail = results.some(
-        (r) => r.status === "fail" && r.severity === "hard",
-    );
-    const hasSoftFail = results.some(
-        (r) => r.status === "fail" && r.severity === "soft",
-    );
 
-    const Icon = hasHardFail
-        ? ShieldX
-        : hasSoftFail
-          ? ShieldAlert
-          : ShieldCheck;
-    const colorClass = hasHardFail
-        ? "text-red-500 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
-        : hasSoftFail
-          ? "text-yellow-500 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800"
-          : "text-green-500 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800";
+    const statusKey = results.some(
+        (r) => r.status === "fail" && r.severity === "hard",
+    )
+        ? "hard-fail"
+        : results.some((r) => r.status === "fail" && r.severity === "soft")
+          ? "soft-fail"
+          : "pass";
+    const { Icon, colorClass } = VALIDATION_STATUS[statusKey];
 
     return (
         <div className="pointer-events-auto absolute right-2 bottom-2 z-20">
