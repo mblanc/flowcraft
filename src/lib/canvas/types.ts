@@ -195,6 +195,11 @@ export interface ChatMessage {
     createdAt: string;
 }
 
+export interface RulesetRef {
+    name: string;
+    rules: { id: string; description: string; severity: string }[];
+}
+
 export interface ValidationResult {
     ruleId: string;
     ruleDescription: string;
@@ -250,10 +255,7 @@ export interface AgentInput {
     imageDefaults?: MediaDefaults;
     videoDefaults?: VideoDefaults;
     activeStyle?: { name: string; content: string } | null;
-    activeRuleset?: {
-        name: string;
-        rules: { id: string; description: string; severity: string }[];
-    } | null;
+    activeRuleset?: RulesetRef | null;
     canvasId?: string;
     userId?: string;
     userName?: string;

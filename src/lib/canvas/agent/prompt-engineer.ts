@@ -3,8 +3,7 @@ import path from "path";
 import logger from "@/app/logger";
 import { MODELS } from "@/lib/constants";
 import { geminiService } from "@/lib/services/gemini.service";
-import type { GenerationStep } from "../types";
-import type { CanvasNode } from "../types";
+import type { GenerationStep, CanvasNode, RulesetRef } from "../types";
 import { registry } from "@/primitives/registry";
 
 const INSTRUCTION = `You are a media prompt engineer. Your only job is to take a plain-language generation intent and produce a single, fully-structured generation prompt that strictly follows the skill specification provided.
@@ -68,10 +67,7 @@ export class PromptEngineer {
         canvasNodes: CanvasNode[],
         activeStyle?: { name: string; content: string } | null,
         violationFeedback?: string,
-        activeRuleset?: {
-            name: string;
-            rules: { id: string; description: string; severity: string }[];
-        } | null,
+        activeRuleset?: RulesetRef | null,
     ): string {
         const skillName = this.getSkillName(step.type);
         const skillContent = this.loadSkill(skillName);
@@ -135,10 +131,7 @@ export class PromptEngineer {
         canvasNodes: CanvasNode[],
         activeStyle?: { name: string; content: string } | null,
         violationFeedback?: string,
-        activeRuleset?: {
-            name: string;
-            rules: { id: string; description: string; severity: string }[];
-        } | null,
+        activeRuleset?: RulesetRef | null,
     ): Promise<string> {
         const skillName = this.getSkillName(step.type);
         if (!skillName || !this.loadSkill(skillName)) {
@@ -173,10 +166,7 @@ export class PromptEngineer {
         steps: GenerationStep[],
         canvasNodes: CanvasNode[],
         activeStyle?: { name: string; content: string } | null,
-        activeRuleset?: {
-            name: string;
-            rules: { id: string; description: string; severity: string }[];
-        } | null,
+        activeRuleset?: RulesetRef | null,
     ): Promise<GenerationStep[]> {
         const enrichable = steps.filter((s) => !!this.getSkillName(s.type));
         if (enrichable.length === 0) return steps;

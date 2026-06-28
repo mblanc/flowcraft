@@ -11,7 +11,7 @@ import {
     IMAGE_ASPECT_RATIOS,
     VIDEO_ASPECT_RATIOS,
 } from "@/lib/canvas/agent/tools";
-import type { ChatAttachment } from "@/lib/canvas/types";
+import type { ChatAttachment, RulesetRef } from "@/lib/canvas/types";
 import { MODELS, IMAGE_SIZES, VIDEO_RESOLUTIONS } from "@/lib/constants";
 import logger from "@/app/logger";
 
@@ -171,10 +171,7 @@ export async function POST(
     }
 
     // Resolve active ruleset for preventive injection
-    let activeRuleset: {
-        name: string;
-        rules: { id: string; description: string; severity: string }[];
-    } | null = null;
+    let activeRuleset: RulesetRef | null = null;
     if (canvas.activeRulesetId) {
         try {
             const ruleset = await rulesetService.getRuleset(
@@ -182,7 +179,10 @@ export async function POST(
                 session.user.id,
                 session.user.email ?? undefined,
             );
-            activeRuleset = { name: ruleset.name, rules: ruleset.rules };
+            activeRuleset = {
+                name: ruleset.name,
+                rules: ruleset.rules,
+            };
         } catch {
             logger.warn(
                 `[ChatAPI] Could not fetch active ruleset: ${canvas.activeRulesetId}`,

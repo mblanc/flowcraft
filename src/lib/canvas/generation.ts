@@ -162,7 +162,11 @@ async function runWithValidation(
     activeStyle: { name: string; content: string } | null,
 ): Promise<{ node: NodePayload; validationResults: ValidationResult[] }> {
     let node = initialNode;
-    let validationResults = await validateImage(node.sourceUrl, ruleset);
+    let validationResults = await validateImage(
+        node.sourceUrl,
+        ruleset,
+        node.mimeType,
+    );
 
     // Build per-rule retry counters
     const retryCountsLeft = new Map<string, number>();
@@ -233,7 +237,11 @@ async function runWithValidation(
         );
         node = { ...(retriedNodeData as NodePayload), id: randomUUID() };
 
-        validationResults = await validateImage(node.sourceUrl, ruleset);
+        validationResults = await validateImage(
+            node.sourceUrl,
+            ruleset,
+            node.mimeType,
+        );
     }
 
     return { node, validationResults };

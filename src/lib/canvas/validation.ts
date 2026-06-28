@@ -61,6 +61,7 @@ function parseValidationResponse(
 export async function validateImage(
     imageGcsUri: string,
     ruleset: RulesetDocument,
+    mimeType: string = "image/png",
 ): Promise<ValidationResult[]> {
     if (ruleset.rules.length === 0) return [];
 
@@ -71,7 +72,7 @@ export async function validateImage(
             model: MODELS.TEXT.GEMINI_3_5_FLASH,
             systemInstruction: VALIDATION_SYSTEM_PROMPT,
             parts: [
-                { kind: "uri", uri: imageGcsUri, mimeType: "image/png" },
+                { kind: "uri", uri: imageGcsUri, mimeType },
                 { kind: "text", text: ruleListText },
             ],
         });
