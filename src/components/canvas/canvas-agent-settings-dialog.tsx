@@ -10,6 +10,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { SkillsLibrary } from "./skills-library";
 import {
     Select,
     SelectContent,
@@ -335,6 +336,16 @@ export function CanvasAgentSettingsDialog({
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
+
+                    <div className="border-border border-t" />
+
+                    {/* Skills */}
+                    <div className="space-y-3">
+                        <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                            Pattern Skills
+                        </p>
+                        <SkillsLibrary />
                     </div>
 
                     <div className="border-border border-t" />
