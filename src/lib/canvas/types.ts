@@ -19,6 +19,7 @@ export interface CanvasImageData {
     derivedFrom?: string[];
     skill?: string;
     validationResults?: ValidationResult[];
+    validating?: boolean;
 }
 
 export interface CanvasVideoData {

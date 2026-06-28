@@ -427,10 +427,17 @@ export const CanvasNode = memo(
                         )}
                     </div>
 
-                    {/* Validation Badge */}
-                    {d.validationResults && d.validationResults.length > 0 && (
-                        <ValidationBadge results={d.validationResults} />
+                    {/* Validation badge / spinner */}
+                    {d.validating && (
+                        <div className="pointer-events-none absolute right-2 bottom-2 z-20 flex h-6 w-6 items-center justify-center rounded-full border bg-white/90 shadow-sm dark:bg-black/70">
+                            <Loader2 className="text-muted-foreground h-3.5 w-3.5 animate-spin" />
+                        </div>
                     )}
+                    {!d.validating &&
+                        d.validationResults &&
+                        d.validationResults.length > 0 && (
+                            <ValidationBadge results={d.validationResults} />
+                        )}
 
                     {/* Info Capsule Layer */}
                     {selected && isInfoOpen && (

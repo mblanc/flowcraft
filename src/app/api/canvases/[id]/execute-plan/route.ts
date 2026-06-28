@@ -194,8 +194,18 @@ export async function POST(
                                     formatSSE("step_done", {
                                         stepId: stepEvent.stepId,
                                         node: stepEvent.node,
+                                    }),
+                                ),
+                            );
+                            break;
+                        case "step_validated":
+                            controller.enqueue(
+                                encode(
+                                    formatSSE("step_validated", {
+                                        stepId: stepEvent.stepId,
                                         validationResults:
                                             stepEvent.validationResults,
+                                        node: stepEvent.node,
                                     }),
                                 ),
                             );

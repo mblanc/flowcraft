@@ -163,8 +163,10 @@ describe("executePlan — validation integration", () => {
 
         const done = events.find((e) => e.type === "step_done");
         expect(done).toBeDefined();
+        const validated = events.find((e) => e.type === "step_validated");
+        expect(validated).toBeDefined();
         expect(
-            (done as { validationResults?: ValidationResult[] })
+            (validated as { validationResults: ValidationResult[] })
                 .validationResults,
         ).toEqual(passResult);
         expect(mockValidateImage).toHaveBeenCalledTimes(1);
@@ -228,9 +230,9 @@ describe("executePlan — validation integration", () => {
         // execute called twice: initial + one retry
         expect(primitive.execute).toHaveBeenCalledTimes(2);
 
-        const done = events.find((e) => e.type === "step_done");
+        const validated = events.find((e) => e.type === "step_validated");
         expect(
-            (done as { validationResults?: ValidationResult[] })
+            (validated as { validationResults: ValidationResult[] })
                 .validationResults,
         ).toEqual(passResult);
     });
@@ -281,9 +283,9 @@ describe("executePlan — validation integration", () => {
         expect(mockValidateImage).toHaveBeenCalledTimes(3);
         expect(primitive.execute).toHaveBeenCalledTimes(3);
 
-        const done = events.find((e) => e.type === "step_done");
+        const validated = events.find((e) => e.type === "step_validated");
         expect(
-            (done as { validationResults?: ValidationResult[] })
+            (validated as { validationResults: ValidationResult[] })
                 .validationResults,
         ).toEqual(failResult);
     });

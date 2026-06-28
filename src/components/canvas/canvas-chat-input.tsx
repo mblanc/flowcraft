@@ -8,9 +8,14 @@ import {
     useEffect,
     type KeyboardEvent,
 } from "react";
-import { SendHorizonal, Loader2, Check, Sparkles } from "lucide-react";
+import {
+    SendHorizonal,
+    Loader2,
+    Check,
+    Sparkles,
+    ShieldCheck,
+} from "lucide-react";
 import { StyleThumbnail } from "./style-thumbnail";
-import { RulesetPicker } from "./ruleset-picker";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -185,6 +190,9 @@ export function CanvasChatInput({
     const [activeStyleImageUrl, setActiveStyleImageUrl] = useState<
         string | null
     >(null);
+    const [userRulesets, setUserRulesets] = useState<
+        { id: string; name: string }[]
+    >([]);
 
     const canvasId = useCanvasStore((s) => s.canvasId);
     const sessionId = useCanvasStore((s) => s.sessionId);
@@ -192,6 +200,9 @@ export function CanvasChatInput({
     const selectedNodeIds = useCanvasStore((s) => s.selectedNodeIds);
     const activeStyleId = useCanvasStore((s) => s.activeStyleId);
     const setActiveStyleId = useCanvasStore((s) => s.setActiveStyleId);
+    const activeRulesetId = useCanvasStore((s) => s.activeRulesetId);
+    const activeRulesetName = useCanvasStore((s) => s.activeRulesetName);
+    const setActiveRuleset = useCanvasStore((s) => s.setActiveRuleset);
     const addMessage = useCanvasStore((s) => s.addMessage);
     const updateMessage = useCanvasStore((s) => s.updateMessage);
     const isChatLoading = useCanvasStore((s) => s.isChatLoading);
@@ -364,6 +375,56 @@ export function CanvasChatInput({
             toast.error("Failed to clear style");
         }
     }, [canvasId, setActiveStyleId]);
+
+    // Fetch rulesets for the picker
+    useEffect(() => {
+        void fetch("/api/rulesets?tab=my")
+            .then((r) => {
+                if (!r.ok) throw new Error("Failed to load rulesets");
+                return r.json();
+            })
+            .then((data: { rulesets: { id: string; name: string }[] }) =>
+                setUserRulesets(data.rulesets ?? []),
+            )
+            .catch(() => {});
+    }, []);
+
+    const handleSelectRuleset = useCallback(
+        async (id: string, name: string) => {
+            try {
+                const res = await fetch(`/api/canvases/${canvasId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        activeRulesetId: id,
+                        activeRulesetName: name,
+                    }),
+                });
+                if (!res.ok) throw new Error("Failed to set ruleset");
+                setActiveRuleset(id, name);
+            } catch {
+                toast.error("Failed to apply ruleset");
+            }
+        },
+        [canvasId, setActiveRuleset],
+    );
+
+    const handleClearRuleset = useCallback(async () => {
+        try {
+            const res = await fetch(`/api/canvases/${canvasId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    activeRulesetId: null,
+                    activeRulesetName: null,
+                }),
+            });
+            if (!res.ok) throw new Error("Failed to clear ruleset");
+            setActiveRuleset(null, null);
+        } catch {
+            toast.error("Failed to clear ruleset");
+        }
+    }, [canvasId, setActiveRuleset]);
 
     const handleRemoveAttachment = useCallback(
         (nodeId: string) => {
@@ -761,6 +822,10 @@ export function CanvasChatInput({
                                         payload.stepId,
                                     );
                                     if (nodeId) {
+                                        const isImageWithRuleset =
+                                            node.type === "canvas-image" &&
+                                            !!useCanvasStore.getState()
+                                                .activeRulesetId;
                                         useCanvasStore
                                             .getState()
                                             .updateNodeData(nodeId, {
@@ -773,27 +838,11 @@ export function CanvasChatInput({
                                                 ...(node.type === "canvas-video"
                                                     ? { progress: 100 }
                                                     : {}),
-                                                ...(payload.validationResults
-                                                    ? {
-                                                          validationResults:
-                                                              payload.validationResults,
-                                                      }
+                                                // show spinner while validation runs
+                                                ...(isImageWithRuleset
+                                                    ? { validating: true }
                                                     : {}),
                                             });
-
-                                        // Surface validation failures
-                                        if (payload.validationResults) {
-                                            const failures =
-                                                payload.validationResults.filter(
-                                                    (r: { status: string }) =>
-                                                        r.status === "fail",
-                                                );
-                                            if (failures.length > 0) {
-                                                toast.warning(
-                                                    `${failures.length} rule${failures.length !== 1 ? "s" : ""} failed — see badge on image for details`,
-                                                );
-                                            }
-                                        }
 
                                         const currentMsg = useCanvasStore
                                             .getState()
@@ -808,6 +857,44 @@ export function CanvasChatInput({
                                                 { nodeId, type: node.type },
                                             ],
                                         });
+                                    }
+                                    break;
+                                }
+
+                                case "step_validated": {
+                                    const nodeId = stepNodeMap.get(
+                                        payload.stepId,
+                                    );
+                                    if (nodeId) {
+                                        useCanvasStore
+                                            .getState()
+                                            .updateNodeData(nodeId, {
+                                                validating: false,
+                                                validationResults:
+                                                    payload.validationResults,
+                                                // replace image if retry produced a new one
+                                                ...(payload.node
+                                                    ? {
+                                                          sourceUrl:
+                                                              payload.node
+                                                                  .sourceUrl,
+                                                          mimeType:
+                                                              payload.node
+                                                                  .mimeType,
+                                                      }
+                                                    : {}),
+                                            });
+
+                                        const failures =
+                                            payload.validationResults.filter(
+                                                (r: { status: string }) =>
+                                                    r.status === "fail",
+                                            );
+                                        if (failures.length > 0) {
+                                            toast.warning(
+                                                `${failures.length} rule${failures.length !== 1 ? "s" : ""} failed — see badge on image for details`,
+                                            );
+                                        }
                                     }
                                     break;
                                 }
@@ -1527,7 +1614,83 @@ export function CanvasChatInput({
 
                         <div className="bg-border h-4 w-px" />
 
-                        <RulesetPicker />
+                        <DropdownMenu>
+                            <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className={cn(
+                                                    "h-9 gap-2 border-none px-2 text-xs shadow-none",
+                                                    activeRulesetId
+                                                        ? "text-emerald-600 dark:text-emerald-400"
+                                                        : "",
+                                                )}
+                                            >
+                                                <ShieldCheck className="size-3.5" />
+                                                <span className="max-w-[100px] truncate">
+                                                    {activeRulesetName ??
+                                                        "Ruleset"}
+                                                </span>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        Validation ruleset
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <DropdownMenuContent align="start" className="w-56">
+                                {userRulesets.length === 0 ? (
+                                    <div className="text-muted-foreground px-2 py-1.5 text-xs">
+                                        No rulesets yet
+                                    </div>
+                                ) : (
+                                    <>
+                                        <DropdownMenuLabel className="text-xs">
+                                            My Rulesets
+                                        </DropdownMenuLabel>
+                                        {userRulesets.map((r) => (
+                                            <DropdownMenuItem
+                                                key={r.id}
+                                                onClick={() =>
+                                                    void handleSelectRuleset(
+                                                        r.id,
+                                                        r.name,
+                                                    )
+                                                }
+                                                className="gap-3 py-2"
+                                            >
+                                                <div className="flex w-5 items-center justify-center">
+                                                    {activeRulesetId ===
+                                                        r.id && (
+                                                        <Check className="size-3.5" />
+                                                    )}
+                                                </div>
+                                                <span className="truncate">
+                                                    {r.name}
+                                                </span>
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </>
+                                )}
+                                {activeRulesetId && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                void handleClearRuleset()
+                                            }
+                                            className="text-muted-foreground"
+                                        >
+                                            No ruleset
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     <Button
