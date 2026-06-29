@@ -84,7 +84,7 @@
         "uuid": "^13.0.2",
         "vaul": "^1.1.2",
         "winston": "^3.19.0",
-        "zod": "4.3.6",
+        "zod": "4.4.3",
         "zustand": "^5.0.14"
     },
     "devDependencies": {
@@ -122,7 +122,7 @@
         "@types/react-dom": "19.2.3",
         "tinyexec": "1.2.4",
         "vite": "^8.1.0",
-        "zod": "4.3.6"
+        "zod": "4.4.3"
     },
     "trustedDependencies": [
         "node-av",
