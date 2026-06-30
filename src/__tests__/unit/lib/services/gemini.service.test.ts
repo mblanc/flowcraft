@@ -525,6 +525,7 @@ describe("GeminiService", () => {
             );
             const call = mockAi.interactions.create.mock.calls[0][0] as any;
             expect(call.generation_config).toBeUndefined();
+            expect(call.response_format.aspect_ratio).toBeUndefined();
         });
 
         it("should set video task to edit when video is present and previousInteractionId is missing", async () => {
@@ -559,6 +560,8 @@ describe("GeminiService", () => {
                     },
                 }),
             );
+            const call = mockAi.interactions.create.mock.calls[0][0] as any;
+            expect(call.response_format.aspect_ratio).toBeUndefined();
         });
 
         it("should ignore previousInteractionId and use video-input path when both are present", async () => {
@@ -596,6 +599,7 @@ describe("GeminiService", () => {
             );
             const call = mockAi.interactions.create.mock.calls[0][0] as any;
             expect(call.previous_interaction_id).toBeUndefined();
+            expect(call.response_format.aspect_ratio).toBeUndefined();
         });
 
         it("should call interactions.create and return GCS URI immediately if response contains gs:// URI", async () => {

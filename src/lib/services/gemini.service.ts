@@ -601,16 +601,23 @@ export class GeminiService {
             const uniqueFilename = `omni-${uuidv4()}.mp4`;
             const targetGcsUri = `gs://${bucketName}/${uniqueFilename}`;
 
+            const isEdit = !!previousInteractionId || !!video;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const responseFormat: any = {
+                type: "video",
+                delivery: "uri",
+                gcs_uri: targetGcsUri,
+            };
+            if (!isEdit) {
+                responseFormat.aspect_ratio =
+                    aspectRatio || DEFAULTS.ASPECT_RATIO;
+            }
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const interactionRequest: any = {
                 model: selectedModel,
                 input: inputParts,
-                response_format: {
-                    type: "video",
-                    aspect_ratio: aspectRatio || DEFAULTS.ASPECT_RATIO,
-                    delivery: "uri",
-                    gcs_uri: targetGcsUri,
-                },
+                response_format: responseFormat,
             };
 
             // On Vertex AI, gemini-omni-flash-preview does not support previous_interaction_id yet.
