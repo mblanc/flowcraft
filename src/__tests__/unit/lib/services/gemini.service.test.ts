@@ -524,6 +524,30 @@ describe("GeminiService", () => {
                 }),
             );
         });
+
+        it("should call interactions.create and return GCS URI immediately if response contains gs:// URI", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-123",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "gs://my-bucket/omni-123.mp4",
+                    mime_type: "video/mp4",
+                },
+            });
+
+            const result = await geminiService.generateVideo({
+                prompt: "A dog running",
+                model: "gemini-omni-flash-preview",
+            });
+
+            expect(result).toEqual({
+                videoUrl: "gs://my-bucket/omni-123.mp4",
+                interactionId: "interaction-123",
+            });
+            expect(mockAi.files.get).not.toHaveBeenCalled();
+            expect(global.fetch).not.toHaveBeenCalled();
+        });
     });
 
     describe("upscaleImage", () => {

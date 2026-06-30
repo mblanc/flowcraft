@@ -28,6 +28,7 @@ import type { ContentPart, MediaRef } from "../types";
 import { storageService } from "./storage.service";
 import { GoogleAuth } from "google-auth-library";
 import { v4 as uuidv4 } from "uuid";
+import { extractBucketFromStorageUri } from "@/lib/utils/gcs-uri";
 
 const DATA_URI_REGEX = /^data:([^;]+);base64,(.+)$/;
 
@@ -539,6 +540,11 @@ export class GeminiService {
                 text: effectivePrompt,
             });
 
+            const storageUri = config.GCS_STORAGE_URI || "gs://mock-bucket";
+            const bucketName = extractBucketFromStorageUri(storageUri);
+            const uniqueFilename = `omni-${uuidv4()}.mp4`;
+            const targetGcsUri = `gs://${bucketName}/${uniqueFilename}`;
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const interactionRequest: any = {
                 model: selectedModel,
@@ -547,6 +553,7 @@ export class GeminiService {
                     type: "video",
                     aspect_ratio: aspectRatio || DEFAULTS.ASPECT_RATIO,
                     delivery: "uri",
+                    gcs_uri: targetGcsUri,
                 },
             };
 
@@ -568,8 +575,22 @@ export class GeminiService {
 
             if (outputVideo.data) {
                 videoBuffer = Buffer.from(outputVideo.data, "base64");
+                const videoUrl = await storageService.uploadFile(
+                    videoBuffer,
+                    `omni-${uuidv4()}.mp4`,
+                    "video/mp4",
+                );
+                return { videoUrl, interactionId: interaction.id };
             } else if (outputVideo.uri) {
                 const fileUri = outputVideo.uri;
+
+                if (fileUri.startsWith("gs://")) {
+                    logger.info(
+                        `[GeminiService] Video generated directly to GCS: ${fileUri}`,
+                    );
+                    return { videoUrl: fileUri, interactionId: interaction.id };
+                }
+
                 const fileName = fileUri.split("/").pop();
                 if (!fileName) {
                     throw new Error(
