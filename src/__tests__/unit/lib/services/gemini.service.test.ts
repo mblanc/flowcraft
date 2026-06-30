@@ -501,7 +501,7 @@ describe("GeminiService", () => {
             delaySpy.mockRestore();
         });
 
-        it("should propagate previousInteractionId for editing", async () => {
+        it("should propagate previousInteractionId for editing without setting video task", async () => {
             mockAi.interactions.create.mockResolvedValue({
                 id: "interaction-456",
                 status: "COMPLETED",
@@ -521,6 +521,37 @@ describe("GeminiService", () => {
                 expect.objectContaining({
                     model: "gemini-omni-flash-preview",
                     previous_interaction_id: "interaction-123",
+                }),
+            );
+            const call = mockAi.interactions.create.mock.calls[0][0] as any;
+            expect(call.generation_config).toBeUndefined();
+        });
+
+        it("should set video task to edit when video is present and previousInteractionId is missing", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-456",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    data: "base64_video_data",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "Make it faster",
+                model: "gemini-omni-flash-preview",
+                video: "gs://bucket/input.mp4",
+            });
+
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-flash-preview",
+                    input: expect.arrayContaining([
+                        expect.objectContaining({
+                            type: "video",
+                            uri: "gs://bucket/input.mp4",
+                        }),
+                    ]),
                     generation_config: {
                         video_config: {
                             task: "edit",

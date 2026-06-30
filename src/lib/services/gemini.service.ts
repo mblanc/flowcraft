@@ -616,6 +616,9 @@ export class GeminiService {
             if (previousInteractionId) {
                 interactionRequest.previous_interaction_id =
                     previousInteractionId;
+                // The API forbids setting the video task when previous_interaction_id is present.
+            } else if (video) {
+                // For non-stateful video-to-video editing (e.g. uploaded videos), we must set the task to "edit".
                 interactionRequest.generation_config = {
                     video_config: {
                         task: "edit",
