@@ -51,7 +51,7 @@ export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
     imageModel: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
     imageAspectRatio: "auto",
     imageResolution: "auto",
-    videoModel: MODELS.VIDEO.VEO_3_1_LITE,
+    videoModel: MODELS.VIDEO.GEMINI_OMNI_FLASH,
     videoAspectRatio: "auto",
     videoResolution: "auto",
     videoDuration: "auto",
@@ -81,6 +81,7 @@ const IMAGE_MODELS = [
 ];
 
 const VIDEO_MODELS = [
+    { id: MODELS.VIDEO.GEMINI_OMNI_FLASH, label: "Gemini Omni Flash" },
     { id: MODELS.VIDEO.VEO_3_1_LITE, label: "Veo 3.1 Lite" },
     { id: MODELS.VIDEO.VEO_3_1_FAST, label: "Veo 3.1 Fast" },
     { id: MODELS.VIDEO.VEO_3_1_PRO, label: "Veo 3.1 Pro" },
@@ -147,6 +148,13 @@ export function CanvasAgentSettingsDialog({
                 ) {
                     next.imageResolution = "auto";
                 }
+            }
+            if (
+                key === "videoModel" &&
+                value === MODELS.VIDEO.GEMINI_OMNI_FLASH
+            ) {
+                next.videoResolution = "720p";
+                next.videoDuration = "auto";
             }
             return next;
         });
@@ -415,6 +423,10 @@ export function CanvasAgentSettingsDialog({
                                     onValueChange={(v) =>
                                         update("videoResolution", v)
                                     }
+                                    disabled={
+                                        draft.videoModel ===
+                                        MODELS.VIDEO.GEMINI_OMNI_FLASH
+                                    }
                                 >
                                     <SelectTrigger>
                                         <SelectValue />
@@ -437,6 +449,10 @@ export function CanvasAgentSettingsDialog({
                                     value={draft.videoDuration}
                                     onValueChange={(v) =>
                                         update("videoDuration", v)
+                                    }
+                                    disabled={
+                                        draft.videoModel ===
+                                        MODELS.VIDEO.GEMINI_OMNI_FLASH
                                     }
                                 >
                                     <SelectTrigger>
