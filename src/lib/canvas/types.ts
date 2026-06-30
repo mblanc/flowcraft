@@ -45,6 +45,8 @@ export interface CanvasVideoData {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
+    interactionId?: string;
+    previous_interaction_id?: string;
 }
 
 export interface CanvasTextData {

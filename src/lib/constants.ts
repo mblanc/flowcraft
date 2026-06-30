@@ -18,6 +18,7 @@ export const MODELS = {
         VEO_3_1_LITE: "veo-3.1-lite-generate-001",
         VEO_3_1_FAST: "veo-3.1-fast-generate-001",
         VEO_3_1_PRO: "veo-3.1-generate-001",
+        GEMINI_OMNI_FLASH: "gemini-omni-flash-preview",
     },
     MUSIC: {
         LYRIA_3_CLIP: "lyria-3-clip-preview",

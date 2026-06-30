@@ -136,6 +136,7 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
             MODELS.VIDEO.VEO_3_1_LITE,
             MODELS.VIDEO.VEO_3_1_FAST,
             MODELS.VIDEO.VEO_3_1_PRO,
+            MODELS.VIDEO.GEMINI_OMNI_FLASH,
         ]),
     ),
     generateAudio: z.boolean(),
@@ -376,9 +377,10 @@ export const GenerateVideoSchema = z.object({
                 MODELS.VIDEO.VEO_3_1_LITE,
                 MODELS.VIDEO.VEO_3_1_FAST,
                 MODELS.VIDEO.VEO_3_1_PRO,
+                MODELS.VIDEO.GEMINI_OMNI_FLASH,
             ])
             .optional()
-            .default(MODELS.VIDEO.VEO_3_1_LITE),
+            .default(MODELS.VIDEO.GEMINI_OMNI_FLASH),
     ),
     generateAudio: z.boolean().optional().default(true),
     resolution: z.enum(["720p", "1080p", "4K"]).optional().default("720p"),
