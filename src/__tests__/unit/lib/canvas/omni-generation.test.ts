@@ -233,40 +233,57 @@ describe("executePlan — Omni features (audio and editing)", () => {
         );
     });
 
-    it("resolves and passes videoUrl from an uploaded canvas file node (canvas-file) when referenced", async () => {
+    it("passes both video reference and image reference correctly without promoting image to firstFrame", async () => {
         const plan: AgentPlan = {
             steps: [
                 {
                     id: "vid2",
                     type: "video",
-                    prompt: "make it faster",
-                    referenceNodeIds: ["canvas_file_1"],
+                    prompt: "swap character",
+                    referenceNodeIds: ["canvas_vid1", "canvas_img1"],
                 },
             ],
         };
 
         const nodeUris = new Map<string, string>([
-            ["canvas_file_1", "gs://bucket/uploaded_video.mp4"],
+            ["canvas_vid1", "gs://bucket/video.mp4"],
+            ["canvas_img1", "gs://bucket/image.png"],
         ]);
 
         const nodeTypes = new Map<string, string>([
-            ["canvas_file_1", "canvas-file"],
+            ["canvas_vid1", "canvas-video"],
+            ["canvas_img1", "canvas-image"],
             ["vid2", "video"],
         ]);
 
         const canvasNodes: CanvasNode[] = [
             {
-                id: "canvas_file_1",
-                type: "canvas-file",
+                id: "canvas_vid1",
+                type: "canvas-video",
                 position: { x: 0, y: 0 },
                 data: {
-                    type: "file",
-                    fileType: "video",
-                    fileName: "uploaded_video.mp4",
-                    fileUrl:
-                        "https://storage.googleapis.com/bucket/uploaded_video.mp4",
-                    gcsUri: "gs://bucket/uploaded_video.mp4",
-                } as unknown as CanvasNode["data"],
+                    type: "canvas-video",
+                    label: "My Video",
+                    sourceUrl: "gs://bucket/video.mp4",
+                    mimeType: "video/mp4",
+                    status: "ready",
+                    width: 400,
+                    height: 225,
+                },
+            },
+            {
+                id: "canvas_img1",
+                type: "canvas-image",
+                position: { x: 0, y: 0 },
+                data: {
+                    type: "canvas-image",
+                    label: "My Image",
+                    sourceUrl: "gs://bucket/image.png",
+                    mimeType: "image/png",
+                    status: "ready",
+                    width: 400,
+                    height: 225,
+                },
             },
         ];
 
@@ -274,9 +291,14 @@ describe("executePlan — Omni features (audio and editing)", () => {
 
         expect(mockGenerateVideo).toHaveBeenCalledWith(
             expect.objectContaining({
-                prompt: "make it faster",
-                video: "gs://bucket/uploaded_video.mp4",
-                previousInteractionId: undefined,
+                prompt: "swap character",
+                video: "gs://bucket/video.mp4",
+                images: [
+                    expect.objectContaining({
+                        url: "gs://bucket/image.png",
+                    }),
+                ],
+                firstFrame: undefined,
             }),
         );
     });
