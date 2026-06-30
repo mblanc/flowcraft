@@ -283,10 +283,11 @@ export const videoPrimitive: Primitive<
     canvas: {
         type: "canvas-video",
         toCanvasData: (step, result) => {
+            const r = result as any;
             return {
                 type: "canvas-video",
                 label: step.label || "Generated Video",
-                sourceUrl: result.videoUrl,
+                sourceUrl: r.videoUrl,
                 mimeType: "video/mp4",
                 prompt: step.prompt,
                 width: step.width || 480,
@@ -301,6 +302,8 @@ export const videoPrimitive: Primitive<
                 planNodeId: step.planNodeId,
                 derivedFrom: step.derivedFrom,
                 skill: step.skill,
+                interactionId: r.interactionId,
+                previous_interaction_id: step.previousInteractionId,
             };
         },
         toRequest: (step, _ctx) => {
@@ -317,6 +320,8 @@ export const videoPrimitive: Primitive<
                         ? step.generateAudio
                         : false,
                 resolution: step.resolution || "720p",
+                audio: step.audio,
+                previousInteractionId: step.previousInteractionId,
                 ...(step.styleInstruction
                     ? { styleInstruction: step.styleInstruction }
                     : {}),

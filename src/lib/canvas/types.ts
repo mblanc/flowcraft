@@ -175,6 +175,8 @@ export interface NodePayload {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
+    interactionId?: string;
+    previous_interaction_id?: string;
 }
 
 export type PlanStatus = "pending_approval" | "approved" | "cancelled";
