@@ -613,17 +613,20 @@ export class GeminiService {
                 },
             };
 
-            if (previousInteractionId) {
-                interactionRequest.previous_interaction_id =
-                    previousInteractionId;
-                // The API forbids setting the video task when previous_interaction_id is present.
-            } else if (video) {
-                // For non-stateful video-to-video editing (e.g. uploaded videos), we must set the task to "edit".
+            // On Vertex AI, gemini-omni-flash-preview does not support previous_interaction_id yet.
+            // Therefore, if we have the video input, we MUST use the video-input path (non-stateful)
+            // and ignore previous_interaction_id to avoid the 400 error.
+            if (video) {
+                // For video-to-video editing, we must set the task to "edit"
                 interactionRequest.generation_config = {
                     video_config: {
                         task: "edit",
                     },
                 };
+            } else if (previousInteractionId) {
+                // Fallback for platforms that support it (e.g. AI Studio) if video is not available
+                interactionRequest.previous_interaction_id =
+                    previousInteractionId;
             }
 
             // Sanitize request for logging

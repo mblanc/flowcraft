@@ -561,6 +561,43 @@ describe("GeminiService", () => {
             );
         });
 
+        it("should ignore previousInteractionId and use video-input path when both are present", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-456",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    data: "base64_video_data",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "Make it faster",
+                model: "gemini-omni-flash-preview",
+                previousInteractionId: "interaction-123",
+                video: "gs://bucket/input.mp4",
+            });
+
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-flash-preview",
+                    input: expect.arrayContaining([
+                        expect.objectContaining({
+                            type: "video",
+                            uri: "gs://bucket/input.mp4",
+                        }),
+                    ]),
+                    generation_config: {
+                        video_config: {
+                            task: "edit",
+                        },
+                    },
+                }),
+            );
+            const call = mockAi.interactions.create.mock.calls[0][0] as any;
+            expect(call.previous_interaction_id).toBeUndefined();
+        });
+
         it("should call interactions.create and return GCS URI immediately if response contains gs:// URI", async () => {
             mockAi.interactions.create.mockResolvedValue({
                 id: "interaction-123",

@@ -139,10 +139,9 @@ function resolveReferences(
                     .interactionId;
             }
         }
-        // If we don't have an interactionId (e.g. uploaded or old video), resolve the video URI to pass as a file input
-        if (!previousInteractionId) {
-            videoUrl = getUri(previousVideoId);
-        }
+        // Always resolve the video URI if present, so the service can use it as a fallback
+        // or primary path if stateful editing is not supported on the platform (e.g. Vertex AI).
+        videoUrl = getUri(previousVideoId);
     }
 
     if (
