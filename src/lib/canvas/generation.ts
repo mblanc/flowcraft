@@ -122,7 +122,10 @@ function resolveReferences(
         : undefined;
 
     // Find previous video reference (for editing)
-    const previousVideoId = (step.dependsOn ?? []).find(isVideo);
+    const previousVideoId = [
+        ...(step.dependsOn ?? []),
+        ...(step.referenceNodeIds ?? []),
+    ].find(isVideo);
     let previousInteractionId: string | undefined = undefined;
     if (previousVideoId) {
         previousInteractionId =

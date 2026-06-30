@@ -145,7 +145,7 @@ describe("executePlan — Omni features (audio and editing)", () => {
                     id: "vid2",
                     type: "video",
                     prompt: "make it faster",
-                    dependsOn: ["canvas_vid1"],
+                    referenceNodeIds: ["canvas_vid1"],
                 },
             ],
         };
