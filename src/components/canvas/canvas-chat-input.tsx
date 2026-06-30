@@ -64,6 +64,7 @@ import type {
     CanvasImageData,
     CanvasVideoData,
     CanvasAudioData,
+    CanvasNodeData,
     GeneratedMediaRef,
     NodePayload,
     GenerationStep,
@@ -849,15 +850,18 @@ export function CanvasChatInput({
                                             node.type === "canvas-image" &&
                                             !!useCanvasStore.getState()
                                                 .activeRulesetId;
+
+                                        const {
+                                            id: _id,
+                                            type: _type,
+                                            ...dataFields
+                                        } = node;
+
                                         useCanvasStore
                                             .getState()
                                             .updateNodeData(nodeId, {
-                                                sourceUrl: node.sourceUrl,
-                                                label: node.label,
-                                                mimeType: node.mimeType,
+                                                ...dataFields,
                                                 status: "ready",
-                                                styleId: node.styleId,
-                                                styleName: node.styleName,
                                                 ...(node.type === "canvas-video"
                                                     ? { progress: 100 }
                                                     : {}),
@@ -865,7 +869,7 @@ export function CanvasChatInput({
                                                 ...(isImageWithRuleset
                                                     ? { validating: true }
                                                     : {}),
-                                            });
+                                            } as Partial<CanvasNodeData>);
 
                                         const currentMsg = useCanvasStore
                                             .getState()

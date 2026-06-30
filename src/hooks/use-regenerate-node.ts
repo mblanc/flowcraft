@@ -7,6 +7,7 @@ import { useCanvasStore } from "@/lib/store/use-canvas-store";
 import type {
     CanvasImageData,
     CanvasVideoData,
+    CanvasNodeData,
     GenerationStep,
     AgentPlan,
 } from "@/lib/canvas/types";
@@ -97,16 +98,18 @@ export function useRegenerateNode(nodeId: string) {
 
                     const payload = JSON.parse(data);
                     if (event === "step_done") {
+                        const {
+                            id: _id,
+                            type: _type,
+                            ...dataFields
+                        } = payload.node;
                         useCanvasStore.getState().updateNodeData(nodeId, {
-                            sourceUrl: payload.node.sourceUrl,
-                            mimeType: payload.node.mimeType,
+                            ...dataFields,
                             status: "ready",
-                            styleId: payload.node.styleId,
-                            styleName: payload.node.styleName,
                             ...(node.type === "canvas-video"
                                 ? { progress: 100 }
                                 : {}),
-                        });
+                        } as Partial<CanvasNodeData>);
                         break outer;
                     } else if (event === "step_error" || event === "error") {
                         throw new Error(payload.message || "Generation failed");
