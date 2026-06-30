@@ -7,7 +7,7 @@ import { NODE_MENTION_REGEX } from "@/lib/utils/mention";
 type VideoRequest = z.infer<typeof GenerateVideoSchema> & {
     namedNodes?: any[];
 };
-type VideoResult = { videoUrl: string };
+type VideoResult = { videoUrl: string; interactionId?: string };
 
 export async function videoExecute(
     inputs: VideoRequest,
@@ -25,10 +25,14 @@ export async function videoExecute(
         });
     }
 
-    const videoUrl = await geminiService.generateVideo({
+    const res = await geminiService.generateVideo({
         ...inputs,
         prompt,
     });
 
-    return { videoUrl };
+    if (typeof res === "string") {
+        return { videoUrl: res };
+    }
+
+    return res;
 }

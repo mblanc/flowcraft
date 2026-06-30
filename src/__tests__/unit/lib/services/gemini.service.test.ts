@@ -3,6 +3,29 @@ import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { GeminiService } from "@/lib/services/gemini.service";
 import * as genai from "@google/genai";
 import { MODELS } from "@/lib/constants";
+import { storageService } from "@/lib/services/storage.service";
+
+vi.mock("@/lib/services/storage.service", () => ({
+    storageService: {
+        uploadFile: vi
+            .fn()
+            .mockResolvedValue("gs://mock-bucket/mock-video.mp4"),
+    },
+}));
+
+vi.mock("google-auth-library", () => {
+    return {
+        GoogleAuth: vi.fn().mockImplementation(function () {
+            return {
+                getClient: vi.fn().mockResolvedValue({
+                    getAccessToken: vi
+                        .fn()
+                        .mockResolvedValue({ token: "mock-token" }),
+                }),
+            };
+        }),
+    };
+});
 
 interface MockGoogleGenAIInstance {
     models: {
@@ -11,6 +34,12 @@ interface MockGoogleGenAIInstance {
         upscaleImage: Mock;
     };
     operations: {
+        get: Mock;
+    };
+    interactions: {
+        create: Mock;
+    };
+    files: {
         get: Mock;
     };
 }
@@ -25,6 +54,12 @@ vi.mock("@google/genai", () => {
             upscaleImage: vi.fn(),
         };
         this.operations = {
+            get: vi.fn(),
+        };
+        this.interactions = {
+            create: vi.fn(),
+        };
+        this.files = {
             get: vi.fn(),
         };
     });
@@ -42,6 +77,10 @@ vi.mock("@google/genai", () => {
             ASSET: "ASSET",
         },
         ThinkingLevel: { LOW: "LOW" },
+        MediaResolution: {
+            MEDIA_RESOLUTION_HIGH: "MEDIA_RESOLUTION_HIGH",
+            MEDIA_RESOLUTION_LOW: "MEDIA_RESOLUTION_LOW",
+        },
     };
 });
 
@@ -54,6 +93,12 @@ describe("GeminiService", () => {
             upscaleImage: Mock;
         };
         operations: {
+            get: Mock;
+        };
+        interactions: {
+            create: Mock;
+        };
+        files: {
             get: Mock;
         };
     };
@@ -358,6 +403,127 @@ describe("GeminiService", () => {
             ).rejects.toThrow("Video generation timed out");
             delaySpy.mockRestore();
         }, 10000); // give it a slightly higher timeout
+    });
+
+    describe("generateVideo with gemini-omni-flash-preview", () => {
+        beforeEach(() => {
+            // Mock global fetch
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                arrayBuffer: async () => new ArrayBuffer(8),
+            });
+            vi.clearAllMocks();
+            // Re-fetch mockAi since beforeEach in outer block runs, but let's ensure it is clean
+            mockAi = (geminiService as unknown as { ai: typeof mockAi }).ai;
+        });
+
+        it("should call interactions.create and handle inline base64 output", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-123",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    data: "base64_video_data",
+                    mime_type: "video/mp4",
+                },
+            });
+
+            const result = await geminiService.generateVideo({
+                prompt: "A dog running",
+                model: "gemini-omni-flash-preview",
+            });
+
+            expect(result).toEqual({
+                videoUrl: "gs://mock-bucket/mock-video.mp4",
+                interactionId: "interaction-123",
+            });
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-flash-preview",
+                    input: expect.arrayContaining([
+                        expect.objectContaining({ text: "A dog running" }),
+                    ]),
+                    response_format: expect.objectContaining({
+                        type: "video",
+                        aspect_ratio: "16:9",
+                        delivery: "uri",
+                    }),
+                }),
+            );
+        });
+
+        it("should call interactions.create, poll file, download, and upload to GCS for URI delivery", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-123",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "https://generativetoolkit.googleapis.com/v1beta/files/file-123",
+                    mime_type: "video/mp4",
+                },
+            });
+
+            mockAi.files.get
+                .mockResolvedValueOnce({ state: "PROCESSING" })
+                .mockResolvedValueOnce({
+                    state: "ACTIVE",
+                    uri: "https://generativetoolkit.googleapis.com/v1beta/files/file-123",
+                });
+
+            const delaySpy = vi
+                .spyOn(global, "setTimeout")
+                .mockImplementation((cb) => {
+                    cb();
+                    return 0 as any;
+                });
+
+            const result = await geminiService.generateVideo({
+                prompt: "A dog running",
+                model: "gemini-omni-flash-preview",
+            });
+
+            expect(result).toEqual({
+                videoUrl: "gs://mock-bucket/mock-video.mp4",
+                interactionId: "interaction-123",
+            });
+            expect(mockAi.files.get).toHaveBeenCalledTimes(2);
+            expect(mockAi.files.get).toHaveBeenLastCalledWith({
+                name: "file-123",
+            });
+            expect(global.fetch).toHaveBeenCalledWith(
+                "https://generativetoolkit.googleapis.com/v1beta/files/file-123",
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        Authorization: "Bearer mock-token",
+                    }),
+                }),
+            );
+            delaySpy.mockRestore();
+        });
+
+        it("should propagate previousInteractionId for editing", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-456",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    data: "base64_video_data",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "Make it faster",
+                model: "gemini-omni-flash-preview",
+                previousInteractionId: "interaction-123",
+            });
+
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-flash-preview",
+                    previous_interaction_id: "interaction-123",
+                }),
+            );
+        });
     });
 
     describe("upscaleImage", () => {
