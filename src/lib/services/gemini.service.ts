@@ -86,6 +86,7 @@ export interface GenerateVideoOptions {
     lastFrame?: string;
     images?: MediaRef[];
     audio?: string;
+    video?: string;
     previousInteractionId?: string;
     aspectRatio?: string;
     duration?: number;
@@ -453,6 +454,7 @@ export class GeminiService {
             lastFrame,
             images,
             audio,
+            video,
             previousInteractionId,
             aspectRatio,
             duration,
@@ -528,6 +530,25 @@ export class GeminiService {
                     if (base64Match) {
                         inputParts.push({
                             type: "audio",
+                            data: base64Match[2],
+                            mime_type: base64Match[1],
+                        });
+                    }
+                }
+            }
+
+            if (video) {
+                if (video.startsWith("gs://")) {
+                    inputParts.push({
+                        type: "video",
+                        uri: video,
+                        mime_type: "video/mp4",
+                    });
+                } else if (video.startsWith("data:")) {
+                    const base64Match = video.match(DATA_URI_REGEX);
+                    if (base64Match) {
+                        inputParts.push({
+                            type: "video",
                             data: base64Match[2],
                             mime_type: base64Match[1],
                         });

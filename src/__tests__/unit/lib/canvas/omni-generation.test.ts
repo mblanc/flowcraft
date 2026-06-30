@@ -184,4 +184,52 @@ describe("executePlan — Omni features (audio and editing)", () => {
             }),
         );
     });
+
+    it("passes videoUrl instead of previousInteractionId when the existing canvas video node lacks an interactionId", async () => {
+        const plan: AgentPlan = {
+            steps: [
+                {
+                    id: "vid2",
+                    type: "video",
+                    prompt: "make it faster",
+                    referenceNodeIds: ["canvas_vid1"],
+                },
+            ],
+        };
+
+        const nodeUris = new Map<string, string>([
+            ["canvas_vid1", "gs://bucket/canvas_vid1.mp4"],
+        ]);
+
+        const nodeTypes = new Map<string, string>([
+            ["canvas_vid1", "canvas-video"],
+            ["vid2", "video"],
+        ]);
+
+        const canvasNodes: CanvasNode[] = [
+            {
+                id: "canvas_vid1",
+                type: "canvas-video",
+                position: { x: 0, y: 0 },
+                data: {
+                    type: "canvas-video",
+                    label: "My Video",
+                    sourceUrl: "gs://bucket/canvas_vid1.mp4",
+                    mimeType: "video/mp4",
+                    status: "ready",
+                    // interactionId is missing!
+                },
+            },
+        ];
+
+        await collectStepEvents(plan, nodeUris, nodeTypes, canvasNodes);
+
+        expect(mockGenerateVideo).toHaveBeenCalledWith(
+            expect.objectContaining({
+                prompt: "make it faster",
+                video: "gs://bucket/canvas_vid1.mp4",
+                previousInteractionId: undefined,
+            }),
+        );
+    });
 });

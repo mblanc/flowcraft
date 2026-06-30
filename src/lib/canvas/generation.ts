@@ -55,6 +55,7 @@ function resolveReferences(
     lastFrameUrl?: string;
     audioUrl?: string;
     previousInteractionId?: string;
+    videoUrl?: string;
 } {
     // nodeUriMap contains ALL canvas nodes, so any node referenced by label/id resolves
     const getUri = (nodeId: string): string | undefined =>
@@ -127,6 +128,7 @@ function resolveReferences(
         ...(step.referenceNodeIds ?? []),
     ].find(isVideo);
     let previousInteractionId: string | undefined = undefined;
+    let videoUrl: string | undefined = undefined;
     if (previousVideoId) {
         previousInteractionId =
             ctx.completedStepInteractionIds.get(previousVideoId);
@@ -136,6 +138,10 @@ function resolveReferences(
                 previousInteractionId = (node.data as CanvasVideoData)
                     .interactionId;
             }
+        }
+        // If we don't have an interactionId (e.g. uploaded or old video), resolve the video URI to pass as a file input
+        if (!previousInteractionId) {
+            videoUrl = getUri(previousVideoId);
         }
     }
 
@@ -175,6 +181,7 @@ function resolveReferences(
         lastFrameUrl,
         audioUrl,
         previousInteractionId,
+        videoUrl,
     };
 }
 
@@ -425,6 +432,7 @@ export async function* executePlan(
                         lastFrameUrl,
                         audioUrl,
                         previousInteractionId,
+                        videoUrl,
                     } = resolveReferences(step, ctx, canvasNodes);
 
                     const enrichedStep = {
@@ -443,6 +451,7 @@ export async function* executePlan(
                         lastFrame: lastFrameUrl,
                         audio: audioUrl,
                         previousInteractionId,
+                        video: videoUrl,
                         // concat: pre-resolve dependsOn / canvas URIs in order
                         inputUris:
                             step.type === "concat"

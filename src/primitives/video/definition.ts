@@ -322,6 +322,7 @@ export const videoPrimitive: Primitive<
                 resolution: step.resolution || "720p",
                 audio: step.audio,
                 previousInteractionId: step.previousInteractionId,
+                video: step.video,
                 ...(step.styleInstruction
                     ? { styleInstruction: step.styleInstruction }
                     : {}),

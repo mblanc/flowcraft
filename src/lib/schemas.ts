@@ -356,6 +356,7 @@ export const GenerateVideoSchema = z.object({
     lastFrame: z.string().optional(),
     audio: z.string().optional(),
     previousInteractionId: z.string().optional(),
+    video: z.string().optional(),
     images: z
         .array(
             z.object({
