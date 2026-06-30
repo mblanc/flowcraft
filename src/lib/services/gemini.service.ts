@@ -560,11 +560,62 @@ export class GeminiService {
             if (previousInteractionId) {
                 interactionRequest.previous_interaction_id =
                     previousInteractionId;
-                interactionRequest.task = "edit";
+                interactionRequest.generation_config = {
+                    video_config: {
+                        task: "edit",
+                    },
+                };
             }
+
+            // Sanitize request for logging
+            const sanitizedRequest = {
+                ...interactionRequest,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                input: interactionRequest.input.map((part: any) => {
+                    if (part.inline_data?.data) {
+                        return {
+                            ...part,
+                            inline_data: {
+                                ...part.inline_data,
+                                data: `<base64 data: ${part.inline_data.data.length} bytes>`,
+                            },
+                        };
+                    }
+                    if (
+                        part.data &&
+                        typeof part.data === "string" &&
+                        part.data.length > 1000
+                    ) {
+                        return {
+                            ...part,
+                            data: `<base64 data: ${part.data.length} bytes>`,
+                        };
+                    }
+                    return part;
+                }),
+            };
+            logger.info(
+                `[GeminiService] Calling Gemini Omni with request: ${JSON.stringify(sanitizedRequest, null, 2)}`,
+            );
 
             const interaction =
                 await this.ai.interactions.create(interactionRequest);
+
+            // Sanitize response for logging
+            const sanitizedResponse = {
+                ...interaction,
+                ...(interaction.output_video?.data
+                    ? {
+                          output_video: {
+                              ...interaction.output_video,
+                              data: `<base64 data: ${interaction.output_video.data.length} bytes>`,
+                          },
+                      }
+                    : {}),
+            };
+            logger.info(
+                `[GeminiService] Gemini Omni response: ${JSON.stringify(sanitizedResponse, null, 2)}`,
+            );
 
             const outputVideo = interaction.output_video;
             if (!outputVideo) {

@@ -521,6 +521,11 @@ describe("GeminiService", () => {
                 expect.objectContaining({
                     model: "gemini-omni-flash-preview",
                     previous_interaction_id: "interaction-123",
+                    generation_config: {
+                        video_config: {
+                            task: "edit",
+                        },
+                    },
                 }),
             );
         });
