@@ -101,6 +101,41 @@ export interface UpscaleImageOptions {
     upscaleFactor: "x2" | "x3" | "x4";
 }
 
+function serializeError(err: unknown): Record<string, unknown> {
+    if (!err) return {};
+    const serialized: Record<string, unknown> = {};
+    if (err instanceof Error) {
+        serialized.name = err.name;
+        serialized.message = err.message;
+        serialized.stack = err.stack;
+    }
+    if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        for (const key of Object.keys(errObj)) {
+            serialized[key] = errObj[key];
+        }
+        if ("status" in errObj) serialized.status = errObj.status;
+        if ("errorDetails" in errObj)
+            serialized.errorDetails = errObj.errorDetails;
+        if ("response" in errObj) {
+            const response = errObj.response;
+            if (
+                response &&
+                typeof response === "object" &&
+                "json" in response &&
+                typeof (response as { json?: unknown }).json === "function"
+            ) {
+                serialized.response = "[Response object]";
+            } else {
+                serialized.response = response;
+            }
+        }
+    } else {
+        serialized.raw = err;
+    }
+    return serialized;
+}
+
 export class GeminiService {
     private _ai: GoogleGenAI | null = null;
 
@@ -619,8 +654,16 @@ export class GeminiService {
                 `[GeminiService] Calling Gemini Omni with request: ${JSON.stringify(sanitizedRequest, null, 2)}`,
             );
 
-            const interaction =
-                await this.ai.interactions.create(interactionRequest);
+            let interaction;
+            try {
+                interaction =
+                    await this.ai.interactions.create(interactionRequest);
+            } catch (error: unknown) {
+                logger.error(
+                    `[GeminiService] Gemini Omni call failed. Full error details: ${JSON.stringify(serializeError(error), null, 2)}`,
+                );
+                throw error;
+            }
 
             // Sanitize response for logging
             const sanitizedResponse = {
