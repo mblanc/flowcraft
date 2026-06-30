@@ -51,7 +51,7 @@ Image operations:
 - i2i  — image-to-image: edit or transform an existing image
 
 Video operations:
-- t2v  — text-to-video: generate a video clip from a text description (single-shot only — forbidden when a multi-shot skill is loaded)
+- t2v  — text-to-video / video-to-video edit: generate a video clip from a text description, OR edit an existing video when wired with a 'depends_on' edge from the source video (single-shot only — forbidden when a multi-shot skill is loaded).
 - i2v  — image-to-video: animate a t2i keyframe into a video clip
 - i2v2 — image-to-video-to-image: morph between two images
 
@@ -60,7 +60,6 @@ Other operations:
 - t2m  — text-to-music (model: lyria-3-clip-preview for short clips ~30s; lyria-3-pro-preview for full songs)
 - sfx  — sound effects
 - concat — concatenate clips
-- edit — post-production edit
 - upscale — upscale resolution
 
 RULES for plan_text_nodes:
@@ -80,7 +79,7 @@ RULES for plan_production nodes:
     { from: "img_2", to: "vid_2", role: "depends_on" }            ← vid_2 animates the output of img_2
 - Use edges: depends_on (output feeds next node), style_ref (visual style source), subject_ref (subject/character reference).
 - **AUDIO REFERENCE CONSTRAINT (VEO VS OMNI):** For Veo models, video/image generation nodes ('t2v', 'i2v', 'i2v2', 't2i', 'i2i') **cannot** accept or use audio, speech, or music nodes ('t2s', 't2m', 'sfx') as references. For the default Omni model ('gemini-omni-flash-preview'), video nodes **can** accept an audio/music node as a dependency! To mix custom music/audio into an Omni video, draw a 'depends_on' edge from the audio/music node to the video node.
-- **STATEFUL VIDEO EDITING (OMNI):** The default model 'gemini-omni-flash-preview' supports stateful editing! To edit an existing video (e.g. 'make it faster', 'change the style', 'add a character'), draw a 'depends_on' edge from the previous video node to the new video node. The engine will propagate the interaction state for seamless editing.
+- **STATEFUL VIDEO EDITING (OMNI):** The default model 'gemini-omni-flash-preview' supports stateful editing! To edit an existing video (e.g. 'make it faster', 'change the style', 'add a character', 'colorize it'), use the 't2v' operation and draw a 'depends_on' edge from the previous video node to the new video node. The engine will propagate the interaction state for seamless editing.
 - Reference existing canvas items by their node ID in promptIntent when relevant.
 - Keep video nodes ≤10s; split longer sequences with concat nodes.
 - Video duration MUST be exactly 4, 6, or 8 seconds — no other values are valid. Default to 4 when the user has not specified.
