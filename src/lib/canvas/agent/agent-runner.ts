@@ -188,7 +188,7 @@ export class CanvasAgentRunner {
 
             const agentEvents = extractAgentEvents(
                 adkEvents,
-                input.canvasNodes.map((n) => n.id),
+                input.canvasNodes,
                 input.attachments ?? [],
                 input.imageDefaults,
                 input.videoDefaults,

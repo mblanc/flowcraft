@@ -23,6 +23,10 @@ vi.mock("@google/genai", () => ({
     createPartFromText: vi.fn((t: string) => ({ text: t })),
     createPartFromUri: vi.fn(),
     createPartFromBase64: vi.fn(),
+    MediaResolution: {
+        MEDIA_RESOLUTION_HIGH: "MEDIA_RESOLUTION_HIGH",
+        MEDIA_RESOLUTION_LOW: "MEDIA_RESOLUTION_LOW",
+    },
 }));
 
 import { GeminiService } from "@/lib/services/gemini.service";

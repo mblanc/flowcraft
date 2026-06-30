@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { Event } from "@google/adk";
 import { extractAgentEvents } from "@/lib/canvas/agent/agent-runner";
-import type { GenerationStep } from "@/lib/canvas/types";
+import type { GenerationStep, CanvasNode } from "@/lib/canvas/types";
 
 function makeTextEvent(text: string, partial = false): Event {
     return {
@@ -120,12 +120,27 @@ describe("extractAgentEvents", () => {
                 referenceNodeIds: ["valid_node", "hallucinated_node"],
             },
         ];
-        const canvasNodeIds = ["valid_node"];
+        const canvasNodes: CanvasNode[] = [
+            {
+                id: "valid_node",
+                type: "canvas-image",
+                position: { x: 0, y: 0 },
+                data: {
+                    type: "canvas-image",
+                    label: "Valid Node",
+                    sourceUrl: "gs://mock/source.png",
+                    mimeType: "image/png",
+                    status: "ready",
+                    width: 100,
+                    height: 100,
+                },
+            },
+        ];
         const adkEvents = [
             makeFunctionCallEvent("plan_image_generation", { steps }),
         ];
         const events = await collect(
-            extractAgentEvents(asAsyncIter(adkEvents), canvasNodeIds, []),
+            extractAgentEvents(asAsyncIter(adkEvents), canvasNodes, []),
         );
         const planEvent = events.find((e) => e.type === "plan");
         expect(planEvent).toMatchObject({

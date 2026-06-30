@@ -2,6 +2,12 @@
 
 This file provides guidance to ai agents when working with code in this repository.
 
+## Wiki & Documentation
+
+The [wiki/architecture/architecture.md](file:///Users/mblanc/projects/flowcraft/wiki/architecture/architecture.md) file contains a comprehensive codebase map and architectural overview. Before implementing features or refactoring, consult this document to understand the system design.
+
+**IMPORTANT**: You MUST maintain both [AGENTS.md](file:///Users/mblanc/projects/flowcraft/AGENTS.md) and [wiki/architecture/architecture.md](file:///Users/mblanc/projects/flowcraft/wiki/architecture/architecture.md) up to date when implementing tasks that modify the codebase structure, core layers, or commands.
+
 ## Commands
 
 ```bash
@@ -25,21 +31,21 @@ The pre-commit hook runs lint-staged (format + lint on staged files). Never skip
 
 ## Architecture
 
-Flowcraft is a **Next.js 15 / React 19** app with two distinct product surfaces built on the same stack.
+Flowcraft is a **Next.js 16 / React 19** app with two distinct product surfaces built on the same stack.
 
 ### 1. Flow Editor (`/flow/[id]`)
 
-A node-based pipeline builder powered by **@xyflow/react**. Users wire together nodes (LLM, image, video, text, file, upscale, resize, list, router, custom-workflow, workflow-input/output) into DAGs that execute sequentially or in batch.
+A node-based pipeline builder powered by **@xyflow/react**. Users wire together nodes (LLM, image, video, music, text, file, upscale, resize, list, router, custom-workflow, workflow-input/output) into DAGs that execute sequentially or in batch.
 
 Key layers:
 
 - **`src/lib/schemas.ts`** — Zod schemas for all node `data` shapes; single source of truth for types (re-exported via `src/lib/types.ts`).
-- **`src/lib/node-registry.ts`** — Central registry mapping `NodeType → NodeDefinition`. Every node exports a `NodeDefinition` from `src/lib/nodes/<type>.ts` with `gatherInputs` and `execute` methods.
-- **`src/lib/workflow-engine.ts`** — Orchestrates execution: detects batch mode, fans out requests at `BATCH_CONCURRENCY`, and calls each node's executor via the registry.
+- **`src/lib/flow/node-registry.ts`** — Central registry mapping `NodeType → NodeDefinition`. Every node is adapted from a primitive (located in `src/primitives/`) and registered via `src/lib/node-adapters/index.ts`.
+- **`src/lib/flow/workflow-engine.ts`** — Orchestrates execution: detects batch mode, fans out requests at `BATCH_CONCURRENCY`, and calls each node's executor via the registry.
 - **`src/lib/store/use-flow-store.ts`** — Zustand store (sliced into `graph-slice` + `ui-slice`). Persisted to `localStorage` with transient fields stripped (`executing`, `batchProgress`, etc.).
-- **`src/lib/nodes/shared/`** — Shared helpers: `mention-resolver.ts` resolves `@node` references in prompts; `execute-api-call.ts` wraps API routes; `node-helpers.ts` has `gatherInputs` utilities.
+- **`src/lib/node-adapters/utils/`** — Shared helpers: `mention-resolver.ts` resolves `@node` references in prompts; `execute-api-call.ts` wraps API routes; `node-helpers.ts` has `gatherInputs` utilities.
 
-Adding a new node type: create `src/lib/nodes/<type>.ts` exporting a `NodeDefinition`, add it to `src/lib/nodes/index.ts`, add the type to `NodeType` in `src/lib/types.ts`, register a Zod schema in `schemas.ts`, and add a React component in `src/components/nodes/`.
+Adding a new node type: create a primitive definition in `src/primitives/<type>/definition.ts`, import and adapt it using `toNodeDefinition` in `src/lib/node-adapters/index.ts` (adding it to `allNodeDefinitions`), add the type to `NodeType` in `src/lib/types.ts`, register its Zod schema in `src/lib/schemas.ts`, and add a React component in `src/components/nodes/`.
 
 ### 2. Canvas (`/canvas/[id]`)
 
@@ -47,13 +53,13 @@ A freeform media workspace where an AI agent (Director/Agent A) orchestrates ima
 
 Key layers:
 
-- **`src/lib/canvas/adk/runner.ts`** — `CanvasAgentRunner` wraps the Google ADK. Two variants:
+- **`src/lib/canvas/agent/agent-runner.ts`** — `CanvasAgentRunner` wraps the Google ADK. Two variants:
     - **Agent A** (`variant: "a"`): streaming LLM for simple image/video plans. Uses SSE streaming.
-    - **Agent B / Director** (`variant: "b"`): multi-turn agentic loop with `ThinkingLevel.LOW`. Uses `StreamingMode.NONE` because SSE closes after the first turn. Loads pattern skills from `src/lib/canvas/adk/skills/patterns/`.
-- **`src/lib/canvas/adk/tools.ts`** — ADK tool definitions: `planImageGenerationTool`, `planVideoGenerationTool`, `planProductionTool`, `suggestActionsTool`.
-- **`src/lib/canvas/adk/topology.ts`** — Kahn's algorithm (`topoSort`) for DAG-aware parallel execution of production plans. Only `depends_on` edges create ordering constraints.
-- **`src/lib/canvas/adk/prompt-engineer.ts`** — `PromptEngineer`: single-turn agent that enriches `PlanNode.promptIntent` → `PlanNode.prompt` using primitive skill docs from `src/lib/canvas/adk/skills/primitives/`.
-- **`src/lib/canvas/adk/step-mapper.ts`** — Maps Director tool-call outputs into `GenerationStep[]`.
+    - **Agent B / Director** (`variant: "b"`): multi-turn agentic loop with `ThinkingLevel.LOW`. Uses `StreamingMode.NONE` because SSE closes after the first turn. Loads pattern skills from `src/lib/canvas/agent/skills/patterns/`.
+- **`src/lib/canvas/agent/tools.ts`** — ADK tool definitions: `planImageGenerationTool`, `planVideoGenerationTool`, `planProductionTool`, `suggestActionsTool`.
+- **`src/lib/canvas/agent/topology.ts`** — Kahn's algorithm (`topoSort`) for DAG-aware parallel execution of production plans. Only `depends_on` edges create ordering constraints.
+- **`src/lib/canvas/agent/prompt-engineer.ts`** — `PromptEngineer`: single-turn agent that enriches `PlanNode.promptIntent` → `PlanNode.prompt` using primitive skill docs from `src/lib/canvas/agent/skills/primitives/`.
+- **`src/lib/canvas/agent/step-mapper.ts`** — Maps Director tool-call outputs into `GenerationStep[]`.
 - **`src/lib/canvas/generation.ts`** — `executePlan`: resolves step references (canvas node URIs + inter-step dependencies), calls `geminiService`/`storageService`, streams `StepEvent`s.
 - **`src/lib/canvas/types.ts`** — All Canvas-specific types: `CanvasNode`, `ProductionPlan`, `PlanNode`, `PlanEdge`, `MediaOperation`, `GenerationStep`, `ChatMessage`.
 - **`src/lib/store/use-canvas-store.ts`** — Zustand store for canvas state (nodes, messages, viewport).

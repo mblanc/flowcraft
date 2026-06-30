@@ -12,7 +12,7 @@ import {
     VALID_IMAGE_MODELS,
     VALID_VIDEO_MODELS,
 } from "@/lib/canvas/agent/step-mapper";
-import type { GenerationStep, PlanNode } from "@/lib/canvas/types";
+import type { GenerationStep, PlanNode, CanvasNode } from "@/lib/canvas/types";
 
 const mockWarn = vi.mocked(logger.warn);
 
@@ -297,6 +297,21 @@ describe("validateStepNodeIds", () => {
 // ─── mapPlanNodesToSteps ──────────────────────────────────────────────────────
 
 describe("mapPlanNodesToSteps", () => {
+    const makeCanvasNode = (id: string, label: string = id): CanvasNode => ({
+        id,
+        type: "canvas-image",
+        position: { x: 0, y: 0 },
+        data: {
+            type: "canvas-image",
+            label,
+            sourceUrl: "gs://mock/source.png",
+            mimeType: "image/png",
+            status: "ready",
+            width: 100,
+            height: 100,
+        },
+    });
+
     const baseNode = (overrides: Partial<PlanNode> = {}): PlanNode => ({
         id: "n1",
         operation: "t2i",
@@ -371,7 +386,17 @@ describe("mapPlanNodesToSteps", () => {
         const steps = mapPlanNodesToSteps(
             [baseNode()],
             [{ from: "canvas-1", to: "n1", role: "subject_ref" }],
-            ["canvas-1"],
+            [makeCanvasNode("canvas-1")],
+            [],
+        );
+        expect(steps[0].referenceNodeIds).toContain("canvas-1");
+    });
+
+    it("resolves references by label when the agent uses labels instead of IDs in edges", () => {
+        const steps = mapPlanNodesToSteps(
+            [baseNode()],
+            [{ from: "Sunset Image", to: "n1", role: "subject_ref" }],
+            [makeCanvasNode("canvas-1", "Sunset Image")],
             [],
         );
         expect(steps[0].referenceNodeIds).toContain("canvas-1");
@@ -472,7 +497,7 @@ describe("mapPlanNodesToSteps", () => {
                 { from: "canvas_vid1", to: "final", role: "depends_on" },
                 { from: "canvas_vid2", to: "final", role: "depends_on" },
             ],
-            ["canvas_vid1", "canvas_vid2"],
+            ["canvas_vid1", "canvas_vid2"].map((id) => makeCanvasNode(id)),
             [],
         );
         const finalStep = steps.find((s) => s.id === "final");
@@ -496,7 +521,7 @@ describe("mapPlanNodesToSteps", () => {
                 { from: "vid1", to: "final", role: "depends_on" },
                 { from: "canvas_vid2", to: "final", role: "depends_on" },
             ],
-            ["canvas_vid1", "canvas_vid2"],
+            ["canvas_vid1", "canvas_vid2"].map((id) => makeCanvasNode(id)),
             [],
         );
         const finalStep = steps.find((s) => s.id === "final");

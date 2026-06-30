@@ -5,6 +5,7 @@ import { mapPlanNodesToSteps, mapSimpleSteps } from "./step-mapper";
 import type {
     AgentEvent,
     AgentPlan,
+    CanvasNode,
     ChatAction,
     ChatAttachment,
     GenerationStep,
@@ -18,12 +19,12 @@ import type {
 
 export async function* extractAgentEvents(
     adkEvents: AsyncIterable<Event>,
-    canvasNodeIds: string[],
+    canvasNodes: CanvasNode[],
     attachments: ChatAttachment[],
     imageDefaults?: MediaDefaults,
     videoDefaults?: VideoDefaults,
 ): AsyncGenerator<AgentEvent> {
-    const attachmentNodeIds = attachments.map((a) => a.nodeId);
+    const canvasNodeIds = canvasNodes.map((n) => n.id);
     const allSteps: GenerationStep[] = [];
     let actionsEmitted = false;
 
@@ -116,8 +117,8 @@ export async function* extractAgentEvents(
                 const steps = mapPlanNodesToSteps(
                     raw.nodes ?? [],
                     raw.edges ?? [],
-                    canvasNodeIds,
-                    attachmentNodeIds,
+                    canvasNodes,
+                    attachments,
                     imageDefaults,
                     videoDefaults,
                 );
