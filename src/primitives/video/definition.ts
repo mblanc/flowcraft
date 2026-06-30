@@ -36,6 +36,7 @@ export const videoPrimitive: Primitive<
             "first-frame-input": "image",
             "last-frame-input": "image",
             "image-input": "image",
+            "audio-input": "audio",
         },
         outputs: {
             "result-output": "video",
@@ -134,6 +135,27 @@ export const videoPrimitive: Primitive<
                         .url as string;
             }
 
+            const audioData = findInputByHandle(
+                node.id,
+                edges,
+                "audio-input",
+                getSourceData,
+            );
+            const audioValue = getSourceValue(audioData);
+            if (audioValue) {
+                const val = Array.isArray(audioValue)
+                    ? audioValue[0]
+                    : audioValue;
+                if (typeof val === "string") inputs.audio = val;
+                else if (
+                    typeof val === "object" &&
+                    val !== null &&
+                    (val as Record<string, unknown>).url
+                )
+                    inputs.audio = (val as Record<string, unknown>)
+                        .url as string;
+            }
+
             const imageEdges = edges.filter(
                 (e) => e.target === node.id && e.targetHandle === "image-input",
             );
@@ -179,6 +201,9 @@ export const videoPrimitive: Primitive<
                     url: i.url,
                     mimeType: i.type,
                 })),
+                ...(inputs.audio
+                    ? [{ url: inputs.audio, mimeType: "audio/mp3" }]
+                    : []),
             ];
             return {
                 videoUrl: result.videoUrl,
@@ -249,7 +274,7 @@ export const videoPrimitive: Primitive<
             images: [],
             aspectRatio: DEFAULTS.ASPECT_RATIO,
             duration: DEFAULTS.VIDEO_DURATION,
-            model: MODELS.VIDEO.VEO_3_1_LITE,
+            model: MODELS.VIDEO.GEMINI_OMNI_FLASH,
             generateAudio: false,
             resolution: "720p",
         },

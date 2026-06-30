@@ -47,14 +47,23 @@ export const FlowNode = memo(
         const validVideoModels = Object.values(MODELS.VIDEO) as string[];
         const effectiveModel = validVideoModels.includes(data.model)
             ? data.model
-            : MODELS.VIDEO.VEO_3_1_LITE;
+            : MODELS.VIDEO.GEMINI_OMNI_FLASH;
 
         useEffect(() => {
             if (!validVideoModels.includes(data.model)) {
-                updateNodeData(id, { model: MODELS.VIDEO.VEO_3_1_LITE });
+                updateNodeData(id, { model: MODELS.VIDEO.GEMINI_OMNI_FLASH });
             }
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [id]);
+
+        useEffect(() => {
+            if (
+                data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH &&
+                data.resolution !== "720p"
+            ) {
+                updateNodeData(id, { resolution: "720p" });
+            }
+        }, [data.model, data.resolution, id, updateNodeData]);
         const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,
             data.width,
@@ -195,7 +204,9 @@ export const FlowNode = memo(
                     className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
                     style={{ top: "60%", transform: "translateY(-50%)" }}
                 >
-                    Last frame
+                    {data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH
+                        ? "Audio ref"
+                        : "Last frame"}
                 </div>
                 <div
                     className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
@@ -252,6 +263,11 @@ export const FlowNode = memo(
                                 <SelectValue placeholder="Model" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem
+                                    value={MODELS.VIDEO.GEMINI_OMNI_FLASH}
+                                >
+                                    Gemini Omni Flash
+                                </SelectItem>
                                 <SelectItem value={MODELS.VIDEO.VEO_3_1_LITE}>
                                     Veo 3.1 Lite
                                 </SelectItem>
@@ -283,28 +299,30 @@ export const FlowNode = memo(
                                 <SelectItem value="9:16">9:16</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Select
-                            value={String(data.duration)}
-                            onValueChange={(value) =>
-                                updateNodeData(id, {
-                                    duration: Number(
-                                        value,
-                                    ) as VideoData["duration"],
-                                })
-                            }
-                        >
-                            <SelectTrigger
-                                size="sm"
-                                className="h-6 w-fit rounded-md px-2 text-[10px]"
+                        {data.model !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+                            <Select
+                                value={String(data.duration)}
+                                onValueChange={(value) =>
+                                    updateNodeData(id, {
+                                        duration: Number(
+                                            value,
+                                        ) as VideoData["duration"],
+                                    })
+                                }
                             >
-                                <SelectValue placeholder="Duration" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="4">4s</SelectItem>
-                                <SelectItem value="6">6s</SelectItem>
-                                <SelectItem value="8">8s</SelectItem>
-                            </SelectContent>
-                        </Select>
+                                <SelectTrigger
+                                    size="sm"
+                                    className="h-6 w-fit rounded-md px-2 text-[10px]"
+                                >
+                                    <SelectValue placeholder="Duration" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="4">4s</SelectItem>
+                                    <SelectItem value="6">6s</SelectItem>
+                                    <SelectItem value="8">8s</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
                         <div
                             className={cn(
                                 "flex h-6 items-center gap-1 rounded-md px-1.5 transition-colors",
@@ -358,13 +376,23 @@ export const FlowNode = memo(
                     className="bg-blue-500"
                     style={{ top: "40%" }}
                 />
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="last-frame-input"
-                    className="bg-purple-500"
-                    style={{ top: "60%" }}
-                />
+                {data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH ? (
+                    <Handle
+                        type="target"
+                        position={Position.Left}
+                        id="audio-input"
+                        className="bg-amber-500"
+                        style={{ top: "60%" }}
+                    />
+                ) : (
+                    <Handle
+                        type="target"
+                        position={Position.Left}
+                        id="last-frame-input"
+                        className="bg-purple-500"
+                        style={{ top: "60%" }}
+                    />
+                )}
                 <Handle
                     type="target"
                     position={Position.Left}

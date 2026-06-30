@@ -354,6 +354,8 @@ export const GenerateVideoSchema = z.object({
     prompt: z.string().min(1, "Prompt is required"),
     firstFrame: z.string().optional(),
     lastFrame: z.string().optional(),
+    audio: z.string().optional(),
+    previousInteractionId: z.string().optional(),
     images: z
         .array(
             z.object({
