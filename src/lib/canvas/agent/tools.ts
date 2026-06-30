@@ -28,6 +28,7 @@ export const VIDEO_MODELS = [
     MODELS.VIDEO.VEO_3_1_LITE,
     MODELS.VIDEO.VEO_3_1_FAST,
     MODELS.VIDEO.VEO_3_1_PRO,
+    MODELS.VIDEO.GEMINI_OMNI_FLASH,
 ] as const;
 
 export const MUSIC_MODELS = [
