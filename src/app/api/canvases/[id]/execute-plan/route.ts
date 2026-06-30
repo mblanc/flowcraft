@@ -28,7 +28,9 @@ function formatSSE(event: string, data: unknown): string {
 function buildNodeUriMap(canvas: { nodes: CanvasNode[] }): Map<string, string> {
     const map = new Map<string, string>();
     for (const node of canvas.nodes) {
-        const uri = "sourceUrl" in node.data ? node.data.sourceUrl : undefined;
+        const uri =
+            ("sourceUrl" in node.data ? node.data.sourceUrl : undefined) ??
+            ("gcsUri" in node.data ? node.data.gcsUri : undefined);
         if (isGcsUri(uri)) {
             map.set(node.id, uri);
         }

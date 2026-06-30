@@ -61,19 +61,36 @@ function resolveReferences(
     const getUri = (nodeId: string): string | undefined =>
         ctx.attachmentUris.get(nodeId);
 
+    const getFileType = (id: string): string | undefined => {
+        const type = ctx.nodeTypes.get(id);
+        if (type === "canvas-file" || type === "file") {
+            const node = canvasNodes?.find((n) => n.id === id);
+            if (node && "fileType" in node.data) {
+                return node.data.fileType ?? undefined;
+            }
+        }
+        return undefined;
+    };
+
     const isAudio = (id: string): boolean => {
         const type = ctx.nodeTypes.get(id);
-        return (
+        if (
             type === "audio" ||
             type === "canvas-audio" ||
             type === "music" ||
             type === "canvas-music"
-        );
+        ) {
+            return true;
+        }
+        return getFileType(id) === "audio";
     };
 
     const isVideo = (id: string): boolean => {
         const type = ctx.nodeTypes.get(id);
-        return type === "video" || type === "canvas-video";
+        if (type === "video" || type === "canvas-video") {
+            return true;
+        }
+        return getFileType(id) === "video";
     };
 
     // Resolve dependsOn to URIs from completed steps, filtering out audio and video dependencies for visual steps

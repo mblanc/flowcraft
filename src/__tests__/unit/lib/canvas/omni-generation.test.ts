@@ -232,4 +232,52 @@ describe("executePlan — Omni features (audio and editing)", () => {
             }),
         );
     });
+
+    it("resolves and passes videoUrl from an uploaded canvas file node (canvas-file) when referenced", async () => {
+        const plan: AgentPlan = {
+            steps: [
+                {
+                    id: "vid2",
+                    type: "video",
+                    prompt: "make it faster",
+                    referenceNodeIds: ["canvas_file_1"],
+                },
+            ],
+        };
+
+        const nodeUris = new Map<string, string>([
+            ["canvas_file_1", "gs://bucket/uploaded_video.mp4"],
+        ]);
+
+        const nodeTypes = new Map<string, string>([
+            ["canvas_file_1", "canvas-file"],
+            ["vid2", "video"],
+        ]);
+
+        const canvasNodes: CanvasNode[] = [
+            {
+                id: "canvas_file_1",
+                type: "canvas-file",
+                position: { x: 0, y: 0 },
+                data: {
+                    type: "file",
+                    fileType: "video",
+                    fileName: "uploaded_video.mp4",
+                    fileUrl:
+                        "https://storage.googleapis.com/bucket/uploaded_video.mp4",
+                    gcsUri: "gs://bucket/uploaded_video.mp4",
+                } as unknown as CanvasNode["data"],
+            },
+        ];
+
+        await collectStepEvents(plan, nodeUris, nodeTypes, canvasNodes);
+
+        expect(mockGenerateVideo).toHaveBeenCalledWith(
+            expect.objectContaining({
+                prompt: "make it faster",
+                video: "gs://bucket/uploaded_video.mp4",
+                previousInteractionId: undefined,
+            }),
+        );
+    });
 });
