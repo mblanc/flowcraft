@@ -135,6 +135,86 @@ export const FlowNode = memo(
             updateNodeData(id, { prompt: value });
         };
 
+        const isOmni = data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+
+        const handles = isOmni
+            ? [
+                  {
+                      id: "prompt-input",
+                      label: "Prompt",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-pink-500",
+                      top: "15%",
+                  },
+                  {
+                      id: "first-frame-input",
+                      label: "First frame",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-blue-500",
+                      top: "30%",
+                  },
+                  {
+                      id: "audio-input",
+                      label: "Audio ref",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-amber-500",
+                      top: "45%",
+                  },
+                  {
+                      id: "video-input",
+                      label: "Video ref",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-port-video",
+                      top: "60%",
+                  },
+                  {
+                      id: "image-input",
+                      label: "Image(s)",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-green-500",
+                      top: "75%",
+                  },
+              ]
+            : [
+                  {
+                      id: "prompt-input",
+                      label: "Prompt",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-pink-500",
+                      top: "20%",
+                  },
+                  {
+                      id: "first-frame-input",
+                      label: "First frame",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-blue-500",
+                      top: "40%",
+                  },
+                  {
+                      id: "last-frame-input",
+                      label: "Last frame",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-purple-500",
+                      top: "60%",
+                  },
+                  {
+                      id: "image-input",
+                      label: "Image(s)",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-green-500",
+                      top: "80%",
+                  },
+              ];
+
         return (
             <div
                 ref={nodeRef}
@@ -188,32 +268,15 @@ export const FlowNode = memo(
                 )}
 
                 {/* Handle labels */}
-                <div
-                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
-                    style={{ top: "20%", transform: "translateY(-50%)" }}
-                >
-                    Prompt
-                </div>
-                <div
-                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
-                    style={{ top: "40%", transform: "translateY(-50%)" }}
-                >
-                    First frame
-                </div>
-                <div
-                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
-                    style={{ top: "60%", transform: "translateY(-50%)" }}
-                >
-                    {data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH
-                        ? "Audio ref"
-                        : "Last frame"}
-                </div>
-                <div
-                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
-                    style={{ top: "80%", transform: "translateY(-50%)" }}
-                >
-                    Image(s)
-                </div>
+                {handles.map((h) => (
+                    <div
+                        key={`label-${h.id}`}
+                        className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
+                        style={{ top: h.top, transform: "translateY(-50%)" }}
+                    >
+                        {h.label}
+                    </div>
+                ))}
 
                 {/* Media box */}
                 <div
@@ -362,44 +425,16 @@ export const FlowNode = memo(
                 </NodeParamsBar>
 
                 {/* Handles */}
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="prompt-input"
-                    className="bg-pink-500"
-                    style={{ top: "20%" }}
-                />
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="first-frame-input"
-                    className="bg-blue-500"
-                    style={{ top: "40%" }}
-                />
-                {data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH ? (
+                {handles.map((h) => (
                     <Handle
-                        type="target"
-                        position={Position.Left}
-                        id="audio-input"
-                        className="bg-amber-500"
-                        style={{ top: "60%" }}
+                        key={h.id}
+                        type={h.type}
+                        position={h.position}
+                        id={h.id}
+                        className={h.className}
+                        style={{ top: h.top }}
                     />
-                ) : (
-                    <Handle
-                        type="target"
-                        position={Position.Left}
-                        id="last-frame-input"
-                        className="bg-purple-500"
-                        style={{ top: "60%" }}
-                    />
-                )}
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="image-input"
-                    className="bg-green-500"
-                    style={{ top: "80%" }}
-                />
+                ))}
                 <Handle
                     type="source"
                     position={Position.Right}

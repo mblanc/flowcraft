@@ -37,6 +37,7 @@ export const videoPrimitive: Primitive<
             "last-frame-input": "image",
             "image-input": "image",
             "audio-input": "audio",
+            "video-input": "video",
         },
         outputs: {
             "result-output": "video",
@@ -156,6 +157,27 @@ export const videoPrimitive: Primitive<
                         .url as string;
             }
 
+            const videoData = findInputByHandle(
+                node.id,
+                edges,
+                "video-input",
+                getSourceData,
+            );
+            const videoValue = getSourceValue(videoData);
+            if (videoValue) {
+                const val = Array.isArray(videoValue)
+                    ? videoValue[0]
+                    : videoValue;
+                if (typeof val === "string") inputs.video = val;
+                else if (
+                    typeof val === "object" &&
+                    val !== null &&
+                    (val as Record<string, unknown>).url
+                )
+                    inputs.video = (val as Record<string, unknown>)
+                        .url as string;
+            }
+
             const imageEdges = edges.filter(
                 (e) => e.target === node.id && e.targetHandle === "image-input",
             );
@@ -203,6 +225,9 @@ export const videoPrimitive: Primitive<
                 })),
                 ...(inputs.audio
                     ? [{ url: inputs.audio, mimeType: "audio/mp3" }]
+                    : []),
+                ...(inputs.video
+                    ? [{ url: inputs.video, mimeType: "video/mp4" }]
                     : []),
             ];
             return {
