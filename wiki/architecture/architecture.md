@@ -384,7 +384,7 @@ executePlan(plan, canvasNodes)
 | `PlanNode`         | A single operation in a production plan (`t2i`, `i2v`, `t2m`, `concat`, etc.)                              |
 | `PlanEdge`         | Dependency edge between plan nodes; role: `depends_on`, `style_ref`, `subject_ref`                         |
 | `GenerationStep`   | A resolved plan node ready for execution (prompt filled in, inputs resolved)                               |
-| `MediaOperation`   | `"t2i" \| "i2i" \| "t2v" \| "i2v" \| "t2s" \| "t2m" \| "sfx" \| "concat" \| "edit" \| "upscale"`           |
+| `MediaOperation`   | `"t2i" \| "i2i" \| "t2v" \| "i2v" \| "t2s" \| "t2m" \| "concat" \| "edit" \| "upscale"`                    |
 | `ChatMessage`      | A message in the chat panel, may carry a plan or question                                                  |
 | `AgentEvent`       | SSE event: `text`, `thought`, `plan`, `agent_action`, `actions`, `text_nodes`, `question`, `done`, `error` |
 | `RulesetRef`       | Snapshot of a ruleset's rules embedded in AgentInput                                                       |

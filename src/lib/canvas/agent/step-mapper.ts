@@ -75,9 +75,21 @@ export function applyTypeDefaults(
         defaults?.model,
         validModels,
     );
+    let aspectRatio = step.aspectRatio ?? defaults?.aspectRatio ?? "16:9";
+    if (isVideo && aspectRatio !== "16:9" && aspectRatio !== "9:16") {
+        const fallback =
+            videoDefaults?.aspectRatio === "16:9" ||
+            videoDefaults?.aspectRatio === "9:16"
+                ? videoDefaults.aspectRatio
+                : "16:9";
+        logger.warn(
+            `[CanvasADK] Coerced invalid video aspect ratio "${aspectRatio}" to "${fallback}"`,
+        );
+        aspectRatio = fallback;
+    }
     return {
         ...step,
-        aspectRatio: step.aspectRatio ?? defaults?.aspectRatio ?? "16:9",
+        aspectRatio,
         ...(!isVideo && (step.imageSize ?? imageDefaults?.imageSize)
             ? { imageSize: step.imageSize ?? imageDefaults?.imageSize }
             : {}),
@@ -142,7 +154,7 @@ export function validateStepNodeIds(
 const IMAGE_OPS = new Set(["t2i", "i2i"]);
 const VIDEO_OPS = new Set(["t2v", "i2v", "i2v2"]);
 const CONCAT_OPS = new Set(["concat"]);
-const AUDIO_OPS = new Set(["t2m", "t2s", "sfx"]);
+const AUDIO_OPS = new Set(["t2m", "t2s"]);
 
 export function mapPlanNodesToSteps(
     planNodes: PlanNode[],

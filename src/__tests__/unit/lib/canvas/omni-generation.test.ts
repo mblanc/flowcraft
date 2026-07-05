@@ -16,7 +16,7 @@ vi.mock("@/lib/services/gemini.service", () => ({
         }),
         generateMusic: vi.fn().mockResolvedValue({
             audioData: "base64_audio_data",
-            mimeType: "audio/mp3",
+            mimeType: "audio/mpeg",
         }),
     },
 }));

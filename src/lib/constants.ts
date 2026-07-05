@@ -135,7 +135,7 @@ export const SUPPORTED_MIME_TYPES = {
     ],
     AUDIO: [
         "audio/wav",
-        "audio/mp3",
+        "audio/mpeg",
         "audio/aiff",
         "audio/aac",
         "audio/ogg",

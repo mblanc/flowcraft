@@ -141,6 +141,15 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
     ),
     generateAudio: z.boolean(),
     resolution: z.enum(["720p", "1080p", "4K"]),
+    task: z
+        .enum([
+            "none",
+            "text_to_video",
+            "image_to_video",
+            "reference_to_video",
+            "edit",
+        ])
+        .optional(),
     width: z.number().optional(),
     height: z.number().optional(),
     mediaInputs: z
@@ -387,6 +396,16 @@ export const GenerateVideoSchema = z.object({
     ),
     generateAudio: z.boolean().optional().default(true),
     resolution: z.enum(["720p", "1080p", "4K"]).optional().default("720p"),
+    task: z
+        .enum([
+            "none",
+            "text_to_video",
+            "image_to_video",
+            "reference_to_video",
+            "edit",
+        ])
+        .optional()
+        .default("none"),
     namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 

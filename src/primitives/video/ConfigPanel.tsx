@@ -219,6 +219,39 @@ export function ConfigPanel({
                 </Select>
             </div>
 
+            {effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+                <div className="space-y-2">
+                    <Label htmlFor="task">Task</Label>
+                    <Select
+                        value={data.task || "none"}
+                        onValueChange={(value) =>
+                            updateNodeData(nodeId, {
+                                task: value as VideoData["task"],
+                            })
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">
+                                None (auto-infer)
+                            </SelectItem>
+                            <SelectItem value="text_to_video">
+                                Text to Video
+                            </SelectItem>
+                            <SelectItem value="image_to_video">
+                                Image to Video
+                            </SelectItem>
+                            <SelectItem value="reference_to_video">
+                                Reference to Video
+                            </SelectItem>
+                            <SelectItem value="edit">Edit</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <Label>Reference Images</Label>

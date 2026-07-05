@@ -289,7 +289,10 @@ export const FlowNode = memo(
                 </div>
 
                 {/* Params panel — floating below media box */}
-                <NodeParamsBar isVisible={selected || isHovered}>
+                <NodeParamsBar
+                    isVisible={selected || isHovered}
+                    nodeWidth={dimensions.width}
+                >
                     <div className="mb-2 flex flex-wrap gap-1.5">
                         <Select
                             value={effectiveModel}

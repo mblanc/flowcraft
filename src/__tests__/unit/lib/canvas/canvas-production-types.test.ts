@@ -89,12 +89,11 @@ describe("ProductionPlan types", () => {
             "i2v2",
             "t2s",
             "t2m",
-            "sfx",
             "concat",
             "edit",
             "upscale",
         ];
-        expect(ops).toHaveLength(11);
+        expect(ops).toHaveLength(10);
     });
 
     it("EdgeRole covers expected roles", () => {

@@ -40,6 +40,45 @@ async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function inferMimeTypeFromUrl(
+    url: string,
+    category: "image" | "audio" | "video",
+): string {
+    const lower = url.toLowerCase();
+    if (category === "image") {
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg"))
+            return "image/jpeg";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".heic")) return "image/heic";
+        if (lower.endsWith(".heif")) return "image/heif";
+        if (lower.endsWith(".gif")) return "image/gif";
+        return "image/png";
+    }
+    if (category === "audio") {
+        if (
+            lower.endsWith(".mp3") ||
+            lower.endsWith(".mpeg") ||
+            lower.endsWith(".mpg")
+        )
+            return "audio/mpeg";
+        if (lower.endsWith(".wav")) return "audio/wav";
+        if (lower.endsWith(".aac")) return "audio/aac";
+        if (lower.endsWith(".flac")) return "audio/flac";
+        if (lower.endsWith(".ogg")) return "audio/ogg";
+        return "audio/mpeg";
+    }
+    if (category === "video") {
+        if (lower.endsWith(".mp4")) return "video/mp4";
+        if (lower.endsWith(".mov")) return "video/mov";
+        if (lower.endsWith(".webm")) return "video/webm";
+        if (lower.endsWith(".mpeg") || lower.endsWith(".mpg"))
+            return "video/mpeg";
+        return "video/mp4";
+    }
+    return "application/octet-stream";
+}
+
 /** Converts a serializable ContentPart to the Gemini SDK native Part type. */
 function contentPartToSdkPart(
     part: ContentPart,
@@ -94,6 +133,12 @@ export interface GenerateVideoOptions {
     generateAudio?: boolean;
     resolution?: string;
     styleInstruction?: string;
+    task?:
+        | "none"
+        | "text_to_video"
+        | "image_to_video"
+        | "reference_to_video"
+        | "edit";
 }
 
 export interface UpscaleImageOptions {
@@ -497,6 +542,7 @@ export class GeminiService {
             generateAudio,
             resolution,
             styleInstruction,
+            task,
         } = options;
 
         const selectedModel = model || MODELS.VIDEO.VEO_3_1_LITE;
@@ -528,7 +574,9 @@ export class GeminiService {
                         inputParts.push({
                             type: "image",
                             uri: img.url,
-                            mime_type: img.type || "image/png",
+                            mime_type:
+                                img.type ||
+                                inferMimeTypeFromUrl(img.url, "image"),
                         });
                     }
                 }
@@ -539,7 +587,7 @@ export class GeminiService {
                     inputParts.push({
                         type: "image",
                         uri: firstFrame,
-                        mime_type: "image/png",
+                        mime_type: inferMimeTypeFromUrl(firstFrame, "image"),
                     });
                 } else if (firstFrame.startsWith("data:")) {
                     const base64Match = firstFrame.match(DATA_URI_REGEX);
@@ -554,22 +602,9 @@ export class GeminiService {
             }
 
             if (audio) {
-                if (audio.startsWith("gs://")) {
-                    inputParts.push({
-                        type: "audio",
-                        uri: audio,
-                        mime_type: "audio/mp3",
-                    });
-                } else if (audio.startsWith("data:")) {
-                    const base64Match = audio.match(DATA_URI_REGEX);
-                    if (base64Match) {
-                        inputParts.push({
-                            type: "audio",
-                            data: base64Match[2],
-                            mime_type: base64Match[1],
-                        });
-                    }
-                }
+                logger.warn(
+                    `[GeminiService] Audio input is currently not supported for Omni video generation. Ignoring audio reference: ${audio}`,
+                );
             }
 
             if (video) {
@@ -577,7 +612,7 @@ export class GeminiService {
                     inputParts.push({
                         type: "video",
                         uri: video,
-                        mime_type: "video/mp4",
+                        mime_type: inferMimeTypeFromUrl(video, "video"),
                     });
                 } else if (video.startsWith("data:")) {
                     const base64Match = video.match(DATA_URI_REGEX);
@@ -623,14 +658,18 @@ export class GeminiService {
             // On Vertex AI, gemini-omni-flash-preview does not support previous_interaction_id yet.
             // Therefore, if we have the video input, we MUST use the video-input path (non-stateful)
             // and ignore previous_interaction_id to avoid the 400 error.
-            if (video) {
-                // For video-to-video editing, we must set the task to "edit"
+            const effectiveTask =
+                task && task !== "none" ? task : video ? "edit" : undefined;
+
+            if (effectiveTask) {
                 interactionRequest.generation_config = {
                     video_config: {
-                        task: "edit",
+                        task: effectiveTask,
                     },
                 };
-            } else if (previousInteractionId) {
+            }
+
+            if (previousInteractionId && !video) {
                 // Fallback for platforms that support it (e.g. AI Studio) if video is not available
                 interactionRequest.previous_interaction_id =
                     previousInteractionId;

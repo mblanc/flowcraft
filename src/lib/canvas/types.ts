@@ -296,7 +296,6 @@ export const MEDIA_OPERATIONS = [
     "i2v2",
     "t2s",
     "t2m",
-    "sfx",
     "concat",
     "edit",
     "upscale",

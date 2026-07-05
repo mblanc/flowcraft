@@ -227,7 +227,10 @@ export const FlowNode = memo(
                 </div>
 
                 {/* Params panel — floating below media box */}
-                <NodeParamsBar isVisible={isActive}>
+                <NodeParamsBar
+                    isVisible={isActive}
+                    nodeWidth={dimensions.width}
+                >
                     <div className="flex items-center justify-between gap-2">
                         <div className="text-muted-foreground flex items-center gap-1.5 text-[10px]">
                             {data.fileType === "image" ? (

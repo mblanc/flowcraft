@@ -226,6 +226,18 @@ describe("videoNodeDefinition.gatherInputs", () => {
         expect(inputs.video).toBe("gs://ref-video.mp4");
     });
 
+    it("gathers task parameter from node data", () => {
+        const node = {
+            ...makeVideoNode(),
+            data: {
+                ...makeVideoNode().data,
+                task: "image_to_video",
+            },
+        };
+        const inputs = videoNodeDefinition.gatherInputs(node, [], () => null);
+        expect(inputs.task).toBe("image_to_video");
+    });
+
     it("handles collection prompt source", () => {
         const node = makeVideoNode();
         const edges = [edge("e1", "list-1", "vid-1", "prompt-input")];

@@ -161,7 +161,7 @@ export function inferMimeType(
         return "image/png";
     if (lower.endsWith(".mp4") || lower.endsWith(".mov")) return "video/mp4";
     if (lower.endsWith(".wav")) return "audio/wav";
-    if (lower.endsWith(".mp3")) return "audio/mp3";
+    if (lower.endsWith(".mp3")) return "audio/mpeg";
     if (lower.endsWith(".ogg")) return "audio/ogg";
     if (lower.endsWith(".flac")) return "audio/flac";
     if (lower.endsWith(".aac")) return "audio/aac";

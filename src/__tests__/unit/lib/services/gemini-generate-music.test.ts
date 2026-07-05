@@ -85,7 +85,7 @@ describe("GeminiService.generateMusic", () => {
                 {
                     inlineData: {
                         data: "base64audio==",
-                        mimeType: "audio/mp3",
+                        mimeType: "audio/mpeg",
                     },
                 },
             ]),
@@ -95,7 +95,7 @@ describe("GeminiService.generateMusic", () => {
 
         expect(result).toEqual({
             audioData: "base64audio==",
-            mimeType: "audio/mp3",
+            mimeType: "audio/mpeg",
         });
     });
 

@@ -145,31 +145,15 @@ export const FlowNode = memo(
                       type: "target" as const,
                       position: Position.Left,
                       className: "bg-pink-500",
-                      top: "15%",
-                  },
-                  {
-                      id: "first-frame-input",
-                      label: "First frame",
-                      type: "target" as const,
-                      position: Position.Left,
-                      className: "bg-blue-500",
-                      top: "30%",
-                  },
-                  {
-                      id: "audio-input",
-                      label: "Audio ref",
-                      type: "target" as const,
-                      position: Position.Left,
-                      className: "bg-amber-500",
-                      top: "45%",
+                      top: "25%",
                   },
                   {
                       id: "video-input",
-                      label: "Video ref",
+                      label: "Video(s) ref",
                       type: "target" as const,
                       position: Position.Left,
                       className: "bg-port-video",
-                      top: "60%",
+                      top: "50%",
                   },
                   {
                       id: "image-input",
@@ -309,7 +293,10 @@ export const FlowNode = memo(
                 </div>
 
                 {/* Params panel — floating below media box */}
-                <NodeParamsBar isVisible={selected || isHovered}>
+                <NodeParamsBar
+                    isVisible={selected || isHovered}
+                    nodeWidth={dimensions.width}
+                >
                     <div className="mb-2 flex flex-wrap gap-1.5">
                         <Select
                             value={effectiveModel}
@@ -362,6 +349,38 @@ export const FlowNode = memo(
                                 <SelectItem value="9:16">9:16</SelectItem>
                             </SelectContent>
                         </Select>
+                        {data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+                            <Select
+                                value={data.task || "none"}
+                                onValueChange={(value) =>
+                                    updateNodeData(id, {
+                                        task: value as VideoData["task"],
+                                    })
+                                }
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className="h-6 w-fit rounded-md px-2 text-[10px]"
+                                >
+                                    <SelectValue placeholder="Task" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">
+                                        Auto-infer
+                                    </SelectItem>
+                                    <SelectItem value="text_to_video">
+                                        Text to Video
+                                    </SelectItem>
+                                    <SelectItem value="image_to_video">
+                                        Image to Video
+                                    </SelectItem>
+                                    <SelectItem value="reference_to_video">
+                                        Ref to Video
+                                    </SelectItem>
+                                    <SelectItem value="edit">Edit</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
                         {data.model !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
                             <Select
                                 value={String(data.duration)}

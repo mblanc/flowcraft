@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { buildCanvasContext } from "@/lib/canvas/agent/prompts";
+import {
+    buildCanvasContext,
+    summarizePrompt,
+} from "@/lib/canvas/agent/prompts";
 import type { CanvasNode } from "@/lib/canvas/types";
 
 function makeImageNode(id: string, label: string, prompt?: string): CanvasNode {
@@ -98,5 +101,44 @@ describe("buildCanvasContext", () => {
         expect(ctx).toContain(
             "IMPORTANT: Only use node IDs that appear in this list.",
         );
+    });
+});
+
+describe("summarizePrompt", () => {
+    it("returns undefined for undefined/empty prompts", () => {
+        expect(summarizePrompt(undefined)).toBeUndefined();
+        expect(summarizePrompt("")).toBeUndefined();
+    });
+
+    it("extracts general description from unified prompt structure", () => {
+        const prompt = `[GENERAL DESCRIPTION]
+A chef slicing red peppers in a sunlit kitchen.
+
+[STRUCTURED FEATURES]
+SUBJECT: Chef wearing white apron.
+ENVIRONMENT: Sunlit kitchen.`;
+        expect(summarizePrompt(prompt)).toBe(
+            "A chef slicing red peppers in a sunlit kitchen.",
+        );
+    });
+
+    it("truncates extracted description if too long (> 250 chars)", () => {
+        const longDesc = "A".repeat(300);
+        const prompt = `[GENERAL DESCRIPTION]
+${longDesc}
+
+[STRUCTURED FEATURES]
+SUBJECT: Chef.`;
+        const expected = "A".repeat(247) + "...";
+        expect(summarizePrompt(prompt)).toBe(expected);
+    });
+
+    it("falls back to simple truncation when marker is missing", () => {
+        const simplePrompt = "A chef slicing red peppers in a kitchen.";
+        expect(summarizePrompt(simplePrompt)).toBe(simplePrompt);
+
+        const longSimplePrompt = "A".repeat(250);
+        const expected = "A".repeat(197) + "...";
+        expect(summarizePrompt(longSimplePrompt)).toBe(expected);
     });
 });

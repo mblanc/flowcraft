@@ -53,6 +53,7 @@ export const videoPrimitive: Primitive<
                 duration: node.data.duration,
                 generateAudio: node.data.generateAudio,
                 resolution: node.data.resolution,
+                task: node.data.task,
             };
             const namedNodesMap = new Map<string, any>();
 
@@ -224,7 +225,7 @@ export const videoPrimitive: Primitive<
                     mimeType: i.type,
                 })),
                 ...(inputs.audio
-                    ? [{ url: inputs.audio, mimeType: "audio/mp3" }]
+                    ? [{ url: inputs.audio, mimeType: "audio/mpeg" }]
                     : []),
                 ...(inputs.video
                     ? [{ url: inputs.video, mimeType: "video/mp4" }]
@@ -302,6 +303,7 @@ export const videoPrimitive: Primitive<
             model: MODELS.VIDEO.GEMINI_OMNI_FLASH,
             generateAudio: false,
             resolution: "720p",
+            task: "none",
         },
     },
 
@@ -348,6 +350,7 @@ export const videoPrimitive: Primitive<
                 audio: step.audio,
                 previousInteractionId: step.previousInteractionId,
                 video: step.video,
+                task: step.task || "none",
                 ...(step.styleInstruction
                     ? { styleInstruction: step.styleInstruction }
                     : {}),

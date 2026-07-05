@@ -159,6 +159,52 @@ describe("applyTypeDefaults — aspect ratio and imageSize", () => {
         expect(step.aspectRatio).toBe("1:1");
     });
 
+    it("passes through valid video aspect ratios (16:9, 9:16)", () => {
+        const step169 = applyTypeDefaults({
+            id: "s1",
+            type: "video",
+            prompt: "x",
+            aspectRatio: "16:9",
+        });
+        expect(step169.aspectRatio).toBe("16:9");
+
+        const step916 = applyTypeDefaults({
+            id: "s1",
+            type: "video",
+            prompt: "x",
+            aspectRatio: "9:16",
+        });
+        expect(step916.aspectRatio).toBe("9:16");
+    });
+
+    it("coerces invalid video aspect ratio to videoDefaults.aspectRatio if valid", () => {
+        const step = applyTypeDefaults(
+            { id: "s1", type: "video", prompt: "x", aspectRatio: "1:1" },
+            undefined,
+            { aspectRatio: "9:16" },
+        );
+        expect(step.aspectRatio).toBe("9:16");
+        expect(mockWarn).toHaveBeenCalledWith(
+            expect.stringContaining(
+                'Coerced invalid video aspect ratio "1:1" to "9:16"',
+            ),
+        );
+    });
+
+    it("coerces invalid video aspect ratio to 16:9 if videoDefaults.aspectRatio is invalid or missing", () => {
+        const step = applyTypeDefaults(
+            { id: "s1", type: "video", prompt: "x", aspectRatio: "1:1" },
+            undefined,
+            { aspectRatio: "21:9" },
+        );
+        expect(step.aspectRatio).toBe("16:9");
+        expect(mockWarn).toHaveBeenCalledWith(
+            expect.stringContaining(
+                'Coerced invalid video aspect ratio "1:1" to "16:9"',
+            ),
+        );
+    });
+
     it("applies imageSize from defaults for image steps", () => {
         const step = applyTypeDefaults(
             { id: "s1", type: "image", prompt: "x" },

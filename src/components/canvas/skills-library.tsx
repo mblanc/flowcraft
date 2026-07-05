@@ -34,7 +34,7 @@ const BUILT_IN_SKILLS = [
         id: "multi-shot-video",
         name: "multi-shot-video",
         description:
-            "Plan and generate multi-scene cinematic videos with precise continuity.",
+            "Plan and generate multi-scene cinematic videos with precise continuity (ONLY use for videos longer than 10s).",
         isBuiltIn: true,
     },
     {

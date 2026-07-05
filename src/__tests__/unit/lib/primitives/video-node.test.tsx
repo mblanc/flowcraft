@@ -69,4 +69,69 @@ describe("VideoNode Rendering", () => {
 
         expect(getByText("Test Video")).toBeDefined();
     });
+
+    it("should render correct handles for Gemini Omni Flash (excluding audio-input and first-frame-input)", () => {
+        const props = {
+            ...defaultProps,
+            data: {
+                ...defaultProps.data,
+                model: "gemini-omni-flash-preview",
+            },
+        };
+        const { container } = render(
+            <ReactFlowProvider>
+                <TooltipProvider>
+                    <VideoNode {...props} />
+                </TooltipProvider>
+            </ReactFlowProvider>,
+        );
+
+        expect(
+            container.querySelector('[data-handleid="audio-input"]'),
+        ).toBeNull();
+        expect(
+            container.querySelector('[data-handleid="video-input"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-handleid="first-frame-input"]'),
+        ).toBeNull();
+        expect(
+            container.querySelector('[data-handleid="prompt-input"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-handleid="image-input"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-handleid="last-frame-input"]'),
+        ).toBeNull();
+    });
+
+    it("should render correct handles for non-Omni model", () => {
+        const { container } = render(
+            <ReactFlowProvider>
+                <TooltipProvider>
+                    <VideoNode {...defaultProps} />
+                </TooltipProvider>
+            </ReactFlowProvider>,
+        );
+
+        expect(
+            container.querySelector('[data-handleid="audio-input"]'),
+        ).toBeNull();
+        expect(
+            container.querySelector('[data-handleid="video-input"]'),
+        ).toBeNull();
+        expect(
+            container.querySelector('[data-handleid="first-frame-input"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-handleid="prompt-input"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-handleid="image-input"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-handleid="last-frame-input"]'),
+        ).not.toBeNull();
+    });
 });

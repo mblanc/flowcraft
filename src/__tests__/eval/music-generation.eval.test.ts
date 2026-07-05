@@ -50,7 +50,7 @@ describe.runIf(hasCredentials)(
                 expect(() =>
                     Buffer.from(result.audioData, "base64"),
                 ).not.toThrow();
-                expect(result.mimeType).toMatch(/^audio\//);
+                expect(result.mimeType).toBe("audio/mpeg");
 
                 console.log(
                     `✓ Received ${Buffer.from(result.audioData, "base64").length} bytes of audio (${result.mimeType})`,
@@ -67,7 +67,7 @@ describe.runIf(hasCredentials)(
                 });
 
                 expect(result.audioData).toBeTruthy();
-                expect(result.mimeType).toMatch(/^audio\//);
+                expect(result.mimeType).toBe("audio/mpeg");
             },
         );
     },
