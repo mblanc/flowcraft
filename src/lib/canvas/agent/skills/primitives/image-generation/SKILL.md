@@ -106,7 +106,8 @@ See `references/storyboard.md` — loaded automatically alongside this file.
 
 ## Model hints
 
-- `gemini-3.1-flash-image`: **default** — fastest, best for drafts and variations.
+- `gemini-3.1-flash-lite-image`: fastest, lowest latency, best for quick drafts and iterations.
+- `gemini-3.1-flash-image`: **default** — fast, high quality, best for general use.
 - `gemini-3-pro-image`: highest quality; use for hero shots or final keyframes only when the user requests it.
 - Always use the canvas default model unless the user explicitly requests otherwise.
 

@@ -56,6 +56,7 @@ const ImageDataModelSchema = z.enum([
     MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
     MODELS.IMAGE.GEMINI_3_PRO_IMAGE,
     MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+    MODELS.IMAGE.GEMINI_3_1_FLASH_LITE_IMAGE,
 ]);
 
 const ImageDataSizeSchema = z.enum(["512", "1K", "2K", "4K"]);

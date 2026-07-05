@@ -56,9 +56,9 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 
 ### Supported AI Models
 
-- **Text:** `gemini-3-pro-preview`, `gemini-3-flash-preview`, `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
-- **Image:** `imagen-4.0-upscale-preview`, `gemini-2.5-flash-image`, `gemini-3-pro-image-preview`
-- **Video:** `veo-3.1-fast-generate-preview`, `veo-3.1-generate-preview`
+- **Text:** `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`
+- **Image:** `imagen-4.0-upscale-preview`, `gemini-2.5-flash-image`, `gemini-3-pro-image`, `gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`
+- **Video:** `veo-3.1-lite-generate-001`, `veo-3.1-fast-generate-001`, `veo-3.1-generate-001`, `gemini-omni-flash-preview`
 
 ## 📋 Prerequisites
 

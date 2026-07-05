@@ -140,6 +140,11 @@ export function ConfigPanel({
                         <SelectItem value={MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE}>
                             Nano Banana 2 (Gemini 3.1 Flash Image Preview)
                         </SelectItem>
+                        <SelectItem
+                            value={MODELS.IMAGE.GEMINI_3_1_FLASH_LITE_IMAGE}
+                        >
+                            Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image)
+                        </SelectItem>
                     </SelectContent>
                 </Select>
             </div>

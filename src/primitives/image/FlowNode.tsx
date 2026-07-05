@@ -320,6 +320,13 @@ export const FlowNode = memo(
                                 >
                                     Nano Banana 2
                                 </SelectItem>
+                                <SelectItem
+                                    value={
+                                        MODELS.IMAGE.GEMINI_3_1_FLASH_LITE_IMAGE
+                                    }
+                                >
+                                    Nano Banana 2 Lite
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                         <Select

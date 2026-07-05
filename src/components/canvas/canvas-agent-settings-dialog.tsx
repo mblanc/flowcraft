@@ -73,6 +73,10 @@ const IMAGE_MODELS = [
         id: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
         label: "Nano Banana 2",
     },
+    {
+        id: MODELS.IMAGE.GEMINI_3_1_FLASH_LITE_IMAGE,
+        label: "Nano Banana 2 Lite",
+    },
     { id: MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE, label: "Nano Banana" },
     {
         id: MODELS.IMAGE.GEMINI_3_PRO_IMAGE,
