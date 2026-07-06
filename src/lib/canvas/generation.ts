@@ -136,7 +136,7 @@ function resolveReferences(
             const node = canvasNodes.find((n) => n.id === previousVideoId);
             if (node && node.type === "canvas-video") {
                 previousInteractionId = (node.data as CanvasVideoData)
-                    .interactionId;
+                    ?.interactionId;
             }
         }
         // Always resolve the video URI if present, so the service can use it as a fallback
