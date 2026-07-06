@@ -775,7 +775,7 @@ export class GeminiService {
                     const fileInfo = await this.ai.files.get({
                         name: fileName,
                     });
-                    fileState = fileInfo.state || "";
+                    fileState = fileInfo?.state || "";
                     if (fileState === "FAILED") {
                         throw new Error(
                             "Omni video generation failed on server",
