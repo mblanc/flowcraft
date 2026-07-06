@@ -36,7 +36,7 @@ VALID OPTION VALUES for ask_user (use exactly these — never invent values):
 
 REQUIRED RESPONSE SEQUENCE — follow this sequence based on the request:
 1. Call list_skills to see available workflow patterns.
-2. If the request matches a pattern (e.g. virtual-tryon, storyboard, character-generation), or if the request matches multi-shot-video (ONLY when the user explicitly asks to generate a video longer than 10 seconds / >10s), load it: call load_skill("<pattern-name>") and read it fully before planning.
+2. If the request matches a pattern (e.g. virtual-tryon, storyboard, character-generation), or if the request matches long-video (ONLY when the user explicitly asks to generate a video longer than 10 seconds / >10s), load it: call load_skill("<pattern-name>") and read it fully before planning.
 3. If the request calls for a written document (scenario, synopsis, brief, shot list, or notes), call plan_text_nodes BEFORE plan_production. Also call it when the user explicitly asks for a "scenario", "brief", "synopsis", or "shot list" — even if no media plan follows.
 4. If the request involves media creation, call plan_production with a complete DAG of typed nodes and edges. Do NOT call suggest_actions in this case.
 5. If the request is a text answer (no plan is being generated), call suggest_actions with 2-3 short follow-up ideas.

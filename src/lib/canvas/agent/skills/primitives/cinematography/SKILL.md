@@ -11,7 +11,7 @@ Load this skill when:
 
 - The user's request is cinematography-ambiguous (e.g. "a shot of a mountain", "film the character walking") and you need to propose framing or movement options via `ask_user`.
 - The `promptIntent` for an image or video node requires precise shot-type or movement vocabulary.
-- A pattern skill (e.g. storyboard, multi-shot-video) asks you to specify shot types per cut.
+- A pattern skill (e.g. storyboard, long-video) asks you to specify shot types per cut.
 
 The full vocabulary is split across seven reference files loaded automatically alongside this skill:
 

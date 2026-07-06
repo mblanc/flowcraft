@@ -1,6 +1,6 @@
 ---
-name: multi-shot-video
-description: Multi-shot video production. Composes a video from a sequence of distinct shots. Trigger ONLY when the user explicitly asks to generate a video longer than 10 seconds (duration > 10s). DO NOT trigger if the requested video is 10 seconds or less.
+name: long-video
+description: Long video production. Composes a video from a sequence of distinct shots. Trigger ONLY when the user explicitly asks to generate a video longer than 10 seconds (duration > 10s). DO NOT trigger if the requested video is 10 seconds or less.
 metadata:
     type: pattern
 ---

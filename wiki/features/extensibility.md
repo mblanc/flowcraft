@@ -81,7 +81,7 @@ Phase 2: Suggest social crop variants.
 
 **Two creation modes**:
 
-- **Clone & Customize**: fork a built-in pattern (character-generation, multi-shot-video, etc.) and edit it
+- **Clone & Customize**: fork a built-in pattern (character-generation, long-video, etc.) and edit it
 - **Create from scratch**: blank template wizard with guided fields (name, trigger condition, phases)
 
 **UI/UX**:

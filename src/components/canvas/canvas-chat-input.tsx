@@ -12,21 +12,16 @@ import {
     SendHorizonal,
     Loader2,
     Check,
-    Sparkles,
     ShieldCheck,
     ChevronDown,
+    Search,
 } from "lucide-react";
 import { StyleThumbnail } from "./style-thumbnail";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
     CanvasAgentSettingsDialog,
     DEFAULT_AGENT_SETTINGS,
@@ -40,15 +35,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import { SkillsLibrary } from "./skills-library";
 import type { StyleDocument } from "@/lib/styles/style-types";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import { useCanvasStore } from "@/lib/store/use-canvas-store";
@@ -183,7 +169,7 @@ export function CanvasChatInput({
     const availableSkills = useMemo(() => {
         const BUILT_IN_SKILL_NAMES = [
             "character-generation",
-            "multi-shot-video",
+            "long-video",
             "storyboard",
             "virtual-tryon",
         ];
@@ -212,6 +198,22 @@ export function CanvasChatInput({
     const [activeStyleImageUrl, setActiveStyleImageUrl] = useState<
         string | null
     >(null);
+    const [styleSearch, setStyleSearch] = useState("");
+
+    const filteredUserStyles = useMemo(() => {
+        if (!styleSearch.trim()) return userStyles;
+        const query = styleSearch.toLowerCase();
+        return userStyles.filter((s) => s.name.toLowerCase().includes(query));
+    }, [userStyles, styleSearch]);
+
+    const filteredTemplates = useMemo(() => {
+        if (!styleSearch.trim()) return STYLE_TEMPLATES;
+        const query = styleSearch.toLowerCase();
+        return STYLE_TEMPLATES.filter((t) =>
+            t.name.toLowerCase().includes(query),
+        );
+    }, [styleSearch]);
+
     const [userRulesets, setUserRulesets] = useState<
         { id: string; name: string }[]
     >([]);
@@ -1437,7 +1439,13 @@ export function CanvasChatInput({
                 {/* Style + Ruleset selectors */}
                 <div className="flex items-center gap-1 px-2 pt-2 pb-0.5">
                     {/* Style selector */}
-                    <DropdownMenu>
+                    <DropdownMenu
+                        onOpenChange={(open) => {
+                            if (!open) {
+                                setStyleSearch("");
+                            }
+                        }}
+                    >
                         <DropdownMenuTrigger asChild>
                             <button
                                 className={cn(
@@ -1456,69 +1464,104 @@ export function CanvasChatInput({
                                 <ChevronDown className="size-2.5 shrink-0 opacity-60" />
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-64">
-                            {userStyles.length > 0 && (
-                                <>
-                                    <DropdownMenuLabel className="text-xs">
-                                        My Styles
-                                    </DropdownMenuLabel>
-                                    {userStyles.map((s) => (
-                                        <DropdownMenuItem
-                                            key={s.id}
-                                            onClick={() =>
-                                                handleSelectStyle(s.id)
-                                            }
-                                            className="gap-3 py-2"
-                                        >
-                                            <div className="flex w-5 items-center justify-center">
-                                                {activeStyleId === s.id && (
-                                                    <Check className="size-3.5" />
-                                                )}
-                                            </div>
-                                            <StyleThumbnail
-                                                imageUri={
-                                                    s.referenceImageUris?.[0]
-                                                }
-                                            />
-                                            <span className="truncate">
-                                                {s.name}
-                                            </span>
-                                        </DropdownMenuItem>
-                                    ))}
-                                    <DropdownMenuSeparator />
-                                </>
-                            )}
-                            <DropdownMenuLabel className="text-xs">
-                                Templates
-                            </DropdownMenuLabel>
-                            {STYLE_TEMPLATES.map((t) => (
-                                <DropdownMenuItem
-                                    key={t.id}
-                                    onClick={() => handleSelectStyle(t.id)}
-                                    className="gap-3 py-2"
-                                >
-                                    <div className="flex w-5 items-center justify-center">
-                                        {activeStyleId === t.id && (
-                                            <Check className="size-3.5" />
-                                        )}
-                                    </div>
-                                    <StyleThumbnail
-                                        imageUri={t.referenceImageUris?.[0]}
+                        <DropdownMenuContent align="start" className="w-64 p-0">
+                            <div className="border-b p-2">
+                                <div className="relative">
+                                    <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-3.5" />
+                                    <Input
+                                        placeholder="Search styles..."
+                                        className="h-8 pl-8 text-xs focus-visible:ring-1 focus-visible:ring-violet-500/50"
+                                        value={styleSearch}
+                                        onChange={(e) =>
+                                            setStyleSearch(e.target.value)
+                                        }
+                                        onKeyDown={(e) => e.stopPropagation()}
+                                        autoFocus
                                     />
-                                    <span className="truncate">{t.name}</span>
-                                </DropdownMenuItem>
-                            ))}
-                            {activeStyleId && (
-                                <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        onClick={handleClearStyle}
-                                        className="text-muted-foreground"
-                                    >
-                                        No style
-                                    </DropdownMenuItem>
-                                </>
-                            )}
+                                </div>
+                            </div>
+                            <div className="max-h-[300px] overflow-y-auto p-1">
+                                {filteredUserStyles.length > 0 && (
+                                    <>
+                                        <DropdownMenuLabel className="text-xs">
+                                            My Styles
+                                        </DropdownMenuLabel>
+                                        {filteredUserStyles.map((s) => (
+                                            <DropdownMenuItem
+                                                key={s.id}
+                                                onClick={() =>
+                                                    handleSelectStyle(s.id)
+                                                }
+                                                className="gap-3 py-2"
+                                            >
+                                                <div className="flex w-5 items-center justify-center">
+                                                    {activeStyleId === s.id && (
+                                                        <Check className="size-3.5" />
+                                                    )}
+                                                </div>
+                                                <StyleThumbnail
+                                                    imageUri={
+                                                        s
+                                                            .referenceImageUris?.[0]
+                                                    }
+                                                />
+                                                <span className="truncate">
+                                                    {s.name}
+                                                </span>
+                                            </DropdownMenuItem>
+                                        ))}
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
+                                {filteredTemplates.length > 0 && (
+                                    <>
+                                        <DropdownMenuLabel className="text-xs">
+                                            Templates
+                                        </DropdownMenuLabel>
+                                        {filteredTemplates.map((t) => (
+                                            <DropdownMenuItem
+                                                key={t.id}
+                                                onClick={() =>
+                                                    handleSelectStyle(t.id)
+                                                }
+                                                className="gap-3 py-2"
+                                            >
+                                                <div className="flex w-5 items-center justify-center">
+                                                    {activeStyleId === t.id && (
+                                                        <Check className="size-3.5" />
+                                                    )}
+                                                </div>
+                                                <StyleThumbnail
+                                                    imageUri={
+                                                        t
+                                                            .referenceImageUris?.[0]
+                                                    }
+                                                />
+                                                <span className="truncate">
+                                                    {t.name}
+                                                </span>
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </>
+                                )}
+                                {filteredUserStyles.length === 0 &&
+                                    filteredTemplates.length === 0 && (
+                                        <div className="text-muted-foreground p-4 text-center text-xs">
+                                            No styles found
+                                        </div>
+                                    )}
+                                {activeStyleId && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onClick={handleClearStyle}
+                                            className="text-muted-foreground"
+                                        >
+                                            No style
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </div>
                         </DropdownMenuContent>
                     </DropdownMenu>
 

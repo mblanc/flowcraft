@@ -260,13 +260,13 @@ const BUILT_IN_SKILLS: UserSkillDocument[] = [
         updatedAt: "2026-06-26T00:00:00Z",
     },
     {
-        id: "multi-shot-video",
+        id: "long-video",
         userId: "system",
-        name: "multi-shot-video",
+        name: "long-video",
         description:
             "Plan and generate multi-scene cinematic videos with precise continuity (ONLY use for videos longer than 10s).",
         instructions:
-            "# Multi-Shot Video\n\nPlan and generate multi-scene cinematic videos with precise continuity.\n\n### Guidelines\n- ONLY use this skill if the requested video duration is longer than 10 seconds (>10s).\n- Define a script outlining visual changes across shots.\n- Use consistent styling tokens for all generated video clips.",
+            "# Long Video\n\nPlan and generate multi-scene cinematic videos with precise continuity.\n\n### Guidelines\n- ONLY use this skill if the requested video duration is longer than 10 seconds (>10s).\n- Define a script outlining visual changes across shots.\n- Use consistent styling tokens for all generated video clips.",
         visibility: "public",
         sharedWith: [],
         sharedWithEmails: [],

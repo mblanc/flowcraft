@@ -36,7 +36,7 @@ Canvas nodes: `canvas-image`, `canvas-video`, `canvas-text` — simpler data sha
 The Director agent has two layers of "skills":
 
 - **Primitives** (`src/lib/canvas/adk/skills/primitives/`): Markdown docs that tell the PromptEngineer how to write prompts for a single operation. Currently: `image-generation`, `video-generation`, `t2s`.
-- **Patterns** (`src/lib/canvas/adk/skills/patterns/`): Multi-step ADK skills loaded by the Director at runtime. Currently: `character-generation`, `multi-shot-video`, `storyboard`, `virtual-tryon`.
+- **Patterns** (`src/lib/canvas/adk/skills/patterns/`): Multi-step ADK skills loaded by the Director at runtime. Currently: `character-generation`, `long-video`, `storyboard`, `virtual-tryon`.
 
 The **PromptEngineer** maps `GenerationStep.type → SKILL.md` via a hardcoded `SKILL_FOR_TYPE` record, enriches the plain-language intent into a structured prompt, and passes it to `generation.ts`.
 
@@ -415,7 +415,7 @@ Adding a new primitive requires zero changes to `config-panel.tsx`.
 
 ### Open
 
-1. **Patterns that compose multiple primitives** — a `multi-shot-video` pattern produces both images and videos. Pattern SKILL.md files may need to reference primitive IDs explicitly. Do we formalize this link, or leave patterns as free-form Markdown?
+1. **Patterns that compose multiple primitives** — a `long-video` pattern produces both images and videos. Pattern SKILL.md files may need to reference primitive IDs explicitly. Do we formalize this link, or leave patterns as free-form Markdown?
 
 2. **Batch merge defaults** — decided: each primitive implements its own `mergeResults()` explicitly (Option A). The strategies aren't uniform enough to abstract (image uses flatMap, video doesn't; field names differ), and with ~10 primitives the boilerplate is minimal. No merge strategy helpers.
 
