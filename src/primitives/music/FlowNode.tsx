@@ -108,7 +108,10 @@ export const FlowNode = memo(
                 </div>
 
                 {/* Params bar — model, duration, prompt */}
-                <NodeParamsBar isVisible={selected || isHovered}>
+                <NodeParamsBar
+                    isVisible={selected || isHovered}
+                    nodeWidth={NODE_WIDTH}
+                >
                     <div className="mb-2 flex flex-wrap gap-1.5">
                         <Select
                             value={data.model ?? MODELS.MUSIC.LYRIA_3_CLIP}

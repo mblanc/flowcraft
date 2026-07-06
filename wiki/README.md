@@ -21,7 +21,7 @@ Design and specification documents for the Canvas product surface (media agent /
 - [agent-design.md](canvas/agent-design.md) — Canonical architecture: principles, primitives, orchestration
 - [agent-harness.md](canvas/agent-harness.md) — Agent harness spec: context, capabilities, pre/post hooks
 - [agent-primitives.md](canvas/agent-primitives.md) — Layer-by-layer primitive taxonomy (atomic operations)
-- [extensibility.md](canvas/extensibility.md) — Three-phase plan: Canvas Instructions → User Skills → Flows as Tools
+- [extensibility.md](features/extensibility.md) — Three-phase plan: Canvas Instructions → User Skills → Flows as Tools
 - [lumen-prd.md](canvas/lumen-prd.md) — Original product requirements document
 - [lumen-tech-spec.md](canvas/lumen-tech-spec.md) — Original technical specification
 - [lumen-design-spec.md](canvas/lumen-design-spec.md) — Original design specification
@@ -35,6 +35,9 @@ Planned and in-design features.
 
 - [batch.md](features/batch.md) — PRD for batch execution system
 - [code-export.md](features/code-export.md) — Export flow as runnable code
+- [director-missing-skills-analysis.md](features/director-missing-skills-analysis.md) — Gap analysis of Canvas Director (Agent B) capabilities vs commercial opportunities
+- [enterprise-teams.md](features/enterprise-teams.md) — PRD & Tech Spec for Organization and Member Management (foundational for team features)
+- [gemini-omni-video.md](features/gemini-omni-video.md) — Feature spec for integrating Gemini Omni Flash for video generation & editing
 - [model-nodes.md](features/model-nodes.md) — Node taxonomy brainstorm (triggers, models, tools, flow control)
 - [validation.md](features/validation.md) — Brand validation and policy enforcement during generation
 

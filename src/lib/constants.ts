@@ -12,12 +12,14 @@ export const MODELS = {
         GEMINI_2_5_FLASH_IMAGE: "gemini-2.5-flash-image",
         GEMINI_3_PRO_IMAGE: "gemini-3-pro-image",
         GEMINI_3_1_FLASH_IMAGE: "gemini-3.1-flash-image",
+        GEMINI_3_1_FLASH_LITE_IMAGE: "gemini-3.1-flash-lite-image",
         IMAGEN_4_0_UPSCALE: "imagen-4.0-upscale-preview",
     },
     VIDEO: {
         VEO_3_1_LITE: "veo-3.1-lite-generate-001",
         VEO_3_1_FAST: "veo-3.1-fast-generate-001",
         VEO_3_1_PRO: "veo-3.1-generate-001",
+        GEMINI_OMNI_FLASH: "gemini-omni-flash-preview",
     },
     MUSIC: {
         LYRIA_3_CLIP: "lyria-3-clip-preview",
@@ -29,6 +31,7 @@ export const MODEL_THINKING_LEVELS: Record<string, string[]> = {
     [MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW]: ["LOW", "MEDIUM", "HIGH"],
     [MODELS.TEXT.GEMINI_3_1_FLASH_LITE]: ["MINIMAL", "LOW", "MEDIUM", "HIGH"],
     [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE]: ["MINIMAL", "HIGH"],
+    [MODELS.IMAGE.GEMINI_3_1_FLASH_LITE_IMAGE]: ["MINIMAL", "HIGH"],
     [MODELS.TEXT.GEMINI_3_5_FLASH]: ["MINIMAL", "LOW", "MEDIUM", "HIGH"],
 };
 
@@ -88,6 +91,27 @@ export const IMAGE_MODEL_CONFIGS = {
         imageSizes: ["512", "1K", "2K", "4K"],
         grounding: { google: true, image: true },
     },
+    [MODELS.IMAGE.GEMINI_3_1_FLASH_LITE_IMAGE]: {
+        ratios: [
+            "Auto",
+            "1:1",
+            "1:4",
+            "1:8",
+            "3:2",
+            "2:3",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9",
+        ],
+        imageSizes: ["1K"],
+        grounding: { google: false, image: false },
+    },
 } as const;
 
 export const IMAGE_SIZES = ["512", "1K", "2K", "4K"] as const;
@@ -134,7 +158,7 @@ export const SUPPORTED_MIME_TYPES = {
     ],
     AUDIO: [
         "audio/wav",
-        "audio/mp3",
+        "audio/mpeg",
         "audio/aiff",
         "audio/aac",
         "audio/ogg",

@@ -306,7 +306,7 @@ src/lib/canvas/agent/
     │   └── cinematography/
     └── patterns/        ← Pattern skill docs loaded into the agent
         ├── character-generation/
-        ├── multi-shot-video/
+        ├── long-video/
         ├── storyboard/
         └── virtual-tryon/
 ```
@@ -384,7 +384,7 @@ executePlan(plan, canvasNodes)
 | `PlanNode`         | A single operation in a production plan (`t2i`, `i2v`, `t2m`, `concat`, etc.)                              |
 | `PlanEdge`         | Dependency edge between plan nodes; role: `depends_on`, `style_ref`, `subject_ref`                         |
 | `GenerationStep`   | A resolved plan node ready for execution (prompt filled in, inputs resolved)                               |
-| `MediaOperation`   | `"t2i" \| "i2i" \| "t2v" \| "i2v" \| "t2s" \| "t2m" \| "sfx" \| "concat" \| "edit" \| "upscale"`           |
+| `MediaOperation`   | `"t2i" \| "i2i" \| "t2v" \| "i2v" \| "t2s" \| "t2m" \| "concat" \| "edit" \| "upscale"`                    |
 | `ChatMessage`      | A message in the chat panel, may carry a plan or question                                                  |
 | `AgentEvent`       | SSE event: `text`, `thought`, `plan`, `agent_action`, `actions`, `text_nodes`, `question`, `done`, `error` |
 | `RulesetRef`       | Snapshot of a ruleset's rules embedded in AgentInput                                                       |
@@ -431,7 +431,7 @@ A **Skill** is a markdown instruction document injected into the ADK agent's sys
 
 Two flavours:
 
-- **Built-in pattern skills** — markdown files under `src/lib/canvas/agent/skills/patterns/` loaded from disk at startup (character-generation, multi-shot-video, storyboard, virtual-tryon).
+- **Built-in pattern skills** — markdown files under `src/lib/canvas/agent/skills/patterns/` loaded from disk at startup (character-generation, long-video, storyboard, virtual-tryon).
 - **User-defined skills** — stored in Firestore via `skill.service.ts`. The `instructions` field is a freeform markdown string.
 
 Skills can be enabled/disabled per-canvas (`CanvasDocument.disabledSkills[]`). `POST /api/canvases/[id]/toggle-skill` flips a skill's enabled state.

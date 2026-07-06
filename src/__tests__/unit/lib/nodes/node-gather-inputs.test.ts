@@ -192,6 +192,52 @@ describe("videoNodeDefinition.gatherInputs", () => {
         expect(inputs.lastFrame).toBe("gs://last.png");
     });
 
+    it("extracts audio from audio-input edge", () => {
+        const node = makeVideoNode();
+        const edges = [edge("e1", "mus-1", "vid-1", "audio-input")];
+        const getSourceData = () =>
+            ({
+                type: "music",
+                name: "Music",
+                audioUrl: "gs://music.mp3",
+            }) as unknown as NodeData;
+        const inputs = videoNodeDefinition.gatherInputs(
+            node,
+            edges,
+            getSourceData,
+        );
+        expect(inputs.audio).toBe("gs://music.mp3");
+    });
+
+    it("extracts video from video-input edge", () => {
+        const node = makeVideoNode();
+        const edges = [edge("e1", "vid-ref", "vid-1", "video-input")];
+        const getSourceData = () =>
+            ({
+                type: "video",
+                name: "Reference Video",
+                videoUrl: "gs://ref-video.mp4",
+            }) as unknown as NodeData;
+        const inputs = videoNodeDefinition.gatherInputs(
+            node,
+            edges,
+            getSourceData,
+        );
+        expect(inputs.video).toBe("gs://ref-video.mp4");
+    });
+
+    it("gathers task parameter from node data", () => {
+        const node = {
+            ...makeVideoNode(),
+            data: {
+                ...makeVideoNode().data,
+                task: "image_to_video",
+            },
+        };
+        const inputs = videoNodeDefinition.gatherInputs(node, [], () => null);
+        expect(inputs.task).toBe("image_to_video");
+    });
+
     it("handles collection prompt source", () => {
         const node = makeVideoNode();
         const edges = [edge("e1", "list-1", "vid-1", "prompt-input")];

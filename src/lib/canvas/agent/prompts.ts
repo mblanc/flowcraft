@@ -36,7 +36,7 @@ VALID OPTION VALUES for ask_user (use exactly these — never invent values):
 
 REQUIRED RESPONSE SEQUENCE — follow this sequence based on the request:
 1. Call list_skills to see available workflow patterns.
-2. If the request matches a pattern (e.g. virtual-tryon, multi-shot-video, storyboard, character-generation), load it: call load_skill("<pattern-name>") and read it fully before planning.
+2. If the request matches a pattern (e.g. virtual-tryon, storyboard, character-generation), or if the request matches long-video (ONLY when the user explicitly asks to generate a video longer than 10 seconds / >10s), load it: call load_skill("<pattern-name>") and read it fully before planning.
 3. If the request calls for a written document (scenario, synopsis, brief, shot list, or notes), call plan_text_nodes BEFORE plan_production. Also call it when the user explicitly asks for a "scenario", "brief", "synopsis", or "shot list" — even if no media plan follows.
 4. If the request involves media creation, call plan_production with a complete DAG of typed nodes and edges. Do NOT call suggest_actions in this case.
 5. If the request is a text answer (no plan is being generated), call suggest_actions with 2-3 short follow-up ideas.
@@ -51,16 +51,14 @@ Image operations:
 - i2i  — image-to-image: edit or transform an existing image
 
 Video operations:
-- t2v  — text-to-video: generate a video clip from a text description (single-shot only — forbidden when a multi-shot skill is loaded)
+- t2v  — text-to-video / video-to-video edit: generate a video clip from a text description, OR edit an existing video when wired with a 'depends_on' edge from the source video (single-shot only — forbidden when a multi-shot skill is loaded).
 - i2v  — image-to-video: animate a t2i keyframe into a video clip
 - i2v2 — image-to-video-to-image: morph between two images
 
 Other operations:
 - t2s  — text-to-speech
 - t2m  — text-to-music (model: lyria-3-clip-preview for short clips ~30s; lyria-3-pro-preview for full songs)
-- sfx  — sound effects
 - concat — concatenate clips
-- edit — post-production edit
 - upscale — upscale resolution
 
 RULES for plan_text_nodes:
@@ -79,12 +77,38 @@ RULES for plan_production nodes:
     { from: "img_1", to: "vid_1", role: "depends_on" }            ← vid_1 animates the output of img_1
     { from: "img_2", to: "vid_2", role: "depends_on" }            ← vid_2 animates the output of img_2
 - Use edges: depends_on (output feeds next node), style_ref (visual style source), subject_ref (subject/character reference).
-- **AUDIO REFERENCE CONSTRAINT:** Video/image generation nodes ('t2v', 'i2v', 'i2v2', 't2i', 'i2i') **cannot** accept or use audio, speech, or music nodes ('t2s', 't2m', 'sfx') as references or dependencies. Never draw an edge from an audio/speech/music node to an image or video generation node. Video nodes generate their own audio; to include audio, music, SFX, or dialogue in a video, describe it directly in the video prompt's '[AUDIO]' section (see the video-generation skill). Do not plan separate audio nodes for this. Separate audio/music/speech nodes should only be planned if the user explicitly asks to generate a standalone audio/music file.
+- **AUDIO REFERENCE CONSTRAINT:** Video/image generation nodes ('t2v', 'i2v', 'i2v2', 't2i', 'i2i') **cannot** accept or use audio, speech, or music nodes ('t2s', 't2m') as references or dependencies. Audio input is **not supported** for any video models, including the default Omni model ('gemini-omni-flash-preview'). Do NOT draw edges from audio/music nodes to video/image generation nodes.
+- **STATEFUL VIDEO EDITING (OMNI):** The default model 'gemini-omni-flash-preview' supports stateful editing! To edit an existing video (e.g. 'make it faster', 'change the style', 'add a character', 'colorize it'), use the 't2v' operation and draw a 'depends_on' edge from the previous video node to the new video node. The engine will propagate the interaction state for seamless editing.
 - Reference existing canvas items by their node ID in promptIntent when relevant.
 - Keep video nodes ≤10s; split longer sequences with concat nodes.
 - Video duration MUST be exactly 4, 6, or 8 seconds — no other values are valid. Default to 4 when the user has not specified.
 - If the request is genuinely ambiguous, add clarifications[] but still emit a best-effort plan.
 - Never put generation descriptions in conversational text — always emit plan_production.`;
+
+export function summarizePrompt(prompt?: string): string | undefined {
+    if (!prompt) return undefined;
+    const clean = prompt.trim();
+    const generalDescMarker = "[GENERAL DESCRIPTION]";
+    const lowerClean = clean.toLowerCase();
+    const markerIndex = lowerClean.indexOf(generalDescMarker.toLowerCase());
+
+    if (markerIndex !== -1) {
+        const contentStart = markerIndex + generalDescMarker.length;
+        const remaining = clean.slice(contentStart).trim();
+        const nextHeaderIndex = remaining.indexOf("[");
+        const description =
+            nextHeaderIndex !== -1
+                ? remaining.slice(0, nextHeaderIndex).trim()
+                : remaining;
+        if (description) {
+            return description.length > 250
+                ? description.slice(0, 247) + "..."
+                : description;
+        }
+    }
+
+    return clean.length > 200 ? clean.slice(0, 197) + "..." : clean;
+}
 
 export function buildCanvasContext(nodes: AgentInput["canvasNodes"]): string {
     if (nodes.length === 0) return "";
@@ -92,7 +116,12 @@ export function buildCanvasContext(nodes: AgentInput["canvasNodes"]): string {
         const d = n.data;
         let desc = `- ${d.label} (id: ${n.id}, type: ${n.type.replace("canvas-", "")})`;
         if ("format" in d && d.format) desc += ` [format: ${d.format}]`;
-        if ("prompt" in d && d.prompt) desc += ` — prompt: "${d.prompt}"`;
+        if ("prompt" in d && d.prompt) {
+            const summary = summarizePrompt(d.prompt);
+            if (summary) {
+                desc += ` — prompt: "${summary}"`;
+            }
+        }
         if ("status" in d) desc += ` [${d.status}]`;
         if (n.type === "canvas-text" && "content" in d && d.content) {
             const raw = d.content as string;

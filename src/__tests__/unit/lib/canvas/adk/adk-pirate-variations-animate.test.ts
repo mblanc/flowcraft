@@ -23,7 +23,7 @@ vi.mock("@/lib/config", () => ({
 }));
 
 import { extractAgentEvents } from "@/lib/canvas/agent/agent-runner";
-import type { ChatAttachment } from "@/lib/canvas/types";
+import type { ChatAttachment, CanvasNode } from "@/lib/canvas/types";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -59,7 +59,22 @@ const attachments: ChatAttachment[] = [
     { nodeId: REF_NODE_ID, label: "Guy Portrait", type: "canvas-image" },
 ];
 
-const canvasNodeIds: string[] = [REF_NODE_ID];
+const canvasNodes: CanvasNode[] = [
+    {
+        id: REF_NODE_ID,
+        type: "canvas-image",
+        position: { x: 0, y: 0 },
+        data: {
+            type: "canvas-image",
+            label: "Guy Portrait",
+            sourceUrl: "gs://mock/guy.png",
+            mimeType: "image/png",
+            status: "ready",
+            width: 100,
+            height: 100,
+        },
+    },
+];
 
 // ─── Agent A  (plan_image_generation + plan_video_generation) ─────────────────
 
@@ -129,7 +144,7 @@ describe("Eval: pirate 2 variations + animate — Agent A", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -143,7 +158,7 @@ describe("Eval: pirate 2 variations + animate — Agent A", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -163,7 +178,7 @@ describe("Eval: pirate 2 variations + animate — Agent A", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -181,7 +196,7 @@ describe("Eval: pirate 2 variations + animate — Agent A", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -196,7 +211,7 @@ describe("Eval: pirate 2 variations + animate — Agent A", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -215,7 +230,7 @@ describe("Eval: pirate 2 variations + animate — Agent A", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -232,7 +247,7 @@ describe("Eval: pirate 2 variations + animate — Agent A", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -311,7 +326,7 @@ describe("Eval: pirate 2 variations + animate — Agent B (Director)", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -325,7 +340,7 @@ describe("Eval: pirate 2 variations + animate — Agent B (Director)", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -345,7 +360,7 @@ describe("Eval: pirate 2 variations + animate — Agent B (Director)", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -360,7 +375,7 @@ describe("Eval: pirate 2 variations + animate — Agent B (Director)", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -378,7 +393,7 @@ describe("Eval: pirate 2 variations + animate — Agent B (Director)", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -395,7 +410,7 @@ describe("Eval: pirate 2 variations + animate — Agent B (Director)", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -493,12 +508,12 @@ describe("Eval: pirate plan — hallucinated node ID guard", () => {
             }),
         ];
         const events = await collect(
-            // img_1 is NOT in canvasNodeIds — it's a plan step ID, not a canvas node.
+            // img_1 is NOT in canvasNodes — it's a plan step ID, not a canvas node.
             // After stripping the hallucinated ID, applyVideoFallback assigns the
             // one real attachment (canvas_ref_1) as the first frame automatically.
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );
@@ -525,7 +540,7 @@ describe("Eval: pirate plan — hallucinated node ID guard", () => {
         const events = await collect(
             extractAgentEvents(
                 asAsyncIter(adkEvents),
-                canvasNodeIds,
+                canvasNodes,
                 attachments,
             ),
         );

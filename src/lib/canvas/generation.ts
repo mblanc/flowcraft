@@ -6,6 +6,7 @@ import { topoSort } from "./agent/topology";
 import type {
     AgentPlan,
     CanvasNode,
+    CanvasVideoData,
     GenerationStep,
     NodePayload,
     PlanEdge,
@@ -30,6 +31,8 @@ export type StepEvent =
 interface ExecutionContext {
     /** Maps stepId → GCS URI of the completed node */
     completedStepUris: Map<string, string>;
+    /** Maps stepId → interactionId of the completed node */
+    completedStepInteractionIds: Map<string, string>;
     /** Maps nodeId → GCS URI from the user's existing canvas attachments */
     attachmentUris: Map<string, string>;
     /** Maps stepId/nodeId → its media type */
@@ -45,10 +48,14 @@ interface ExecutionContext {
 function resolveReferences(
     step: GenerationStep,
     ctx: ExecutionContext,
+    canvasNodes?: CanvasNode[],
 ): {
     referenceUrls: string[];
     firstFrameUrl?: string;
     lastFrameUrl?: string;
+    audioUrl?: string;
+    previousInteractionId?: string;
+    videoUrl?: string;
 } {
     // nodeUriMap contains ALL canvas nodes, so any node referenced by label/id resolves
     const getUri = (nodeId: string): string | undefined =>
@@ -56,42 +63,94 @@ function resolveReferences(
 
     const isAudio = (id: string): boolean => {
         const type = ctx.nodeTypes.get(id);
-        return type === "audio" || type === "canvas-audio";
+        return (
+            type === "audio" ||
+            type === "canvas-audio" ||
+            type === "music" ||
+            type === "canvas-music"
+        );
     };
 
-    // Resolve dependsOn to URIs from completed steps, filtering out audio dependencies for visual steps
+    const isVideo = (id: string): boolean => {
+        const type = ctx.nodeTypes.get(id);
+        return type === "video" || type === "canvas-video";
+    };
+
+    // Resolve dependsOn to URIs from completed steps, filtering out audio and video dependencies for visual steps
     const dependencyUrls: string[] = (step.dependsOn ?? [])
         .filter((depId) => {
             if (step.type === "video" || step.type === "image") {
-                return !isAudio(depId);
+                return !isAudio(depId) && !isVideo(depId);
             }
             return true;
         })
         .map((depId) => ctx.completedStepUris.get(depId))
         .filter((uri): uri is string => !!uri);
 
-    // Resolve existing canvas node references, filtering out audio references for visual steps
+    // Resolve existing canvas node references, filtering out audio and video references for visual steps
     const referenceUrls: string[] = (step.referenceNodeIds ?? [])
         .filter((id) => {
             if (step.type === "video" || step.type === "image") {
-                return !isAudio(id);
+                return !isAudio(id) && !isVideo(id);
             }
             return true;
         })
         .map((id) => getUri(id))
         .filter((uri): uri is string => !!uri);
 
-    // For video: first/last frame from existing canvas nodes, ensuring they are not audio
+    // For video: first/last frame from existing canvas nodes, ensuring they are not audio or video
     const firstFrameUrl =
-        step.firstFrameNodeId && !isAudio(step.firstFrameNodeId)
+        step.firstFrameNodeId &&
+        !isAudio(step.firstFrameNodeId) &&
+        !isVideo(step.firstFrameNodeId)
             ? getUri(step.firstFrameNodeId)
             : undefined;
     const lastFrameUrl =
-        step.lastFrameNodeId && !isAudio(step.lastFrameNodeId)
+        step.lastFrameNodeId &&
+        !isAudio(step.lastFrameNodeId) &&
+        !isVideo(step.lastFrameNodeId)
             ? getUri(step.lastFrameNodeId)
             : undefined;
 
-    if (step.type === "video" && !firstFrameUrl && !lastFrameUrl) {
+    // Find audio reference
+    const audioId = [
+        ...(step.dependsOn ?? []),
+        ...(step.referenceNodeIds ?? []),
+    ].find(isAudio);
+    const audioUrl = audioId
+        ? (ctx.completedStepUris.get(audioId) ??
+          ctx.attachmentUris.get(audioId))
+        : undefined;
+
+    // Find previous video reference (for editing)
+    const previousVideoId = [
+        ...(step.dependsOn ?? []),
+        ...(step.referenceNodeIds ?? []),
+    ].find(isVideo);
+    let previousInteractionId: string | undefined = undefined;
+    let videoUrl: string | undefined = undefined;
+    if (previousVideoId) {
+        previousInteractionId =
+            ctx.completedStepInteractionIds.get(previousVideoId);
+        if (!previousInteractionId && canvasNodes) {
+            const node = canvasNodes.find((n) => n.id === previousVideoId);
+            if (node && node.type === "canvas-video") {
+                previousInteractionId = (node.data as CanvasVideoData)
+                    ?.interactionId;
+            }
+        }
+        // Always resolve the video URI if present, so the service can use it as a fallback
+        // or primary path if stateful editing is not supported on the platform (e.g. Vertex AI).
+        videoUrl = getUri(previousVideoId);
+    }
+
+    if (
+        step.type === "video" &&
+        !firstFrameUrl &&
+        !lastFrameUrl &&
+        !previousInteractionId &&
+        !videoUrl
+    ) {
         // For video: promote the first available image to firstFrame (via source.image).
         // referenceImages is not supported by all models; source.image is universal.
         if (dependencyUrls.length > 0) {
@@ -104,12 +163,14 @@ function resolveReferences(
                 referenceUrls,
                 firstFrameUrl: dependencyUrls[0],
                 lastFrameUrl: dependencyUrls[1],
+                audioUrl,
             };
         }
         if (referenceUrls.length > 0) {
             return {
                 referenceUrls: referenceUrls.slice(1),
                 firstFrameUrl: referenceUrls[0],
+                audioUrl,
             };
         }
     }
@@ -118,6 +179,9 @@ function resolveReferences(
         referenceUrls: [...referenceUrls, ...dependencyUrls],
         firstFrameUrl,
         lastFrameUrl,
+        audioUrl,
+        previousInteractionId,
+        videoUrl,
     };
 }
 
@@ -313,6 +377,7 @@ export async function* executePlan(
 
     const ctx: ExecutionContext = {
         completedStepUris: new Map(),
+        completedStepInteractionIds: new Map(),
         attachmentUris: nodeUris,
         nodeTypes: new Map<string, string>(),
         ruleset: activeRuleset,
@@ -361,8 +426,14 @@ export async function* executePlan(
                     }
 
                     // Resolve canvas references before calling into the primitive.
-                    const { referenceUrls, firstFrameUrl, lastFrameUrl } =
-                        resolveReferences(step, ctx);
+                    const {
+                        referenceUrls,
+                        firstFrameUrl,
+                        lastFrameUrl,
+                        audioUrl,
+                        previousInteractionId,
+                        videoUrl,
+                    } = resolveReferences(step, ctx, canvasNodes);
 
                     const enrichedStep = {
                         ...step,
@@ -378,6 +449,9 @@ export async function* executePlan(
                         })),
                         firstFrame: firstFrameUrl,
                         lastFrame: lastFrameUrl,
+                        audio: audioUrl,
+                        previousInteractionId,
+                        video: videoUrl,
                         // concat: pre-resolve dependsOn / canvas URIs in order
                         inputUris:
                             step.type === "concat"
@@ -435,6 +509,12 @@ export async function* executePlan(
 
                     // Record initial URI (may be overwritten after validation retry)
                     ctx.completedStepUris.set(step.id, node.sourceUrl);
+                    if (node.interactionId) {
+                        ctx.completedStepInteractionIds.set(
+                            step.id,
+                            node.interactionId,
+                        );
+                    }
 
                     return { step, node, enrichedStep };
                 } catch (error) {

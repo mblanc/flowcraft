@@ -56,6 +56,7 @@ const ImageDataModelSchema = z.enum([
     MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
     MODELS.IMAGE.GEMINI_3_PRO_IMAGE,
     MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+    MODELS.IMAGE.GEMINI_3_1_FLASH_LITE_IMAGE,
 ]);
 
 const ImageDataSizeSchema = z.enum(["512", "1K", "2K", "4K"]);
@@ -136,10 +137,20 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
             MODELS.VIDEO.VEO_3_1_LITE,
             MODELS.VIDEO.VEO_3_1_FAST,
             MODELS.VIDEO.VEO_3_1_PRO,
+            MODELS.VIDEO.GEMINI_OMNI_FLASH,
         ]),
     ),
     generateAudio: z.boolean(),
     resolution: z.enum(["720p", "1080p", "4K"]),
+    task: z
+        .enum([
+            "none",
+            "text_to_video",
+            "image_to_video",
+            "reference_to_video",
+            "edit",
+        ])
+        .optional(),
     width: z.number().optional(),
     height: z.number().optional(),
     mediaInputs: z
@@ -353,6 +364,9 @@ export const GenerateVideoSchema = z.object({
     prompt: z.string().min(1, "Prompt is required"),
     firstFrame: z.string().optional(),
     lastFrame: z.string().optional(),
+    audio: z.string().optional(),
+    previousInteractionId: z.string().optional(),
+    video: z.string().optional(),
     images: z
         .array(
             z.object({
@@ -376,12 +390,23 @@ export const GenerateVideoSchema = z.object({
                 MODELS.VIDEO.VEO_3_1_LITE,
                 MODELS.VIDEO.VEO_3_1_FAST,
                 MODELS.VIDEO.VEO_3_1_PRO,
+                MODELS.VIDEO.GEMINI_OMNI_FLASH,
             ])
             .optional()
-            .default(MODELS.VIDEO.VEO_3_1_LITE),
+            .default(MODELS.VIDEO.GEMINI_OMNI_FLASH),
     ),
     generateAudio: z.boolean().optional().default(true),
     resolution: z.enum(["720p", "1080p", "4K"]).optional().default("720p"),
+    task: z
+        .enum([
+            "none",
+            "text_to_video",
+            "image_to_video",
+            "reference_to_video",
+            "edit",
+        ])
+        .optional()
+        .default("none"),
     namedNodes: z.array(NamedNodeInputSchema).optional(),
 });
 

@@ -47,14 +47,23 @@ export const FlowNode = memo(
         const validVideoModels = Object.values(MODELS.VIDEO) as string[];
         const effectiveModel = validVideoModels.includes(data.model)
             ? data.model
-            : MODELS.VIDEO.VEO_3_1_LITE;
+            : MODELS.VIDEO.GEMINI_OMNI_FLASH;
 
         useEffect(() => {
             if (!validVideoModels.includes(data.model)) {
-                updateNodeData(id, { model: MODELS.VIDEO.VEO_3_1_LITE });
+                updateNodeData(id, { model: MODELS.VIDEO.GEMINI_OMNI_FLASH });
             }
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [id]);
+
+        useEffect(() => {
+            if (
+                data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH &&
+                data.resolution !== "720p"
+            ) {
+                updateNodeData(id, { resolution: "720p" });
+            }
+        }, [data.model, data.resolution, id, updateNodeData]);
         const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,
             data.width,
@@ -126,6 +135,70 @@ export const FlowNode = memo(
             updateNodeData(id, { prompt: value });
         };
 
+        const isOmni = data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+
+        const handles = isOmni
+            ? [
+                  {
+                      id: "prompt-input",
+                      label: "Prompt",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-pink-500",
+                      top: "25%",
+                  },
+                  {
+                      id: "video-input",
+                      label: "Video(s) ref",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-port-video",
+                      top: "50%",
+                  },
+                  {
+                      id: "image-input",
+                      label: "Image(s)",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-green-500",
+                      top: "75%",
+                  },
+              ]
+            : [
+                  {
+                      id: "prompt-input",
+                      label: "Prompt",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-pink-500",
+                      top: "20%",
+                  },
+                  {
+                      id: "first-frame-input",
+                      label: "First frame",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-blue-500",
+                      top: "40%",
+                  },
+                  {
+                      id: "last-frame-input",
+                      label: "Last frame",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-purple-500",
+                      top: "60%",
+                  },
+                  {
+                      id: "image-input",
+                      label: "Image(s)",
+                      type: "target" as const,
+                      position: Position.Left,
+                      className: "bg-green-500",
+                      top: "80%",
+                  },
+              ];
+
         return (
             <div
                 ref={nodeRef}
@@ -179,30 +252,15 @@ export const FlowNode = memo(
                 )}
 
                 {/* Handle labels */}
-                <div
-                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
-                    style={{ top: "20%", transform: "translateY(-50%)" }}
-                >
-                    Prompt
-                </div>
-                <div
-                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
-                    style={{ top: "40%", transform: "translateY(-50%)" }}
-                >
-                    First frame
-                </div>
-                <div
-                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
-                    style={{ top: "60%", transform: "translateY(-50%)" }}
-                >
-                    Last frame
-                </div>
-                <div
-                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
-                    style={{ top: "80%", transform: "translateY(-50%)" }}
-                >
-                    Image(s)
-                </div>
+                {handles.map((h) => (
+                    <div
+                        key={`label-${h.id}`}
+                        className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
+                        style={{ top: h.top, transform: "translateY(-50%)" }}
+                    >
+                        {h.label}
+                    </div>
+                ))}
 
                 {/* Media box */}
                 <div
@@ -235,7 +293,10 @@ export const FlowNode = memo(
                 </div>
 
                 {/* Params panel — floating below media box */}
-                <NodeParamsBar isVisible={selected || isHovered}>
+                <NodeParamsBar
+                    isVisible={selected || isHovered}
+                    nodeWidth={dimensions.width}
+                >
                     <div className="mb-2 flex flex-wrap gap-1.5">
                         <Select
                             value={effectiveModel}
@@ -252,6 +313,11 @@ export const FlowNode = memo(
                                 <SelectValue placeholder="Model" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem
+                                    value={MODELS.VIDEO.GEMINI_OMNI_FLASH}
+                                >
+                                    Gemini Omni Flash
+                                </SelectItem>
                                 <SelectItem value={MODELS.VIDEO.VEO_3_1_LITE}>
                                     Veo 3.1 Lite
                                 </SelectItem>
@@ -283,28 +349,62 @@ export const FlowNode = memo(
                                 <SelectItem value="9:16">9:16</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Select
-                            value={String(data.duration)}
-                            onValueChange={(value) =>
-                                updateNodeData(id, {
-                                    duration: Number(
-                                        value,
-                                    ) as VideoData["duration"],
-                                })
-                            }
-                        >
-                            <SelectTrigger
-                                size="sm"
-                                className="h-6 w-fit rounded-md px-2 text-[10px]"
+                        {data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+                            <Select
+                                value={data.task || "none"}
+                                onValueChange={(value) =>
+                                    updateNodeData(id, {
+                                        task: value as VideoData["task"],
+                                    })
+                                }
                             >
-                                <SelectValue placeholder="Duration" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="4">4s</SelectItem>
-                                <SelectItem value="6">6s</SelectItem>
-                                <SelectItem value="8">8s</SelectItem>
-                            </SelectContent>
-                        </Select>
+                                <SelectTrigger
+                                    size="sm"
+                                    className="h-6 w-fit rounded-md px-2 text-[10px]"
+                                >
+                                    <SelectValue placeholder="Task" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">
+                                        Auto-infer
+                                    </SelectItem>
+                                    <SelectItem value="text_to_video">
+                                        Text to Video
+                                    </SelectItem>
+                                    <SelectItem value="image_to_video">
+                                        Image to Video
+                                    </SelectItem>
+                                    <SelectItem value="reference_to_video">
+                                        Ref to Video
+                                    </SelectItem>
+                                    <SelectItem value="edit">Edit</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
+                        {data.model !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+                            <Select
+                                value={String(data.duration)}
+                                onValueChange={(value) =>
+                                    updateNodeData(id, {
+                                        duration: Number(
+                                            value,
+                                        ) as VideoData["duration"],
+                                    })
+                                }
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className="h-6 w-fit rounded-md px-2 text-[10px]"
+                                >
+                                    <SelectValue placeholder="Duration" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="4">4s</SelectItem>
+                                    <SelectItem value="6">6s</SelectItem>
+                                    <SelectItem value="8">8s</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
                         <div
                             className={cn(
                                 "flex h-6 items-center gap-1 rounded-md px-1.5 transition-colors",
@@ -344,34 +444,16 @@ export const FlowNode = memo(
                 </NodeParamsBar>
 
                 {/* Handles */}
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="prompt-input"
-                    className="bg-pink-500"
-                    style={{ top: "20%" }}
-                />
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="first-frame-input"
-                    className="bg-blue-500"
-                    style={{ top: "40%" }}
-                />
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="last-frame-input"
-                    className="bg-purple-500"
-                    style={{ top: "60%" }}
-                />
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id="image-input"
-                    className="bg-green-500"
-                    style={{ top: "80%" }}
-                />
+                {handles.map((h) => (
+                    <Handle
+                        key={h.id}
+                        type={h.type}
+                        position={h.position}
+                        id={h.id}
+                        className={h.className}
+                        style={{ top: h.top }}
+                    />
+                ))}
                 <Handle
                     type="source"
                     position={Position.Right}

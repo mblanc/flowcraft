@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     // Mark the entire mediabunny server stack as external so Next.js
     // requires them at runtime instead of attempting to bundle them.
     serverExternalPackages: [
+        "sharp",
         "mediabunny",
         "@mediabunny/server",
         "node-av",

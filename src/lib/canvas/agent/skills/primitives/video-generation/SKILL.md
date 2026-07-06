@@ -101,7 +101,8 @@ For sequences longer than 8 seconds, split into multiple nodes connected with `c
 
 ## Model hints
 
-- `veo-3.1-lite-generate-001`: **default** — best balance of quality and speed.
+- `gemini-omni-flash-preview`: **default** — best for general video generation, supports stateful conversational editing (audio references/mixing are NOT supported).
+- `veo-3.1-lite-generate-001`: best balance of quality and speed for Veo model family.
 - `veo-3.1-generate-001`: highest quality motion and consistency; use for hero shots or final output.
 - Use the canvas default model unless the user explicitly requests otherwise.
 
@@ -114,4 +115,5 @@ For sequences longer than 8 seconds, split into multiple nodes connected with `c
 - Short duration (4s) with complex multi-step action loses beats — use 6s or 8s.
 - Busy source images + strong camera moves cause flickering — prefer subtle moves or static tripod.
 - Omitting audio leaves the model to hallucinate sound — always specify, even if the choice is silence.
-- **Connecting Audio Nodes:** Connecting a separate audio/music node (`t2m`, `t2s`) to a video node as a reference or dependency is invalid. The video model cannot take audio files as inputs; it only generates audio from the text prompt. Never wire edges from audio nodes to video nodes.
+- **Connecting Audio Nodes:** Connecting a separate audio/music node (`t2m`, `t2s`) as a reference/dependency to a video node is not supported for any model, including `gemini-omni-flash-preview`.
+- **Stateful Video Editing (Omni):** The default model 'gemini-omni-flash-preview' supports stateful editing! To edit an existing video (e.g. 'make it faster', 'change the style', 'add a character'), draw a 'depends_on' edge from the previous video node to the new video node. The engine will propagate the interaction state for seamless editing.

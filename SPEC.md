@@ -4,7 +4,7 @@
 
 The goal is to allow users to create, customize, share, and run their own custom **pattern skills** on the Flowcraft Canvas.
 
-Currently, the Canvas Agent (Director) is limited to a hardcoded set of pattern skills (e.g., `character-generation`, `multi-shot-video`, `storyboard`, `virtual-tryon`) loaded from the server's filesystem.
+Currently, the Canvas Agent (Director) is limited to a hardcoded set of pattern skills (e.g., `character-generation`, `long-video`, `storyboard`, `virtual-tryon`) loaded from the server's filesystem.
 This feature will enable users to:
 
 1. Define custom multi-phase creation workflows as pattern skills (with trigger phrases, a description, and structured phases with rules).

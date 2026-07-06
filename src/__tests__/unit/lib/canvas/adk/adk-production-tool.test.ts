@@ -72,7 +72,6 @@ describe("planProductionTool", () => {
             "i2v2",
             "t2s",
             "t2m",
-            "sfx",
             "concat",
             "edit",
             "upscale",

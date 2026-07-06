@@ -1,5 +1,6 @@
 import logger from "@/app/logger";
 import type {
+    CanvasNode,
     ChatAttachment,
     GenerationStep,
     MediaDefaults,
@@ -74,9 +75,21 @@ export function applyTypeDefaults(
         defaults?.model,
         validModels,
     );
+    let aspectRatio = step.aspectRatio ?? defaults?.aspectRatio ?? "16:9";
+    if (isVideo && aspectRatio !== "16:9" && aspectRatio !== "9:16") {
+        const fallback =
+            videoDefaults?.aspectRatio === "16:9" ||
+            videoDefaults?.aspectRatio === "9:16"
+                ? videoDefaults.aspectRatio
+                : "16:9";
+        logger.warn(
+            `[CanvasADK] Coerced invalid video aspect ratio "${aspectRatio}" to "${fallback}"`,
+        );
+        aspectRatio = fallback;
+    }
     return {
         ...step,
-        aspectRatio: step.aspectRatio ?? defaults?.aspectRatio ?? "16:9",
+        aspectRatio,
         ...(!isVideo && (step.imageSize ?? imageDefaults?.imageSize)
             ? { imageSize: step.imageSize ?? imageDefaults?.imageSize }
             : {}),
@@ -141,27 +154,54 @@ export function validateStepNodeIds(
 const IMAGE_OPS = new Set(["t2i", "i2i"]);
 const VIDEO_OPS = new Set(["t2v", "i2v", "i2v2"]);
 const CONCAT_OPS = new Set(["concat"]);
-const AUDIO_OPS = new Set(["t2m", "t2s", "sfx"]);
+const AUDIO_OPS = new Set(["t2m", "t2s"]);
 
 export function mapPlanNodesToSteps(
     planNodes: PlanNode[],
     edges: Array<{ from: string; to: string; role: string }>,
-    canvasNodeIds: string[],
-    attachmentNodeIds: string[],
+    canvasNodes: CanvasNode[],
+    attachments: ChatAttachment[],
     imageDefaults?: MediaDefaults,
     videoDefaults?: VideoDefaults,
 ): GenerationStep[] {
+    const canvasNodeIds = canvasNodes.map((n) => n.id);
+    const attachmentNodeIds = attachments.map((a) => a.nodeId);
     const planNodeIds = new Set(planNodes.map((n) => n.id));
     const isCanvasId = (id: string) =>
         canvasNodeIds.includes(id) || attachmentNodeIds.includes(id);
+
+    // Build a map of normalized label/id -> real ID to resolve agent references robustly
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const labelToId = new Map<string, string>();
+    for (const node of canvasNodes) {
+        if (node?.data?.label) {
+            labelToId.set(normalize(node.data.label), node.id);
+        }
+        if (node?.id) {
+            labelToId.set(normalize(node.id), node.id);
+        }
+    }
+    for (const att of attachments) {
+        labelToId.set(normalize(att.label), att.nodeId);
+        labelToId.set(normalize(att.nodeId), att.nodeId);
+    }
+
+    const resolveId = (idOrLabel: string): string => {
+        if (isCanvasId(idOrLabel)) {
+            return idOrLabel;
+        }
+        const normalized = normalize(idOrLabel);
+        return labelToId.get(normalized) ?? idOrLabel;
+    };
 
     const nodeRefs = new Map<string, string[]>();
     const nodeDeps = new Map<string, string[]>();
     const orderedInputs = new Map<string, string[]>();
 
-    for (const { from, to, role } of edges) {
+    for (const { from: rawFrom, to, role } of edges) {
         if (!planNodeIds.has(to)) continue;
 
+        const from = resolveId(rawFrom);
         if (role === "subject_ref" || role === "style_ref") {
             if (isCanvasId(from)) {
                 const refs = nodeRefs.get(to) ?? [];

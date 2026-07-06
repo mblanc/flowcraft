@@ -12,7 +12,7 @@ import {
     VALID_IMAGE_MODELS,
     VALID_VIDEO_MODELS,
 } from "@/lib/canvas/agent/step-mapper";
-import type { GenerationStep, PlanNode } from "@/lib/canvas/types";
+import type { GenerationStep, PlanNode, CanvasNode } from "@/lib/canvas/types";
 
 const mockWarn = vi.mocked(logger.warn);
 
@@ -159,6 +159,52 @@ describe("applyTypeDefaults — aspect ratio and imageSize", () => {
         expect(step.aspectRatio).toBe("1:1");
     });
 
+    it("passes through valid video aspect ratios (16:9, 9:16)", () => {
+        const step169 = applyTypeDefaults({
+            id: "s1",
+            type: "video",
+            prompt: "x",
+            aspectRatio: "16:9",
+        });
+        expect(step169.aspectRatio).toBe("16:9");
+
+        const step916 = applyTypeDefaults({
+            id: "s1",
+            type: "video",
+            prompt: "x",
+            aspectRatio: "9:16",
+        });
+        expect(step916.aspectRatio).toBe("9:16");
+    });
+
+    it("coerces invalid video aspect ratio to videoDefaults.aspectRatio if valid", () => {
+        const step = applyTypeDefaults(
+            { id: "s1", type: "video", prompt: "x", aspectRatio: "1:1" },
+            undefined,
+            { aspectRatio: "9:16" },
+        );
+        expect(step.aspectRatio).toBe("9:16");
+        expect(mockWarn).toHaveBeenCalledWith(
+            expect.stringContaining(
+                'Coerced invalid video aspect ratio "1:1" to "9:16"',
+            ),
+        );
+    });
+
+    it("coerces invalid video aspect ratio to 16:9 if videoDefaults.aspectRatio is invalid or missing", () => {
+        const step = applyTypeDefaults(
+            { id: "s1", type: "video", prompt: "x", aspectRatio: "1:1" },
+            undefined,
+            { aspectRatio: "21:9" },
+        );
+        expect(step.aspectRatio).toBe("16:9");
+        expect(mockWarn).toHaveBeenCalledWith(
+            expect.stringContaining(
+                'Coerced invalid video aspect ratio "1:1" to "16:9"',
+            ),
+        );
+    });
+
     it("applies imageSize from defaults for image steps", () => {
         const step = applyTypeDefaults(
             { id: "s1", type: "image", prompt: "x" },
@@ -297,6 +343,21 @@ describe("validateStepNodeIds", () => {
 // ─── mapPlanNodesToSteps ──────────────────────────────────────────────────────
 
 describe("mapPlanNodesToSteps", () => {
+    const makeCanvasNode = (id: string, label: string = id): CanvasNode => ({
+        id,
+        type: "canvas-image",
+        position: { x: 0, y: 0 },
+        data: {
+            type: "canvas-image",
+            label,
+            sourceUrl: "gs://mock/source.png",
+            mimeType: "image/png",
+            status: "ready",
+            width: 100,
+            height: 100,
+        },
+    });
+
     const baseNode = (overrides: Partial<PlanNode> = {}): PlanNode => ({
         id: "n1",
         operation: "t2i",
@@ -371,7 +432,17 @@ describe("mapPlanNodesToSteps", () => {
         const steps = mapPlanNodesToSteps(
             [baseNode()],
             [{ from: "canvas-1", to: "n1", role: "subject_ref" }],
-            ["canvas-1"],
+            [makeCanvasNode("canvas-1")],
+            [],
+        );
+        expect(steps[0].referenceNodeIds).toContain("canvas-1");
+    });
+
+    it("resolves references by label when the agent uses labels instead of IDs in edges", () => {
+        const steps = mapPlanNodesToSteps(
+            [baseNode()],
+            [{ from: "Sunset Image", to: "n1", role: "subject_ref" }],
+            [makeCanvasNode("canvas-1", "Sunset Image")],
             [],
         );
         expect(steps[0].referenceNodeIds).toContain("canvas-1");
@@ -472,7 +543,7 @@ describe("mapPlanNodesToSteps", () => {
                 { from: "canvas_vid1", to: "final", role: "depends_on" },
                 { from: "canvas_vid2", to: "final", role: "depends_on" },
             ],
-            ["canvas_vid1", "canvas_vid2"],
+            ["canvas_vid1", "canvas_vid2"].map((id) => makeCanvasNode(id)),
             [],
         );
         const finalStep = steps.find((s) => s.id === "final");
@@ -496,7 +567,7 @@ describe("mapPlanNodesToSteps", () => {
                 { from: "vid1", to: "final", role: "depends_on" },
                 { from: "canvas_vid2", to: "final", role: "depends_on" },
             ],
-            ["canvas_vid1", "canvas_vid2"],
+            ["canvas_vid1", "canvas_vid2"].map((id) => makeCanvasNode(id)),
             [],
         );
         const finalStep = steps.find((s) => s.id === "final");

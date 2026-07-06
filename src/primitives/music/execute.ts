@@ -20,7 +20,8 @@ export async function musicExecute(
         model: inputs.model,
     });
 
-    const extension = mimeType.split("/")[1] || "wav";
+    const extension =
+        mimeType === "audio/mpeg" ? "mp3" : mimeType.split("/")[1] || "wav";
     const audioGcsUri = await storageService.uploadFile(
         Buffer.from(audioData, "base64"),
         `music-${uuidv4()}.${extension}`,

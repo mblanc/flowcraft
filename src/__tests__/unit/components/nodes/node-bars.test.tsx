@@ -10,11 +10,18 @@ let mockSelectedCount = 0;
 vi.mock("@xyflow/react", () => ({
     NodeToolbar: ({
         isVisible,
+        style,
         children,
     }: {
         isVisible?: boolean;
+        style?: React.CSSProperties;
         children: React.ReactNode;
-    }) => (isVisible ? <div data-testid="toolbar">{children}</div> : null),
+    }) =>
+        isVisible ? (
+            <div data-testid="toolbar" style={style}>
+                {children}
+            </div>
+        ) : null,
     Position: { Top: "top", Bottom: "bottom" },
     useStore: (selector: (s: { nodes: { selected: boolean }[] }) => unknown) =>
         selector({
@@ -69,6 +76,27 @@ describe("NodeParamsBar", () => {
         );
         expect(wrapper?.className).toContain("bg-background/95");
         expect(wrapper?.className).toContain("backdrop-blur-md");
+    });
+
+    it("applies computed minWidth and maxWidth inline style rules based on nodeWidth", () => {
+        mockSelectedCount = 1;
+        const { container } = render(
+            <NodeParamsBar isVisible={true} nodeWidth={300}>
+                <span>styled content</span>
+            </NodeParamsBar>,
+        );
+        const toolbar = screen.getByTestId("toolbar");
+        const wrapper = container.querySelector(
+            "[data-testid='params-bar-container']",
+        );
+
+        expect(toolbar.style.minWidth).toBe("300px");
+        expect(toolbar.style.maxWidth).toBe("390px");
+
+        expect(wrapper).not.toBeNull();
+        const wrapperEl = wrapper as HTMLDivElement;
+        expect(wrapperEl.style.minWidth).toBe("300px");
+        expect(wrapperEl.style.maxWidth).toBe("390px");
     });
 });
 

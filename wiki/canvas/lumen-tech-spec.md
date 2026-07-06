@@ -537,6 +537,14 @@ const textToImageAdapter: PrimitiveAdapter<TextToImageInput, ImageOutput> = {
             avg_latency_ms: 8000,
         },
         {
+            id: "gemini-3.1-flash-lite-image",
+            provider: "google",
+            model: "gemini-3.1-flash-lite-image",
+            tier: "standard",
+            cost_per_call: 0.01,
+            avg_latency_ms: 2500,
+        },
+        {
             id: "gemini-3.1-flash-image",
             provider: "google",
             model: "gemini-3.1-flash-image",

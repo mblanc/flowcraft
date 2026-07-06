@@ -36,6 +36,8 @@ export const videoPrimitive: Primitive<
             "first-frame-input": "image",
             "last-frame-input": "image",
             "image-input": "image",
+            "audio-input": "audio",
+            "video-input": "video",
         },
         outputs: {
             "result-output": "video",
@@ -51,6 +53,7 @@ export const videoPrimitive: Primitive<
                 duration: node.data.duration,
                 generateAudio: node.data.generateAudio,
                 resolution: node.data.resolution,
+                task: node.data.task,
             };
             const namedNodesMap = new Map<string, any>();
 
@@ -134,6 +137,48 @@ export const videoPrimitive: Primitive<
                         .url as string;
             }
 
+            const audioData = findInputByHandle(
+                node.id,
+                edges,
+                "audio-input",
+                getSourceData,
+            );
+            const audioValue = getSourceValue(audioData);
+            if (audioValue) {
+                const val = Array.isArray(audioValue)
+                    ? audioValue[0]
+                    : audioValue;
+                if (typeof val === "string") inputs.audio = val;
+                else if (
+                    typeof val === "object" &&
+                    val !== null &&
+                    (val as Record<string, unknown>).url
+                )
+                    inputs.audio = (val as Record<string, unknown>)
+                        .url as string;
+            }
+
+            const videoData = findInputByHandle(
+                node.id,
+                edges,
+                "video-input",
+                getSourceData,
+            );
+            const videoValue = getSourceValue(videoData);
+            if (videoValue) {
+                const val = Array.isArray(videoValue)
+                    ? videoValue[0]
+                    : videoValue;
+                if (typeof val === "string") inputs.video = val;
+                else if (
+                    typeof val === "object" &&
+                    val !== null &&
+                    (val as Record<string, unknown>).url
+                )
+                    inputs.video = (val as Record<string, unknown>)
+                        .url as string;
+            }
+
             const imageEdges = edges.filter(
                 (e) => e.target === node.id && e.targetHandle === "image-input",
             );
@@ -179,6 +224,12 @@ export const videoPrimitive: Primitive<
                     url: i.url,
                     mimeType: i.type,
                 })),
+                ...(inputs.audio
+                    ? [{ url: inputs.audio, mimeType: "audio/mpeg" }]
+                    : []),
+                ...(inputs.video
+                    ? [{ url: inputs.video, mimeType: "video/mp4" }]
+                    : []),
             ];
             return {
                 videoUrl: result.videoUrl,
@@ -249,19 +300,21 @@ export const videoPrimitive: Primitive<
             images: [],
             aspectRatio: DEFAULTS.ASPECT_RATIO,
             duration: DEFAULTS.VIDEO_DURATION,
-            model: MODELS.VIDEO.VEO_3_1_LITE,
+            model: MODELS.VIDEO.GEMINI_OMNI_FLASH,
             generateAudio: false,
             resolution: "720p",
+            task: "none",
         },
     },
 
     canvas: {
         type: "canvas-video",
         toCanvasData: (step, result) => {
+            const r = result as any;
             return {
                 type: "canvas-video",
                 label: step.label || "Generated Video",
-                sourceUrl: result.videoUrl,
+                sourceUrl: r.videoUrl,
                 mimeType: "video/mp4",
                 prompt: step.prompt,
                 width: step.width || 480,
@@ -276,6 +329,8 @@ export const videoPrimitive: Primitive<
                 planNodeId: step.planNodeId,
                 derivedFrom: step.derivedFrom,
                 skill: step.skill,
+                interactionId: r.interactionId,
+                previous_interaction_id: step.previousInteractionId,
             };
         },
         toRequest: (step, _ctx) => {
@@ -292,6 +347,10 @@ export const videoPrimitive: Primitive<
                         ? step.generateAudio
                         : false,
                 resolution: step.resolution || "720p",
+                audio: step.audio,
+                previousInteractionId: step.previousInteractionId,
+                video: step.video,
+                task: step.task || "none",
                 ...(step.styleInstruction
                     ? { styleInstruction: step.styleInstruction }
                     : {}),

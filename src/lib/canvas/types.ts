@@ -45,6 +45,8 @@ export interface CanvasVideoData {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
+    interactionId?: string;
+    previous_interaction_id?: string;
 }
 
 export interface CanvasTextData {
@@ -173,6 +175,8 @@ export interface NodePayload {
     planNodeId?: string;
     derivedFrom?: string[];
     skill?: string;
+    interactionId?: string;
+    previous_interaction_id?: string;
 }
 
 export type PlanStatus = "pending_approval" | "approved" | "cancelled";
@@ -292,7 +296,6 @@ export const MEDIA_OPERATIONS = [
     "i2v2",
     "t2s",
     "t2m",
-    "sfx",
     "concat",
     "edit",
     "upscale",

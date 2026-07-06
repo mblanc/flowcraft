@@ -41,6 +41,9 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Install sharp in the runner stage to ensure it has the correct native binary
+RUN npm install sharp@0.35.2 && chown -R nextjs:nodejs /app/node_modules
+
 USER nextjs
 
 EXPOSE 3000

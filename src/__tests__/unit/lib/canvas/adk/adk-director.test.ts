@@ -13,8 +13,25 @@ vi.mock("@google/adk", async (importOriginal) => {
 });
 import { CanvasAgent } from "@/lib/canvas/agent/canvas-agent";
 import { extractAgentEvents } from "@/lib/canvas/agent/agent-runner";
-import type { PlanNode, PlanEdge } from "@/lib/canvas/types";
+import type { PlanNode, PlanEdge, CanvasNode } from "@/lib/canvas/types";
 import { MODELS } from "@/lib/constants";
+
+function makeCanvasNode(id: string, label: string = id): CanvasNode {
+    return {
+        id,
+        type: "canvas-image",
+        position: { x: 0, y: 0 },
+        data: {
+            type: "canvas-image",
+            label,
+            sourceUrl: "gs://mock/source.png",
+            mimeType: "image/png",
+            status: "ready",
+            width: 100,
+            height: 100,
+        },
+    };
+}
 
 function makeFunctionCallEvent(name: string, args: unknown): Event {
     return {
@@ -213,7 +230,11 @@ describe("extractAgentEvents — plan_production", () => {
             makeFunctionCallEvent("plan_production", { nodes, edges }),
         ];
         const events = await collect(
-            extractAgentEvents(asAsyncIter(adkEvents), ["canvas_ref_1"], []),
+            extractAgentEvents(
+                asAsyncIter(adkEvents),
+                [makeCanvasNode("canvas_ref_1")],
+                [],
+            ),
         );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const steps = (events.find((e) => e.type === "plan") as any).plan.steps;
@@ -279,7 +300,11 @@ describe("extractAgentEvents — plan_production", () => {
             makeFunctionCallEvent("plan_production", { nodes, edges }),
         ];
         const events = await collect(
-            extractAgentEvents(asAsyncIter(adkEvents), ["canvas_portrait"], []),
+            extractAgentEvents(
+                asAsyncIter(adkEvents),
+                [makeCanvasNode("canvas_portrait")],
+                [],
+            ),
         );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const steps = (events.find((e) => e.type === "plan") as any).plan.steps;

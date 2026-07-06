@@ -23,6 +23,10 @@ vi.mock("@google/genai", () => ({
     createPartFromText: vi.fn((t: string) => ({ text: t })),
     createPartFromUri: vi.fn(),
     createPartFromBase64: vi.fn(),
+    MediaResolution: {
+        MEDIA_RESOLUTION_HIGH: "MEDIA_RESOLUTION_HIGH",
+        MEDIA_RESOLUTION_LOW: "MEDIA_RESOLUTION_LOW",
+    },
 }));
 
 import { GeminiService } from "@/lib/services/gemini.service";
@@ -81,7 +85,7 @@ describe("GeminiService.generateMusic", () => {
                 {
                     inlineData: {
                         data: "base64audio==",
-                        mimeType: "audio/mp3",
+                        mimeType: "audio/mpeg",
                     },
                 },
             ]),
@@ -91,7 +95,7 @@ describe("GeminiService.generateMusic", () => {
 
         expect(result).toEqual({
             audioData: "base64audio==",
-            mimeType: "audio/mp3",
+            mimeType: "audio/mpeg",
         });
     });
 

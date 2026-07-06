@@ -192,7 +192,10 @@ export const FlowNode = memo(
                 </div>
 
                 {/* Params panel — floating below media box */}
-                <NodeParamsBar isVisible={selected || isHovered}>
+                <NodeParamsBar
+                    isVisible={selected || isHovered}
+                    nodeWidth={dimensions.width}
+                >
                     <Select
                         value={data.upscaleFactor}
                         onValueChange={(value) =>

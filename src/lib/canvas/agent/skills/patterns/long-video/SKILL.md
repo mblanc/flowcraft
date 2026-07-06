@@ -1,20 +1,18 @@
 ---
-name: multi-shot-video
-description: Multi-shot video production. Composes a short film, ad, or story from a sequence of distinct shots — each with its own scene, camera, and pacing. Trigger when the user wants to produce a narrative sequence, commercial, trailer, or any request implying more than one shot.
+name: long-video
+description: Long video production. Composes a video from a sequence of distinct shots. Trigger ONLY when the user explicitly asks to generate a video longer than 10 seconds (duration > 10s). DO NOT trigger if the requested video is 10 seconds or less.
 metadata:
     type: pattern
 ---
 
 ## Trigger condition
 
-Use this pattern when the user asks for:
+Use this pattern ONLY when the user explicitly asks to generate a video longer than 10 seconds (duration > 10s).
 
-- A short film, ad, commercial, or trailer.
-- A story that unfolds across multiple scenes or moments.
-- Any request using language like "opening shot", "then cut to", "sequence of scenes", "before and after", "montage".
-- Any single-sentence brief that implies a narrative arc ("a perfume ad where a woman walks through Paris at night").
+Do **not** use this pattern if:
 
-Do **not** use this pattern for a single animated image or a single clip — use `i2v` directly instead.
+- The requested video is 10 seconds or less (duration <= 10s). E.g. 4s, 6s, 8s videos. In those cases, use a single video generation step/operation directly.
+- The request is for a single animated image or a single clip — use `i2v` directly instead.
 
 ---
 
@@ -164,8 +162,8 @@ Always use the canvas default model for every node unless the user explicitly na
 
 Treat audio as a separate layer with its own continuity:
 
-- **NO PARALLEL AUDIO NODES:** The `concat` primitive only joins video clips; it does **not** support overlaying or mixing separate audio tracks. Never plan separate `t2s`, `t2m`, or `sfx` nodes and connect them to video or `concat` nodes.
-- **WRITE AUDIO IN VIDEO PROMPTS:** Instead, specify all shot-specific dialogue, music, SFX, or room tone directly in the individual shot (`i2v`) prompts' `[AUDIO]` section. The video model will generate the audio track natively within each clip.
+- **NO PARALLEL AUDIO NODES:** The `concat` primitive only joins video clips; it does **not** support overlaying or mixing separate audio tracks. Never plan separate `t2s` or `t2m` nodes and connect them to video or `concat` nodes.
+- **WRITE AUDIO IN VIDEO PROMPTS:** Instead, specify all shot-specific dialogue, music, or room tone directly in the individual shot (`i2v`) prompts' `[AUDIO]` section. The video model will generate the audio track natively within each clip.
 - If music and ambient coexist, note the balance: "Coffee shop murmur at -28dB beneath slow piano at -18dB."
 
 ---

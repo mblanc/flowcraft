@@ -52,5 +52,21 @@ describe("Resolution Schemas", () => {
             });
             expect(result.success).toBe(false);
         });
+
+        it("should default to gemini-omni-flash-preview", () => {
+            const result = GenerateVideoSchema.safeParse({
+                prompt: "test",
+            });
+            expect(result.success).toBe(true);
+            expect(result.data?.model).toBe("gemini-omni-flash-preview");
+        });
+
+        it("should accept gemini-omni-flash-preview as model", () => {
+            const result = GenerateVideoSchema.safeParse({
+                prompt: "test",
+                model: "gemini-omni-flash-preview",
+            });
+            expect(result.success).toBe(true);
+        });
     });
 });

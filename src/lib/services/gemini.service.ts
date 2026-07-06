@@ -25,6 +25,10 @@ import {
     MODEL_THINKING_LEVELS,
 } from "../constants";
 import type { ContentPart, MediaRef } from "../types";
+import { storageService } from "./storage.service";
+import { GoogleAuth } from "google-auth-library";
+import { v4 as uuidv4 } from "uuid";
+import { extractBucketFromStorageUri } from "@/lib/utils/gcs-uri";
 
 const DATA_URI_REGEX = /^data:([^;]+);base64,(.+)$/;
 
@@ -34,6 +38,45 @@ function isSupportedMimeType(mimeType: string): mimeType is SupportedMimeType {
 
 async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function inferMimeTypeFromUrl(
+    url: string,
+    category: "image" | "audio" | "video",
+): string {
+    const lower = url.toLowerCase();
+    if (category === "image") {
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg"))
+            return "image/jpeg";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".heic")) return "image/heic";
+        if (lower.endsWith(".heif")) return "image/heif";
+        if (lower.endsWith(".gif")) return "image/gif";
+        return "image/png";
+    }
+    if (category === "audio") {
+        if (
+            lower.endsWith(".mp3") ||
+            lower.endsWith(".mpeg") ||
+            lower.endsWith(".mpg")
+        )
+            return "audio/mpeg";
+        if (lower.endsWith(".wav")) return "audio/wav";
+        if (lower.endsWith(".aac")) return "audio/aac";
+        if (lower.endsWith(".flac")) return "audio/flac";
+        if (lower.endsWith(".ogg")) return "audio/ogg";
+        return "audio/mpeg";
+    }
+    if (category === "video") {
+        if (lower.endsWith(".mp4")) return "video/mp4";
+        if (lower.endsWith(".mov")) return "video/mov";
+        if (lower.endsWith(".webm")) return "video/webm";
+        if (lower.endsWith(".mpeg") || lower.endsWith(".mpg"))
+            return "video/mpeg";
+        return "video/mp4";
+    }
+    return "application/octet-stream";
 }
 
 /** Converts a serializable ContentPart to the Gemini SDK native Part type. */
@@ -81,17 +124,61 @@ export interface GenerateVideoOptions {
     firstFrame?: string;
     lastFrame?: string;
     images?: MediaRef[];
+    audio?: string;
+    video?: string;
+    previousInteractionId?: string;
     aspectRatio?: string;
     duration?: number;
     model?: string;
     generateAudio?: boolean;
     resolution?: string;
     styleInstruction?: string;
+    task?:
+        | "none"
+        | "text_to_video"
+        | "image_to_video"
+        | "reference_to_video"
+        | "edit";
 }
 
 export interface UpscaleImageOptions {
     image: string;
     upscaleFactor: "x2" | "x3" | "x4";
+}
+
+function serializeError(err: unknown): Record<string, unknown> {
+    if (!err) return {};
+    const serialized: Record<string, unknown> = {};
+    if (err instanceof Error) {
+        serialized.name = err.name;
+        serialized.message = err.message;
+        serialized.stack = err.stack;
+    }
+    if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        for (const key of Object.keys(errObj)) {
+            serialized[key] = errObj[key];
+        }
+        if ("status" in errObj) serialized.status = errObj.status;
+        if ("errorDetails" in errObj)
+            serialized.errorDetails = errObj.errorDetails;
+        if ("response" in errObj) {
+            const response = errObj.response;
+            if (
+                response &&
+                typeof response === "object" &&
+                "json" in response &&
+                typeof (response as { json?: unknown }).json === "function"
+            ) {
+                serialized.response = "[Response object]";
+            } else {
+                serialized.response = response;
+            }
+        }
+    } else {
+        serialized.raw = err;
+    }
+    return serialized;
 }
 
 export class GeminiService {
@@ -438,28 +525,325 @@ export class GeminiService {
         };
     }
 
-    async generateVideo(options: GenerateVideoOptions): Promise<string> {
+    async generateVideo(
+        options: GenerateVideoOptions,
+    ): Promise<string | { videoUrl: string; interactionId?: string }> {
         const {
             prompt,
             firstFrame,
             lastFrame,
             images,
+            audio,
+            video,
+            previousInteractionId,
             aspectRatio,
             duration,
             model,
             generateAudio,
             resolution,
             styleInstruction,
+            task,
         } = options;
 
         const selectedModel = model || MODELS.VIDEO.VEO_3_1_LITE;
-        logger.info(
-            `[GeminiService] Generating video with model: ${selectedModel}, ${resolution}`,
-        );
 
         const effectivePrompt = styleInstruction
             ? `${styleInstruction}\n\n${prompt}`
             : prompt;
+
+        if (selectedModel === MODELS.VIDEO.GEMINI_OMNI_FLASH) {
+            logger.info(
+                `[GeminiService] Generating video with Omni: ${effectivePrompt}`,
+            );
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const inputParts: any[] = [];
+
+            if (images && images.length > 0) {
+                for (const img of images) {
+                    if (img.url.startsWith("data:")) {
+                        const base64Match = img.url.match(DATA_URI_REGEX);
+                        if (base64Match) {
+                            inputParts.push({
+                                type: "image",
+                                data: base64Match[2],
+                                mime_type: base64Match[1],
+                            });
+                        }
+                    } else if (img.url.startsWith("gs://")) {
+                        inputParts.push({
+                            type: "image",
+                            uri: img.url,
+                            mime_type:
+                                img.type ||
+                                inferMimeTypeFromUrl(img.url, "image"),
+                        });
+                    }
+                }
+            }
+
+            if (firstFrame) {
+                if (firstFrame.startsWith("gs://")) {
+                    inputParts.push({
+                        type: "image",
+                        uri: firstFrame,
+                        mime_type: inferMimeTypeFromUrl(firstFrame, "image"),
+                    });
+                } else if (firstFrame.startsWith("data:")) {
+                    const base64Match = firstFrame.match(DATA_URI_REGEX);
+                    if (base64Match) {
+                        inputParts.push({
+                            type: "image",
+                            data: base64Match[2],
+                            mime_type: base64Match[1],
+                        });
+                    }
+                }
+            }
+
+            if (audio) {
+                logger.warn(
+                    `[GeminiService] Audio input is currently not supported for Omni video generation. Ignoring audio reference: ${audio}`,
+                );
+            }
+
+            if (video) {
+                if (video.startsWith("gs://")) {
+                    inputParts.push({
+                        type: "video",
+                        uri: video,
+                        mime_type: inferMimeTypeFromUrl(video, "video"),
+                    });
+                } else if (video.startsWith("data:")) {
+                    const base64Match = video.match(DATA_URI_REGEX);
+                    if (base64Match) {
+                        inputParts.push({
+                            type: "video",
+                            data: base64Match[2],
+                            mime_type: base64Match[1],
+                        });
+                    }
+                }
+            }
+
+            inputParts.push({
+                type: "text",
+                text: effectivePrompt,
+            });
+
+            const storageUri = config.GCS_STORAGE_URI || "gs://mock-bucket";
+            const bucketName = extractBucketFromStorageUri(storageUri);
+            const uniqueFilename = `omni-${uuidv4()}.mp4`;
+            const targetGcsUri = `gs://${bucketName}/${uniqueFilename}`;
+
+            const isEdit = !!previousInteractionId || !!video;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const responseFormat: any = {
+                type: "video",
+                delivery: "uri",
+                gcs_uri: targetGcsUri,
+            };
+            if (!isEdit) {
+                responseFormat.aspect_ratio =
+                    aspectRatio || DEFAULTS.ASPECT_RATIO;
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const interactionRequest: any = {
+                model: selectedModel,
+                input: inputParts,
+                response_format: responseFormat,
+            };
+
+            // On Vertex AI, gemini-omni-flash-preview does not support previous_interaction_id yet.
+            // Therefore, if we have the video input, we MUST use the video-input path (non-stateful)
+            // and ignore previous_interaction_id to avoid the 400 error.
+            const effectiveTask =
+                task && task !== "none" ? task : video ? "edit" : undefined;
+
+            if (effectiveTask) {
+                interactionRequest.generation_config = {
+                    video_config: {
+                        task: effectiveTask,
+                    },
+                };
+            }
+
+            if (previousInteractionId && !video) {
+                // Fallback for platforms that support it (e.g. AI Studio) if video is not available
+                interactionRequest.previous_interaction_id =
+                    previousInteractionId;
+            }
+
+            // Sanitize request for logging
+            const sanitizedRequest = {
+                ...interactionRequest,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                input: interactionRequest.input.map((part: any) => {
+                    if (part.inline_data?.data) {
+                        return {
+                            ...part,
+                            inline_data: {
+                                ...part.inline_data,
+                                data: `<base64 data: ${part.inline_data.data.length} bytes>`,
+                            },
+                        };
+                    }
+                    if (
+                        part.data &&
+                        typeof part.data === "string" &&
+                        part.data.length > 1000
+                    ) {
+                        return {
+                            ...part,
+                            data: `<base64 data: ${part.data.length} bytes>`,
+                        };
+                    }
+                    return part;
+                }),
+            };
+            logger.info(
+                `[GeminiService] Calling Gemini Omni with request: ${JSON.stringify(sanitizedRequest, null, 2)}`,
+            );
+
+            let interaction;
+            try {
+                interaction =
+                    await this.ai.interactions.create(interactionRequest);
+            } catch (error: unknown) {
+                logger.error(
+                    `[GeminiService] Gemini Omni call failed. Full error details: ${JSON.stringify(serializeError(error), null, 2)}`,
+                );
+                throw error;
+            }
+
+            // Sanitize response for logging
+            const sanitizedResponse = {
+                ...interaction,
+                ...(interaction.output_video?.data
+                    ? {
+                          output_video: {
+                              ...interaction.output_video,
+                              data: `<base64 data: ${interaction.output_video.data.length} bytes>`,
+                          },
+                      }
+                    : {}),
+            };
+            logger.info(
+                `[GeminiService] Gemini Omni response: ${JSON.stringify(sanitizedResponse, null, 2)}`,
+            );
+
+            const outputVideo = interaction.output_video;
+            if (!outputVideo) {
+                throw new Error("No video returned in interaction response");
+            }
+
+            let videoBuffer: Buffer;
+
+            if (outputVideo.data) {
+                videoBuffer = Buffer.from(outputVideo.data, "base64");
+                const videoUrl = await storageService.uploadFile(
+                    videoBuffer,
+                    `omni-${uuidv4()}.mp4`,
+                    "video/mp4",
+                );
+                return { videoUrl, interactionId: interaction.id };
+            } else if (outputVideo.uri) {
+                const fileUri = outputVideo.uri;
+
+                if (fileUri.startsWith("gs://")) {
+                    logger.info(
+                        `[GeminiService] Video generated directly to GCS: ${fileUri}`,
+                    );
+                    return { videoUrl: fileUri, interactionId: interaction.id };
+                }
+
+                const fileName = fileUri.split("/").pop();
+                if (!fileName) {
+                    throw new Error(
+                        `Invalid file URI returned by Omni: ${fileUri}`,
+                    );
+                }
+
+                logger.info(
+                    `[GeminiService] Polling Omni video file: ${fileName}`,
+                );
+                let fileState = "";
+                let pollCount = 0;
+                const maxPolls = 60;
+                while (fileState !== "ACTIVE" && pollCount < maxPolls) {
+                    const fileInfo = await this.ai.files.get({
+                        name: fileName,
+                    });
+                    fileState = fileInfo?.state || "";
+                    if (fileState === "FAILED") {
+                        throw new Error(
+                            "Omni video generation failed on server",
+                        );
+                    }
+                    if (fileState !== "ACTIVE") {
+                        await delay(2000);
+                    }
+                    pollCount++;
+                }
+
+                if (fileState !== "ACTIVE") {
+                    throw new Error(
+                        "Omni video generation timed out on server",
+                    );
+                }
+
+                logger.info(
+                    `[GeminiService] Downloading Omni video from: ${fileUri}`,
+                );
+
+                const auth = new GoogleAuth({
+                    scopes: "https://www.googleapis.com/auth/cloud-platform",
+                });
+                const client = await auth.getClient();
+                const accessToken = await client.getAccessToken();
+                if (!accessToken.token) {
+                    throw new Error(
+                        "Failed to retrieve Google Auth token for video download",
+                    );
+                }
+
+                const response = await fetch(fileUri, {
+                    headers: {
+                        Authorization: `Bearer ${accessToken.token}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Failed to download video: ${response.statusText}`,
+                    );
+                }
+
+                videoBuffer = Buffer.from(await response.arrayBuffer());
+            } else {
+                throw new Error("Output video has neither data nor uri");
+            }
+
+            const filename = `omni-video-${uuidv4()}.mp4`;
+            logger.info(
+                `[GeminiService] Uploading Omni video to GCS: ${filename}`,
+            );
+            const gcsUri = await storageService.uploadFile(
+                videoBuffer,
+                filename,
+                outputVideo.mime_type || "video/mp4",
+            );
+
+            return {
+                videoUrl: gcsUri,
+                interactionId: interaction.id,
+            };
+        }
+
+        logger.info(
+            `[GeminiService] Generating video with model: ${selectedModel}, ${resolution}`,
+        );
 
         const videoRequest: GenerateVideosParameters = {
             model: selectedModel,
