@@ -108,7 +108,7 @@ export function applyTypeDefaults(
                       : {}),
                   ...(() => {
                       const raw = step.duration ?? videoDefaults?.duration;
-                      const valid = raw && [4, 6, 8].includes(raw) ? raw : 4;
+                      const valid = raw && raw >= 3 && raw <= 10 ? raw : 4;
                       return { duration: valid };
                   })(),
               }
@@ -268,8 +268,7 @@ export function mapPlanNodesToSteps(
                 ? (() => {
                       const raw = Number(node.duration);
                       return {
-                          duration: ([4, 6, 8].includes(raw) ? raw : 4) as
-                              4 | 6 | 8,
+                          duration: raw >= 3 && raw <= 10 ? raw : 4,
                       };
                   })()
                 : {}),
@@ -311,7 +310,7 @@ export function mapSimpleSteps(
             ...s,
             type: inferredType,
             ...(s.duration !== undefined
-                ? { duration: Number(s.duration) as 4 | 6 | 8 }
+                ? { duration: Number(s.duration) }
                 : {}),
         };
         let step = applyTypeDefaults(sWithType, imageDefaults, videoDefaults);

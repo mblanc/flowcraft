@@ -356,7 +356,7 @@ export async function* executePlan(
             : null;
 
     let enrichedSteps = plan.steps;
-    if (canvasNodes && canvasNodes.length > 0) {
+    if (canvasNodes) {
         try {
             logger.info(
                 `[CanvasGeneration] Running prompt engineering on ${plan.steps.length} plan steps`,

@@ -86,7 +86,9 @@ export const criteria = {
     }),
 
     /** All video steps must have a duration in the allowed set. */
-    validVideoDurations: (allowed: number[] = [4, 6, 8]): Criterion => ({
+    validVideoDurations: (
+        allowed: number[] = [3, 4, 5, 6, 7, 8, 9, 10],
+    ): Criterion => ({
         name: "valid_video_durations",
         score: (steps) => {
             const videoSteps = steps.filter((s) => s.type === "video");

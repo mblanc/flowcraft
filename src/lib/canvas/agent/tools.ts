@@ -73,8 +73,8 @@ const videoStepSchema = z.object({
     resolution: z.enum(VIDEO_RESOLUTIONS).optional(),
     model: z.enum(VIDEO_MODELS).optional(),
     duration: z
-        .enum(["4", "6", "8"])
-        .describe("Duration in seconds.")
+        .union([z.number(), z.string()])
+        .describe("Duration in seconds (3 to 10s).")
         .optional(),
     generateAudio: z.boolean().optional(),
     referenceNodeIds: z.array(z.string()).optional(),
@@ -139,9 +139,11 @@ const planNodeSchema = z.object({
             "Model to use. For t2m: lyria-3-clip-preview (short clip, default) or lyria-3-pro-preview (full song). Leave unset to use the canvas default.",
         ),
     duration: z
-        .enum(["4", "6", "8"])
+        .union([z.number(), z.string()])
         .optional()
-        .describe("Video duration in seconds. MUST be exactly 4, 6, or 8."),
+        .describe(
+            "Video duration in seconds (3 to 10s; for Veo: 4, 6, or 8s).",
+        ),
     generateAudio: z.boolean().optional(),
     skill: z.string().optional(),
 });
@@ -290,7 +292,7 @@ export const askUserTool = new FunctionTool({
         "Ask the user a clarifying question with multiple-choice options. " +
         "Call this INSTEAD of plan_production when the request is ambiguous and the answer would change the plan meaningfully. " +
         "Do NOT ask about things already specified in the user message, canvas defaults, or active style. " +
-        "Options MUST use valid values (e.g. video duration must be 4s, 6s, or 8s — no other values). " +
+        "Options MUST use valid values (e.g. video duration 3s-10s; for Veo models 4s, 6s, or 8s). " +
         "After the user replies, continue with plan_production or ask_user again if still ambiguous.",
     parameters: z.object({
         id: z

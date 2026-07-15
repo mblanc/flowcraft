@@ -100,13 +100,23 @@ describe("applyTypeDefaults — video duration coercion", () => {
         expect(step.duration).toBe(8);
     });
 
-    it("coerces invalid duration 5 to 4", () => {
-        const step = applyTypeDefaults({ ...baseVideo, duration: 5 as never });
+    it("passes through valid duration 5", () => {
+        const step = applyTypeDefaults({ ...baseVideo, duration: 5 });
+        expect(step.duration).toBe(5);
+    });
+
+    it("passes through valid duration 10", () => {
+        const step = applyTypeDefaults({ ...baseVideo, duration: 10 });
+        expect(step.duration).toBe(10);
+    });
+
+    it("coerces out-of-range duration 2 to 4", () => {
+        const step = applyTypeDefaults({ ...baseVideo, duration: 2 as never });
         expect(step.duration).toBe(4);
     });
 
-    it("coerces invalid duration 10 to 4", () => {
-        const step = applyTypeDefaults({ ...baseVideo, duration: 10 as never });
+    it("coerces out-of-range duration 15 to 4", () => {
+        const step = applyTypeDefaults({ ...baseVideo, duration: 15 as never });
         expect(step.duration).toBe(4);
     });
 
@@ -463,14 +473,14 @@ describe("mapPlanNodesToSteps", () => {
         expect(n2Step?.dependsOn).toContain("n1");
     });
 
-    it("coerces invalid duration 5 to 4", () => {
+    it("passes through valid duration 5", () => {
         const steps = mapPlanNodesToSteps(
-            [baseNode({ id: "n1", operation: "t2v", duration: 5 as never })],
+            [baseNode({ id: "n1", operation: "t2v", duration: 5 })],
             [],
             [],
             [],
         );
-        expect(steps[0].duration).toBe(4);
+        expect(steps[0].duration).toBe(5);
     });
 
     it("passes through valid duration 8", () => {

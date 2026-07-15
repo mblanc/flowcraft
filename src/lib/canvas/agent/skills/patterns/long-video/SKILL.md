@@ -27,7 +27,7 @@ The scenario document MUST contain:
     - **Scene** — location, time of day, physical environment facts.
     - **Subject** — who or what is in frame and what they do (one verb, one motion arc).
     - **Camera** — one move, one rhythm word.
-    - **Duration** — 4, 6, or 8 seconds only.
+    - **Duration** — 3 to 10 seconds per shot.
     - **Audio** — ambient, SFX, music cue, dialogue, or explicit silence.
 3. **Structure** — label each shot by phase:
 
@@ -116,7 +116,7 @@ i2v animation:
   edges:
     depends_on: the t2i keyframe above — mandatory
     subject_ref: character or hero prop reference (if applicable)
-  duration: 4 | 6 | 8
+  duration: 3..10
   label: "Shot N — animated"
 ```
 

@@ -18,13 +18,25 @@ vi.mock("@/lib/config", () => ({
     config: {
         PROJECT_ID: process.env.PROJECT_ID ?? "",
         LOCATION: process.env.LOCATION ?? "global",
+        GCS_STORAGE_URI: process.env.GCS_STORAGE_URI ?? "",
+    },
+}));
+
+import { storageService } from "@/lib/services/storage.service";
+
+vi.mock("@/lib/services/skill.service", () => ({
+    skillService: {
+        listSkills: vi.fn().mockResolvedValue([]),
     },
 }));
 
 import { CanvasAgentRunner } from "../../lib/canvas/agent/agent-runner";
 import { MODELS } from "../../lib/constants";
-import type { AgentInput } from "../../lib/canvas/types";
-import type { CanvasNode } from "../../lib/canvas/types";
+import type {
+    AgentInput,
+    CanvasNode,
+    CanvasImageData,
+} from "../../lib/canvas/types";
 import {
     criteria,
     runEval,
@@ -35,8 +47,7 @@ import {
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-const GCS_PORTRAIT =
-    "gs://storycraft-perso/01089de2-b8b5-4b13-91a6-afaa17f1a58a.jpeg";
+let GCS_PORTRAIT = "";
 const PORTRAIT_ID = "canvas_portrait_ref";
 
 const portraitNode: CanvasNode = {
@@ -46,8 +57,8 @@ const portraitNode: CanvasNode = {
     data: {
         type: "canvas-image",
         label: "Guy Portrait",
-        sourceUrl: GCS_PORTRAIT,
-        mimeType: "image/jpeg",
+        sourceUrl: "",
+        mimeType: "image/png",
         width: 512,
         height: 512,
         status: "ready",
@@ -217,8 +228,19 @@ describe.runIf(hasCredentials)("Canvas agent eval — Director", () => {
     let runner: CanvasAgentRunner;
     const allResults: EvalCaseResult[] = [];
 
-    beforeAll(() => {
+    beforeAll(async () => {
         runner = new CanvasAgentRunner();
+        if (process.env.PROJECT_ID) {
+            // Upload 1x1 transparent PNG as portrait fixture in client's own bucket
+            const base64Png =
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+            const filename = "eval-portrait-fixture.png";
+            GCS_PORTRAIT = await storageService.uploadImage(
+                base64Png,
+                filename,
+            );
+            (portraitNode.data as CanvasImageData).sourceUrl = GCS_PORTRAIT;
+        }
     });
 
     afterAll(() => {

@@ -89,13 +89,14 @@ Append to every prompt without exception:
 
 ## Duration
 
-MUST be exactly 4, 6, or 8 seconds — no other values.
+- **Gemini Omni (`gemini-omni-flash-preview`)**: Duration is instructed within the prompt (3 to 10 seconds).
+- **Veo Models (`veo-3.1-*`)**: Duration is configured via parameter and MUST be 4, 6, or 8 seconds.
 
-- **4s**: subtle atmosphere, minimal motion, single beat.
-- **6s**: one camera move or moderate subject motion.
-- **8s**: multi-beat action, evolving lighting, or complex camera arc.
+- **3–4s**: subtle atmosphere, minimal motion, single beat.
+- **5–6s**: one camera move or moderate subject motion.
+- **7–10s**: multi-beat action, evolving lighting, or complex camera arc.
 
-For sequences longer than 8 seconds, split into multiple nodes connected with `concat`.
+For single-shot sequences longer than 10 seconds, split into multiple nodes connected with `concat`.
 
 ---
 

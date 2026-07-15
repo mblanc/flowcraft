@@ -27,6 +27,11 @@ export default defineConfig({
         globals: true,
         setupFiles: ["./vitest.setup.eval.ts"],
         include: ["src/__tests__/eval/**/*.eval.test.ts"],
+        exclude: [
+            "**/node_modules/**",
+            "**/dist/**",
+            "src/__tests__/eval/**/*.e2e.eval.test.ts",
+        ],
         testTimeout: 180_000,
         // Evals run the real LLM — no coverage or parallelism
         pool: "forks",
