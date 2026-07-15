@@ -19,6 +19,12 @@ vi.mock("@/lib/config", () => ({
     },
 }));
 
+vi.mock("@/lib/services/skill.service", () => ({
+    skillService: {
+        listSkills: vi.fn().mockResolvedValue([]),
+    },
+}));
+
 import { CanvasAgentRunner } from "../../lib/canvas/agent/agent-runner";
 import { MODELS } from "../../lib/constants";
 import type { AgentInput } from "../../lib/canvas/types";

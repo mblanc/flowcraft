@@ -422,7 +422,7 @@ describe("Eval: pirate 2 variations + animate — Agent B (Director)", () => {
 // ─── Guard: hallucinated video duration ──────────────────────────────────────
 
 describe("Eval: pirate plan — invalid duration guard", () => {
-    it("replaces 5s duration with default 4s for video steps (Agent A)", async () => {
+    it("replaces 15s duration with default 4s for video steps (Agent A)", async () => {
         const adkEvents: Event[] = [
             makeFunctionCallEvent("plan_video_generation", {
                 steps: [
@@ -431,7 +431,7 @@ describe("Eval: pirate plan — invalid duration guard", () => {
                         type: "video",
                         prompt: "Animate",
                         aspectRatio: "9:16",
-                        duration: "5", // invalid — should fall back to default 4
+                        duration: "15", // out of range — should fall back to default 4
                     },
                 ],
             }),
@@ -444,7 +444,7 @@ describe("Eval: pirate plan — invalid duration guard", () => {
         expect(steps[0].duration).toBe(4);
     });
 
-    it("replaces 5s duration with default 4s for video nodes (Agent B plan_production)", async () => {
+    it("replaces 15s duration with default 4s for video nodes (Agent B plan_production)", async () => {
         const adkEvents: Event[] = [
             makeFunctionCallEvent("plan_production", {
                 nodes: [
@@ -453,7 +453,7 @@ describe("Eval: pirate plan — invalid duration guard", () => {
                         operation: "t2v",
                         promptIntent: "Animate",
                         aspectRatio: "9:16",
-                        duration: 5, // invalid — should fall back to default 4
+                        duration: 15, // out of range — should fall back to default 4
                     },
                 ],
                 edges: [],

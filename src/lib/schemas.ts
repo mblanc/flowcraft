@@ -130,7 +130,7 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
     videoUrl: z.string().optional(),
     videoUrls: z.array(z.string()).optional(),
     aspectRatio: AspectRatio169_916Schema,
-    duration: z.union([z.literal(4), z.literal(6), z.literal(8)]),
+    duration: z.number().min(3).max(10),
     model: z.preprocess(
         migrateVideoModel,
         z.enum([
@@ -380,7 +380,9 @@ export const GenerateVideoSchema = z.object({
         DEFAULTS.ASPECT_RATIO,
     ),
     duration: z
-        .union([z.literal(4), z.literal(6), z.literal(8)])
+        .number()
+        .min(3)
+        .max(10)
         .optional()
         .default(DEFAULTS.VIDEO_DURATION),
     model: z.preprocess(

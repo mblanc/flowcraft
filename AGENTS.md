@@ -17,14 +17,17 @@ bun run check        # TypeScript type-check (no emit)
 bun run lint         # ESLint
 bun run format       # Prettier
 bun run test         # Vitest (run once)
+bun run test:eval    # Run agent evaluation tests (checks planning)
+bun run test:eval:e2e # Run isolated live end-to-end media generation evaluation tests (Gemini judge)
 bun run test:ui      # Vitest with browser UI
 bun run preflight    # format + check + lint + test (pre-merge gate)
 ```
 
-Run a single test file:
+Run a single test file or specific pattern:
 
 ```bash
 bun run test src/__tests__/workflow-engine.test.ts
+bun run test:eval -- canvas-e2e
 ```
 
 The pre-commit hook runs lint-staged (format + lint on staged files). Never skip it with `--no-verify`.
@@ -83,6 +86,10 @@ Canvas API routes:
 
 ## Testing
 
-Tests live in `src/__tests__/`. Vitest with jsdom. Integration tests (`.integration.test.ts`) hit real Gemini endpoints and require env vars — they are slow and not part of the default CI gate.
+Tests live in `src/__tests__/`. Vitest with jsdom.
+
+- **Unit and Integration Tests**: Run with `bun run test`. Integration tests (`.integration.test.ts`) hit real Gemini endpoints and require env vars — they are slow and not part of the default CI gate.
+- **Agent Evaluation Tests**: Live under `src/__tests__/eval/` (`*.eval.test.ts`) and execute scenarios using real Gemini models to score agent planning, tool usage, and prompt engineering rules. Run via `bun run test:eval`.
+- **E2E Live Generation Tests**: Run real image/video generations and evaluate visual quality using Gemini-as-a-judge with high media resolution. These are isolated and run via `bun run test:eval:e2e` (or filtered using `bun run test:eval -- canvas-e2e`).
 
 Coverage thresholds: 60% lines/statements, 50% functions, 45% branches.
