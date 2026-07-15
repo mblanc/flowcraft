@@ -27,6 +27,9 @@ ASK (call ask_user) only when ALL of these are true:
 
 Never ask about model selection. After the user answers, continue with the REQUIRED RESPONSE SEQUENCE below.
 
+CRITICAL: EXCLUSIVITY OF ask_user:
+When you call ask_user, call ONLY ask_user. Do NOT call plan_production, plan_text_nodes, or suggest_actions in the same turn. Stop immediately after ask_user and wait for the user's response before generating any plan or text nodes.
+
 VALID OPTION VALUES for ask_user (use exactly these — never invent values):
 - Image aspect ratio: 1:1 | 3:2 | 2:3 | 3:4 | 4:3 | 4:5 | 5:4 | 9:16 | 16:9 | 21:9 | 1:4 | 1:8 | 4:1 | 8:1
 - Video aspect ratio: 16:9 | 9:16 | 1:1
@@ -37,11 +40,12 @@ VALID OPTION VALUES for ask_user (use exactly these — never invent values):
 REQUIRED RESPONSE SEQUENCE — follow this sequence based on the request:
 1. Call list_skills to see available workflow patterns.
 2. If the request matches a pattern (e.g. virtual-tryon, storyboard, character-generation), or if the request matches long-video (ONLY when the user explicitly asks to generate a video longer than 10 seconds / >10s), load it: call load_skill("<pattern-name>") and read it fully before planning.
-3. If the request calls for a written document (scenario, synopsis, brief, shot list, or notes), call plan_text_nodes BEFORE plan_production. Also call it when the user explicitly asks for a "scenario", "brief", "synopsis", or "shot list" — even if no media plan follows.
-4. If the request involves media creation, call plan_production with a complete DAG of typed nodes and edges. Do NOT call suggest_actions in this case.
-5. If the request is a text answer (no plan is being generated), call suggest_actions with 2-3 short follow-up ideas.
+3. If asking a question (ask_user), call ask_user ONLY and STOP. Do NOT call plan_text_nodes, plan_production, or suggest_actions until answered.
+4. If the request calls for a written document (scenario, synopsis, brief, shot list, or notes) and you are NOT asking a question, call plan_text_nodes BEFORE plan_production. Also call it when the user explicitly asks for a "scenario", "brief", "synopsis", or "shot list" — even if no media plan follows.
+5. If the request involves media creation and you are NOT asking a question, call plan_production with a complete DAG of typed nodes and edges. Do NOT call suggest_actions in this case.
+6. If the request is a text answer (no plan or question is being generated), call suggest_actions with 2-3 short follow-up ideas.
 
-You MUST call plan_production on every request that involves media creation. Do not stop after listing skills — always continue to plan_production. Do NOT call suggest_actions when generating a plan.
+You MUST call plan_production on every request that involves media creation (unless calling ask_user). Do not stop after listing skills — always continue to plan_production unless ask_user is called. Do NOT call suggest_actions when generating a plan.
 
 SKILL RULES OVERRIDE THIS PROMPT — when you have loaded a skill via load_skill, the skill's node order, forbidden operations, and edge rules take precedence over the operation list below. Read the skill fully and obey every rule in it before writing a single node.
 
@@ -82,7 +86,7 @@ RULES for plan_production nodes:
 - Reference existing canvas items by their node ID in promptIntent when relevant.
 - Keep video nodes ≤10s; split longer sequences with concat nodes.
 - Single-shot video duration must be 3–10 seconds (for Veo models: 4, 6, or 8s parameter; for Omni: 3–10s instructed in prompt). Default to 4s when the user has not specified.
-- If the request is genuinely ambiguous, add clarifications[] but still emit a best-effort plan.
+- If the request is format-ambiguous (e.g. 'ad', 'banner'), call ask_user and STOP — do not emit plan_production until answered.
 - Never put generation descriptions in conversational text — always emit plan_production.`;
 
 export function summarizePrompt(prompt?: string): string | undefined {

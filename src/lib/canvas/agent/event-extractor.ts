@@ -26,7 +26,9 @@ export async function* extractAgentEvents(
 ): AsyncGenerator<AgentEvent> {
     const canvasNodeIds = canvasNodes.map((n) => n.id);
     const allSteps: GenerationStep[] = [];
-    let actionsEmitted = false;
+    const pendingTextNodes: TextNodePayload[] = [];
+    let pendingActions: ChatAction[] = [];
+    let hasQuestion = false;
 
     for await (const event of adkEvents) {
         logger.debug(
@@ -128,9 +130,10 @@ export async function* extractAgentEvents(
                 const raw =
                     (call.args as { nodes?: TextNodePayload[] })?.nodes ?? [];
                 if (raw.length > 0) {
-                    yield { type: "text_nodes", nodes: raw };
+                    pendingTextNodes.push(...raw);
                 }
             } else if (call.name === "ask_user") {
+                hasQuestion = true;
                 const raw = call.args as {
                     id?: string;
                     question?: string;
@@ -142,7 +145,10 @@ export async function* extractAgentEvents(
                     options: raw.options ?? [],
                 };
                 yield { type: "question", question: payload };
-            } else if (call.name === "suggest_actions" && !actionsEmitted) {
+            } else if (
+                call.name === "suggest_actions" &&
+                pendingActions.length === 0
+            ) {
                 const raw =
                     (
                         call.args as {
@@ -155,18 +161,25 @@ export async function* extractAgentEvents(
                     prompt: a.prompt,
                 }));
                 if (actions.length > 0) {
-                    yield { type: "actions", actions };
-                    actionsEmitted = true;
+                    pendingActions = actions;
                 }
             }
         }
     }
 
-    // plan is intentionally emitted last — inline events (text_nodes, agent_action)
-    // are guaranteed to precede it. The textNodesBeforeProduction eval criterion depends on this.
-    if (allSteps.length > 0) {
-        const plan: AgentPlan = { steps: allSteps };
-        yield { type: "plan", plan };
+    // When a question is asked (ask_user), suppress text_nodes, plan, and suggest_actions.
+    // The plan depends on the user's answer and must not be generated or shown while waiting for user input.
+    if (!hasQuestion) {
+        if (pendingTextNodes.length > 0) {
+            yield { type: "text_nodes", nodes: pendingTextNodes };
+        }
+        if (allSteps.length > 0) {
+            const plan: AgentPlan = { steps: allSteps };
+            yield { type: "plan", plan };
+        }
+        if (pendingActions.length > 0) {
+            yield { type: "actions", actions: pendingActions };
+        }
     }
 
     yield { type: "done" };
