@@ -204,6 +204,29 @@ export const criteria = {
         },
     }),
 
+    /** Agent must not emit text nodes when a question is pending. */
+    noTextNodesWithQuestion: (): Criterion => ({
+        name: "no_text_nodes_with_question",
+        score: (_, events) => {
+            const hasQ = events.some((e) => e.type === "question");
+            if (!hasQ) return 1;
+            const hasTextNodes = events.some((e) => e.type === "text_nodes");
+            return hasTextNodes ? 0 : 1;
+        },
+    }),
+
+    /** Agent must call ask_user without generating a plan or text nodes. */
+    asksUserWithoutPlan: (): Criterion => ({
+        name: "asks_user_without_plan",
+        score: (steps, events) => {
+            const hasQ = events.some((e) => e.type === "question");
+            const hasPlan =
+                steps.length > 0 || events.some((e) => e.type === "plan");
+            const hasTextNodes = events.some((e) => e.type === "text_nodes");
+            return hasQ && !hasPlan && !hasTextNodes ? 1 : 0;
+        },
+    }),
+
     /** plan_text_nodes must be emitted before any plan event. */
     textNodesBeforeProduction: (): Criterion => ({
         name: "text_nodes_before_production",

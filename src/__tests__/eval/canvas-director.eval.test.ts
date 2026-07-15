@@ -193,6 +193,34 @@ const evalCases: EvalCase[] = [
             criteria.noErrors(),
             criteria.hasQuestion(),
             criteria.noPlanWithQuestion(),
+            criteria.noTextNodesWithQuestion(),
+        ],
+    },
+    {
+        id: "director__ask_user_ambiguous_ad_with_subject",
+        description:
+            "Agent must call ask_user without generating a plan or text nodes for an ambiguous ad request",
+        input: baseInput({
+            message:
+                "An ad for the latest Pixel 10 phone from Google with this guy",
+            canvasNodes: [portraitNode],
+            attachments: [
+                {
+                    nodeId: PORTRAIT_ID,
+                    label: "Guy Portrait",
+                    type: "canvas-image",
+                },
+            ],
+            canvasId: "eval-b-ask-user-ad-pixel10",
+            userId: "eval-user",
+        }),
+        criteria: [
+            criteria.noErrors(),
+            criteria.hasQuestion(),
+            criteria.noPlanWithQuestion(),
+            criteria.noTextNodesWithQuestion(),
+            criteria.noSuggestedActions(),
+            criteria.asksUserWithoutPlan(),
         ],
     },
     {

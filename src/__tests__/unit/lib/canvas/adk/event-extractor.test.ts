@@ -286,19 +286,107 @@ describe("extractAgentEvents", () => {
             expect(questionEvent?.question.options).toEqual(options);
         });
 
-        it("uses empty defaults when args are missing", async () => {
+        it("suppresses plan_production steps when ask_user is called in the same stream", async () => {
             mockGetFunctionCalls.mockReturnValue([
-                { name: "ask_user", args: {} },
+                {
+                    name: "ask_user",
+                    args: {
+                        id: "aspect_ratio",
+                        question: "Which aspect ratio?",
+                        options: [
+                            { id: "16:9", label: "16:9" },
+                            { id: "9:16", label: "9:16" },
+                        ],
+                    },
+                },
+                {
+                    name: "plan_production",
+                    args: {
+                        nodes: [
+                            {
+                                id: "n1",
+                                operation: "t2i",
+                                promptIntent: "Pixel 10 phone",
+                            },
+                        ],
+                        edges: [],
+                    },
+                },
             ]);
 
             const events = await collect(
                 extractAgentEvents(makeStream({}), [], []),
             );
+            const types = events.map((e) => (e as { type: string }).type);
 
-            expect(events).toContainEqual({
-                type: "question",
-                question: { id: "", question: "", options: [] },
-            });
+            expect(types).toContain("question");
+            expect(types).not.toContain("plan");
+        });
+
+        it("suppresses plan_text_nodes when ask_user is called in the same stream", async () => {
+            mockGetFunctionCalls.mockReturnValue([
+                {
+                    name: "ask_user",
+                    args: {
+                        id: "aspect_ratio",
+                        question: "Which aspect ratio?",
+                        options: [
+                            { id: "16:9", label: "16:9" },
+                            { id: "9:16", label: "9:16" },
+                        ],
+                    },
+                },
+                {
+                    name: "plan_text_nodes",
+                    args: {
+                        nodes: [
+                            {
+                                id: "t1",
+                                title: "Ad Synopsis",
+                                content: "A high-tech ad for Pixel 10.",
+                            },
+                        ],
+                    },
+                },
+            ]);
+
+            const events = await collect(
+                extractAgentEvents(makeStream({}), [], []),
+            );
+            const types = events.map((e) => (e as { type: string }).type);
+
+            expect(types).toContain("question");
+            expect(types).not.toContain("text_nodes");
+        });
+
+        it("suppresses suggest_actions when ask_user is called in the same stream", async () => {
+            mockGetFunctionCalls.mockReturnValue([
+                {
+                    name: "ask_user",
+                    args: {
+                        id: "aspect_ratio",
+                        question: "Which aspect ratio?",
+                        options: [
+                            { id: "16:9", label: "16:9" },
+                            { id: "9:16", label: "9:16" },
+                        ],
+                    },
+                },
+                {
+                    name: "suggest_actions",
+                    args: {
+                        actions: [{ label: "Action 1", prompt: "Prompt 1" }],
+                    },
+                },
+            ]);
+
+            const events = await collect(
+                extractAgentEvents(makeStream({}), [], []),
+            );
+            const types = events.map((e) => (e as { type: string }).type);
+
+            expect(types).toContain("question");
+            expect(types).not.toContain("actions");
         });
     });
 });

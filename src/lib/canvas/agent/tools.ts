@@ -291,6 +291,7 @@ export const askUserTool = new FunctionTool({
     description:
         "Ask the user a clarifying question with multiple-choice options. " +
         "Call this INSTEAD of plan_production when the request is ambiguous and the answer would change the plan meaningfully. " +
+        "Do NOT call plan_production, plan_text_nodes, or suggest_actions in the same turn. " +
         "Do NOT ask about things already specified in the user message, canvas defaults, or active style. " +
         "Options MUST use valid values (e.g. video duration 3s-10s; for Veo models 4s, 6s, or 8s). " +
         "After the user replies, continue with plan_production or ask_user again if still ambiguous.",
