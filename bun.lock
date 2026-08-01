@@ -5,10 +5,10 @@
     "": {
       "name": "flowcraft",
       "dependencies": {
-        "@google-cloud/firestore": "^8.6.0",
+        "@google-cloud/firestore": "^8.7.0",
         "@google-cloud/storage": "^7.21.0",
         "@google/adk": "^1.5.0",
-        "@google/genai": "^2.11.0",
+        "@google/genai": "^2.15.0",
         "@hookform/resolvers": "^5.6.0",
         "@mdxeditor/editor": "^4.1.1",
         "@mediabunny/server": "^1.52.2",
@@ -327,7 +327,7 @@
 
     "@gar/promisify": ["@gar/promisify@1.1.3", "", {}, "sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw=="],
 
-    "@google-cloud/firestore": ["@google-cloud/firestore@8.6.0", "", { "dependencies": { "@opentelemetry/api": "^1.9.0", "fast-deep-equal": "^3.1.3", "functional-red-black-tree": "^1.0.1", "google-gax": "^5.0.1", "protobufjs": "^7.5.3" } }, "sha512-TdvZHfwQj5B5CSDEgDqyrhdVqtOSupmBXDQPasMAJiC64tjsGvyMooNiC43fdk1TsUHeklyoZ6/vQ1TjWKVMbg=="],
+    "@google-cloud/firestore": ["@google-cloud/firestore@8.7.0", "", { "dependencies": { "@opentelemetry/api": "^1.9.0", "fast-deep-equal": "^3.1.3", "functional-red-black-tree": "^1.0.1", "google-gax": "^5.0.1", "protobufjs": "^7.5.3" } }, "sha512-EvMpZQUXkTRdweSvOu6VL6EEQwHjHAgWz2UYZR+Mj6Ao52S+TWieHbSn15jiNnEw8F8RhbZj7IGXZ1PFB1eA+A=="],
 
     "@google-cloud/opentelemetry-cloud-monitoring-exporter": ["@google-cloud/opentelemetry-cloud-monitoring-exporter@0.21.0", "", { "dependencies": { "@google-cloud/opentelemetry-resource-util": "^3.0.0", "@google-cloud/precise-date": "^4.0.0", "google-auth-library": "^9.0.0", "googleapis": "^137.0.0" }, "peerDependencies": { "@opentelemetry/api": "^1.9.0", "@opentelemetry/core": "^2.0.0", "@opentelemetry/resources": "^2.0.0", "@opentelemetry/sdk-metrics": "^2.0.0" } }, "sha512-+lAew44pWt6rA4l8dQ1gGhH7Uo95wZKfq/GBf9aEyuNDDLQ2XppGEEReu6ujesSqTtZ8ueQFt73+7SReSHbwqg=="],
 
@@ -349,7 +349,7 @@
 
     "@google/adk": ["@google/adk@1.5.0", "", { "dependencies": { "@a2a-js/sdk": "^0.3.10", "@google-cloud/opentelemetry-cloud-monitoring-exporter": "^0.21.0", "@google-cloud/opentelemetry-cloud-trace-exporter": "^3.0.0", "@google-cloud/storage": "^7.17.1", "@google-cloud/vertexai": "^1.12.0", "@google/genai": "^2.9.0", "@mikro-orm/core": "^6.6.10", "@mikro-orm/reflection": "^6.6.6", "@modelcontextprotocol/sdk": "^1.26.0", "@opentelemetry/api": "1.9.0", "@opentelemetry/api-logs": "^0.205.0", "@opentelemetry/exporter-logs-otlp-http": "^0.205.0", "@opentelemetry/exporter-metrics-otlp-http": "^0.205.0", "@opentelemetry/exporter-trace-otlp-http": "^0.205.0", "@opentelemetry/resource-detector-gcp": "^0.40.0", "@opentelemetry/resources": "^2.1.0", "@opentelemetry/sdk-logs": "^0.205.0", "@opentelemetry/sdk-metrics": "^2.1.0", "@opentelemetry/sdk-trace-base": "^2.1.0", "@opentelemetry/sdk-trace-node": "^2.1.0", "adm-zip": "^0.5.17", "express": "^4.22.1", "google-auth-library": "^10.3.0", "js-yaml": "^4.1.1", "jsonpath-plus": "^10.4.0", "lodash-es": "^4.18.1", "winston": "^3.19.0", "zod": "^4.2.1", "zod-to-json-schema": "^3.25.1" }, "peerDependencies": { "@mikro-orm/mariadb": "^6.6.6", "@mikro-orm/mssql": "^6.6.6", "@mikro-orm/mysql": "^6.6.6", "@mikro-orm/postgresql": "^6.6.6", "@mikro-orm/sqlite": "^6.6.6" } }, "sha512-DwgdpKeDJ7V+VQK9VZNpvYVXLLJ7xURfvA3nq5zWkwlioFUEbNwh0STDnLmJy0swmqKXgEeymjKNMrlc3eVY9g=="],
 
-    "@google/genai": ["@google/genai@2.11.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-d2Csf29vS0GfHc52H0MG25ccY4FKvvbDgqDlEovLrPLF8sPegWr/GGO+LMOy85/1SnX0iV0zDAW7R8SsvWg8Vg=="],
+    "@google/genai": ["@google/genai@2.15.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-Q41TvqwBQ9NcmWdh6qxY5qrpg+0FaVHD7febQoH007pykxzco4ohScBUP4BBBy+Q8j5D8euIBSRIBDfWuNVCKA=="],
 
     "@grpc/grpc-js": ["@grpc/grpc-js@1.14.4", "", { "dependencies": { "@grpc/proto-loader": "^0.8.0", "@js-sdsl/ordered-map": "^4.4.2" } }, "sha512-k9Dj3DV/itK9D06Y8f190Qgop7/Ui+D0njFV3LHMPwPT75DpXLQohE9Wmz0QElrJnzsjB7KPWiKJbOl7IPDArQ=="],
 
@@ -2916,6 +2916,8 @@
     "@eslint/eslintrc/globals": ["globals@14.0.0", "", {}, "sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ=="],
 
     "@google-cloud/vertexai/@google/genai": ["@google/genai@1.52.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-gwSvbpiN/17O9TbsqSsE/OzZcpv5Fo4RQjdngGgogtuB9RsyJ8ZHhX5KjHj1bp5N9snN2eK8LDGXSaWW2hof8Q=="],
+
+    "@google/adk/@google/genai": ["@google/genai@2.11.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-d2Csf29vS0GfHc52H0MG25ccY4FKvvbDgqDlEovLrPLF8sPegWr/GGO+LMOy85/1SnX0iV0zDAW7R8SsvWg8Vg=="],
 
     "@google/adk/google-auth-library": ["google-auth-library@10.9.0", "", { "dependencies": { "base64-js": "^1.3.0", "ecdsa-sig-formatter": "^1.0.11", "gaxios": "^7.1.4", "gcp-metadata": "8.1.2", "google-logging-utils": "1.1.3", "jws": "^4.0.0" } }, "sha512-xtvUqvINPhTaBm7nXqlYPcrMHJPm1lCNdSovxnKKhTm+4JsvQ+KGVYJViLoH9Yxu8w+T0Qv5HubzYT9BLrppJg=="],
 
