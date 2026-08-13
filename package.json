@@ -85,7 +85,7 @@
         "vaul": "^1.1.2",
         "winston": "^3.19.0",
         "zod": "4.4.3",
-        "zustand": "^5.0.14"
+        "zustand": "^5.0.15"
     },
     "devDependencies": {
         "@tailwindcss/postcss": "^4.3.3",
