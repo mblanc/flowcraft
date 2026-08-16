@@ -23,7 +23,7 @@
         "@google-cloud/storage": "^7.21.0",
         "@google/adk": "^1.6.0",
         "@google/genai": "^2.16.0",
-        "@hookform/resolvers": "^5.8.0",
+        "@hookform/resolvers": "^5.9.0",
         "@mdxeditor/editor": "^4.2.0",
         "@mediabunny/server": "^1.54.0",
         "@radix-ui/react-accordion": "1.2.20",
