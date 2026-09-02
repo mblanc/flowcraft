@@ -275,6 +275,9 @@ export function mapPlanNodesToSteps(
             ...(type === "video"
                 ? { generateAudio: node.generateAudio ?? false }
                 : {}),
+            operation: node.operation,
+            planNodeId: node.id,
+            ...(node.voice ? { voice: node.voice } : {}),
             ...(refs && refs.length > 0 ? { referenceNodeIds: refs } : {}),
             ...(deps && deps.length > 0 ? { dependsOn: deps } : {}),
             ...(type === "concat" && orderedInputs.has(node.id)

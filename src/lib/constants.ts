@@ -25,6 +25,9 @@ export const MODELS = {
         LYRIA_3_CLIP: "lyria-3-clip-preview",
         LYRIA_3_PRO: "lyria-3-pro-preview",
     },
+    AUDIO: {
+        GEMINI_3_1_FLASH_TTS_PREVIEW: "gemini-3.1-flash-tts-preview",
+    },
 } as const;
 
 export const MODEL_THINKING_LEVELS: Record<string, string[]> = {

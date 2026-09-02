@@ -51,6 +51,13 @@ const BUILT_IN_SKILLS = [
             "Seamlessly map clothing, accessories, or styles onto a reference person node.",
         isBuiltIn: true,
     },
+    {
+        id: "vox-director",
+        name: "vox-director",
+        description:
+            "Create Vox-style paper-collage Motion Posters with speech narration and score.",
+        isBuiltIn: true,
+    },
 ];
 
 export function SkillsLibrary() {

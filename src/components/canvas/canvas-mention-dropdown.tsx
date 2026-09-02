@@ -2,9 +2,9 @@
 
 import { memo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Image, Video, Type, Music } from "lucide-react";
+import { Image, Video, Type, Music, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CanvasNode } from "@/lib/canvas/types";
+import type { CanvasNode, MediaOperation } from "@/lib/canvas/types";
 
 const NODE_TYPE_ICON = {
     "canvas-image": Image,
@@ -17,6 +17,7 @@ export interface MentionItem {
     id: string;
     label: string;
     type: CanvasNode["type"];
+    operation?: MediaOperation;
 }
 
 interface CanvasMentionDropdownProps {
@@ -60,7 +61,10 @@ function CanvasMentionDropdownComponent({
                 Canvas items
             </div>
             {filtered.map((item, i) => {
-                const Icon = NODE_TYPE_ICON[item.type];
+                const Icon =
+                    item.type === "canvas-audio" && item.operation === "t2s"
+                        ? Mic
+                        : NODE_TYPE_ICON[item.type];
                 return (
                     <button
                         key={item.id}

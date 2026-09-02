@@ -13,11 +13,13 @@ import { workflowOutputPrimitive } from "./workflow-output/definition";
 import { customWorkflowPrimitive } from "./custom-workflow/definition";
 import { concatPrimitive } from "./concat/definition";
 import { musicPrimitive } from "./music/definition";
+import { t2sPrimitive } from "./t2s/definition";
 
 export class PrimitiveRegistry {
     private primitives = new Map<string, Primitive>();
     private flowTypeMap = new Map<string, Primitive>();
     private canvasTypeMap = new Map<string, Primitive>();
+    private operationMap = new Map<string, Primitive>();
 
     register(primitive: Primitive): void {
         this.primitives.set(primitive.id, primitive);
@@ -26,6 +28,9 @@ export class PrimitiveRegistry {
         }
         if (primitive.canvas) {
             this.canvasTypeMap.set(primitive.canvas.type, primitive);
+        }
+        if (primitive.agent?.operationId) {
+            this.operationMap.set(primitive.agent.operationId, primitive);
         }
     }
 
@@ -39,6 +44,10 @@ export class PrimitiveRegistry {
 
     getByCanvasType(type: string): Primitive | undefined {
         return this.canvasTypeMap.get(type);
+    }
+
+    getByOperation(operation: string): Primitive | undefined {
+        return this.operationMap.get(operation);
     }
 
     flowTypes(): string[] {
@@ -79,3 +88,4 @@ registry.register(workflowOutputPrimitive);
 registry.register(customWorkflowPrimitive);
 registry.register(concatPrimitive);
 registry.register(musicPrimitive);
+registry.register(t2sPrimitive);

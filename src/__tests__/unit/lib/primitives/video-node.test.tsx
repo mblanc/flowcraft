@@ -7,6 +7,8 @@ import type { NodeProps } from "@xyflow/react";
 import type { VideoData } from "@/lib/types";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import { MODELS } from "@/lib/constants";
+
 vi.mock("@/lib/store/use-flow-store", () => ({
     useFlowStore: Object.assign(
         (selector: any) =>
@@ -34,6 +36,15 @@ vi.mock("@/hooks/use-connected-source-nodes", () => ({
     useConnectedSourceNodes: () => [],
 }));
 
+const mockUpdateNodeInternals = vi.fn();
+vi.mock("@xyflow/react", async () => {
+    const actual = await vi.importActual("@xyflow/react");
+    return {
+        ...actual,
+        useUpdateNodeInternals: () => mockUpdateNodeInternals,
+    };
+});
+
 describe("VideoNode Rendering", () => {
     const defaultProps: NodeProps<any> = {
         id: "video-1",
@@ -41,7 +52,7 @@ describe("VideoNode Rendering", () => {
             type: "video",
             name: "Test Video",
             prompt: "a video prompt",
-            model: "veo-2.0-high",
+            model: MODELS.VIDEO.VEO_3_1_LITE,
             motion: 5,
             images: [],
             aspectRatio: "16:9",
@@ -133,5 +144,39 @@ describe("VideoNode Rendering", () => {
         expect(
             container.querySelector('[data-handleid="last-frame-input"]'),
         ).not.toBeNull();
+    });
+
+    it("should update node internals when switching between Omni and non-Omni models", () => {
+        mockUpdateNodeInternals.mockClear();
+
+        const { rerender } = render(
+            <ReactFlowProvider>
+                <TooltipProvider>
+                    <VideoNode {...defaultProps} />
+                </TooltipProvider>
+            </ReactFlowProvider>,
+        );
+
+        expect(mockUpdateNodeInternals).toHaveBeenCalledWith("video-1");
+
+        mockUpdateNodeInternals.mockClear();
+
+        const omniProps = {
+            ...defaultProps,
+            data: {
+                ...defaultProps.data,
+                model: MODELS.VIDEO.GEMINI_OMNI_FLASH,
+            },
+        };
+
+        rerender(
+            <ReactFlowProvider>
+                <TooltipProvider>
+                    <VideoNode {...omniProps} />
+                </TooltipProvider>
+            </ReactFlowProvider>,
+        );
+
+        expect(mockUpdateNodeInternals).toHaveBeenCalledWith("video-1");
     });
 });

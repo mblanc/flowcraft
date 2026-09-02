@@ -172,6 +172,7 @@ export function CanvasChatInput({
             "long-video",
             "storyboard",
             "virtual-tryon",
+            "vox-director",
         ];
         const customNames = userSkillsForAutocomplete.map((s) => s.name);
         const allNames = Array.from(
@@ -274,6 +275,10 @@ export function CanvasChatInput({
                     nodeId: node.id,
                     label: node.data.label,
                     type: node.type,
+                    operation:
+                        "operation" in node.data
+                            ? node.data.operation
+                            : undefined,
                 } as ChatAttachment;
             })
             .filter(Boolean) as ChatAttachment[];
@@ -290,6 +295,10 @@ export function CanvasChatInput({
                     nodeId: node.id,
                     label: node.data.label,
                     type: node.type,
+                    operation:
+                        "operation" in node.data
+                            ? node.data.operation
+                            : undefined,
                 } as ChatAttachment;
             })
             .filter(Boolean) as ChatAttachment[];

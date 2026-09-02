@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { X, Image, Video, Text, Music } from "lucide-react";
+import { X, Image, Video, Text, Music, Mic } from "lucide-react";
 import { StyleThumbnail } from "./style-thumbnail";
 import { cn } from "@/lib/utils";
 import type { ChatAttachment } from "@/lib/canvas/types";
@@ -54,7 +54,10 @@ function CanvasAttachmentBarComponent({
                 </span>
             )}
             {attachments.map((att) => {
-                const Icon = TYPE_ICON[att.type];
+                const Icon =
+                    att.type === "canvas-audio" && att.operation === "t2s"
+                        ? Mic
+                        : TYPE_ICON[att.type];
                 return (
                     <span
                         key={att.nodeId}

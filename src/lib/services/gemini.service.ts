@@ -987,15 +987,55 @@ export class GeminiService {
             },
         });
 
+        return this.extractAudioFromResponse(response, "Lyria");
+    }
+
+    async generateSpeech(options: {
+        prompt: string;
+        voice?: string;
+        model?: string;
+    }): Promise<{ audioData: string; mimeType: string }> {
+        const {
+            prompt,
+            voice = "Puck",
+            model = MODELS.AUDIO.GEMINI_3_1_FLASH_TTS_PREVIEW,
+        } = options;
+
+        logger.info(
+            `[GeminiService] Generating speech TTS with model: ${model}, voice: ${voice}`,
+        );
+
+        const response = await this.ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                responseModalities: ["AUDIO"],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: {
+                            voiceName: voice,
+                        },
+                    },
+                },
+            },
+        });
+
+        return this.extractAudioFromResponse(response, "TTS");
+    }
+
+    private extractAudioFromResponse(
+        response: GenerateContentResponse,
+        label: string,
+    ): { audioData: string; mimeType: string } {
         const audioPart = response.candidates?.[0]?.content?.parts?.find(
             (part) => part.inlineData,
         );
 
         if (!audioPart?.inlineData) {
             logger.error(
-                `[GeminiService] No audio data in Lyria response: ${JSON.stringify(response, null, 2)}`,
+                `[GeminiService] No audio data in ${label} response: ${JSON.stringify(response, null, 2)}`,
             );
-            throw new Error("No audio data in Lyria response");
+            throw new Error(`No audio data in ${label} response`);
         }
 
         return {

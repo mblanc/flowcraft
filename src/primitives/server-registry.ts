@@ -14,10 +14,12 @@ import { workflowOutputPrimitive } from "./workflow-output/definition";
 import { customWorkflowPrimitive } from "./custom-workflow/definition";
 import { concatPrimitive } from "./concat/definition";
 import { musicPrimitive } from "./music/definition";
+import { t2sPrimitive } from "./t2s/definition";
 
 import { imageExecute } from "./image/execute";
 import { resizeExecute } from "./resize/execute";
 import { musicExecute } from "./music/execute";
+import { t2sExecute } from "./t2s/execute";
 import { concatExecute } from "./concat/execute";
 import { llmExecute } from "./llm/execute";
 import { videoExecute } from "./video/execute";
@@ -42,3 +44,4 @@ serverRegistry.register({
     execute: concatExecute,
 } as Primitive);
 serverRegistry.register({ ...musicPrimitive, execute: musicExecute });
+serverRegistry.register({ ...t2sPrimitive, execute: t2sExecute });

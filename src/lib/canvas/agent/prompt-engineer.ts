@@ -25,8 +25,12 @@ export class PromptEngineer {
         this.skillsDir = skillsDir;
     }
 
-    private getSkillName(stepType: string): string {
-        const primitive = registry.getByCanvasType(`canvas-${stepType}`);
+    private getSkillName(step: GenerationStep | string): string {
+        const operation = typeof step === "object" ? step.operation : undefined;
+        const stepType = typeof step === "object" ? step.type : step;
+        const primitive = operation
+            ? registry.getByOperation(operation)
+            : registry.getByCanvasType(`canvas-${stepType}`);
         const skillPath = primitive?.agent?.skillPath;
         if (!skillPath) return "";
         return path.basename(path.dirname(skillPath));
@@ -69,7 +73,7 @@ export class PromptEngineer {
         violationFeedback?: string,
         activeRuleset?: RulesetRef | null,
     ): string {
-        const skillName = this.getSkillName(step.type);
+        const skillName = this.getSkillName(step);
         const skillContent = this.loadSkill(skillName);
 
         const lines: string[] = [];
@@ -133,7 +137,7 @@ export class PromptEngineer {
         violationFeedback?: string,
         activeRuleset?: RulesetRef | null,
     ): Promise<string> {
-        const skillName = this.getSkillName(step.type);
+        const skillName = this.getSkillName(step);
         if (!skillName || !this.loadSkill(skillName)) {
             return step.prompt;
         }
@@ -168,12 +172,12 @@ export class PromptEngineer {
         activeStyle?: { name: string; content: string } | null,
         activeRuleset?: RulesetRef | null,
     ): Promise<GenerationStep[]> {
-        const enrichable = steps.filter((s) => !!this.getSkillName(s.type));
+        const enrichable = steps.filter((s) => !!this.getSkillName(s));
         if (enrichable.length === 0) return steps;
 
         const enriched = await Promise.all(
             steps.map(async (step) => {
-                if (!this.getSkillName(step.type)) return step;
+                if (!this.getSkillName(step)) return step;
                 const engineeredPrompt = await this.engineerPrompt(
                     step,
                     canvasNodes,
