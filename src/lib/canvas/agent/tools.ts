@@ -37,6 +37,10 @@ export const MUSIC_MODELS = [
     MODELS.MUSIC.LYRIA_3_PRO,
 ] as const;
 
+export const AUDIO_MODELS = [
+    MODELS.AUDIO.GEMINI_3_1_FLASH_TTS_PREVIEW,
+] as const;
+
 // Union of all aspect ratios across every image model config.
 export const IMAGE_ASPECT_RATIOS = [
     ...new Set(
@@ -133,10 +137,21 @@ const planNodeSchema = z.object({
         .optional()
         .describe("For video operations only: video output resolution."),
     model: z
-        .enum([...IMAGE_MODELS, ...VIDEO_MODELS, ...MUSIC_MODELS])
+        .enum([
+            ...IMAGE_MODELS,
+            ...VIDEO_MODELS,
+            ...MUSIC_MODELS,
+            ...AUDIO_MODELS,
+        ])
         .optional()
         .describe(
-            "Model to use. For t2m: lyria-3-clip-preview (short clip, default) or lyria-3-pro-preview (full song). Leave unset to use the canvas default.",
+            "Model to use. For t2s (speech/narration): gemini-3.1-flash-tts-preview. For t2m (music): lyria-3-clip-preview (short clip, default) or lyria-3-pro-preview (full song). Leave unset to use the canvas default.",
+        ),
+    voice: z
+        .string()
+        .optional()
+        .describe(
+            "For t2s (text-to-speech) voiceover/narration only: prebuilt voice option (e.g. Puck, Charon, Kore, Fenrir, Aoede).",
         ),
     duration: z
         .union([z.number(), z.string()])

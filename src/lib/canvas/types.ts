@@ -65,6 +65,7 @@ export interface CanvasAudioData {
     sourceUrl: string;
     mimeType: string;
     prompt?: string;
+    voice?: string;
     duration?: number;
     model?: string;
     width?: number;
@@ -95,6 +96,7 @@ export interface ChatAttachment {
     label: string;
     type: "canvas-image" | "canvas-video" | "canvas-text" | "canvas-audio";
     thumbnailUrl?: string;
+    operation?: MediaOperation;
 }
 
 export interface ChatAction {
@@ -133,8 +135,11 @@ export interface GenerationStep {
     /** Video resolution — only for video steps: "720p" | "1080p" | "4K" */
     resolution?: string;
     model?: string;
+    voice?: string;
     duration?: number;
     generateAudio?: boolean;
+    operation?: MediaOperation;
+    planNodeId?: string;
     /** Existing canvas node IDs to use as generic references */
     referenceNodeIds?: string[];
     /** Existing canvas node ID to use as video first frame */
@@ -317,6 +322,7 @@ export interface PlanNode {
     /** Video resolution — only for video operations: "720p" | "1080p" | "4K" */
     resolution?: string;
     model?: string;
+    voice?: string;
     duration?: number;
     generateAudio?: boolean;
     skill?: string;

@@ -10,6 +10,7 @@ import {
     Video,
     Text,
     Music,
+    Mic,
     Zap,
     Check,
     Loader2,
@@ -95,7 +96,8 @@ function StepCard({
     status: StepStatus | undefined;
     isApproved: boolean;
 }) {
-    const TypeIcon = STEP_TYPE_ICON[step.type] ?? Image;
+    const TypeIcon =
+        step.operation === "t2s" ? Mic : (STEP_TYPE_ICON[step.type] ?? Image);
     const nodes = useCanvasStore((s) => s.nodes);
     const [isPromptExpanded, setIsPromptExpanded] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
@@ -528,7 +530,11 @@ function CanvasChatMessageComponent({
                 {message.attachments && message.attachments.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                         {message.attachments.map((att) => {
-                            const Icon = MEDIA_TYPE_ICON[att.type];
+                            const Icon =
+                                att.type === "canvas-audio" &&
+                                att.operation === "t2s"
+                                    ? Mic
+                                    : MEDIA_TYPE_ICON[att.type];
                             return (
                                 <span
                                     key={att.nodeId}

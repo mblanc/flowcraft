@@ -67,7 +67,10 @@ function resolveReferences(
             type === "audio" ||
             type === "canvas-audio" ||
             type === "music" ||
-            type === "canvas-music"
+            type === "canvas-music" ||
+            type === "t2s" ||
+            type === "canvas-t2s" ||
+            type === "t2m"
         );
     };
 
@@ -416,9 +419,12 @@ export async function* executePlan(
         const results = await Promise.allSettled(
             wave.map(async (step) => {
                 try {
-                    const primitive = registry.getByCanvasType(
-                        `canvas-${step.type}`,
-                    );
+                    const primitive =
+                        (step.operation &&
+                            registry.getByCanvasType(
+                                `canvas-${step.operation}`,
+                            )) ||
+                        registry.getByCanvasType(`canvas-${step.type}`);
                     if (!primitive?.canvas || !primitive.execute) {
                         throw new Error(
                             `[CanvasGeneration] No primitive for step type: ${step.type}`,
@@ -607,9 +613,11 @@ export async function* executePlan(
 
             const valResults = await Promise.allSettled(
                 toValidate.map(({ step, initialNode, enrichedStep }) => {
-                    const prim = registry.getByCanvasType(
-                        `canvas-${step.type}`,
-                    ) as PrimitiveShape;
+                    const prim = ((step.operation &&
+                        registry.getByCanvasType(`canvas-${step.operation}`)) ||
+                        registry.getByCanvasType(
+                            `canvas-${step.type}`,
+                        )) as PrimitiveShape;
                     return runWithValidation(
                         initialNode,
                         enrichedStep,

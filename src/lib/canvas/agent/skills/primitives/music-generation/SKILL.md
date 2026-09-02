@@ -1,6 +1,6 @@
 ---
 name: music-generation
-description: Music generation. Produces a music clip from a text prompt using Lyria. Use for background scores, mood pieces, jingles, underscore tracks, or any plan node requiring generated audio.
+description: Music generation. Produces instrumental music clips, background scores, mood pieces, jingles, or sound tracks using Lyria. Use ONLY for musical audio. For voiceovers, speech narration, or spoken dialogue, use the t2s primitive instead.
 metadata:
     type: primitive
 ---

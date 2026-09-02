@@ -4,6 +4,7 @@ import { memo, useRef, useState, useEffect, useCallback } from "react";
 import { type NodeProps } from "@xyflow/react";
 import {
     Music,
+    Mic,
     Loader2,
     AlertCircle,
     Clock,
@@ -26,6 +27,10 @@ import { cn } from "@/lib/utils";
 export const CanvasNode = memo(
     ({ data, selected, id }: NodeProps) => {
         const d = data as unknown as CanvasAudioData;
+        const isSpeech =
+            d.operation === "t2s" ||
+            Boolean(d.voice) ||
+            /speech|narration|voiceover|voice/i.test(d.label);
         const updateNodeData = useCanvasStore((s) => s.updateNodeData);
         const removeNode = useCanvasStore((s) => s.removeNode);
 
@@ -158,7 +163,11 @@ export const CanvasNode = memo(
                     {/* Title Layer */}
                     <div className="pointer-events-auto absolute -top-[28px] left-2 z-20 flex max-w-full items-center gap-1.5">
                         <div className="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <Music className="text-muted-foreground h-3 w-3" />
+                            {isSpeech ? (
+                                <Mic className="text-muted-foreground h-3 w-3" />
+                            ) : (
+                                <Music className="text-muted-foreground h-3 w-3" />
+                            )}
                         </div>
                         {isRenaming ? (
                             <input
@@ -304,8 +313,13 @@ export const CanvasNode = memo(
 
                             <div className="flex flex-wrap gap-2 text-xs">
                                 <span className="bg-secondary/80 text-secondary-foreground rounded-full border px-2 py-1 font-medium">
-                                    Audio
+                                    {isSpeech ? "Speech Narration" : "Music"}
                                 </span>
+                                {d.voice && (
+                                    <span className="bg-secondary/50 text-secondary-foreground rounded-full border px-2 py-1">
+                                        Voice: {d.voice}
+                                    </span>
+                                )}
                                 {d.model && (
                                     <span className="bg-secondary/50 text-secondary-foreground rounded-full border px-2 py-1">
                                         {d.model}

@@ -58,7 +58,7 @@ Key layers:
 
 - **`src/lib/canvas/agent/agent-runner.ts`** — `CanvasAgentRunner` wraps the Google ADK. Two variants:
     - **Agent A** (`variant: "a"`): streaming LLM for simple image/video plans. Uses SSE streaming.
-    - **Agent B / Director** (`variant: "b"`): multi-turn agentic loop with `ThinkingLevel.LOW`. Uses `StreamingMode.NONE` because SSE closes after the first turn. Loads pattern skills from `src/lib/canvas/agent/skills/patterns/`.
+    - **Agent B / Director** (`variant: "b"`): multi-turn agentic loop with `ThinkingLevel.LOW`. Uses `StreamingMode.NONE` because SSE closes after the first turn. Loads pattern skills from `src/lib/canvas/agent/skills/patterns/` (e.g., `character-generation`, `long-video`, `storyboard`, `virtual-tryon`, `vox-director`).
 - **`src/lib/canvas/agent/tools.ts`** — ADK tool definitions: `planImageGenerationTool`, `planVideoGenerationTool`, `planProductionTool`, `suggestActionsTool`.
 - **`src/lib/canvas/agent/topology.ts`** — Kahn's algorithm (`topoSort`) for DAG-aware parallel execution of production plans. Only `depends_on` edges create ordering constraints.
 - **`src/lib/canvas/agent/prompt-engineer.ts`** — `PromptEngineer`: single-turn agent that enriches `PlanNode.promptIntent` → `PlanNode.prompt` using primitive skill docs from `src/lib/canvas/agent/skills/primitives/`.

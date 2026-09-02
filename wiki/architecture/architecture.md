@@ -431,7 +431,7 @@ A **Skill** is a markdown instruction document injected into the ADK agent's sys
 
 Two flavours:
 
-- **Built-in pattern skills** — markdown files under `src/lib/canvas/agent/skills/patterns/` loaded from disk at startup (character-generation, long-video, storyboard, virtual-tryon).
+- **Built-in pattern skills** — markdown files under `src/lib/canvas/agent/skills/patterns/` loaded from disk at startup (`character-generation`, `long-video`, `storyboard`, `virtual-tryon`, `vox-director`).
 - **User-defined skills** — stored in Firestore via `skill.service.ts`. The `instructions` field is a freeform markdown string.
 
 Skills can be enabled/disabled per-canvas (`CanvasDocument.disabledSkills[]`). `POST /api/canvases/[id]/toggle-skill` flips a skill's enabled state.

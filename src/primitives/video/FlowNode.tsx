@@ -3,7 +3,13 @@
 import type React from "react";
 
 import { memo, useState, useCallback, useEffect, useRef } from "react";
-import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
+import {
+    Handle,
+    Position,
+    useUpdateNodeInternals,
+    type NodeProps,
+    type Node,
+} from "@xyflow/react";
 import type { VideoData } from "@/lib/types";
 import { Video, Volume2, VolumeX } from "lucide-react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
@@ -41,6 +47,7 @@ export const FlowNode = memo(
         const [mediaAspectRatio, setMediaAspectRatio] = useState<
             number | undefined
         >(undefined);
+        const updateNodeInternals = useUpdateNodeInternals();
 
         const connectedTextNodes = useConnectedSourceNodes(id, "prompt-input");
 
@@ -48,6 +55,12 @@ export const FlowNode = memo(
         const effectiveModel = validVideoModels.includes(data.model)
             ? data.model
             : MODELS.VIDEO.GEMINI_OMNI_FLASH;
+
+        const isOmni = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+
+        useEffect(() => {
+            updateNodeInternals(id);
+        }, [id, isOmni, updateNodeInternals]);
 
         useEffect(() => {
             if (!validVideoModels.includes(data.model)) {
@@ -134,8 +147,6 @@ export const FlowNode = memo(
             setLocalPrompt(value);
             updateNodeData(id, { prompt: value });
         };
-
-        const isOmni = data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH;
 
         const handles = isOmni
             ? [

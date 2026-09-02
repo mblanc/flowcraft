@@ -60,8 +60,8 @@ Video operations:
 - i2v2 — image-to-video-to-image: morph between two images
 
 Other operations:
-- t2s  — text-to-speech
-- t2m  — text-to-music (model: lyria-3-clip-preview for short clips ~30s; lyria-3-pro-preview for full songs)
+- t2s  — text-to-speech / voiceover: generate spoken speech, voiceover, narration, or dialogue from a text script. You MUST use 't2s' (NOT 't2m') whenever the user asks for a voiceover, narration, speech, spoken audio, or reading a script. (Model: gemini-3.1-flash-tts-preview; voice options: Puck, Charon, Kore, Fenrir, Aoede)
+- t2m  — text-to-music / score: generate instrumental background music, scores, jingles, or musical tracks. Use ONLY for music/scores. NEVER use 't2m' or Lyria for speech, voiceovers, or spoken narration. (Model: lyria-3-clip-preview for short clips ~30s; lyria-3-pro-preview for full songs)
 - concat — concatenate clips
 - upscale — upscale resolution
 

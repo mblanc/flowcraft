@@ -304,6 +304,21 @@ const BUILT_IN_SKILLS: UserSkillDocument[] = [
         createdAt: "2026-06-26T00:00:00Z",
         updatedAt: "2026-06-26T00:00:00Z",
     },
+    {
+        id: "vox-director",
+        userId: "system",
+        name: "vox-director",
+        description:
+            "Create Vox-style paper-collage Motion Posters with speech narration and score.",
+        instructions:
+            "# Vox Director\n\nCreate Vox-style paper-collage Motion Posters with speech narration and background score.\n\n### Guidelines\n- 5-part keyframe poster prompt structure.\n- Combines paper cutout imagery, speech narration (`t2s`), and background music.",
+        visibility: "public",
+        sharedWith: [],
+        sharedWithEmails: [],
+        isTemplate: true,
+        createdAt: "2026-06-26T00:00:00Z",
+        updatedAt: "2026-06-26T00:00:00Z",
+    },
 ];
 
 type SkillsTab = "my" | "shared" | "community";

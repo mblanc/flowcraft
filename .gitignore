@@ -55,3 +55,5 @@ next-env.d.ts
 /docs/node_modules/
 /docs/.next/
 /docs/out/
+
+/vox-director/
