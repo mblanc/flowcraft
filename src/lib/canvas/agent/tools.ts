@@ -26,6 +26,7 @@ export const IMAGE_MODELS = [
 ] as const;
 
 export const VIDEO_MODELS = [
+    MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
     MODELS.VIDEO.VEO_3_1_LITE,
     MODELS.VIDEO.VEO_3_1_FAST,
     MODELS.VIDEO.VEO_3_1_PRO,

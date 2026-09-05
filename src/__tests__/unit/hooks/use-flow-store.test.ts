@@ -234,4 +234,106 @@ describe("useFlowStore (GraphSlice + UISlice)", () => {
 
         consoleWarnSpy.mockRestore();
     });
+
+    it("should connect image node to image-input handle on video node during onConnect", () => {
+        const imageNode: Node<NodeData> = {
+            id: "img-1",
+            type: "image",
+            position: { x: 0, y: 0 },
+            data: {
+                type: "image",
+                name: "Image 1",
+            } as NodeData,
+        };
+        const videoNode: Node<NodeData> = {
+            id: "vid-1",
+            type: "video",
+            position: { x: 200, y: 0 },
+            data: {
+                type: "video",
+                name: "Video 1",
+                model: "gemini-omni-1.1-flash-preview",
+            } as NodeData,
+        };
+
+        useFlowStore.getState().setNodes([imageNode, videoNode]);
+
+        // Connection without explicit targetHandle
+        useFlowStore.getState().onConnect({
+            source: "img-1",
+            target: "vid-1",
+            sourceHandle: "result-output",
+            targetHandle: null,
+        });
+
+        const state = useFlowStore.getState();
+        expect(state.edges.length).toBe(1);
+        expect(state.edges[0].targetHandle).toBe("image-input");
+    });
+
+    it("should remap first-frame-input to image-input when connecting to Omni video node", () => {
+        const imageNode: Node<NodeData> = {
+            id: "img-1",
+            type: "image",
+            position: { x: 0, y: 0 },
+            data: {
+                type: "image",
+                name: "Image 1",
+            } as NodeData,
+        };
+        const videoNode: Node<NodeData> = {
+            id: "vid-1",
+            type: "video",
+            position: { x: 200, y: 0 },
+            data: {
+                type: "video",
+                name: "Video 1",
+                model: "gemini-omni-1.1-flash-preview",
+            } as NodeData,
+        };
+
+        useFlowStore.getState().setNodes([imageNode, videoNode]);
+
+        useFlowStore.getState().onConnect({
+            source: "img-1",
+            target: "vid-1",
+            sourceHandle: "result-output",
+            targetHandle: "first-frame-input",
+        });
+
+        const state = useFlowStore.getState();
+        expect(state.edges.length).toBe(1);
+        expect(state.edges[0].targetHandle).toBe("image-input");
+    });
+
+    it("should remap first-frame-input edges to image-input when model is changed to Omni", () => {
+        const videoNode: Node<NodeData> = {
+            id: "vid-1",
+            type: "video",
+            position: { x: 200, y: 0 },
+            data: {
+                type: "video",
+                name: "Video 1",
+                model: "veo-3.1-generate-001",
+            } as NodeData,
+        };
+
+        useFlowStore.getState().setNodes([videoNode]);
+        useFlowStore.getState().setEdges([
+            {
+                id: "e1",
+                source: "img-1",
+                target: "vid-1",
+                sourceHandle: "result-output",
+                targetHandle: "first-frame-input",
+            },
+        ]);
+
+        useFlowStore.getState().updateNodeData("vid-1", {
+            model: "gemini-omni-1.1-flash-preview",
+        });
+
+        const state = useFlowStore.getState();
+        expect(state.edges[0].targetHandle).toBe("image-input");
+    });
 });

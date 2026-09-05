@@ -54,9 +54,15 @@ export const FlowNode = memo(
         const validVideoModels = Object.values(MODELS.VIDEO) as string[];
         const effectiveModel = validVideoModels.includes(data.model)
             ? data.model
-            : MODELS.VIDEO.GEMINI_OMNI_FLASH;
+            : MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
 
-        const isOmni = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+        const isOmni11 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
+        const isOmni10 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+        const isOmni = isOmni11 || isOmni10;
+        const normalizedResolution =
+            (data.resolution as string) === "4k"
+                ? "4K"
+                : data.resolution || "720p";
 
         useEffect(() => {
             updateNodeInternals(id);
@@ -64,13 +70,17 @@ export const FlowNode = memo(
 
         useEffect(() => {
             if (!validVideoModels.includes(data.model)) {
-                updateNodeData(id, { model: MODELS.VIDEO.GEMINI_OMNI_FLASH });
+                updateNodeData(id, {
+                    model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                });
             }
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [id]);
 
         useEffect(() => {
-            if (
+            if (!data.resolution) {
+                updateNodeData(id, { resolution: "720p" });
+            } else if (
                 data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH &&
                 data.resolution !== "720p"
             ) {
@@ -325,9 +335,14 @@ export const FlowNode = memo(
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
+                                    value={MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH}
+                                >
+                                    Gemini Omni 1.1 Flash
+                                </SelectItem>
+                                <SelectItem
                                     value={MODELS.VIDEO.GEMINI_OMNI_FLASH}
                                 >
-                                    Gemini Omni Flash
+                                    Gemini Omni Flash (1.0)
                                 </SelectItem>
                                 <SelectItem value={MODELS.VIDEO.VEO_3_1_LITE}>
                                     Veo 3.1 Lite
@@ -360,7 +375,38 @@ export const FlowNode = memo(
                                 <SelectItem value="9:16">9:16</SelectItem>
                             </SelectContent>
                         </Select>
-                        {data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+                        <Select
+                            value={normalizedResolution}
+                            onValueChange={(value) =>
+                                updateNodeData(id, {
+                                    resolution:
+                                        value as VideoData["resolution"],
+                                })
+                            }
+                            disabled={isOmni10}
+                        >
+                            <SelectTrigger
+                                size="sm"
+                                className="h-6 w-fit rounded-md px-2 text-[10px]"
+                            >
+                                <SelectValue placeholder="Res" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {!isOmni10 && (
+                                    <SelectItem value="360p">360p</SelectItem>
+                                )}
+                                <SelectItem value="720p">720p</SelectItem>
+                                {!isOmni10 && (
+                                    <>
+                                        <SelectItem value="1080p">
+                                            1080p
+                                        </SelectItem>
+                                        <SelectItem value="4K">4K</SelectItem>
+                                    </>
+                                )}
+                            </SelectContent>
+                        </Select>
+                        {isOmni && (
                             <Select
                                 value={data.task || "none"}
                                 onValueChange={(value) =>
@@ -410,9 +456,17 @@ export const FlowNode = memo(
                                     <SelectValue placeholder="Duration" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="4">4s</SelectItem>
-                                    <SelectItem value="6">6s</SelectItem>
-                                    <SelectItem value="8">8s</SelectItem>
+                                    {(isOmni11
+                                        ? [3, 4, 5, 6, 7, 8, 9, 10]
+                                        : [4, 6, 8]
+                                    ).map((sec) => (
+                                        <SelectItem
+                                            key={sec}
+                                            value={String(sec)}
+                                        >
+                                            {sec}s
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         )}

@@ -10,6 +10,8 @@ import type { StateCreator } from "zustand";
 import { createNode, getUniqueNodeName } from "@/lib/flow/node-factory";
 import type { NodeData } from "@/lib/types";
 import { migrateEdges, migrateNodes } from "@/lib/db/migration";
+import { MODELS } from "@/lib/constants";
+import { getSourcePortType } from "@/lib/flow/node-registry";
 import type { FlowState, GraphSlice } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -100,8 +102,56 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
     },
 
     onConnect: (connection) => {
+        const conn = { ...connection };
+        const { nodesById } = get();
+
+        if (conn.target) {
+            const targetNode = nodesById[conn.target];
+            if (targetNode?.data?.type === "video") {
+                const targetModel = (
+                    targetNode.data as Record<string, unknown> | undefined
+                )?.model;
+                const isOmni =
+                    targetModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
+                    targetModel === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
+                    !targetModel;
+
+                const sourceNode = conn.source
+                    ? nodesById[conn.source]
+                    : undefined;
+
+                if (
+                    isOmni &&
+                    (conn.targetHandle === "first-frame-input" ||
+                        conn.targetHandle === "last-frame-input")
+                ) {
+                    conn.targetHandle = "image-input";
+                } else if (!conn.targetHandle) {
+                    const sourcePortType = sourceNode
+                        ? getSourcePortType(sourceNode, conn.sourceHandle)
+                        : undefined;
+                    if (
+                        sourcePortType === "image" ||
+                        sourceNode?.data?.type === "image"
+                    ) {
+                        conn.targetHandle = "image-input";
+                    } else if (
+                        sourcePortType === "video" ||
+                        sourceNode?.data?.type === "video"
+                    ) {
+                        conn.targetHandle = "video-input";
+                    } else if (
+                        sourcePortType === "text" ||
+                        sourceNode?.data?.type === "text"
+                    ) {
+                        conn.targetHandle = "prompt-input";
+                    }
+                }
+            }
+        }
+
         set({
-            edges: addEdge(connection, get().edges),
+            edges: addEdge(conn, get().edges),
             lastModified: Date.now(),
         });
     },
@@ -146,12 +196,39 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
                 ? null
                 : selectedNodeId;
 
+        let extraEdgesState = {};
+        const updatedModel = (data as Record<string, unknown>).model;
+        if (updatedModel && existing.data.type === "video") {
+            const isOmni =
+                updatedModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
+                updatedModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+            if (isOmni) {
+                const currentEdges = get().edges;
+                let edgesChanged = false;
+                const newEdges = currentEdges.map((e) => {
+                    if (
+                        e.target === nodeId &&
+                        (e.targetHandle === "first-frame-input" ||
+                            e.targetHandle === "last-frame-input")
+                    ) {
+                        edgesChanged = true;
+                        return { ...e, targetHandle: "image-input" };
+                    }
+                    return e;
+                });
+                if (edgesChanged) {
+                    extraEdgesState = { edges: newEdges };
+                }
+            }
+        }
+
         set({
             nodes: updatedNodes,
             nodesById: newNodesById,
             selectedNodeId: newSelectedNodeId,
             selectedNode: deriveSelectedNode(newNodesById, newSelectedNodeId),
             lastModified: Date.now(),
+            ...extraEdgesState,
         });
     },
 

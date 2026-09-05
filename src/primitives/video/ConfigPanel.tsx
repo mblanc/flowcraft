@@ -38,17 +38,23 @@ export function ConfigPanel({
     const validModels = Object.values(MODELS.VIDEO) as string[];
     const effectiveModel = validModels.includes(data.model)
         ? data.model
-        : MODELS.VIDEO.GEMINI_OMNI_FLASH;
+        : MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
+    const normalizedResolution =
+        (data.resolution as string) === "4k" ? "4K" : data.resolution || "720p";
 
     useEffect(() => {
         if (!validModels.includes(data.model)) {
-            updateNodeData(nodeId, { model: MODELS.VIDEO.GEMINI_OMNI_FLASH });
+            updateNodeData(nodeId, {
+                model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+            });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nodeId]);
 
     useEffect(() => {
-        if (
+        if (!data.resolution) {
+            updateNodeData(nodeId, { resolution: "720p" });
+        } else if (
             data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH &&
             data.resolution !== "720p"
         ) {
@@ -120,14 +126,16 @@ export function ConfigPanel({
                 </Select>
             </div>
 
-            {data.model !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+            {effectiveModel !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
                 <div className="space-y-2">
                     <Label htmlFor="duration">Duration (seconds)</Label>
                     <Select
                         value={String(data.duration)}
                         onValueChange={(value) =>
                             updateNodeData(nodeId, {
-                                duration: Number(value) as 4 | 6 | 8,
+                                duration: Number(
+                                    value,
+                                ) as VideoData["duration"],
                             })
                         }
                     >
@@ -135,9 +143,15 @@ export function ConfigPanel({
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="4">4 seconds</SelectItem>
-                            <SelectItem value="6">6 seconds</SelectItem>
-                            <SelectItem value="8">8 seconds</SelectItem>
+                            {(effectiveModel ===
+                            MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH
+                                ? [3, 4, 5, 6, 7, 8, 9, 10]
+                                : [4, 6, 8]
+                            ).map((sec) => (
+                                <SelectItem key={sec} value={String(sec)}>
+                                    {sec} seconds
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
@@ -157,6 +171,9 @@ export function ConfigPanel({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                        <SelectItem value={MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH}>
+                            Gemini Omni 1.1 Flash
+                        </SelectItem>
                         <SelectItem value={MODELS.VIDEO.GEMINI_OMNI_FLASH}>
                             Gemini Omni Flash
                         </SelectItem>
@@ -196,20 +213,23 @@ export function ConfigPanel({
             <div className="space-y-2">
                 <Label htmlFor="resolution">Resolution</Label>
                 <Select
-                    value={data.resolution}
+                    value={normalizedResolution}
                     onValueChange={(value) =>
                         updateNodeData(nodeId, {
-                            resolution: value as "720p" | "1080p" | "4K",
+                            resolution: value as VideoData["resolution"],
                         })
                     }
-                    disabled={data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH}
+                    disabled={effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH}
                 >
-                    <SelectTrigger>
+                    <SelectTrigger id="resolution">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                        {effectiveModel !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+                            <SelectItem value="360p">360p</SelectItem>
+                        )}
                         <SelectItem value="720p">720p</SelectItem>
-                        {data.model !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+                        {effectiveModel !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
                             <>
                                 <SelectItem value="1080p">1080p</SelectItem>
                                 <SelectItem value="4K">4K</SelectItem>
@@ -219,7 +239,8 @@ export function ConfigPanel({
                 </Select>
             </div>
 
-            {effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+            {(effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
+                effectiveModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH) && (
                 <div className="space-y-2">
                     <Label htmlFor="task">Task</Label>
                     <Select

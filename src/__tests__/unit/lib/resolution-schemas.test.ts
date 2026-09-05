@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { GenerateImageSchema, GenerateVideoSchema } from "@/lib/schemas";
+import {
+    GenerateImageSchema,
+    GenerateVideoSchema,
+    VideoDataSchema,
+} from "@/lib/schemas";
 
 describe("Resolution Schemas", () => {
     describe("GenerateImageSchema", () => {
@@ -53,12 +57,20 @@ describe("Resolution Schemas", () => {
             expect(result.success).toBe(false);
         });
 
-        it("should default to gemini-omni-flash-preview", () => {
+        it("should accept 360p video resolution", () => {
+            const result = GenerateVideoSchema.safeParse({
+                prompt: "test",
+                resolution: "360p",
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("should default to gemini-omni-1.1-flash-preview", () => {
             const result = GenerateVideoSchema.safeParse({
                 prompt: "test",
             });
             expect(result.success).toBe(true);
-            expect(result.data?.model).toBe("gemini-omni-flash-preview");
+            expect(result.data?.model).toBe("gemini-omni-1.1-flash-preview");
         });
 
         it("should accept gemini-omni-flash-preview as model", () => {
@@ -67,6 +79,71 @@ describe("Resolution Schemas", () => {
                 model: "gemini-omni-flash-preview",
             });
             expect(result.success).toBe(true);
+        });
+
+        it("should accept gemini-omni-1.1-flash-preview as model", () => {
+            const result = GenerateVideoSchema.safeParse({
+                prompt: "test",
+                model: "gemini-omni-1.1-flash-preview",
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("should migrate gemini-omni-1.1-flash alias to gemini-omni-1.1-flash-preview", () => {
+            const result = GenerateVideoSchema.safeParse({
+                prompt: "test",
+                model: "gemini-omni-1.1-flash",
+            });
+            expect(result.success).toBe(true);
+            expect(result.data?.model).toBe("gemini-omni-1.1-flash-preview");
+        });
+
+        it("should migrate gemini-omni-flash alias to gemini-omni-flash-preview", () => {
+            const result = GenerateVideoSchema.safeParse({
+                prompt: "test",
+                model: "gemini-omni-flash",
+            });
+            expect(result.success).toBe(true);
+            expect(result.data?.model).toBe("gemini-omni-flash-preview");
+        });
+    });
+
+    describe("VideoDataSchema resolution handling", () => {
+        const baseData = {
+            type: "video",
+            name: "Test Video",
+            prompt: "test",
+            images: [],
+            aspectRatio: "16:9",
+            duration: 6,
+            model: "gemini-omni-1.1-flash-preview",
+            generateAudio: true,
+        };
+
+        it("should accept valid video resolutions (360p, 720p, 1080p, 4K)", () => {
+            for (const res of ["360p", "720p", "1080p", "4K"]) {
+                const result = VideoDataSchema.safeParse({
+                    ...baseData,
+                    resolution: res,
+                });
+                expect(result.success).toBe(true);
+                expect(result.data?.resolution).toBe(res);
+            }
+        });
+
+        it("should normalize lowercase 4k to uppercase 4K", () => {
+            const result = VideoDataSchema.safeParse({
+                ...baseData,
+                resolution: "4k",
+            });
+            expect(result.success).toBe(true);
+            expect(result.data?.resolution).toBe("4K");
+        });
+
+        it("should default to 720p when resolution is missing", () => {
+            const result = VideoDataSchema.safeParse(baseData);
+            expect(result.success).toBe(true);
+            expect(result.data?.resolution).toBe("720p");
         });
     });
 });

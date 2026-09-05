@@ -16,10 +16,11 @@ export const MODELS = {
         IMAGEN_4_0_UPSCALE: "imagen-4.0-upscale-preview",
     },
     VIDEO: {
+        GEMINI_OMNI_1_1_FLASH: "gemini-omni-1.1-flash-preview",
+        GEMINI_OMNI_FLASH: "gemini-omni-flash-preview",
         VEO_3_1_LITE: "veo-3.1-lite-generate-001",
         VEO_3_1_FAST: "veo-3.1-fast-generate-001",
         VEO_3_1_PRO: "veo-3.1-generate-001",
-        GEMINI_OMNI_FLASH: "gemini-omni-flash-preview",
     },
     MUSIC: {
         LYRIA_3_CLIP: "lyria-3-clip-preview",
@@ -118,7 +119,7 @@ export const IMAGE_MODEL_CONFIGS = {
 } as const;
 
 export const IMAGE_SIZES = ["512", "1K", "2K", "4K"] as const;
-export const VIDEO_RESOLUTIONS = ["720p", "1080p", "4K"] as const;
+export const VIDEO_RESOLUTIONS = ["360p", "720p", "1080p", "4K"] as const;
 
 export const BATCH_CONCURRENCY = 3;
 

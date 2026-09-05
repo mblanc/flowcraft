@@ -9,11 +9,12 @@ resource "google_project_iam_member" "firestore_user" {
   member  = "serviceAccount:${google_service_account.flowcraft_sa.email}"
 }
 
-resource "google_project_iam_member" "storage_admin" {
-  project = var.project_id
-  role    = "roles/storage.objectAdmin"
-  member  = "serviceAccount:${google_service_account.flowcraft_sa.email}"
+resource "google_storage_bucket_iam_member" "storage_admin" {
+  bucket = google_storage_bucket.assets.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.flowcraft_sa.email}"
 }
+
 
 resource "google_project_iam_member" "vertex_user" {
   project = var.project_id

@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withAuth } from "@/lib/utils/api";
 import { libraryService, LibraryService } from "@/lib/services/library.service";
+import { AuthorizedGcsUriSchema } from "@/lib/schemas.server";
 import logger from "@/app/logger";
 import type { LibraryAssetType } from "@/lib/library-types";
 
 const createAssetSchema = z.object({
-    gcsUri: z.string().min(1),
+    gcsUri: AuthorizedGcsUriSchema,
+
     type: z.enum(["image", "video"]),
     mimeType: z.string().min(1),
     width: z.number().optional(),
