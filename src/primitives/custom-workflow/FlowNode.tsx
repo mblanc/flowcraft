@@ -358,7 +358,7 @@ export const FlowNode = memo(
                                             id={input.id}
                                             className={`port-${input.type}`}
                                         />
-                                        <span className="text-foreground text-[10px] font-medium">
+                                        <span className="text-foreground text-xs font-medium">
                                             {input.name}
                                         </span>
                                     </div>
@@ -372,7 +372,7 @@ export const FlowNode = memo(
                                         key={output.id}
                                         className="relative flex items-center gap-2"
                                     >
-                                        <span className="text-foreground text-[10px] font-medium">
+                                        <span className="text-foreground text-xs font-medium">
                                             {output.name}
                                         </span>
                                         <Handle

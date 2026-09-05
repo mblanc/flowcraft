@@ -276,7 +276,7 @@ export const FlowNode = memo(
                 {handles.map((h) => (
                     <div
                         key={`label-${h.id}`}
-                        className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
+                        className="text-muted-foreground absolute right-full mr-5 text-right text-xs font-medium whitespace-nowrap"
                         style={{ top: h.top, transform: "translateY(-50%)" }}
                     >
                         {h.label}

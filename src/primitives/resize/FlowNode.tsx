@@ -156,7 +156,7 @@ export const FlowNode = memo(
 
                 {/* Handle label */}
                 <div
-                    className="text-muted-foreground absolute right-full mr-5 text-right text-[10px] font-medium whitespace-nowrap"
+                    className="text-muted-foreground absolute right-full mr-5 text-right text-xs font-medium whitespace-nowrap"
                     style={{ top: "50%", transform: "translateY(-50%)" }}
                 >
                     Input image
