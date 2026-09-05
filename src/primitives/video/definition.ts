@@ -15,6 +15,20 @@ const videoOutputSchema = z.object({
     videoUrl: z.string(),
 });
 
+function extractMediaUrl(value: unknown): string | undefined {
+    if (!value) return undefined;
+    const val = Array.isArray(value) ? value[0] : value;
+    if (typeof val === "string") return val;
+    if (
+        typeof val === "object" &&
+        val !== null &&
+        (val as Record<string, unknown>).url
+    ) {
+        return (val as Record<string, unknown>).url as string;
+    }
+    return undefined;
+}
+
 export const videoPrimitive: Primitive<
     VideoData,
     CanvasVideoData,
@@ -33,16 +47,20 @@ export const videoPrimitive: Primitive<
         type: "video",
         inputs: {
             "prompt-input": "text",
+            "image-input": "image",
+            "video-input": "video",
             "first-frame-input": "image",
             "last-frame-input": "image",
-            "image-input": "image",
             "audio-input": "audio",
-            "video-input": "video",
         },
         outputs: {
             "result-output": "video",
         },
         gatherInputs: (node, edges, getSourceData) => {
+            const isOmni =
+                node.data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
+                node.data.model === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
+                !node.data.model;
             const inputs: any = {
                 images: [],
                 namedNodes: [],
@@ -52,7 +70,12 @@ export const videoPrimitive: Primitive<
                 aspectRatio: node.data.aspectRatio,
                 duration: node.data.duration,
                 generateAudio: node.data.generateAudio,
-                resolution: node.data.resolution,
+                resolution:
+                    node.data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH
+                        ? "720p"
+                        : (node.data.resolution as string) === "4k"
+                          ? "4K"
+                          : node.data.resolution || "720p",
                 task: node.data.task,
             };
             const namedNodesMap = new Map<string, any>();
@@ -101,19 +124,18 @@ export const videoPrimitive: Primitive<
                 "first-frame-input",
                 getSourceData,
             );
-            const firstFrameValue = getSourceValue(firstFrameData);
-            if (firstFrameValue) {
-                const val = Array.isArray(firstFrameValue)
-                    ? firstFrameValue[0]
-                    : firstFrameValue;
-                if (typeof val === "string") inputs.firstFrame = val;
-                else if (
-                    typeof val === "object" &&
-                    val !== null &&
-                    (val as Record<string, unknown>).url
-                )
-                    inputs.firstFrame = (val as Record<string, unknown>)
-                        .url as string;
+            const firstFrameUrl = extractMediaUrl(
+                getSourceValue(firstFrameData),
+            );
+            if (firstFrameUrl) {
+                if (isOmni) {
+                    inputs.images?.push({
+                        url: firstFrameUrl,
+                        type: "image/png",
+                    });
+                } else {
+                    inputs.firstFrame = firstFrameUrl;
+                }
             }
 
             const lastFrameData = findInputByHandle(
@@ -122,19 +144,16 @@ export const videoPrimitive: Primitive<
                 "last-frame-input",
                 getSourceData,
             );
-            const lastFrameValue = getSourceValue(lastFrameData);
-            if (lastFrameValue) {
-                const val = Array.isArray(lastFrameValue)
-                    ? lastFrameValue[0]
-                    : lastFrameValue;
-                if (typeof val === "string") inputs.lastFrame = val;
-                else if (
-                    typeof val === "object" &&
-                    val !== null &&
-                    (val as Record<string, unknown>).url
-                )
-                    inputs.lastFrame = (val as Record<string, unknown>)
-                        .url as string;
+            const lastFrameUrl = extractMediaUrl(getSourceValue(lastFrameData));
+            if (lastFrameUrl) {
+                if (isOmni) {
+                    inputs.images?.push({
+                        url: lastFrameUrl,
+                        type: "image/png",
+                    });
+                } else {
+                    inputs.lastFrame = lastFrameUrl;
+                }
             }
 
             const audioData = findInputByHandle(
@@ -143,20 +162,8 @@ export const videoPrimitive: Primitive<
                 "audio-input",
                 getSourceData,
             );
-            const audioValue = getSourceValue(audioData);
-            if (audioValue) {
-                const val = Array.isArray(audioValue)
-                    ? audioValue[0]
-                    : audioValue;
-                if (typeof val === "string") inputs.audio = val;
-                else if (
-                    typeof val === "object" &&
-                    val !== null &&
-                    (val as Record<string, unknown>).url
-                )
-                    inputs.audio = (val as Record<string, unknown>)
-                        .url as string;
-            }
+            const audioUrl = extractMediaUrl(getSourceValue(audioData));
+            if (audioUrl) inputs.audio = audioUrl;
 
             const videoData = findInputByHandle(
                 node.id,
@@ -164,20 +171,8 @@ export const videoPrimitive: Primitive<
                 "video-input",
                 getSourceData,
             );
-            const videoValue = getSourceValue(videoData);
-            if (videoValue) {
-                const val = Array.isArray(videoValue)
-                    ? videoValue[0]
-                    : videoValue;
-                if (typeof val === "string") inputs.video = val;
-                else if (
-                    typeof val === "object" &&
-                    val !== null &&
-                    (val as Record<string, unknown>).url
-                )
-                    inputs.video = (val as Record<string, unknown>)
-                        .url as string;
-            }
+            const videoUrl = extractMediaUrl(getSourceValue(videoData));
+            if (videoUrl) inputs.video = videoUrl;
 
             const imageEdges = edges.filter(
                 (e) => e.target === node.id && e.targetHandle === "image-input",
@@ -298,7 +293,7 @@ export const videoPrimitive: Primitive<
             images: [],
             aspectRatio: DEFAULTS.ASPECT_RATIO,
             duration: DEFAULTS.VIDEO_DURATION,
-            model: MODELS.VIDEO.GEMINI_OMNI_FLASH,
+            model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
             generateAudio: false,
             resolution: "720p",
             task: "none",
@@ -339,7 +334,7 @@ export const videoPrimitive: Primitive<
                 images: step.images || [],
                 aspectRatio: step.aspectRatio || DEFAULTS.ASPECT_RATIO,
                 duration: step.duration || DEFAULTS.VIDEO_DURATION,
-                model: step.model || MODELS.VIDEO.VEO_3_1_LITE,
+                model: step.model || MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
                 generateAudio:
                     step.generateAudio !== undefined
                         ? step.generateAudio

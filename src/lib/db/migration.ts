@@ -1,6 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../types";
 import { getNodeDefinition } from "../flow/node-registry";
+import { MODELS } from "../constants";
 
 /**
  * Migrates old node data structures to the current version.
@@ -71,19 +72,42 @@ export function migrateEdges(
     edges: Edge[],
     nodes: Node<Record<string, unknown>>[],
 ): Edge[] {
-    const nodeTypeById = new Map(
-        nodes.map((n) => [n.id, n.type ?? n.data?.type]),
-    );
+    const nodeById = new Map(nodes.map((n) => [n.id, n]));
     return edges.map((edge) => {
-        if (edge.sourceHandle === "result-output") {
-            const sourceType = nodeTypeById.get(edge.source);
+        let updatedEdge = edge;
+        if (updatedEdge.sourceHandle === "result-output") {
+            const sourceNode = nodeById.get(updatedEdge.source);
+            const sourceType = sourceNode?.type ?? sourceNode?.data?.type;
             if (sourceType === "list") {
-                return { ...edge, sourceHandle: "list-output" };
-            }
-            if (sourceType === "file") {
-                return { ...edge, sourceHandle: null };
+                updatedEdge = { ...updatedEdge, sourceHandle: "list-output" };
+            } else if (sourceType === "file") {
+                updatedEdge = { ...updatedEdge, sourceHandle: null };
             }
         }
-        return edge;
+
+        if (
+            updatedEdge.targetHandle === "first-frame-input" ||
+            updatedEdge.targetHandle === "last-frame-input"
+        ) {
+            const targetNode = nodeById.get(updatedEdge.target);
+            const targetType = targetNode?.type ?? targetNode?.data?.type;
+            if (targetType === "video") {
+                const targetModel = (
+                    targetNode?.data as Record<string, unknown> | undefined
+                )?.model;
+                const isOmni =
+                    targetModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
+                    targetModel === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
+                    !targetModel;
+                if (isOmni) {
+                    updatedEdge = {
+                        ...updatedEdge,
+                        targetHandle: "image-input",
+                    };
+                }
+            }
+        }
+
+        return updatedEdge;
     });
 }

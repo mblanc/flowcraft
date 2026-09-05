@@ -51,7 +51,7 @@ export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
     imageModel: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
     imageAspectRatio: "auto",
     imageResolution: "auto",
-    videoModel: MODELS.VIDEO.GEMINI_OMNI_FLASH,
+    videoModel: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
     videoAspectRatio: "auto",
     videoResolution: "auto",
     videoDuration: "auto",
@@ -85,6 +85,10 @@ const IMAGE_MODELS = [
 ];
 
 const VIDEO_MODELS = [
+    {
+        id: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+        label: "Gemini Omni 1.1 Flash",
+    },
     { id: MODELS.VIDEO.GEMINI_OMNI_FLASH, label: "Gemini Omni Flash" },
     { id: MODELS.VIDEO.VEO_3_1_LITE, label: "Veo 3.1 Lite" },
     { id: MODELS.VIDEO.VEO_3_1_FAST, label: "Veo 3.1 Fast" },
@@ -98,8 +102,9 @@ const MODES: { id: CanvasMode; label: string; icon: typeof Sparkles }[] = [
 ];
 
 const VIDEO_ASPECT_RATIOS = ["16:9", "9:16"];
-const VIDEO_RESOLUTIONS = ["720p", "1080p"];
+const VIDEO_RESOLUTIONS = ["360p", "720p", "1080p", "4K"];
 const VIDEO_DURATIONS = ["4", "6", "8"];
+const VIDEO_DURATIONS_OMNI_1_1 = ["3", "4", "5", "6", "7", "8", "9", "10"];
 
 interface CanvasAgentSettingsDialogProps {
     settings: AgentSettings;
@@ -466,7 +471,11 @@ export function CanvasAgentSettingsDialog({
                                         <SelectItem value="auto">
                                             Auto
                                         </SelectItem>
-                                        {VIDEO_DURATIONS.map((d) => (
+                                        {(draft.videoModel ===
+                                        MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH
+                                            ? VIDEO_DURATIONS_OMNI_1_1
+                                            : VIDEO_DURATIONS
+                                        ).map((d) => (
                                             <SelectItem key={d} value={d}>
                                                 {d}s
                                             </SelectItem>

@@ -73,7 +73,7 @@ export function NodeConnectionDropdown({
                             (item: (typeof nativeItems)[number]) => (
                                 <DropdownMenuItem
                                     key={item.type}
-                                    onClick={() =>
+                                    onSelect={() =>
                                         onSelectNode(item.type as NodeType)
                                     }
                                 >
@@ -96,7 +96,7 @@ export function NodeConnectionDropdown({
                                             (node: CustomNodeItem) => (
                                                 <DropdownMenuItem
                                                     key={node.id}
-                                                    onClick={() =>
+                                                    onSelect={() =>
                                                         onSelectNode(
                                                             "custom-workflow",
                                                             node,

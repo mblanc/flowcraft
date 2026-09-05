@@ -307,7 +307,7 @@ describe("GeminiService", () => {
         });
     });
 
-    describe("generateVideo", () => {
+    describe("generateVideo with Veo", () => {
         it("should poll operation and return video URI", async () => {
             mockAi.models.generateVideos.mockResolvedValue({
                 done: false,
@@ -330,6 +330,7 @@ describe("GeminiService", () => {
 
             const result = await geminiService.generateVideo({
                 prompt: "A dog running",
+                model: MODELS.VIDEO.VEO_3_1_FAST,
             });
 
             expect(result).toBe("gs://video.mp4");
@@ -360,6 +361,7 @@ describe("GeminiService", () => {
 
             await geminiService.generateVideo({
                 prompt: "Animate this scene",
+                model: MODELS.VIDEO.VEO_3_1_FAST,
                 firstFrame: "gs://first.png",
                 lastFrame: "gs://last.png",
                 images: [{ url: "gs://ref.png", type: "image/png" }],
@@ -399,7 +401,10 @@ describe("GeminiService", () => {
                 });
 
             await expect(
-                geminiService.generateVideo({ prompt: "A dog" }),
+                geminiService.generateVideo({
+                    prompt: "A dog",
+                    model: MODELS.VIDEO.VEO_3_1_FAST,
+                }),
             ).rejects.toThrow("Video generation timed out");
             delaySpy.mockRestore();
         }, 10000); // give it a slightly higher timeout
@@ -696,6 +701,182 @@ describe("GeminiService", () => {
                 (part: any) => part.type === "audio",
             );
             expect(audioPart).toBeUndefined();
+        });
+    });
+
+    describe("generateVideo with gemini-omni-1.1-flash-preview", () => {
+        beforeEach(() => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                arrayBuffer: async () => new ArrayBuffer(8),
+            });
+            vi.clearAllMocks();
+            mockAi = (geminiService as unknown as { ai: typeof mockAi }).ai;
+        });
+
+        it("should default to gemini-omni-1.1-flash-preview when no model is specified", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-omni-11-default",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "gs://bucket/default-output.mp4",
+                },
+            });
+
+            const result = await geminiService.generateVideo({
+                prompt: "A running cheetah",
+            });
+
+            expect(result).toEqual({
+                videoUrl: "gs://bucket/default-output.mp4",
+                interactionId: "interaction-omni-11-default",
+            });
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-1.1-flash-preview",
+                    response_format: expect.objectContaining({
+                        type: "video",
+                        delivery: "uri",
+                        resolution: "720p",
+                    }),
+                }),
+            );
+        });
+
+        it("should include custom resolution, duration, delivery: uri, and gcs_uri", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-omni-11-params",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "gs://mock-bucket/custom.mp4",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "Cyberpunk city night drive",
+                model: "gemini-omni-1.1-flash-preview",
+                resolution: "1080p",
+                duration: 6,
+                aspectRatio: "9:16",
+            });
+
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-1.1-flash-preview",
+                    response_format: expect.objectContaining({
+                        type: "video",
+                        delivery: "uri",
+                        gcs_uri: expect.stringMatching(
+                            /^gs:\/\/mock-bucket\/omni-.*\.mp4$/,
+                        ),
+                        aspect_ratio: "9:16",
+                        resolution: "1080p",
+                        duration: "6s",
+                    }),
+                }),
+            );
+        });
+
+        it("should clamp duration to 3s-10s range", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-omni-11-clamped",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "gs://mock-bucket/clamped.mp4",
+                },
+            });
+
+            // Test under minimum (2s -> 3s)
+            await geminiService.generateVideo({
+                prompt: "Short clip",
+                model: "gemini-omni-1.1-flash-preview",
+                duration: 2,
+            });
+            let call = mockAi.interactions.create.mock.calls[0][0] as any;
+            expect(call.response_format.duration).toBe("3s");
+
+            // Test over maximum (12s -> 10s)
+            await geminiService.generateVideo({
+                prompt: "Long clip",
+                model: "gemini-omni-1.1-flash-preview",
+                duration: 12,
+            });
+            call = mockAi.interactions.create.mock.calls[1][0] as any;
+            expect(call.response_format.duration).toBe("10s");
+        });
+
+        it("should support firstFrame and lastFrame with image_to_video task", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-omni-11-frames",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "gs://mock-bucket/interpolated.mp4",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "Transition between two scenes",
+                model: "gemini-omni-1.1-flash-preview",
+                firstFrame: "gs://bucket/first.png",
+                lastFrame: "gs://bucket/last.png",
+            });
+
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-1.1-flash-preview",
+                    input: expect.arrayContaining([
+                        expect.objectContaining({
+                            type: "image",
+                            uri: "gs://bucket/first.png",
+                            mime_type: "image/png",
+                        }),
+                        expect.objectContaining({
+                            type: "image",
+                            uri: "gs://bucket/last.png",
+                            mime_type: "image/png",
+                        }),
+                        expect.objectContaining({
+                            type: "text",
+                            text: "Transition between two scenes",
+                        }),
+                    ]),
+                    generation_config: {
+                        video_config: {
+                            task: "image_to_video",
+                        },
+                    },
+                }),
+            );
+        });
+
+        it("should support 360p resolution (lowercased in response_format)", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-omni-11-360p",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "gs://mock-bucket/360p.mp4",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "Fast draft",
+                model: "gemini-omni-1.1-flash-preview",
+                resolution: "360p",
+            });
+
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-1.1-flash-preview",
+                    response_format: expect.objectContaining({
+                        resolution: "360p",
+                    }),
+                }),
+            );
         });
     });
 

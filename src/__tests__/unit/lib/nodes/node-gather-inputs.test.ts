@@ -192,6 +192,28 @@ describe("videoNodeDefinition.gatherInputs", () => {
         expect(inputs.lastFrame).toBe("gs://last.png");
     });
 
+    it("gathers first-frame and last-frame edges as images for Gemini Omni 1.1", () => {
+        const node = makeVideoNode();
+        node.data.model = MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
+        const edges = [
+            edge("e1", "img-1", "vid-1", "first-frame-input"),
+            edge("e2", "img-2", "vid-1", "last-frame-input"),
+        ];
+        const getSourceData = (id: string) =>
+            imageData([id === "img-1" ? "gs://first.png" : "gs://last.png"]);
+        const inputs = videoNodeDefinition.gatherInputs(
+            node,
+            edges,
+            getSourceData,
+        );
+        expect(inputs.firstFrame).toBeUndefined();
+        expect(inputs.lastFrame).toBeUndefined();
+        expect(inputs.images).toEqual([
+            { url: "gs://first.png", type: "image/png" },
+            { url: "gs://last.png", type: "image/png" },
+        ]);
+    });
+
     it("extracts audio from audio-input edge", () => {
         const node = makeVideoNode();
         const edges = [edge("e1", "mus-1", "vid-1", "audio-input")];

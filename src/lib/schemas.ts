@@ -7,6 +7,8 @@ import { MODELS, DEFAULTS } from "./constants";
 const LEGACY_VIDEO_MODEL_MAP: Record<string, string> = {
     "veo-3.1-fast-generate-preview": MODELS.VIDEO.VEO_3_1_FAST,
     "veo-3.1-generate-preview": MODELS.VIDEO.VEO_3_1_PRO,
+    "gemini-omni-1.1-flash": MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+    "gemini-omni-flash": MODELS.VIDEO.GEMINI_OMNI_FLASH,
 };
 
 function migrateVideoModel(val: unknown): unknown {
@@ -134,14 +136,18 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
     model: z.preprocess(
         migrateVideoModel,
         z.enum([
+            MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+            MODELS.VIDEO.GEMINI_OMNI_FLASH,
             MODELS.VIDEO.VEO_3_1_LITE,
             MODELS.VIDEO.VEO_3_1_FAST,
             MODELS.VIDEO.VEO_3_1_PRO,
-            MODELS.VIDEO.GEMINI_OMNI_FLASH,
         ]),
     ),
     generateAudio: z.boolean(),
-    resolution: z.enum(["720p", "1080p", "4K"]),
+    resolution: z.preprocess(
+        (val) => (val === "4k" ? "4K" : (val ?? "720p")),
+        z.enum(["360p", "720p", "1080p", "4K"]).default("720p"),
+    ),
     task: z
         .enum([
             "none",
@@ -389,16 +395,20 @@ export const GenerateVideoSchema = z.object({
         migrateVideoModel,
         z
             .enum([
+                MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                MODELS.VIDEO.GEMINI_OMNI_FLASH,
                 MODELS.VIDEO.VEO_3_1_LITE,
                 MODELS.VIDEO.VEO_3_1_FAST,
                 MODELS.VIDEO.VEO_3_1_PRO,
-                MODELS.VIDEO.GEMINI_OMNI_FLASH,
             ])
             .optional()
-            .default(MODELS.VIDEO.GEMINI_OMNI_FLASH),
+            .default(MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH),
     ),
     generateAudio: z.boolean().optional().default(true),
-    resolution: z.enum(["720p", "1080p", "4K"]).optional().default("720p"),
+    resolution: z
+        .enum(["360p", "720p", "1080p", "4K", "4k"])
+        .optional()
+        .default("720p"),
     task: z
         .enum([
             "none",

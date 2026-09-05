@@ -89,7 +89,7 @@ Append to every prompt without exception:
 
 ## Duration
 
-- **Gemini Omni (`gemini-omni-flash-preview`)**: Duration is instructed within the prompt (3 to 10 seconds).
+- **Gemini Omni 1.1 (`gemini-omni-1.1-flash-preview`)**: Duration is configured via parameter (3 to 10 seconds).
 - **Veo Models (`veo-3.1-*`)**: Duration is configured via parameter and MUST be 4, 6, or 8 seconds.
 
 - **3–4s**: subtle atmosphere, minimal motion, single beat.
@@ -102,9 +102,10 @@ For single-shot sequences longer than 10 seconds, split into multiple nodes conn
 
 ## Model hints
 
-- `gemini-omni-flash-preview`: **default** — best for general video generation, supports stateful conversational editing (audio references/mixing are NOT supported).
+- `gemini-omni-1.1-flash-preview`: **default** — best for general video generation, supports duration (3-10s), resolutions (360p, 720p, 1080p, 4K), first/last frame interpolation (`i2v2`), and stateful conversational editing (audio reference inputs/mixing are NOT supported).
 - `veo-3.1-lite-generate-001`: best balance of quality and speed for Veo model family.
 - `veo-3.1-generate-001`: highest quality motion and consistency; use for hero shots or final output.
+- `gemini-omni-flash-preview`: legacy Omni 1.0 (720p fixed).
 - Use the canvas default model unless the user explicitly requests otherwise.
 
 ---
@@ -116,5 +117,5 @@ For single-shot sequences longer than 10 seconds, split into multiple nodes conn
 - Short duration (4s) with complex multi-step action loses beats — use 6s or 8s.
 - Busy source images + strong camera moves cause flickering — prefer subtle moves or static tripod.
 - Omitting audio leaves the model to hallucinate sound — always specify, even if the choice is silence.
-- **Connecting Audio Nodes:** Connecting a separate audio/music node (`t2m`, `t2s`) as a reference/dependency to a video node is not supported for any model, including `gemini-omni-flash-preview`.
-- **Stateful Video Editing (Omni):** The default model 'gemini-omni-flash-preview' supports stateful editing! To edit an existing video (e.g. 'make it faster', 'change the style', 'add a character'), draw a 'depends_on' edge from the previous video node to the new video node. The engine will propagate the interaction state for seamless editing.
+- **Connecting Audio Nodes:** Connecting a separate audio/music node (`t2m`, `t2s`) as a reference/dependency to a video node is not supported for any model, including `gemini-omni-1.1-flash-preview`.
+- **Stateful Video Editing (Omni):** The default model 'gemini-omni-1.1-flash-preview' supports stateful editing! To edit an existing video (e.g. 'make it faster', 'change the style', 'add a character'), draw a 'depends_on' edge from the previous video node to the new video node. The engine will propagate the interaction state for seamless editing.

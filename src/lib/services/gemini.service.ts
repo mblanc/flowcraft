@@ -545,15 +545,20 @@ export class GeminiService {
             task,
         } = options;
 
-        const selectedModel = model || MODELS.VIDEO.VEO_3_1_LITE;
+        const selectedModel = model || MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
 
         const effectivePrompt = styleInstruction
             ? `${styleInstruction}\n\n${prompt}`
             : prompt;
 
-        if (selectedModel === MODELS.VIDEO.GEMINI_OMNI_FLASH) {
+        const isOmni =
+            selectedModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
+            selectedModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+        const isOmni11 = selectedModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
+
+        if (isOmni) {
             logger.info(
-                `[GeminiService] Generating video with Omni: ${effectivePrompt}`,
+                `[GeminiService] Generating video with Omni (${selectedModel}): ${effectivePrompt}`,
             );
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -591,6 +596,25 @@ export class GeminiService {
                     });
                 } else if (firstFrame.startsWith("data:")) {
                     const base64Match = firstFrame.match(DATA_URI_REGEX);
+                    if (base64Match) {
+                        inputParts.push({
+                            type: "image",
+                            data: base64Match[2],
+                            mime_type: base64Match[1],
+                        });
+                    }
+                }
+            }
+
+            if (lastFrame && isOmni11) {
+                if (lastFrame.startsWith("gs://")) {
+                    inputParts.push({
+                        type: "image",
+                        uri: lastFrame,
+                        mime_type: inferMimeTypeFromUrl(lastFrame, "image"),
+                    });
+                } else if (lastFrame.startsWith("data:")) {
+                    const base64Match = lastFrame.match(DATA_URI_REGEX);
                     if (base64Match) {
                         inputParts.push({
                             type: "image",
@@ -648,6 +672,22 @@ export class GeminiService {
                     aspectRatio || DEFAULTS.ASPECT_RATIO;
             }
 
+            if (isOmni11) {
+                if (resolution) {
+                    responseFormat.resolution = resolution.toLowerCase();
+                } else {
+                    responseFormat.resolution = "720p";
+                }
+
+                if (duration) {
+                    const clamped = Math.min(
+                        Math.max(Math.round(duration), 3),
+                        10,
+                    );
+                    responseFormat.duration = `${clamped}s`;
+                }
+            }
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const interactionRequest: any = {
                 model: selectedModel,
@@ -655,11 +695,16 @@ export class GeminiService {
                 response_format: responseFormat,
             };
 
-            // On Vertex AI, gemini-omni-flash-preview does not support previous_interaction_id yet.
-            // Therefore, if we have the video input, we MUST use the video-input path (non-stateful)
-            // and ignore previous_interaction_id to avoid the 400 error.
             const effectiveTask =
-                task && task !== "none" ? task : video ? "edit" : undefined;
+                task && task !== "none"
+                    ? task
+                    : video
+                      ? "edit"
+                      : (images && images.length > 0) ||
+                          firstFrame ||
+                          (lastFrame && isOmni11)
+                        ? "image_to_video"
+                        : undefined;
 
             if (effectiveTask) {
                 interactionRequest.generation_config = {

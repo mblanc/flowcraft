@@ -42,6 +42,8 @@ vi.mock("@xyflow/react", async () => {
     return {
         ...actual,
         useUpdateNodeInternals: () => mockUpdateNodeInternals,
+        NodeToolbar: ({ isVisible, children }: any) =>
+            isVisible ? <div data-testid="node-toolbar">{children}</div> : null,
     };
 });
 
@@ -117,6 +119,42 @@ describe("VideoNode Rendering", () => {
         ).toBeNull();
     });
 
+    it("should render correct handles for Gemini Omni 1.1 Flash (excluding first-frame-input and last-frame-input)", () => {
+        const props = {
+            ...defaultProps,
+            data: {
+                ...defaultProps.data,
+                model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+            },
+        };
+        const { container } = render(
+            <ReactFlowProvider>
+                <TooltipProvider>
+                    <VideoNode {...props} />
+                </TooltipProvider>
+            </ReactFlowProvider>,
+        );
+
+        expect(
+            container.querySelector('[data-handleid="prompt-input"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-handleid="first-frame-input"]'),
+        ).toBeNull();
+        expect(
+            container.querySelector('[data-handleid="last-frame-input"]'),
+        ).toBeNull();
+        expect(
+            container.querySelector('[data-handleid="image-input"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-handleid="video-input"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-handleid="audio-input"]'),
+        ).toBeNull();
+    });
+
     it("should render correct handles for non-Omni model", () => {
         const { container } = render(
             <ReactFlowProvider>
@@ -178,5 +216,47 @@ describe("VideoNode Rendering", () => {
         );
 
         expect(mockUpdateNodeInternals).toHaveBeenCalledWith("video-1");
+    });
+
+    it("should render resolution options (360p, 720p, 1080p, 4K) on Omni 1.1 Flash", () => {
+        const props = {
+            ...defaultProps,
+            selected: true,
+            data: {
+                ...defaultProps.data,
+                model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                resolution: "1080p",
+            },
+        };
+        const { getByText } = render(
+            <ReactFlowProvider>
+                <TooltipProvider>
+                    <VideoNode {...props} />
+                </TooltipProvider>
+            </ReactFlowProvider>,
+        );
+
+        expect(getByText("1080p")).toBeDefined();
+    });
+
+    it("should lock resolution to 720p on Omni 1.0 Flash", () => {
+        const props = {
+            ...defaultProps,
+            selected: true,
+            data: {
+                ...defaultProps.data,
+                model: MODELS.VIDEO.GEMINI_OMNI_FLASH,
+                resolution: "720p",
+            },
+        };
+        const { getByText } = render(
+            <ReactFlowProvider>
+                <TooltipProvider>
+                    <VideoNode {...props} />
+                </TooltipProvider>
+            </ReactFlowProvider>,
+        );
+
+        expect(getByText("720p")).toBeDefined();
     });
 });

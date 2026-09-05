@@ -489,7 +489,7 @@ Files are stored in GCS. The app never exposes raw GCS URIs to the browser — i
 Wraps `@google/genai` for:
 
 - Image generation (Imagen)
-- Video generation (Veo)
+- Video generation (Gemini Omni 1.1 Flash default, Veo)
 - LLM text generation
 - Upscale / resize operations
 - Music generation (via `src/app/api/generate-music/` — dedicated route, not the primitive execute endpoint)

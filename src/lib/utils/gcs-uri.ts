@@ -26,3 +26,23 @@ export function extractBucketFromStorageUri(storageUri: string): string {
     }
     return storageUri.split("/")[0] ?? "";
 }
+
+export function isAuthorizedBucket(
+    bucket: string,
+    allowedStorageUri: string,
+): boolean {
+    const allowedBucket = extractBucketFromStorageUri(allowedStorageUri);
+    return Boolean(allowedBucket && bucket === allowedBucket);
+}
+
+export function isAuthorizedGcsUri(
+    gcsUri: string,
+    allowedStorageUri: string,
+): boolean {
+    try {
+        const { bucket } = parseGcsUri(gcsUri);
+        return isAuthorizedBucket(bucket, allowedStorageUri);
+    } catch {
+        return false;
+    }
+}

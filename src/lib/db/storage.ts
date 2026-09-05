@@ -10,13 +10,35 @@ const storage = new Storage({
     // keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS, // Uncomment if needed
 });
 
-const storageUri = config.GCS_STORAGE_URI; // Make sure this env var is set
+export function getAllowedBucket(): string {
+    const currentUri =
+        config.GCS_STORAGE_URI || process.env.GCS_STORAGE_URI || "";
+    return extractBucketFromStorageUri(currentUri);
+}
+
+export function assertAuthorizedGcsUri(gcsUri: string): {
+    bucket: string;
+    path: string;
+} {
+    const parsed = parseGcsUri(gcsUri);
+    const allowedBucket = getAllowedBucket();
+    if (!allowedBucket || parsed.bucket !== allowedBucket) {
+        logger.error(
+            `Attempted unauthorized GCS access to bucket: "${parsed.bucket}" (allowed: "${allowedBucket || "none"}")`,
+        );
+        throw new Error(
+            `Unauthorized GCS bucket access: gs://${parsed.bucket}/${parsed.path}`,
+        );
+    }
+    return parsed;
+}
 
 export async function uploadImage(
     base64: string,
     filename: string,
 ): Promise<string> {
-    if (!storageUri) {
+    const bucketName = getAllowedBucket();
+    if (!bucketName) {
         logger.error("GCS_STORAGE_URI environment variable is not set.");
         throw new Error(
             "Server configuration error: STORAGE_URI not specified.",
@@ -32,18 +54,6 @@ export async function uploadImage(
         // Remove the data URI prefix if it exists (e.g., "data:image/jpeg;base64,")
         const base64Data = base64.includes(",") ? base64.split(",")[1] : base64;
         const buffer = Buffer.from(base64Data, "base64");
-
-        // Get the bucket name from the storage URI
-        // We know storageUri is defined here due to the check above
-        const bucketName = extractBucketFromStorageUri(storageUri);
-
-        if (!bucketName) {
-            const err = new Error(
-                `Could not extract bucket name from STORAGE_URI: ${storageUri}`,
-            );
-            logger.error(err.message);
-            throw err;
-        }
 
         // Get a reference to the bucket
         const bucket = storage.bucket(bucketName);
@@ -78,7 +88,8 @@ export async function getSignedUrlFromGCS(
     gcsUri: string,
     download: boolean = false,
 ) {
-    const { bucket: bucketName, path: fileName } = parseGcsUri(gcsUri);
+    const { bucket: bucketName, path: fileName } =
+        assertAuthorizedGcsUri(gcsUri);
     const options: GetSignedUrlConfig = {
         version: "v4",
         action: "read",
@@ -104,8 +115,9 @@ export async function getSignedUrlFromGCS(
  */
 export async function gcsUriToSharp(gcsUri: string): Promise<Sharp> {
     try {
-        // 1. Parse the GCS URI to extract bucket name and file path
-        const { bucket: bucketName, path: filePath } = parseGcsUri(gcsUri);
+        // 1. Parse and validate the GCS URI
+        const { bucket: bucketName, path: filePath } =
+            assertAuthorizedGcsUri(gcsUri);
 
         // 2. Download the image file from GCS into a buffer
         logger.debug(`Downloading image from gs://${bucketName}/${filePath}`);
@@ -133,8 +145,9 @@ export async function gcsUriToSharp(gcsUri: string): Promise<Sharp> {
  */
 export async function gcsUriToBase64(gcsUri: string): Promise<string> {
     try {
-        // 1. Parse the GCS URI
-        const { bucket: bucketName, path: filePath } = parseGcsUri(gcsUri);
+        // 1. Parse and validate the GCS URI
+        const { bucket: bucketName, path: filePath } =
+            assertAuthorizedGcsUri(gcsUri);
 
         // 2. Download the image file into a buffer
         logger.debug(
@@ -172,7 +185,8 @@ export async function gcsUriToBase64(gcsUri: string): Promise<string> {
 export async function getMimeTypeFromGCS(
     gcsUri: string,
 ): Promise<string | null> {
-    const { bucket: bucketName, path: fileName } = parseGcsUri(gcsUri);
+    const { bucket: bucketName, path: fileName } =
+        assertAuthorizedGcsUri(gcsUri);
     const [metadata] = await storage
         .bucket(bucketName)
         .file(fileName)
@@ -185,7 +199,8 @@ export async function uploadFile(
     filename: string,
     contentType: string,
 ): Promise<string> {
-    if (!storageUri) {
+    const bucketName = getAllowedBucket();
+    if (!bucketName) {
         logger.error("GCS_STORAGE_URI environment variable is not set.");
         throw new Error(
             "Server configuration error: STORAGE_URI not specified.",
@@ -193,16 +208,6 @@ export async function uploadFile(
     }
 
     try {
-        const bucketName = extractBucketFromStorageUri(storageUri);
-
-        if (!bucketName) {
-            const err = new Error(
-                `Could not extract bucket name from STORAGE_URI: ${storageUri}`,
-            );
-            logger.error(err.message);
-            throw err;
-        }
-
         const bucket = storage.bucket(bucketName);
         const file = bucket.file(filename);
 
@@ -231,16 +236,10 @@ export async function uploadTempFile(
     filename: string,
     contentType: string,
 ): Promise<string> {
-    if (!storageUri) {
-        throw new Error(
-            "Server configuration error: GCS_STORAGE_URI not specified.",
-        );
-    }
-
-    const bucketName = extractBucketFromStorageUri(storageUri);
+    const bucketName = getAllowedBucket();
     if (!bucketName) {
         throw new Error(
-            `Could not extract bucket name from STORAGE_URI: ${storageUri}`,
+            "Server configuration error: GCS_STORAGE_URI not specified.",
         );
     }
 
@@ -255,7 +254,7 @@ export async function uploadTempFile(
 }
 
 export async function deleteFileByUri(gcsUri: string): Promise<void> {
-    const { bucket, path } = parseGcsUri(gcsUri);
+    const { bucket, path } = assertAuthorizedGcsUri(gcsUri);
     await storage.bucket(bucket).file(path).delete({ ignoreNotFound: true });
     logger.debug(`Deleted GCS file: ${gcsUri}`);
 }

@@ -81,11 +81,11 @@ RULES for plan_production nodes:
     { from: "img_1", to: "vid_1", role: "depends_on" }            ← vid_1 animates the output of img_1
     { from: "img_2", to: "vid_2", role: "depends_on" }            ← vid_2 animates the output of img_2
 - Use edges: depends_on (output feeds next node), style_ref (visual style source), subject_ref (subject/character reference).
-- **AUDIO REFERENCE CONSTRAINT:** Video/image generation nodes ('t2v', 'i2v', 'i2v2', 't2i', 'i2i') **cannot** accept or use audio, speech, or music nodes ('t2s', 't2m') as references or dependencies. Audio input is **not supported** for any video models, including the default Omni model ('gemini-omni-flash-preview'). Do NOT draw edges from audio/music nodes to video/image generation nodes.
-- **STATEFUL VIDEO EDITING (OMNI):** The default model 'gemini-omni-flash-preview' supports stateful editing! To edit an existing video (e.g. 'make it faster', 'change the style', 'add a character', 'colorize it'), use the 't2v' operation and draw a 'depends_on' edge from the previous video node to the new video node. The engine will propagate the interaction state for seamless editing.
+- **AUDIO REFERENCE CONSTRAINT:** Video/image generation nodes ('t2v', 'i2v', 'i2v2', 't2i', 'i2i') **cannot** accept or use audio, speech, or music nodes ('t2s', 't2m') as references or dependencies. Audio input is **not supported** for any video models, including the default Omni model ('gemini-omni-1.1-flash-preview'). Do NOT draw edges from audio/music nodes to video/image generation nodes.
+- **STATEFUL VIDEO EDITING (OMNI):** The default model 'gemini-omni-1.1-flash-preview' supports stateful editing! To edit an existing video (e.g. 'make it faster', 'change the style', 'add a character', 'colorize it'), use the 't2v' operation and draw a 'depends_on' edge from the previous video node to the new video node. The engine will propagate the interaction state for seamless editing.
 - Reference existing canvas items by their node ID in promptIntent when relevant.
 - Keep video nodes ≤10s; split longer sequences with concat nodes.
-- Single-shot video duration must be 3–10 seconds (for Veo models: 4, 6, or 8s parameter; for Omni: 3–10s instructed in prompt). Default to 4s when the user has not specified.
+- Single-shot video duration must be 3–10 seconds (for Veo models: 4, 6, or 8s parameter; for Omni: 3–10s parameter). Default to 4s when the user has not specified.
 - If the request is format-ambiguous (e.g. 'ad', 'banner'), call ask_user and STOP — do not emit plan_production until answered.
 - Never put generation descriptions in conversational text — always emit plan_production.`;
 

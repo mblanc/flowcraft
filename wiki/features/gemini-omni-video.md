@@ -1,17 +1,18 @@
 # Feature Spec: Gemini Omni Video Generation & Editing
 
-This document outlines the design and implementation plan for integrating Gemini Omni Flash (`gemini-omni-flash-preview`) as the default video generation and editing model in FlowCraft.
+This document outlines the design and implementation for integrating Gemini Omni Flash — with **`gemini-omni-1.1-flash-preview`** as the default video generation and editing model across FlowCraft (alongside legacy `gemini-omni-flash-preview` support).
 
 ---
 
 ## 1. Goals & Key Requirements
 
-- **Model Integration**: Support `gemini-omni-flash-preview` for high-speed, high-quality video generation and editing.
-- **New Default**: Make Gemini Omni the default model for both the **Flow Editor** and the **Agent Canvas**.
-- **Multimodal Inputs**: Enable users to use images, audio references, and text prompts as inputs to generate new videos.
-- **Conversational Editing**: Leverage the **Interactions API** to allow iterative, stateful video editing on the Agent Canvas.
-- **720p Resolution**: Restrict the output resolution to 720p for the initial release.
-- **No Explicit Duration**: Note that Omni's video duration is determined by the model/prompt, unlike Veo 3.1 which supports explicit duration parameters (4s, 6s, 8s).
+- **Model Integration**: Support `gemini-omni-1.1-flash-preview` (canonical Vertex AI / GEAP model) as well as legacy `gemini-omni-flash-preview`.
+- **New Default**: Make `gemini-omni-1.1-flash-preview` the default video model for both the **Flow Editor** (DAG nodes) and the **Agent Canvas** (Director Agent).
+- **Direct GCS Delivery**: Use `"delivery": "uri"` and `"gcs_uri": targetGcsUri` in `response_format` so Vertex AI renders output directly into Cloud Storage, returning `gs://...` directly with zero double-hop downloads.
+- **Configurable Durations**: Support explicit duration parameter (3s–10s) via `response_format.duration` for Omni 1.1.
+- **Configurable Resolutions**: Support 360p, 720p (default), 1080p, and 4K output resolutions.
+- **Image Conditioning via Prompt Engineering**: Omni models do not have dedicated first frame or last frame API features; image conditioning is done via prompt engineering and reference images provided to the `Image(s)` handle. First/last frame handles are exclusive to Veo models.
+- **Conversational Editing**: Leverage the **Interactions API** (`previous_interaction_id` / video dependency) for iterative, stateful video editing on the Agent Canvas.
 
 ---
 
@@ -118,10 +119,10 @@ We will update the `generateVideo` method or add a branching path to handle `gem
     - Omni supports powerful prompt-based image roles. We can automatically compile connected image nodes into the `input` array and inject role tags into the prompt:
         - `firstFrame` -> Prepend `<FIRST_FRAME>` to the prompt.
         - `referenceImages` -> Bind to `<IMAGE_REF_0>`, `<IMAGE_REF_1>`, etc., in the prompt.
-3.  **UI Config**:
-    - When `gemini-omni-flash-preview` is selected, the UI should **disable/hide the duration slider** (as duration is not an API-configurable parameter for Omni) and **hide the 'Last Frame' input socket** (since Omni does not support frame interpolation).
-    - **Audio References**: Enable the audio input socket and upload options when Omni is selected, but hide/disable them for Veo models.
-    - Restrict resolution choices to `720p` only.
+3.  **UI Config & Handles**:
+    - For Omni models (`gemini-omni-flash-preview` and `gemini-omni-1.1-flash-preview`), neither **First Frame** nor **Last Frame** handles are displayed. Instead, image nodes connect directly to the **`Image(s)`** handle (`image-input`).
+    - When `gemini-omni-flash-preview` (1.0) is selected, the UI restricts resolution choices to `720p` only and hides the duration selector. Omni 1.1 supports configurable resolutions (360p, 720p, 1080p, 4K) and durations (3s-10s).
+    - Veo models retain the dedicated **First Frame** and **Last Frame** handles.
 
 ### E. Canvas & Director Agent (`src/lib/canvas/`)
 

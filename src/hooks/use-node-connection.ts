@@ -16,7 +16,6 @@ import {
 import { isTypeCompatible } from "@/lib/utils";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { createNode, getUniqueNodeName } from "@/lib/flow/node-factory";
-import { v4 as uuidv4 } from "uuid";
 import type { CustomNodeItem } from "@/components/flow/flow-constants";
 import { nativeItems } from "@/components/flow/flow-constants";
 
@@ -126,8 +125,9 @@ export function useNodeConnection(
 
     const handleSelectDropdownNode = useCallback(
         (type: NodeType, customNode?: CustomNodeItem) => {
-            if (!dropdownPosition || !connectionStartParams || !rfInstance)
-                return;
+            const params =
+                connectionStartParams || connectionStartParamsRef.current;
+            if (!dropdownPosition || !params || !rfInstance) return;
 
             const newNode = createNode(
                 customNode ? "custom-workflow" : type,
@@ -161,92 +161,106 @@ export function useNodeConnection(
 
             useFlowStore.getState().addNode(newNode);
 
-            if (!connectionStartParams.nodeId) return;
-            const sourceNodeData = nodeDataMap[connectionStartParams.nodeId];
+            if (!params.nodeId) return;
+            const sourceNode = useFlowStore
+                .getState()
+                .nodes.find((n) => n.id === params.nodeId);
+            const sourceNodeData =
+                sourceNode?.data || nodeDataMap[params.nodeId];
             if (sourceNodeData) {
                 const sourcePortType =
-                    connectionStartParams.handleType === "source"
+                    params.handleType === "source"
                         ? getSourcePortType(
                               { data: sourceNodeData } as Node<NodeData>,
-                              connectionStartParams.handleId,
+                              params.handleId,
                           )
                         : getTargetPortType(
                               { data: sourceNodeData } as Node<NodeData>,
-                              connectionStartParams.handleId,
+                              params.handleId,
                           );
 
                 const newDef = getNodeDefinition(newNode.data.type as NodeType);
                 let targetHandle: string | null = null;
 
-                if (connectionStartParams.handleType === "source") {
+                if (params.handleType === "source") {
                     if (newNode.data.type === "custom-workflow") {
                         const cwData = newNode.data as CustomWorkflowData;
                         const inputs = Object.entries(cwData.inputs || {});
-                        targetHandle =
+                        const match =
                             inputs.find(
                                 ([, type]) => type === sourcePortType,
-                            )?.[0] ||
+                            ) ??
                             inputs.find(([, type]) =>
                                 isTypeCompatible(sourcePortType, type),
-                            )?.[0] ||
-                            null;
+                            );
+                        targetHandle = match ? match[0] : null;
                     } else if (newDef?.inputs) {
-                        const inputs = Object.entries(newDef.inputs);
-                        targetHandle =
-                            inputs.find(
-                                ([, type]) => type === sourcePortType,
-                            )?.[0] ||
-                            inputs.find(([, type]) =>
-                                isTypeCompatible(sourcePortType, type),
-                            )?.[0] ||
-                            null;
+                        if (
+                            newNode.data.type === "video" &&
+                            sourcePortType === "image"
+                        ) {
+                            targetHandle = "image-input";
+                        } else {
+                            const inputs = Object.entries(newDef.inputs);
+                            const match =
+                                inputs.find(
+                                    ([, type]) => type === sourcePortType,
+                                ) ??
+                                inputs.find(([, type]) =>
+                                    isTypeCompatible(sourcePortType, type),
+                                );
+                            targetHandle = match ? match[0] : null;
+                        }
                     }
                 } else {
                     if (newNode.data.type === "custom-workflow") {
                         const cwData = newNode.data as CustomWorkflowData;
                         const outputs = Object.entries(cwData.outputs || {});
-                        targetHandle =
+                        const match =
                             outputs.find(
                                 ([, type]) => type === sourcePortType,
-                            )?.[0] ||
+                            ) ??
                             outputs.find(([, type]) =>
                                 isTypeCompatible(type, sourcePortType),
-                            )?.[0] ||
-                            null;
+                            );
+                        targetHandle = match ? match[0] : null;
                     } else if (newDef?.outputs) {
                         const outputs = Object.entries(newDef.outputs);
-                        targetHandle =
+                        const match =
                             outputs.find(
                                 ([, type]) => type === sourcePortType,
-                            )?.[0] ||
+                            ) ??
                             outputs.find(([, type]) =>
                                 isTypeCompatible(type, sourcePortType),
-                            )?.[0] ||
-                            null;
+                            );
+                        targetHandle = match ? match[0] : null;
                     }
                 }
 
-                if (targetHandle !== null && connectionStartParams.nodeId) {
-                    const newEdge: Edge = {
-                        id: uuidv4(),
-                        source:
-                            connectionStartParams.handleType === "source"
-                                ? connectionStartParams.nodeId
-                                : newNode.id,
-                        sourceHandle:
-                            connectionStartParams.handleType === "source"
-                                ? connectionStartParams.handleId
-                                : targetHandle,
-                        target:
-                            connectionStartParams.handleType === "source"
-                                ? newNode.id
-                                : connectionStartParams.nodeId,
-                        targetHandle:
-                            connectionStartParams.handleType === "source"
-                                ? targetHandle
-                                : connectionStartParams.handleId,
-                    };
-                    useFlowStore.getState().setEdges([...edges, newEdge]);
+                if (targetHandle !== null && params.nodeId) {
+                    const source =
+                        params.handleType === "source"
+                            ? params.nodeId
+                            : newNode.id;
+                    const sourceHandle =
+                        (params.handleType === "source"
+                            ? params.handleId
+                            : targetHandle) || null;
+                    const target =
+                        params.handleType === "source"
+                            ? newNode.id
+                            : params.nodeId;
+                    const targetHandleFinal =
+                        (params.handleType === "source"
+                            ? targetHandle
+                            : params.handleId) || null;
+
+                    useFlowStore.getState().onConnect({
+                        source,
+                        sourceHandle,
+                        target,
+                        targetHandle: targetHandleFinal,
+                    });
                 }
             }
 
@@ -258,7 +272,6 @@ export function useNodeConnection(
             connectionStartParams,
             rfInstance,
             nodeDataMap,
-            edges,
             clearConnectionParams,
         ],
     );
