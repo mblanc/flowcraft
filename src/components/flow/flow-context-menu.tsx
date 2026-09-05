@@ -12,12 +12,20 @@ import {
     ContextMenuSubTrigger,
     ContextMenuTrigger,
 } from "../ui/context-menu";
-import { Box } from "lucide-react";
 import {
-    nativeItems,
-    workflowIOItems,
-    type CustomNodeItem,
-} from "./flow-constants";
+    Bot,
+    Box,
+    FileText,
+    FileUp,
+    GitMerge,
+    ImageIcon,
+    ListOrdered,
+    Music,
+    Scaling,
+    Video,
+    ZoomIn,
+} from "lucide-react";
+import { workflowIOItems, type CustomNodeItem } from "./flow-constants";
 
 interface FlowContextMenuProps {
     children: React.ReactNode;
@@ -69,17 +77,96 @@ export function FlowContextMenu({
             <ContextMenuContent className="w-48">
                 <ContextMenuLabel>Add Node</ContextMenuLabel>
                 <ContextMenuSeparator />
-                {nativeItems.map((item) => (
-                    <ContextMenuItem
-                        key={item.type}
-                        onClick={() =>
-                            handleContextMenuAddNode(item.type as NodeType)
-                        }
-                    >
-                        <item.icon className="mr-2 h-4 w-4" />
-                        <span>{item.label}</span>
-                    </ContextMenuItem>
-                ))}
+
+                {/* Text Submenu */}
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger>
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>Text</span>
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48">
+                        <ContextMenuItem
+                            onClick={() => handleContextMenuAddNode("text")}
+                        >
+                            <FileText className="mr-2 h-4 w-4" />
+                            <span>Text</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            onClick={() => handleContextMenuAddNode("llm")}
+                        >
+                            <Bot className="mr-2 h-4 w-4" />
+                            <span>LLM</span>
+                        </ContextMenuItem>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+
+                {/* Image Submenu */}
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger>
+                        <ImageIcon className="mr-2 h-4 w-4" />
+                        <span>Image</span>
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48">
+                        <ContextMenuItem
+                            onClick={() => handleContextMenuAddNode("image")}
+                        >
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            <span>Image</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            onClick={() => handleContextMenuAddNode("upscale")}
+                        >
+                            <ZoomIn className="mr-2 h-4 w-4" />
+                            <span>Upscale</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            onClick={() => handleContextMenuAddNode("resize")}
+                        >
+                            <Scaling className="mr-2 h-4 w-4" />
+                            <span>Resize</span>
+                        </ContextMenuItem>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+
+                {/* Video */}
+                <ContextMenuItem
+                    onClick={() => handleContextMenuAddNode("video")}
+                >
+                    <Video className="mr-2 h-4 w-4" />
+                    <span>Video</span>
+                </ContextMenuItem>
+
+                {/* Music */}
+                <ContextMenuItem
+                    onClick={() => handleContextMenuAddNode("music")}
+                >
+                    <Music className="mr-2 h-4 w-4" />
+                    <span>Music</span>
+                </ContextMenuItem>
+
+                {/* File */}
+                <ContextMenuItem
+                    onClick={() => handleContextMenuAddNode("file")}
+                >
+                    <FileUp className="mr-2 h-4 w-4" />
+                    <span>File</span>
+                </ContextMenuItem>
+
+                {/* List */}
+                <ContextMenuItem
+                    onClick={() => handleContextMenuAddNode("list")}
+                >
+                    <ListOrdered className="mr-2 h-4 w-4" />
+                    <span>List</span>
+                </ContextMenuItem>
+
+                {/* Router */}
+                <ContextMenuItem
+                    onClick={() => handleContextMenuAddNode("router")}
+                >
+                    <GitMerge className="mr-2 h-4 w-4" />
+                    <span>Router</span>
+                </ContextMenuItem>
 
                 {isCustomNodeEditor && (
                     <>
