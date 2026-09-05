@@ -185,35 +185,32 @@
     stroke-width: 4;
 }
 
-/* Converting handle sizes from rem back to px */
+/* Handle styling: 24px diameter, centered at node border with a crisp small border */
 .react-flow .react-flow__handle {
     background: var(--primary);
-    /* Increased handle size from 14px to 21px (1.5x) */
-    width: 21px;
-    height: 21px;
-    border: 3px solid var(--card);
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--card);
     border-radius: 50%;
 }
 
-/* Converting positioning offsets back to px */
+/* Offsets centered on node border (50% inside, 50% outside)
+   Note: @xyflow/react already applies translate(-50%, -50%) or translate(50%, -50%).
+   Therefore, left: 0 and right: 0 center the 24px handle right on the border. */
 .react-flow .react-flow__handle-left {
-    /* Adjusted offset for 21px handles: -21/2 = -10.5px */
-    left: -10.5px;
+    left: 0;
 }
 
 .react-flow .react-flow__handle-right {
-    /* Adjusted offset for 21px handles: -21/2 = -10.5px */
-    right: -10.5px;
+    right: 0;
 }
 
 .react-flow .react-flow__handle-top {
-    /* Adjusted offset for 21px handles: -21/2 = -10.5px */
-    top: -10.5px;
+    top: 0;
 }
 
 .react-flow .react-flow__handle-bottom {
-    /* Adjusted offset for 21px handles: -21/2 = -10.5px */
-    bottom: -10.5px;
+    bottom: 0;
 }
 
 /* Specific Handle Color Overrides (matching 0,2,0 specificity) */
