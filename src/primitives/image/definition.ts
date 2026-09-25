@@ -170,8 +170,7 @@ export const imagePrimitive: Primitive<
                     (r.resolvedPrompt as string | undefined) ??
                     node.data.prompt,
                 mediaInputs: r.mediaInputs as
-                    | { url: string; mimeType?: string }[]
-                    | undefined,
+                    { url: string; mimeType?: string }[] | undefined,
             };
 
             await Promise.all(

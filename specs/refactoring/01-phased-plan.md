@@ -35,8 +35,7 @@ interface Primitive<TFlowData, TCanvasData, TRequest, TOutput> {
 
     // Server-side execution — ONE implementation; called by unified API route and directly by generation.ts
     execute:
-        | ((inputs: TRequest, ctx: ServerContext) => Promise<TOutput>)
-        | null;
+        ((inputs: TRequest, ctx: ServerContext) => Promise<TOutput>) | null;
 
     // Flow surface (server-safe: no React)
     flow: {

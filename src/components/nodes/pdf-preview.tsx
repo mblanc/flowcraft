@@ -29,7 +29,7 @@ export function PdfPreview({ url, className }: PdfPreviewProps) {
             setError(null);
 
             try {
-                const loadingTask = pdfjs.getDocument(url);
+                const loadingTask = pdfjs.getDocument({ url });
                 const pdf = await loadingTask.promise;
 
                 if (!isMounted) return;

@@ -200,25 +200,25 @@ Each primitive is a self-contained operation with typed inputs and outputs.
 
 #### 6.1.3 Edit / transform primitives
 
-| Primitive                | Input                         | Output              | Priority |
+| Primitive | Input | Output | Priority |
 | ------------------------ | ----------------------------- | ------------------- | -------- | ------------------------------------------------ |
-| Inpaint / outpaint       | image + mask + prompt         | image               | P0       |
-| Background removal       | image                         | image (RGBA) + mask | P0       |
-| Upscale / super-res      | image, scale factor           | image               | P0       |
-| Style transfer           | image + style reference       | image               | P1       |
-| Color correction         | image/video + adjustments     | image/video         | P0       |
-| Video trim / cut / merge | video + edit list             | video               | P0       |
-| Transitions & effects    | video clips + transition type | video               | P1       |
-| Frame interpolation      | video, target FPS             | video               | P2       |
-| Video stabilization      | video                         | video               | P2       |
-| Audio mix / EQ / denoise | audio tracks + settings       | audio               | P0       |
-| Text / graphic overlay   | media + overlay spec          | media               | P0       |
-| Subtitle rendering       | video + transcript/SRT        | video               | P0       |
-| Lip sync                 | video/image + audio           | video               | P2       |
-| Face swap                | image/video + source face     | image/video         | P2       |
-| Motion tracking          | video + target                | tracking data       | P2       |
-| Format conversion        | media + target format/aspect  | media               | P0       |
-| Watermark                | media + watermark asset       | media               | P1       | Google Cloud Video Intelligence / Image overlays |
+| Inpaint / outpaint | image + mask + prompt | image | P0 |
+| Background removal | image | image (RGBA) + mask | P0 |
+| Upscale / super-res | image, scale factor | image | P0 |
+| Style transfer | image + style reference | image | P1 |
+| Color correction | image/video + adjustments | image/video | P0 |
+| Video trim / cut / merge | video + edit list | video | P0 |
+| Transitions & effects | video clips + transition type | video | P1 |
+| Frame interpolation | video, target FPS | video | P2 |
+| Video stabilization | video | video | P2 |
+| Audio mix / EQ / denoise | audio tracks + settings | audio | P0 |
+| Text / graphic overlay | media + overlay spec | media | P0 |
+| Subtitle rendering | video + transcript/SRT | video | P0 |
+| Lip sync | video/image + audio | video | P2 |
+| Face swap | image/video + source face | image/video | P2 |
+| Motion tracking | video + target | tracking data | P2 |
+| Format conversion | media + target format/aspect | media | P0 |
+| Watermark | media + watermark asset | media | P1 | Google Cloud Video Intelligence / Image overlays |
 
 #### 6.1.4 Infrastructure
 

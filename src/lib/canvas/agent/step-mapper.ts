@@ -269,9 +269,7 @@ export function mapPlanNodesToSteps(
                       const raw = Number(node.duration);
                       return {
                           duration: ([4, 6, 8].includes(raw) ? raw : 4) as
-                              | 4
-                              | 6
-                              | 8,
+                              4 | 6 | 8,
                       };
                   })()
                 : {}),

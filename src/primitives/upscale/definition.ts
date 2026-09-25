@@ -93,10 +93,7 @@ export const upscalePrimitive: Primitive<
                 image: firstResult?.image as string | undefined,
                 images: allImages,
                 upscaleFactor: firstResult?.upscaleFactor as
-                    | "x2"
-                    | "x3"
-                    | "x4"
-                    | undefined,
+                    "x2" | "x3" | "x4" | undefined,
             };
         },
         saveToLibrary: async (node, result, ctx) => {

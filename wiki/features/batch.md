@@ -354,12 +354,13 @@ interface ValidationIssue {
 ```
 
 **Error Codes:**
-| Code | HTTP | Description |
-|------|------|-------------|
-| `INVALID_FILE_FORMAT` | 400 | File is not valid CSV/JSON |
-| `FILE_TOO_LARGE` | 400 | Exceeds 10,000 rows or 50MB |
-| `WORKFLOW_NOT_FOUND` | 404 | Workflow/version doesn't exist |
-| `WORKFLOW_HAS_CYCLE` | 400 | Graph flattening failed due to cycle |
+
+| Code                  | HTTP | Description                          |
+| --------------------- | ---- | ------------------------------------ |
+| `INVALID_FILE_FORMAT` | 400  | File is not valid CSV/JSON           |
+| `FILE_TOO_LARGE`      | 400  | Exceeds 10,000 rows or 50MB          |
+| `WORKFLOW_NOT_FOUND`  | 404  | Workflow/version doesn't exist       |
+| `WORKFLOW_HAS_CYCLE`  | 400  | Graph flattening failed due to cycle |
 
 ---
 
@@ -414,11 +415,12 @@ interface StartBatchResponse {
 ```
 
 **Error Codes:**
-| Code | HTTP | Description |
-|------|------|-------------|
-| `INVALID_MAPPINGS` | 400 | Required inputs not mapped |
-| `ALREADY_STARTED` | 409 | Job already started |
-| `INSUFFICIENT_CREDITS` | 402 | User cannot afford this batch |
+
+| Code                   | HTTP | Description                   |
+| ---------------------- | ---- | ----------------------------- |
+| `INVALID_MAPPINGS`     | 400  | Required inputs not mapped    |
+| `ALREADY_STARTED`      | 409  | Job already started           |
+| `INSUFFICIENT_CREDITS` | 402  | User cannot afford this batch |
 
 ---
 
@@ -453,11 +455,12 @@ GET /api/runs/{runId}/items?status={status}&page={page}&pageSize={pageSize}
 ```
 
 **Query Parameters:**
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| `status` | string | all | Filter by status |
-| `page` | number | 0 | Page number |
-| `pageSize` | number | 50 | Items per page (max 100) |
+
+| Param      | Type   | Default | Description              |
+| ---------- | ------ | ------- | ------------------------ |
+| `status`   | string | all     | Filter by status         |
+| `page`     | number | 0       | Page number              |
+| `pageSize` | number | 50      | Items per page (max 100) |
 
 **Response (200 OK):**
 

@@ -94,9 +94,7 @@ export const resizePrimitive: Primitive<
                 output: firstResult?.output as string | undefined,
                 outputs: allOutputs,
                 aspectRatio: firstResult?.aspectRatio as
-                    | "16:9"
-                    | "9:16"
-                    | undefined,
+                    "16:9" | "9:16" | undefined,
             };
         },
         saveToLibrary: async (node, result, ctx) => {

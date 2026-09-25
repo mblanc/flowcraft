@@ -325,8 +325,7 @@ describe("useFlowPersistence — importFlow", () => {
         const mockReader = {
             readAsText: vi.fn(),
             onload: null as
-                | ((e: { target: { result: string } }) => void)
-                | null,
+                ((e: { target: { result: string } }) => void) | null,
         };
         // Must use a regular function (not arrow) — arrow functions cannot be constructors
         vi.stubGlobal(

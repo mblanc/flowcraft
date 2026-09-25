@@ -78,10 +78,7 @@ export interface CanvasAudioData {
 }
 
 export type CanvasNodeData =
-    | CanvasImageData
-    | CanvasVideoData
-    | CanvasTextData
-    | CanvasAudioData;
+    CanvasImageData | CanvasVideoData | CanvasTextData | CanvasAudioData;
 
 export interface CanvasNode {
     id: string;
@@ -182,8 +179,7 @@ export interface NodePayload {
 export type PlanStatus = "pending_approval" | "approved" | "cancelled";
 
 export type DirectorLogEntry =
-    | { type: "thought"; text: string }
-    | { type: "action"; label: string };
+    { type: "thought"; text: string } | { type: "action"; label: string };
 
 export interface ChatMessage {
     id: string;

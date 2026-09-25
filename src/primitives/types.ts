@@ -29,8 +29,7 @@ export interface Primitive<
 
     // Server-side execution
     execute:
-        | ((inputs: TRequest, ctx: ServerContext) => Promise<TOutput>)
-        | null;
+        ((inputs: TRequest, ctx: ServerContext) => Promise<TOutput>) | null;
 
     // Flow surface (server-safe: no React/client imports)
     flow: {

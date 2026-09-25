@@ -249,8 +249,7 @@ export const videoPrimitive: Primitive<
                     ?.resolvedPrompt as string | undefined,
                 mediaInputs: (results[0] as Record<string, unknown>)
                     ?.mediaInputs as
-                    | { url: string; mimeType?: string }[]
-                    | undefined,
+                    { url: string; mimeType?: string }[] | undefined,
             };
         },
         saveToLibrary: async (node, result, ctx) => {
@@ -271,8 +270,7 @@ export const videoPrimitive: Primitive<
                     (r.resolvedPrompt as string | undefined) ??
                     node.data.prompt,
                 mediaInputs: r.mediaInputs as
-                    | { url: string; mimeType?: string }[]
-                    | undefined,
+                    { url: string; mimeType?: string }[] | undefined,
             };
 
             await Promise.all(
