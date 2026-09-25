@@ -19,8 +19,8 @@
         "docs:build": "cd docs && bun run build"
     },
     "dependencies": {
-        "@google-cloud/firestore": "^8.7.1",
-        "@google-cloud/storage": "^7.22.0",
+        "@google-cloud/firestore": "^9.2.0",
+        "@google-cloud/storage": "^8.2.0",
         "@google/adk": "^2.1.0",
         "@google/genai": "^2.24.0",
         "@hookform/resolvers": "^5.9.1",
