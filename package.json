@@ -70,7 +70,7 @@
         "pdfjs-dist": "^6.2.108",
         "react": "19.2.8",
         "react-dom": "19.2.8",
-        "react-hook-form": "^7.88.0",
+        "react-hook-form": "^7.89.0",
         "react-markdown": "^10.1.0",
         "react-resizable-panels": "^4.12.3",
         "remark-gfm": "^4.0.1",
