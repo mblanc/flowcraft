@@ -84,7 +84,7 @@
         "uuid": "^14.0.2",
         "vaul": "^1.1.2",
         "winston": "^3.19.0",
-        "zod": "4.4.3",
+        "zod": "4.6.5",
         "zustand": "^5.0.15"
     },
     "devDependencies": {
@@ -128,7 +128,7 @@
         "uuid": "$uuid",
         "vite": "^8.2.2",
         "werift": "^0.24.4",
-        "zod": "4.4.3"
+        "zod": "4.6.5"
     },
     "trustedDependencies": [
         "node-av",
