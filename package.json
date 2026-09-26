@@ -79,7 +79,7 @@
         "tailwind-merge": "^3.6.0",
         "uuid": "^14.0.2",
         "winston": "^3.19.0",
-        "zod": "4.4.3",
+        "zod": "4.6.5",
         "zustand": "^5.0.15"
     },
     "devDependencies": {
@@ -123,7 +123,7 @@
         "uuid": "$uuid",
         "vite": "^8.3.3",
         "werift": "^0.25.0",
-        "zod": "4.4.3"
+        "zod": "4.6.5"
     },
     "trustedDependencies": [
         "node-av",
