@@ -121,9 +121,19 @@ describe("applyTypeDefaults — video duration coercion", () => {
         expect(step.duration).toBe(4);
     });
 
-    it("defaults to 4 when duration is undefined", () => {
+    it("leaves duration unset (Auto) when model and duration are undefined (default Omni model)", () => {
         const step = applyTypeDefaults({ ...baseVideo });
-        expect(step.duration).toBe(4);
+        expect(step.duration).toBeUndefined();
+        expect("duration" in step).toBe(false);
+    });
+
+    it("leaves duration unset (Auto) when duration is 'auto' string", () => {
+        const step = applyTypeDefaults({
+            ...baseVideo,
+            duration: "auto" as never,
+        });
+        expect(step.duration).toBeUndefined();
+        expect("duration" in step).toBe(false);
     });
 
     it("leaves duration unset (Auto) when model is GEMINI_OMNI_1_1_FLASH and duration is undefined", () => {
@@ -148,6 +158,15 @@ describe("applyTypeDefaults — video duration coercion", () => {
         const step = applyTypeDefaults({
             ...baseVideo,
             model: MODELS.VIDEO.VEO_3_1_FAST,
+        });
+        expect(step.duration).toBe(4);
+    });
+
+    it("defaults duration to 4 when model is Veo and duration is 'auto'", () => {
+        const step = applyTypeDefaults({
+            ...baseVideo,
+            model: MODELS.VIDEO.VEO_3_1_FAST,
+            duration: "auto" as never,
         });
         expect(step.duration).toBe(4);
     });

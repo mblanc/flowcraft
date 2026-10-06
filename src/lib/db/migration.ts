@@ -1,7 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../types";
 import { getNodeDefinition } from "../flow/node-registry";
-import { MODELS } from "../constants";
+import { isOmniVideoModel } from "../constants";
 
 /**
  * Migrates old node data structures to the current version.
@@ -95,11 +95,7 @@ export function migrateEdges(
                 const targetModel = (
                     targetNode?.data as Record<string, unknown> | undefined
                 )?.model;
-                const isOmni =
-                    targetModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
-                    targetModel === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
-                    !targetModel;
-                if (isOmni) {
+                if (isOmniVideoModel(targetModel)) {
                     updatedEdge = {
                         ...updatedEdge,
                         targetHandle: "image-input",

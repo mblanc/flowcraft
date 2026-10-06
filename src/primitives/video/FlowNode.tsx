@@ -17,7 +17,11 @@ import { NodeTitle } from "@/components/nodes/node-title";
 import { useFlowExecution } from "@/hooks/use-flow-execution";
 import { MentionEditor } from "@/components/nodes/mention-editor";
 import { useConnectedSourceNodes } from "@/hooks/use-connected-source-nodes";
-import { MODELS } from "@/lib/constants";
+import { MODELS, isOmniVideoModel } from "@/lib/constants";
+import {
+    getEffectiveVideoModel,
+    getNormalizedVideoNodeUpdates,
+} from "./definition";
 import {
     Select,
     SelectContent,
@@ -51,14 +55,10 @@ export const FlowNode = memo(
 
         const connectedTextNodes = useConnectedSourceNodes(id, "prompt-input");
 
-        const validVideoModels = Object.values(MODELS.VIDEO) as string[];
-        const effectiveModel = validVideoModels.includes(data.model)
-            ? data.model
-            : MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
-
+        const effectiveModel = getEffectiveVideoModel(data.model);
         const isOmni11 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
         const isOmni10 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
-        const isOmni = isOmni11 || isOmni10;
+        const isOmni = isOmniVideoModel(effectiveModel);
         const normalizedResolution =
             (data.resolution as string) === "4k"
                 ? "4K"
@@ -69,35 +69,16 @@ export const FlowNode = memo(
         }, [id, isOmni, updateNodeInternals]);
 
         useEffect(() => {
-            if (!validVideoModels.includes(data.model)) {
+            if (data.model !== effectiveModel) {
                 updateNodeData(id, {
-                    model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                    model: effectiveModel,
                 });
             }
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [id]);
 
         useEffect(() => {
-            const updates: Partial<VideoData> = {};
-            if (!data.resolution) {
-                updates.resolution = "720p";
-            } else if (
-                data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH &&
-                data.resolution !== "720p"
-            ) {
-                updates.resolution = "720p";
-            } else if (!isOmni11 && data.resolution === "360p") {
-                updates.resolution = "720p";
-            }
-            if (isOmni10 && data.duration !== undefined) {
-                updates.duration = undefined;
-            } else if (
-                !isOmni &&
-                data.duration !== undefined &&
-                ![4, 6, 8].includes(data.duration)
-            ) {
-                updates.duration = 4;
-            }
+            const updates = getNormalizedVideoNodeUpdates(data);
             if (Object.keys(updates).length > 0) {
                 updateNodeData(id, updates);
             }
@@ -106,10 +87,8 @@ export const FlowNode = memo(
             data.resolution,
             data.duration,
             id,
-            isOmni,
-            isOmni10,
-            isOmni11,
             updateNodeData,
+            data,
         ]);
         const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,

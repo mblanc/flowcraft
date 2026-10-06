@@ -29,8 +29,8 @@ export const POST = withAuth(async (req, context: Context, session) => {
 
         const { skillName, enabled } = parsed.data;
 
-        // Fetch the canvas first to verify existence and user access
-        const canvas = await canvasService.getCanvas(
+        // Fetch the canvas first to verify existence and user edit access
+        const canvas = await canvasService.getCanvasForEdit(
             canvasId,
             session.user!.id!,
             session.user!.email ?? undefined,

@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import { WorkflowEngine } from "@/lib/flow/workflow-engine";
-import { fetchAndCacheSignedUrl } from "@/lib/cache/signed-urls";
+import { fetchAndCacheSignedUrls } from "@/lib/cache/signed-urls";
 import { registry } from "@/primitives/registry";
 import type { NodeData, ExecutionContext } from "@/lib/types";
 import type { Node } from "@xyflow/react";
@@ -35,7 +35,7 @@ async function onMediaGenerated(
 }
 
 async function signedUrlPrefetch(uris: string[]): Promise<void> {
-    await Promise.all(uris.map(fetchAndCacheSignedUrl));
+    await fetchAndCacheSignedUrls(uris);
 }
 
 function buildContext(userId: string | undefined): ExecutionContext {

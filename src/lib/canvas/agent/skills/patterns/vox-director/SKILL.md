@@ -36,7 +36,7 @@ Construct a multi-step `ProductionPlan` DAG containing:
 
 1. **Audio Track**:
     - `t2s` (Text-to-Speech) node for each beat narration script. Set model to `gemini-3.1-flash-tts-preview`.
-    - `music` (Background Music) node for global soundtrack. Set model to `lyria-3-clip-preview` with prompt matching the theme tone.
+    - `t2m` (Background Music) node for global soundtrack. Set model to `lyria-3-clip-preview` with prompt matching the theme tone.
 
 2. **Visual Track (DAG per shot)**:
     - For each beat $i$ ($1 \le i \le N$):

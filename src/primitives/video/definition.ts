@@ -4,7 +4,7 @@ import { GenerateVideoSchema } from "@/lib/schemas";
 import type { Primitive } from "../types";
 import type { VideoData } from "@/lib/types";
 import type { CanvasVideoData } from "@/lib/canvas/types";
-import { DEFAULTS, MODELS } from "@/lib/constants";
+import { DEFAULTS, MODELS, isOmniVideoModel } from "@/lib/constants";
 import {
     getSourceValue,
     isCollectionSource,
@@ -29,13 +29,47 @@ function extractMediaUrl(value: unknown): string | undefined {
     return undefined;
 }
 
-function isOmniVideoModel(model?: string): boolean {
-    return (
-        !model ||
-        model === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
-        model === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH
-    );
+const VALID_VIDEO_MODELS = Object.values(MODELS.VIDEO) as string[];
+
+export function getEffectiveVideoModel(
+    model?: VideoData["model"],
+): VideoData["model"] {
+    return model && VALID_VIDEO_MODELS.includes(model)
+        ? model
+        : MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
 }
+
+export function getNormalizedVideoNodeUpdates(
+    data: VideoData,
+): Partial<VideoData> {
+    const effectiveModel = getEffectiveVideoModel(data.model);
+    const isOmni11 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
+    const isOmni10 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+    const isOmni = isOmni11 || isOmni10;
+    const updates: Partial<VideoData> = {};
+
+    if (!data.resolution) {
+        updates.resolution = "720p";
+    } else if (isOmni10 && data.resolution !== "720p") {
+        updates.resolution = "720p";
+    } else if (!isOmni11 && data.resolution === "360p") {
+        updates.resolution = "720p";
+    }
+
+    if (isOmni10 && data.duration !== undefined) {
+        updates.duration = undefined;
+    } else if (
+        !isOmni &&
+        data.duration !== undefined &&
+        ![4, 6, 8].includes(data.duration)
+    ) {
+        updates.duration = 4;
+    }
+
+    return updates;
+}
+
+export { isOmniVideoModel };
 
 export const videoPrimitive: Primitive<
     VideoData,
