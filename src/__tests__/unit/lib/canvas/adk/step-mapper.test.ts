@@ -13,6 +13,7 @@ import {
     VALID_VIDEO_MODELS,
 } from "@/lib/canvas/agent/step-mapper";
 import type { GenerationStep, PlanNode, CanvasNode } from "@/lib/canvas/types";
+import { MODELS } from "@/lib/constants";
 
 const mockWarn = vi.mocked(logger.warn);
 
@@ -125,6 +126,41 @@ describe("applyTypeDefaults — video duration coercion", () => {
         expect(step.duration).toBe(4);
     });
 
+    it("leaves duration unset (Auto) when model is GEMINI_OMNI_1_1_FLASH and duration is undefined", () => {
+        const step = applyTypeDefaults({
+            ...baseVideo,
+            model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+        });
+        expect(step.duration).toBeUndefined();
+        expect("duration" in step).toBe(false);
+    });
+
+    it("leaves duration unset (Auto) when model is GEMINI_OMNI_FLASH and duration is undefined", () => {
+        const step = applyTypeDefaults({
+            ...baseVideo,
+            model: MODELS.VIDEO.GEMINI_OMNI_FLASH,
+        });
+        expect(step.duration).toBeUndefined();
+        expect("duration" in step).toBe(false);
+    });
+
+    it("defaults duration to 4 when model is Veo and duration is undefined", () => {
+        const step = applyTypeDefaults({
+            ...baseVideo,
+            model: MODELS.VIDEO.VEO_3_1_FAST,
+        });
+        expect(step.duration).toBe(4);
+    });
+
+    it("preserves explicit duration for GEMINI_OMNI_1_1_FLASH", () => {
+        const step = applyTypeDefaults({
+            ...baseVideo,
+            model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+            duration: 7,
+        });
+        expect(step.duration).toBe(7);
+    });
+
     it("uses videoDefaults duration when step has none", () => {
         const step = applyTypeDefaults(baseVideo, undefined, { duration: 8 });
         expect(step.duration).toBe(8);
@@ -185,6 +221,49 @@ describe("applyTypeDefaults — aspect ratio and imageSize", () => {
             aspectRatio: "9:16",
         });
         expect(step916.aspectRatio).toBe("9:16");
+    });
+
+    it("leaves video aspectRatio unset (Auto) when model is GEMINI_OMNI_1_1_FLASH and aspectRatio is undefined", () => {
+        const step = applyTypeDefaults({
+            id: "s1",
+            type: "video",
+            prompt: "x",
+            model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+        });
+        expect(step.aspectRatio).toBeUndefined();
+        expect("aspectRatio" in step).toBe(false);
+    });
+
+    it("leaves video aspectRatio unset (Auto) when model is GEMINI_OMNI_FLASH and aspectRatio is undefined", () => {
+        const step = applyTypeDefaults({
+            id: "s1",
+            type: "video",
+            prompt: "x",
+            model: MODELS.VIDEO.GEMINI_OMNI_FLASH,
+        });
+        expect(step.aspectRatio).toBeUndefined();
+        expect("aspectRatio" in step).toBe(false);
+    });
+
+    it("defaults video aspectRatio to 16:9 when model is Veo and aspectRatio is undefined", () => {
+        const step = applyTypeDefaults({
+            id: "s1",
+            type: "video",
+            prompt: "x",
+            model: MODELS.VIDEO.VEO_3_1_FAST,
+        });
+        expect(step.aspectRatio).toBe("16:9");
+    });
+
+    it("preserves explicit video aspectRatio for GEMINI_OMNI_1_1_FLASH", () => {
+        const step = applyTypeDefaults({
+            id: "s1",
+            type: "video",
+            prompt: "x",
+            model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+            aspectRatio: "9:16",
+        });
+        expect(step.aspectRatio).toBe("9:16");
     });
 
     it("coerces invalid video aspect ratio to videoDefaults.aspectRatio if valid", () => {

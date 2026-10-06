@@ -26,6 +26,7 @@ import {
 } from "../constants";
 import type { ContentPart, MediaRef } from "../types";
 import { storageService } from "./storage.service";
+import { assertAuthorizedGcsUri } from "../db/storage";
 import { GoogleAuth } from "google-auth-library";
 import { v4 as uuidv4 } from "uuid";
 import { extractBucketFromStorageUri } from "@/lib/utils/gcs-uri";
@@ -88,7 +89,12 @@ function contentPartToSdkPart(
     | typeof createPartFromBase64
 > {
     if (part.kind === "text") return createPartFromText(part.text);
-    if (part.kind === "uri") return createPartFromUri(part.uri, part.mimeType);
+    if (part.kind === "uri") {
+        if (part.uri.startsWith("gs://")) {
+            assertAuthorizedGcsUri(part.uri);
+        }
+        return createPartFromUri(part.uri, part.mimeType);
+    }
     if (part.kind === "base64")
         return createPartFromBase64(part.data, part.mimeType);
     throw new Error(`Unknown ContentPart kind`);
@@ -232,6 +238,7 @@ export class GeminiService {
                     }
 
                     if (file.url.startsWith("gs://")) {
+                        assertAuthorizedGcsUri(file.url);
                         contents.push(createPartFromUri(file.url, file.type));
                     } else if (file.url.startsWith("data:")) {
                         const base64Match = file.url.match(DATA_URI_REGEX);
@@ -431,6 +438,7 @@ export class GeminiService {
                     const mimeType = image.url.split(";")[0].split(":")[1];
                     contents.push(createPartFromBase64(base64Data, mimeType));
                 } else if (image.url.startsWith("gs://")) {
+                    assertAuthorizedGcsUri(image.url);
                     contents.push(createPartFromUri(image.url, image.type));
                 }
             }
@@ -576,6 +584,7 @@ export class GeminiService {
                             });
                         }
                     } else if (img.url.startsWith("gs://")) {
+                        assertAuthorizedGcsUri(img.url);
                         inputParts.push({
                             type: "image",
                             uri: img.url,
@@ -589,6 +598,7 @@ export class GeminiService {
 
             if (firstFrame) {
                 if (firstFrame.startsWith("gs://")) {
+                    assertAuthorizedGcsUri(firstFrame);
                     inputParts.push({
                         type: "image",
                         uri: firstFrame,
@@ -608,6 +618,7 @@ export class GeminiService {
 
             if (lastFrame && isOmni11) {
                 if (lastFrame.startsWith("gs://")) {
+                    assertAuthorizedGcsUri(lastFrame);
                     inputParts.push({
                         type: "image",
                         uri: lastFrame,
@@ -633,6 +644,7 @@ export class GeminiService {
 
             if (video) {
                 if (video.startsWith("gs://")) {
+                    assertAuthorizedGcsUri(video);
                     inputParts.push({
                         type: "video",
                         uri: video,
@@ -660,16 +672,20 @@ export class GeminiService {
             const uniqueFilename = `omni-${uuidv4()}.mp4`;
             const targetGcsUri = `gs://${bucketName}/${uniqueFilename}`;
 
-            const isEdit = !!previousInteractionId || !!video;
+            const isEdit =
+                !!previousInteractionId || !!video || task === "edit";
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const responseFormat: any = {
                 type: "video",
                 delivery: "uri",
                 gcs_uri: targetGcsUri,
             };
-            if (!isEdit) {
-                responseFormat.aspect_ratio =
-                    aspectRatio || DEFAULTS.ASPECT_RATIO;
+            if (!isEdit && aspectRatio) {
+                responseFormat.aspect_ratio = aspectRatio;
+            } else if (isEdit && aspectRatio) {
+                logger.warn(
+                    `[GeminiService] Aspect ratio ("${aspectRatio}") ignored: aspect ratio cannot be set in response_format for edit tasks`,
+                );
             }
 
             if (isOmni11) {
@@ -904,6 +920,7 @@ export class GeminiService {
         };
 
         if (firstFrame?.startsWith("gs://")) {
+            assertAuthorizedGcsUri(firstFrame);
             videoRequest.source!.image = {
                 gcsUri: firstFrame,
                 mimeType: "image/png",
@@ -911,6 +928,7 @@ export class GeminiService {
         }
 
         if (lastFrame?.startsWith("gs://")) {
+            assertAuthorizedGcsUri(lastFrame);
             videoRequest.config!.lastFrame = {
                 gcsUri: lastFrame,
                 mimeType: "image/png",
@@ -921,10 +939,15 @@ export class GeminiService {
             firstFrame?.startsWith("gs://") || lastFrame?.startsWith("gs://");
 
         if (images && images.length > 0 && !hasExplicitFrames) {
-            videoRequest.config!.referenceImages = images.map((image) => ({
-                image: { gcsUri: image.url, mimeType: "image/png" },
-                referenceType: VideoGenerationReferenceType.ASSET,
-            }));
+            videoRequest.config!.referenceImages = images.map((image) => {
+                if (image.url.startsWith("gs://")) {
+                    assertAuthorizedGcsUri(image.url);
+                }
+                return {
+                    image: { gcsUri: image.url, mimeType: "image/png" },
+                    referenceType: VideoGenerationReferenceType.ASSET,
+                };
+            });
         } else if (images && images.length > 0 && hasExplicitFrames) {
             logger.info(
                 "[GeminiService] Ignoring reference images because firstFrame/lastFrame is set",

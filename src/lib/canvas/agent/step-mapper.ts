@@ -7,6 +7,7 @@ import type {
     PlanNode,
     VideoDefaults,
 } from "../types";
+import { MODELS } from "@/lib/constants";
 import { IMAGE_MODELS, VIDEO_MODELS } from "./tools";
 
 export function applyVideoFallback(
@@ -75,21 +76,39 @@ export function applyTypeDefaults(
         defaults?.model,
         validModels,
     );
-    let aspectRatio = step.aspectRatio ?? defaults?.aspectRatio ?? "16:9";
-    if (isVideo && aspectRatio !== "16:9" && aspectRatio !== "9:16") {
-        const fallback =
-            videoDefaults?.aspectRatio === "16:9" ||
-            videoDefaults?.aspectRatio === "9:16"
-                ? videoDefaults.aspectRatio
-                : "16:9";
-        logger.warn(
-            `[CanvasADK] Coerced invalid video aspect ratio "${aspectRatio}" to "${fallback}"`,
-        );
-        aspectRatio = fallback;
+    const isOmni =
+        isVideo &&
+        (resolvedModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
+            resolvedModel === MODELS.VIDEO.GEMINI_OMNI_FLASH);
+    const rawAspectRatio = step.aspectRatio ?? defaults?.aspectRatio;
+    let aspectRatio: string | undefined = undefined;
+
+    if (isVideo) {
+        if (rawAspectRatio === undefined && isOmni) {
+            aspectRatio = undefined;
+        } else {
+            const candidate = rawAspectRatio ?? "16:9";
+            if (candidate === "16:9" || candidate === "9:16") {
+                aspectRatio = candidate;
+            } else {
+                const fallback =
+                    videoDefaults?.aspectRatio === "16:9" ||
+                    videoDefaults?.aspectRatio === "9:16"
+                        ? videoDefaults.aspectRatio
+                        : "16:9";
+                logger.warn(
+                    `[CanvasADK] Coerced invalid video aspect ratio "${candidate}" to "${fallback}"`,
+                );
+                aspectRatio = fallback;
+            }
+        }
+    } else {
+        aspectRatio = rawAspectRatio ?? "16:9";
     }
+
     return {
         ...step,
-        aspectRatio,
+        ...(aspectRatio !== undefined ? { aspectRatio } : {}),
         ...(!isVideo && (step.imageSize ?? imageDefaults?.imageSize)
             ? { imageSize: step.imageSize ?? imageDefaults?.imageSize }
             : {}),
@@ -108,6 +127,9 @@ export function applyTypeDefaults(
                       : {}),
                   ...(() => {
                       const raw = step.duration ?? videoDefaults?.duration;
+                      if (raw === undefined && isOmni) {
+                          return {};
+                      }
                       const valid = raw && raw >= 3 && raw <= 10 ? raw : 4;
                       return { duration: valid };
                   })(),
@@ -272,8 +294,8 @@ export function mapPlanNodesToSteps(
                       };
                   })()
                 : {}),
-            ...(type === "video"
-                ? { generateAudio: node.generateAudio ?? false }
+            ...(type === "video" && node.generateAudio !== undefined
+                ? { generateAudio: node.generateAudio }
                 : {}),
             operation: node.operation,
             planNodeId: node.id,

@@ -39,6 +39,9 @@ export function ConfigPanel({
     const effectiveModel = validModels.includes(data.model)
         ? data.model
         : MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
+    const isOmni =
+        effectiveModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
+        effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
     const normalizedResolution =
         (data.resolution as string) === "4k" ? "4K" : data.resolution || "720p";
 
@@ -52,15 +55,37 @@ export function ConfigPanel({
     }, [nodeId]);
 
     useEffect(() => {
+        const isOmni11 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
+        const isOmni10 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+        const updates: Partial<VideoData> = {};
         if (!data.resolution) {
-            updateNodeData(nodeId, { resolution: "720p" });
-        } else if (
-            data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH &&
-            data.resolution !== "720p"
-        ) {
-            updateNodeData(nodeId, { resolution: "720p" });
+            updates.resolution = "720p";
+        } else if (isOmni10 && data.resolution !== "720p") {
+            updates.resolution = "720p";
+        } else if (!isOmni11 && data.resolution === "360p") {
+            updates.resolution = "720p";
         }
-    }, [data.model, data.resolution, nodeId, updateNodeData]);
+        if (isOmni10 && data.duration !== undefined) {
+            updates.duration = undefined;
+        } else if (
+            !isOmni &&
+            data.duration !== undefined &&
+            ![4, 6, 8].includes(data.duration)
+        ) {
+            updates.duration = 4;
+        }
+        if (Object.keys(updates).length > 0) {
+            updateNodeData(nodeId, updates);
+        }
+    }, [
+        data.model,
+        data.resolution,
+        data.duration,
+        effectiveModel,
+        isOmni,
+        nodeId,
+        updateNodeData,
+    ]);
 
     const signedUrlsMap = useSignedUrls(data.images);
     const signedRefImageUrls = data.images.map(
@@ -109,10 +134,20 @@ export function ConfigPanel({
             <div className="space-y-2">
                 <Label htmlFor="aspectRatio">Aspect Ratio</Label>
                 <Select
-                    value={data.aspectRatio}
+                    value={
+                        data.aspectRatio !== undefined
+                            ? data.aspectRatio
+                            : isOmni
+                              ? "auto"
+                              : "16:9"
+                    }
+                    disabled={isOmni && data.task === "edit"}
                     onValueChange={(value) =>
                         updateNodeData(nodeId, {
-                            aspectRatio: value as "16:9" | "9:16",
+                            aspectRatio:
+                                value === "auto"
+                                    ? undefined
+                                    : (value as "16:9" | "9:16"),
                         })
                     }
                 >
@@ -120,22 +155,39 @@ export function ConfigPanel({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                        {isOmni && <SelectItem value="auto">Auto</SelectItem>}
                         <SelectItem value="16:9">16:9</SelectItem>
                         <SelectItem value="9:16">9:16</SelectItem>
                     </SelectContent>
                 </Select>
+                {isOmni && data.task === "edit" && (
+                    <p className="text-muted-foreground text-xs">
+                        Aspect ratio cannot be set for edit tasks (inherited
+                        from source).
+                    </p>
+                )}
             </div>
 
             {effectiveModel !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
                 <div className="space-y-2">
                     <Label htmlFor="duration">Duration (seconds)</Label>
                     <Select
-                        value={String(data.duration)}
+                        value={
+                            data.duration !== undefined
+                                ? String(data.duration)
+                                : effectiveModel ===
+                                    MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH
+                                  ? "auto"
+                                  : "4"
+                        }
                         onValueChange={(value) =>
                             updateNodeData(nodeId, {
-                                duration: Number(
-                                    value,
-                                ) as VideoData["duration"],
+                                duration:
+                                    value === "auto"
+                                        ? undefined
+                                        : (Number(
+                                              value,
+                                          ) as VideoData["duration"]),
                             })
                         }
                     >
@@ -143,6 +195,10 @@ export function ConfigPanel({
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
+                            {effectiveModel ===
+                                MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH && (
+                                <SelectItem value="auto">Auto</SelectItem>
+                            )}
                             {(effectiveModel ===
                             MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH
                                 ? [3, 4, 5, 6, 7, 8, 9, 10]
@@ -225,7 +281,8 @@ export function ConfigPanel({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        {effectiveModel !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
+                        {effectiveModel ===
+                            MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH && (
                             <SelectItem value="360p">360p</SelectItem>
                         )}
                         <SelectItem value="720p">720p</SelectItem>

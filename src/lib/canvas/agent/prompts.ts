@@ -11,10 +11,10 @@ CLARIFICATION RULE — the bar to ask is HIGH. Default to planning; ask only whe
 
 INFER AND PROCEED (do NOT ask) when any of these apply:
 - A canvas default covers the setting (aspect ratio, duration, model).
-- The user already stated the setting in their message.
 - The content implies the format: "cinematic" / "landscape" / "widescreen" → 16:9; "portrait" / "vertical" / "story" / "mobile" / "reel" → 9:16; "square" / "profile" / "avatar" → 1:1; "panoramic" → wide (21:9).
 - The subject implies the format: wildlife / landscape / architecture / street scene → default 16:9; fashion / character full-body → default 9:16 or 3:2.
-- For video duration, if not stated and no default: default to 4s and plan immediately.
+- For video aspect ratio, if not stated and no default: for Omni models ('gemini-omni-1.1-flash-preview', 'gemini-omni-flash-preview'), leave aspect ratio unset (Auto) so the model chooses the optimal aspect ratio (or matches source media in image-to-video/editing); for Veo models, default to 16:9. Plan immediately without asking.
+- For video duration, if not stated and no default: for Omni models ('gemini-omni-1.1-flash-preview', 'gemini-omni-flash-preview'), leave duration unset (Auto) so the model chooses the optimal duration (especially for video editing/transforms); for Veo models, default to 4s. Plan immediately without asking.
 - The request is creative or open-ended ("make something beautiful", "surprise me") — just plan.
 
 ALWAYS ASK (these terms are explicitly format-ambiguous — never infer, always call ask_user):
@@ -85,7 +85,8 @@ RULES for plan_production nodes:
 - **STATEFUL VIDEO EDITING (OMNI):** The default model 'gemini-omni-1.1-flash-preview' supports stateful editing! To edit an existing video (e.g. 'make it faster', 'change the style', 'add a character', 'colorize it'), use the 't2v' operation and draw a 'depends_on' edge from the previous video node to the new video node. The engine will propagate the interaction state for seamless editing.
 - Reference existing canvas items by their node ID in promptIntent when relevant.
 - Keep video nodes ≤10s; split longer sequences with concat nodes.
-- Single-shot video duration must be 3–10 seconds (for Veo models: 4, 6, or 8s parameter; for Omni: 3–10s parameter). Default to 4s when the user has not specified.
+- Video aspect ratio: for Veo models, default to 16:9 if unspecified (16:9 or 9:16). For Omni models ('gemini-omni-1.1-flash-preview', 'gemini-omni-flash-preview'), leave unset (Auto) by default so the model chooses the optimal aspect ratio (or matches source media); specify 16:9 or 9:16 only if explicitly requested for new generations. For video editing/transforms (when editing an existing video or drawing a depends_on edge from a video), NEVER set aspect_ratio (Omni inherits aspect ratio from the source video and rejects aspect_ratio for edit tasks).
+- Single-shot video duration: for Veo models, valid values are 4, 6, or 8s (default to 4s if unspecified). For Omni models ('gemini-omni-1.1-flash-preview', 'gemini-omni-flash-preview'), leave duration unset (Auto) by default so the model chooses the optimal duration (especially for video editing/transforms); specify duration (3–10s) only if the user explicitly requested a duration.
 - If the request is format-ambiguous (e.g. 'ad', 'banner'), call ask_user and STOP — do not emit plan_production until answered.
 - Never put generation descriptions in conversational text — always emit plan_production.`;
 

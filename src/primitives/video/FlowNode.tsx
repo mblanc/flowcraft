@@ -78,15 +78,39 @@ export const FlowNode = memo(
         }, [id]);
 
         useEffect(() => {
+            const updates: Partial<VideoData> = {};
             if (!data.resolution) {
-                updateNodeData(id, { resolution: "720p" });
+                updates.resolution = "720p";
             } else if (
                 data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH &&
                 data.resolution !== "720p"
             ) {
-                updateNodeData(id, { resolution: "720p" });
+                updates.resolution = "720p";
+            } else if (!isOmni11 && data.resolution === "360p") {
+                updates.resolution = "720p";
             }
-        }, [data.model, data.resolution, id, updateNodeData]);
+            if (isOmni10 && data.duration !== undefined) {
+                updates.duration = undefined;
+            } else if (
+                !isOmni &&
+                data.duration !== undefined &&
+                ![4, 6, 8].includes(data.duration)
+            ) {
+                updates.duration = 4;
+            }
+            if (Object.keys(updates).length > 0) {
+                updateNodeData(id, updates);
+            }
+        }, [
+            data.model,
+            data.resolution,
+            data.duration,
+            id,
+            isOmni,
+            isOmni10,
+            isOmni11,
+            updateNodeData,
+        ]);
         const { dimensions, handleResizeStart } = useMediaNodeResize(
             id,
             data.width,
@@ -303,6 +327,7 @@ export const FlowNode = memo(
                         <video
                             src={videoPlaybackUrl}
                             controls
+                            preload="metadata"
                             className="h-full w-full object-contain"
                             onLoadedMetadata={handleVideoMetadata}
                         />
@@ -356,11 +381,20 @@ export const FlowNode = memo(
                             </SelectContent>
                         </Select>
                         <Select
-                            value={data.aspectRatio}
+                            value={
+                                data.aspectRatio !== undefined
+                                    ? data.aspectRatio
+                                    : isOmni
+                                      ? "auto"
+                                      : "16:9"
+                            }
+                            disabled={isOmni && data.task === "edit"}
                             onValueChange={(value) =>
                                 updateNodeData(id, {
                                     aspectRatio:
-                                        value as VideoData["aspectRatio"],
+                                        value === "auto"
+                                            ? undefined
+                                            : (value as VideoData["aspectRatio"]),
                                 })
                             }
                         >
@@ -371,6 +405,9 @@ export const FlowNode = memo(
                                 <SelectValue placeholder="Ratio" />
                             </SelectTrigger>
                             <SelectContent>
+                                {isOmni && (
+                                    <SelectItem value="auto">Auto</SelectItem>
+                                )}
                                 <SelectItem value="16:9">16:9</SelectItem>
                                 <SelectItem value="9:16">9:16</SelectItem>
                             </SelectContent>
@@ -392,7 +429,7 @@ export const FlowNode = memo(
                                 <SelectValue placeholder="Res" />
                             </SelectTrigger>
                             <SelectContent>
-                                {!isOmni10 && (
+                                {isOmni11 && (
                                     <SelectItem value="360p">360p</SelectItem>
                                 )}
                                 <SelectItem value="720p">720p</SelectItem>
@@ -440,12 +477,21 @@ export const FlowNode = memo(
                         )}
                         {data.model !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
                             <Select
-                                value={String(data.duration)}
+                                value={
+                                    data.duration !== undefined
+                                        ? String(data.duration)
+                                        : isOmni11
+                                          ? "auto"
+                                          : "4"
+                                }
                                 onValueChange={(value) =>
                                     updateNodeData(id, {
-                                        duration: Number(
-                                            value,
-                                        ) as VideoData["duration"],
+                                        duration:
+                                            value === "auto"
+                                                ? undefined
+                                                : (Number(
+                                                      value,
+                                                  ) as VideoData["duration"]),
                                     })
                                 }
                             >
@@ -456,6 +502,11 @@ export const FlowNode = memo(
                                     <SelectValue placeholder="Duration" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    {isOmni11 && (
+                                        <SelectItem value="auto">
+                                            Auto
+                                        </SelectItem>
+                                    )}
                                     {(isOmni11
                                         ? [3, 4, 5, 6, 7, 8, 9, 10]
                                         : [4, 6, 8]
