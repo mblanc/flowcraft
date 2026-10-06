@@ -23,30 +23,37 @@ export function CanvasNodeContextMenu({
     onStartRename,
 }: CanvasNodeContextMenuProps) {
     const removeNode = useCanvasStore((s) => s.removeNode);
-    const nodes = useCanvasStore((s) => s.nodes);
-
-    const node = nodes.find((n) => n.id === nodeId);
-    const hasPrompt =
-        node?.data &&
-        "prompt" in node.data &&
-        typeof node.data.prompt === "string" &&
-        node.data.prompt.length > 0;
+    const hasPrompt = useCanvasStore((s) => {
+        const node = s.nodes.find((n) => n.id === nodeId);
+        return Boolean(
+            node?.data &&
+            "prompt" in node.data &&
+            typeof node.data.prompt === "string" &&
+            node.data.prompt.length > 0,
+        );
+    });
 
     const handleDelete = useCallback(() => {
         removeNode(nodeId);
     }, [removeNode, nodeId]);
 
     const handleCopyPrompt = useCallback(() => {
+        const node = useCanvasStore
+            .getState()
+            .nodes.find((n) => n.id === nodeId);
         if (node?.data && "prompt" in node.data && node.data.prompt) {
             void navigator.clipboard.writeText(node.data.prompt as string);
         }
-    }, [node]);
+    }, [nodeId]);
 
     const handleCopyLabel = useCallback(() => {
+        const node = useCanvasStore
+            .getState()
+            .nodes.find((n) => n.id === nodeId);
         if (node?.data?.label) {
             void navigator.clipboard.writeText(node.data.label);
         }
-    }, [node]);
+    }, [nodeId]);
 
     return (
         <ContextMenu>

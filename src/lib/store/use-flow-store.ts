@@ -37,6 +37,9 @@ export const useFlowStore = create<import("./types").FlowState>()(
                     state.nodesById = Object.fromEntries(
                         migrated.map((n) => [n.id, n]),
                     );
+                    state.selectedNode = state.selectedNodeId
+                        ? (state.nodesById[state.selectedNodeId] ?? null)
+                        : null;
                     if (state?.edges?.length) {
                         state.edges = migrateEdges(state.edges, migrated);
                     }
@@ -58,17 +61,8 @@ export const useFlowStore = create<import("./types").FlowState>()(
 
                 return {
                     nodes: state.nodes.map(cleanNode),
-                    nodesById: Object.fromEntries(
-                        Object.entries(state.nodesById).map(([id, node]) => [
-                            id,
-                            cleanNode(node),
-                        ]),
-                    ),
                     edges: state.edges,
                     selectedNodeId: state.selectedNodeId,
-                    selectedNode: state.selectedNode
-                        ? cleanNode(state.selectedNode)
-                        : null,
                     flowId: state.flowId,
                     flowName: state.flowName,
                     entityType: state.entityType,

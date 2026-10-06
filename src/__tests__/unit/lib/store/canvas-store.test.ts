@@ -196,6 +196,24 @@ describe("useCanvasStore", () => {
             );
         });
 
+        it("updateMessage respects skipLastModified option", () => {
+            useCanvasStore.setState({ lastModified: 100 });
+            useCanvasStore.getState().addMessage(makeMessage("m1"));
+            const tsAfterAdd = useCanvasStore.getState().lastModified;
+
+            useCanvasStore
+                .getState()
+                .updateMessage(
+                    "m1",
+                    { content: "streaming..." },
+                    { skipLastModified: true },
+                );
+            expect(useCanvasStore.getState().messages[0].content).toBe(
+                "streaming...",
+            );
+            expect(useCanvasStore.getState().lastModified).toBe(tsAfterAdd);
+        });
+
         it("clearMessages empties the list", () => {
             useCanvasStore.getState().addMessage(makeMessage("m1"));
             useCanvasStore.getState().clearMessages();

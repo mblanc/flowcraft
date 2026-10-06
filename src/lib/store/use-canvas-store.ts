@@ -51,7 +51,11 @@ export interface CanvasStore {
     setViewport: (viewport: { x: number; y: number; zoom: number }) => void;
     setSelectedNodeIds: (ids: string[]) => void;
     addMessage: (message: ChatMessage) => void;
-    updateMessage: (id: string, data: Partial<ChatMessage>) => void;
+    updateMessage: (
+        id: string,
+        data: Partial<ChatMessage>,
+        options?: { skipLastModified?: boolean },
+    ) => void;
     setIsChatLoading: (loading: boolean) => void;
     setSaveStatus: (status: "saved" | "saving" | "error") => void;
     addGeneratingNodeId: (id: string) => void;
@@ -124,7 +128,33 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
             canvasVisibility: canvas.visibility,
             canvasSharedWith: canvas.sharedWith,
             canvasIsTemplate: canvas.isTemplate,
-            nodes: canvas.nodes,
+            nodes: (canvas.nodes ?? []).map((n) => {
+                if (
+                    "status" in n.data &&
+                    (n.data.status === "pending" ||
+                        n.data.status === "generating")
+                ) {
+                    return {
+                        ...n,
+                        data: {
+                            ...n.data,
+                            status: "error" as const,
+                            error: "Generation interrupted",
+                            validating: false,
+                        },
+                    };
+                }
+                if ("validating" in n.data && n.data.validating) {
+                    return {
+                        ...n,
+                        data: {
+                            ...n.data,
+                            validating: false,
+                        },
+                    };
+                }
+                return n;
+            }),
             viewport: canvas.viewport,
             messages: canvas.messages,
             activeStyleId: canvas.activeStyleId ?? null,
@@ -212,12 +242,12 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
             lastModified: Date.now(),
         })),
 
-    updateMessage: (id, data) =>
+    updateMessage: (id, data, options) =>
         set((state) => ({
             messages: state.messages.map((m) =>
                 m.id === id ? { ...m, ...data } : m,
             ),
-            lastModified: Date.now(),
+            ...(options?.skipLastModified ? {} : { lastModified: Date.now() }),
         })),
 
     clearMessages: () =>

@@ -60,5 +60,7 @@ export async function downloadFile(
     a.click();
     document.body.removeChild(a);
 
-    window.URL.revokeObjectURL(blobUrl);
+    setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+    }, 1000);
 }

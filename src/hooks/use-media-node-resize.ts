@@ -31,6 +31,12 @@ export function useMediaNodeResize(
         width: dataWidth || defaultWidth,
         height: dataHeight || defaultHeight,
     });
+    const dimensionsRef = useRef(dimensions);
+
+    useEffect(() => {
+        dimensionsRef.current = dimensions;
+    }, [dimensions]);
+
     const [prevDataWidth, setPrevDataWidth] = useState(dataWidth);
     const [prevDataHeight, setPrevDataHeight] = useState(dataHeight);
     const [isResizing, setIsResizing] = useState(false);
@@ -53,13 +59,13 @@ export function useMediaNodeResize(
             resizeStartRef.current = {
                 x: e.clientX,
                 y: e.clientY,
-                width: dimensions.width,
+                width: dimensionsRef.current.width,
                 height: useElementHeight
                     ? e.currentTarget.parentElement?.offsetHeight || minHeight
-                    : dimensions.height,
+                    : dimensionsRef.current.height,
             };
         },
-        [useElementHeight, minHeight, dimensions.width, dimensions.height],
+        [useElementHeight, minHeight],
     );
 
     useEffect(() => {
@@ -94,17 +100,19 @@ export function useMediaNodeResize(
                 }
             }
 
-            setDimensions({
+            const nextDims = {
                 width: newWidth,
                 height: newHeight,
-            });
+            };
+            dimensionsRef.current = nextDims;
+            setDimensions(nextDims);
         };
 
         const handleMouseUp = () => {
             setIsResizing(false);
             onCommit(id, {
-                width: dimensions.width,
-                height: dimensions.height,
+                width: dimensionsRef.current.width,
+                height: dimensionsRef.current.height,
             });
         };
 
@@ -119,8 +127,6 @@ export function useMediaNodeResize(
         isResizing,
         id,
         onCommit,
-        dimensions.width,
-        dimensions.height,
         minWidth,
         minHeight,
         lockedAspectRatio,

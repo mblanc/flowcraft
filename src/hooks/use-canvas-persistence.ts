@@ -19,6 +19,16 @@ export function useCanvasPersistence(readOnly = false) {
 
         setSaveStatus("saving");
 
+        const sanitizedNodes = nodes.map((n) => {
+            if ("validating" in n.data && n.data.validating) {
+                return {
+                    ...n,
+                    data: { ...n.data, validating: false },
+                };
+            }
+            return n;
+        });
+
         let response: Response;
         try {
             response = await fetch(`/api/canvases/${canvasId}`, {
@@ -26,7 +36,7 @@ export function useCanvasPersistence(readOnly = false) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name: canvasName,
-                    nodes,
+                    nodes: sanitizedNodes,
                     viewport,
                     messages,
                 }),
