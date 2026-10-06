@@ -21,7 +21,7 @@ A practical map of the codebase for engineers joining the project. Read this bef
 
 ## 1. Big Picture
 
-Flowcraft is a **Next.js 15 / React 19** app with **two distinct product surfaces** — a node-based pipeline builder (Flow) and a chat-driven media workspace (Canvas) — both backed by the same infrastructure stack.
+Flowcraft is a **Next.js 16 / React 19** app with **two distinct product surfaces** — a node-based pipeline builder (Flow) and a chat-driven media workspace (Canvas) — both backed by the same infrastructure stack.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -63,7 +63,7 @@ Flowcraft is a **Next.js 15 / React 19** app with **two distinct product surface
 
 | Concern         | Technology                                  |
 | --------------- | ------------------------------------------- |
-| Framework       | Next.js 15 (App Router)                     |
+| Framework       | Next.js 16 (App Router)                     |
 | UI              | React 19, shadcn/ui, Tailwind CSS v4        |
 | Flow graph      | @xyflow/react                               |
 | State           | Zustand (sliced, persisted to localStorage) |
@@ -108,7 +108,6 @@ A **freeform media workspace** where an AI agent orchestrates image, video, audi
                     ┌─────────▼──────────┐
                     │  CanvasAgentRunner │  (Google ADK)
                     │  - builds plan     │
-                    │  - enriches prompts│
                     └─────────┬──────────┘
                               │  ProductionPlan (PlanNode[] + PlanEdge[])
                     ┌─────────▼──────────┐
@@ -117,6 +116,7 @@ A **freeform media workspace** where an AI agent orchestrates image, video, audi
                               │
                     ┌─────────▼──────────┐
                     │  executePlan()     │  generation.ts (Kahn's algo)
+                    │  - enriches prompts│  → PromptEngineer
                     │  - parallel where  │  → geminiService
                     │    no dependency   │  → storageService
                     └─────────┬──────────┘
@@ -147,7 +147,7 @@ src/primitives/
 │   ├── CanvasNode.tsx    ← React node rendered on the canvas board
 │   └── ConfigPanel.tsx   ← Side-panel config UI
 │
-└── video/ llm/ music/ upscale/ resize/ text/ file/ list/ router/
+└── video/ llm/ music/ t2s/ upscale/ resize/ text/ file/ list/ router/
     concat/ workflow-input/ workflow-output/ custom-workflow/ (same structure)
 ```
 
@@ -197,7 +197,7 @@ This split is intentional: `execute` imports heavy server libraries; React compo
 
 ### Node adapters
 
-`src/primitives/node-adapters.ts` exports `toNodeDefinition(primitive)`, which converts a `Primitive` into a `NodeDefinition` compatible with the flow engine. `src/lib/node-adapters/` contains the hand-written adapters for non-primitive node types (file, list, router, text, workflow-input/output, custom-workflow). The flow node registry (`src/lib/flow/node-registry.ts`) re-exports `allNodeDefinitions` assembled from both sources.
+`src/primitives/node-adapters.ts` exports `toNodeDefinition(primitive)`, which converts a `Primitive` into a `NodeDefinition` compatible with the flow engine. `src/lib/node-adapters/index.ts` assembles `allNodeDefinitions` from all primitives, while `src/lib/node-adapters/utils/` provides shared mention resolution (`mention-resolver.ts`), input gathering (`node-helpers.ts`), and API call wrappers (`execute-api-call.ts`). The flow node registry (`src/lib/flow/node-registry.ts`) re-exports `allNodeDefinitions`.
 
 ---
 
@@ -247,7 +247,7 @@ use-flow-execution.ts
 | `src/lib/types.ts`                | TypeScript types, re-exported from schemas; `NodeType`, `NodeDefinition` |
 | `src/lib/flow/workflow-engine.ts` | DAG execution, batch fan-out, sub-workflow recursion                     |
 | `src/lib/flow/node-registry.ts`   | `getNodeDefinition(type)` — bridges NodeDefinition → Primitive           |
-| `src/lib/node-adapters/`          | `NodeDefinition` implementations for non-primitive node types            |
+| `src/lib/node-adapters/`          | `allNodeDefinitions` assembly + shared mention/input helpers             |
 | `src/lib/store/graph-slice.ts`    | Zustand graph state (nodes, edges, add/remove operations)                |
 | `src/lib/store/ui-slice.ts`       | Zustand UI state (selectedNode, panel state)                             |
 | `src/lib/store/use-flow-store.ts` | Combines slices, persists to localStorage                                |
@@ -308,7 +308,8 @@ src/lib/canvas/agent/
         ├── character-generation/
         ├── long-video/
         ├── storyboard/
-        └── virtual-tryon/
+        ├── virtual-tryon/
+        └── vox-director/
 ```
 
 ### ADK tools
@@ -354,8 +355,7 @@ CanvasAgentRunner.stream(input)
         ├── extractAgentEvents()          parse ADK events → AgentEvent stream
         │
         └── if event.type === "plan":
-              promptEngineer.enrichSteps()   ← second LLM call per step
-              yield enriched plan
+              yield plan
               (user sees plan, must approve)
                     │
                     ▼ (user clicks Approve)
@@ -363,6 +363,8 @@ POST /api/canvases/[id]/execute-plan
         │
         ▼
 executePlan(plan, canvasNodes)
+        │
+        ├── promptEngineer.enrichSteps() ← second LLM call per step
         │
         ├── topoSort(steps)              Kahn's algorithm on dependsOn edges
         │
@@ -636,15 +638,9 @@ src/
 │   │   ├── workflow-engine.ts    ★ DAG execution, batch, sub-workflows
 │   │   └── node-registry.ts     getNodeDefinition(type) — bridges Primitive → NodeDefinition
 │   │
-│   ├── node-adapters/            NodeDefinition adapters for non-primitive node types
+│   ├── node-adapters/            NodeDefinition assembly + shared node utilities
 │   │   ├── index.ts             ★ allNodeDefinitions[]
-│   │   ├── file-node.ts
-│   │   ├── list-node.ts
-│   │   ├── router-node.ts
-│   │   ├── text-node.ts
-│   │   ├── workflow-input-node.ts
-│   │   ├── workflow-output-node.ts
-│   │   └── custom-workflow-node.ts
+│   │   └── utils/                mention-resolver, node-helpers, execute-api-call
 │   │
 │   ├── canvas/
 │   │   ├── types.ts              ★ CanvasNode, ProductionPlan, PlanNode, PlanEdge,
@@ -664,7 +660,7 @@ src/
 │   │       └── skills/
 │   │           ├── skill-types.ts  UserSkillDocument interface
 │   │           ├── primitives/   ← PromptEngineer reference docs
-│   │           └── patterns/     ← built-in pattern skills (4)
+│   │           └── patterns/     ← built-in pattern skills (5)
 │   │
 │   ├── styles/
 │   │   ├── style-types.ts        StyleDocument interface
