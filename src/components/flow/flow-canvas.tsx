@@ -52,7 +52,7 @@ export function FlowCanvas() {
     const {
         onConnect,
         selectNode,
-        selectedNode,
+        selectedNodeId,
         flowId,
         entityType,
         addNodeWithType,
@@ -62,7 +62,7 @@ export function FlowCanvas() {
         useShallow((state: FlowState) => ({
             onConnect: state.onConnect,
             selectNode: state.selectNode,
-            selectedNode: state.selectedNode,
+            selectedNodeId: state.selectedNodeId,
             flowId: state.flowId,
             entityType: state.entityType,
             addNodeWithType: state.addNodeWithType,
@@ -224,7 +224,7 @@ export function FlowCanvas() {
     );
 
     const highlightedEdges = useMemo(() => {
-        const selectedId = selectedNode?.id;
+        const selectedId = selectedNodeId;
 
         return edges.map((edge) => {
             const isHighlighted =
@@ -266,7 +266,7 @@ export function FlowCanvas() {
                 style: baseStyle,
             };
         });
-    }, [edges, nodeDataMap, selectedNode?.id]);
+    }, [edges, nodeDataMap, selectedNodeId]);
 
     const flowBackground = useMemo(
         () => (
@@ -366,7 +366,7 @@ export function FlowCanvas() {
                             defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
                             minZoom={0.1}
                             maxZoom={2}
-                            onlyRenderVisibleElements={false}
+                            onlyRenderVisibleElements={true}
                             className="react-flow"
                         >
                             {flowBackground}

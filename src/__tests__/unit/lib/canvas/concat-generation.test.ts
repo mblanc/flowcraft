@@ -10,11 +10,16 @@ vi.mock("@/lib/services/gemini.service", () => ({
             mimeType: "image/png",
         }),
         generateVideo: vi.fn().mockResolvedValue("gs://bucket/generated.mp4"),
+        generateMusic: vi.fn().mockResolvedValue({
+            audioData: "base64audio",
+            mimeType: "audio/mpeg",
+        }),
     },
 }));
 vi.mock("@/lib/services/storage.service", () => ({
     storageService: {
         uploadImage: vi.fn().mockResolvedValue("gs://bucket/image.png"),
+        uploadFile: vi.fn().mockResolvedValue("gs://bucket/audio.mp3"),
     },
 }));
 vi.mock("@/lib/services/library.service", () => ({

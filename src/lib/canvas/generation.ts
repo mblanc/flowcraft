@@ -409,15 +409,64 @@ export async function* executePlan(
         `[CanvasGeneration] Executing plan: ${enrichedSteps.length} steps in ${waves.length} wave(s)`,
     );
 
+    const saveNodeToLibrary = (node: NodePayload) => {
+        if (node.type === "canvas-audio") return;
+        const libraryType = (
+            node.type === "canvas-video" ? "video" : "image"
+        ) as "video" | "image";
+        libraryService
+            .createAsset({
+                userId,
+                type: libraryType,
+                gcsUri: node.sourceUrl,
+                mimeType: node.mimeType ?? "image/png",
+                aspectRatio: node.aspectRatio,
+                model: node.model,
+                tags: [],
+                visibility: "private" as const,
+                provenance: {
+                    sourceType: "canvas",
+                    sourceId: canvasId,
+                    sourceName: canvasName,
+                    nodeId: node.id,
+                    nodeLabel: node.label,
+                    prompt: node.prompt,
+                },
+            })
+            .catch((err) =>
+                logger.warn("[CanvasGeneration] Library save failed:", err),
+            );
+    };
+
+    const failedStepIds = new Set<string>();
+
     for (const wave of waves) {
-        // Emit step_start for all steps in this wave
+        const runnableSteps: GenerationStep[] = [];
+
+        // Check for failed upstream dependencies and emit step_start for runnable steps
         for (const step of wave) {
-            yield { type: "step_start", stepId: step.id };
+            const hasFailedDep = (step.dependsOn ?? []).some((depId) =>
+                failedStepIds.has(depId),
+            );
+            if (hasFailedDep) {
+                failedStepIds.add(step.id);
+                yield { type: "step_start", stepId: step.id };
+                yield {
+                    type: "step_error",
+                    stepId: step.id,
+                    message: "Skipped because upstream dependency failed",
+                };
+            } else {
+                runnableSteps.push(step);
+                yield { type: "step_start", stepId: step.id };
+            }
         }
 
-        // Execute all steps in this wave in parallel
+        if (runnableSteps.length === 0) continue;
+
+        // Execute all runnable steps in this wave in parallel
         const results = await Promise.allSettled(
-            wave.map(async (step) => {
+            runnableSteps.map(async (step) => {
                 try {
                     const primitive =
                         (step.operation &&
@@ -540,48 +589,23 @@ export async function* executePlan(
             enrichedStep: Record<string, unknown>;
         }> = [];
 
-        for (let i = 0; i < wave.length; i++) {
+        for (let i = 0; i < runnableSteps.length; i++) {
             const result = results[i];
-            const step = wave[i];
+            const step = runnableSteps[i];
 
             if (result.status === "fulfilled") {
                 const { node } = result.value;
 
-                // Fire-and-forget: save to library (audio not yet supported)
-                if (node.type !== "canvas-audio") {
-                    const libraryType = (
-                        node.type === "canvas-video" ? "video" : "image"
-                    ) as "video" | "image";
-                    libraryService
-                        .createAsset({
-                            userId,
-                            type: libraryType,
-                            gcsUri: node.sourceUrl,
-                            mimeType: node.mimeType ?? "image/png",
-                            aspectRatio: node.aspectRatio,
-                            model: node.model,
-                            tags: [],
-                            visibility: "private" as const,
-                            provenance: {
-                                sourceType: "canvas",
-                                sourceId: canvasId,
-                                sourceName: canvasName,
-                                nodeId: node.id,
-                                nodeLabel: node.label,
-                                prompt: node.prompt,
-                            },
-                        })
-                        .catch((err) =>
-                            logger.warn(
-                                "[CanvasGeneration] Library save failed:",
-                                err,
-                            ),
-                        );
+                const willValidate = !!(ctx.ruleset && step.type === "image");
+
+                // Save immediately only if not undergoing ruleset validation
+                if (!willValidate) {
+                    saveNodeToLibrary(node);
                 }
 
                 yield { type: "step_done", stepId: step.id, node };
 
-                if (ctx.ruleset && step.type === "image") {
+                if (willValidate) {
                     toValidate.push({
                         step,
                         initialNode: node,
@@ -589,6 +613,7 @@ export async function* executePlan(
                     });
                 }
             } else {
+                failedStepIds.add(step.id);
                 const err = result.reason as { error: unknown };
                 yield {
                     type: "step_error",
@@ -643,6 +668,7 @@ export async function* executePlan(
                     if (finalNode.sourceUrl !== initialNode.sourceUrl) {
                         ctx.completedStepUris.set(step.id, finalNode.sourceUrl);
                     }
+                    saveNodeToLibrary(finalNode);
                     yield {
                         type: "step_validated",
                         stepId: step.id,
@@ -657,6 +683,7 @@ export async function* executePlan(
                         `[CanvasGeneration] Validation failed for step ${step.id}:`,
                         valResult.reason,
                     );
+                    saveNodeToLibrary(initialNode);
                 }
             }
         }

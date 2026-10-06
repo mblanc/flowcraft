@@ -130,6 +130,12 @@ export function CanvasChatInput({
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const abortRef = useRef<AbortController | null>(null);
 
+    useEffect(() => {
+        return () => {
+            abortRef.current?.abort();
+        };
+    }, []);
+
     // @mention state
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionIndex, setMentionIndex] = useState(0);
@@ -463,6 +469,7 @@ export function CanvasChatInput({
 
     const handleRemoveAttachment = useCallback(
         (nodeId: string) => {
+            setDismissedNodeIds((prev) => new Set(prev).add(nodeId));
             if (mentionedNodeIds.has(nodeId)) {
                 setMentionedNodeIds((prev) => {
                     const next = new Set(prev);
@@ -479,8 +486,6 @@ export function CanvasChatInput({
                         ),
                     );
                 }
-            } else {
-                setDismissedNodeIds((prev) => new Set(prev).add(nodeId));
             }
         },
         [mentionedNodeIds, nodes],
@@ -817,181 +822,168 @@ export function CanvasChatInput({
                     buffer = remaining;
 
                     for (const sse of events) {
+                        let payload;
                         try {
-                            const payload = JSON.parse(sse.data);
-
-                            switch (sse.event) {
-                                case "step_start": {
-                                    setPlanStepStatus(
-                                        messageId,
-                                        payload.stepId,
-                                        "generating",
-                                    );
-                                    const startNodeId = stepNodeMap.get(
-                                        payload.stepId,
-                                    );
-                                    if (startNodeId) {
-                                        useCanvasStore
-                                            .getState()
-                                            .updateNodeData(startNodeId, {
-                                                status: "generating",
-                                            });
-                                    }
-                                    break;
-                                }
-
-                                case "step_done": {
-                                    const node = payload.node as NodePayload;
-                                    setPlanStepStatus(
-                                        messageId,
-                                        payload.stepId,
-                                        "done",
-                                    );
-                                    if (
-                                        node.type === "canvas-image" &&
-                                        node.sourceUrl
-                                    ) {
-                                        lastImageSourceUrl = node.sourceUrl;
-                                    }
-                                    const nodeId = stepNodeMap.get(
-                                        payload.stepId,
-                                    );
-                                    if (nodeId) {
-                                        const isImageWithRuleset =
-                                            node.type === "canvas-image" &&
-                                            !!useCanvasStore.getState()
-                                                .activeRulesetId;
-
-                                        const {
-                                            id: _id,
-                                            type: _type,
-                                            ...dataFields
-                                        } = node;
-
-                                        useCanvasStore
-                                            .getState()
-                                            .updateNodeData(nodeId, {
-                                                ...dataFields,
-                                                status: "ready",
-                                                ...(node.type === "canvas-video"
-                                                    ? { progress: 100 }
-                                                    : {}),
-                                                // show spinner while validation runs
-                                                ...(isImageWithRuleset
-                                                    ? { validating: true }
-                                                    : {}),
-                                            } as Partial<CanvasNodeData>);
-
-                                        const currentMsg = useCanvasStore
-                                            .getState()
-                                            .messages.find(
-                                                (m) => m.id === messageId,
-                                            );
-                                        const existingRefs: GeneratedMediaRef[] =
-                                            currentMsg?.generatedMedia ?? [];
-                                        updateMessage(messageId, {
-                                            generatedMedia: [
-                                                ...existingRefs,
-                                                { nodeId, type: node.type },
-                                            ],
-                                        });
-                                    }
-                                    break;
-                                }
-
-                                case "step_validated": {
-                                    const nodeId = stepNodeMap.get(
-                                        payload.stepId,
-                                    );
-                                    if (nodeId) {
-                                        useCanvasStore
-                                            .getState()
-                                            .updateNodeData(nodeId, {
-                                                validating: false,
-                                                validationResults:
-                                                    payload.validationResults,
-                                                // replace image if retry produced a new one
-                                                ...(payload.node
-                                                    ? {
-                                                          sourceUrl:
-                                                              payload.node
-                                                                  .sourceUrl,
-                                                          mimeType:
-                                                              payload.node
-                                                                  .mimeType,
-                                                      }
-                                                    : {}),
-                                            });
-
-                                        const failures =
-                                            payload.validationResults.filter(
-                                                (r: { status: string }) =>
-                                                    r.status === "fail",
-                                            );
-                                        if (failures.length > 0) {
-                                            toast.warning(
-                                                `${failures.length} rule${failures.length !== 1 ? "s" : ""} failed — see badge on image for details`,
-                                            );
-                                        }
-                                    }
-                                    break;
-                                }
-
-                                case "step_error": {
-                                    const nodeId = stepNodeMap.get(
-                                        payload.stepId,
-                                    );
-                                    setPlanStepStatus(
-                                        messageId,
-                                        payload.stepId,
-                                        "error",
-                                    );
-                                    if (nodeId) {
-                                        useCanvasStore
-                                            .getState()
-                                            .updateNodeData(nodeId, {
-                                                status: "error",
-                                                error: payload.message,
-                                            });
-                                    }
-                                    toast.error(
-                                        `Generation failed: ${payload.message}`,
-                                    );
-                                    break;
-                                }
-
-                                case "error":
-                                    throw new Error(
-                                        payload.message || "Stream error",
-                                    );
-
-                                case "done":
-                                    if (lastImageSourceUrl) {
-                                        fetch(`/api/canvases/${canvasId}`, {
-                                            method: "PATCH",
-                                            headers: {
-                                                "Content-Type":
-                                                    "application/json",
-                                            },
-                                            body: JSON.stringify({
-                                                thumbnail: lastImageSourceUrl,
-                                            }),
-                                        }).catch(() => {});
-                                    }
-                                    break;
-                            }
+                            payload = JSON.parse(sse.data);
                         } catch (parseErr) {
-                            if (
-                                parseErr instanceof Error &&
-                                parseErr.message !== "Stream error"
-                            ) {
-                                console.warn(
-                                    "Execute-plan SSE parse error:",
-                                    parseErr,
+                            console.warn(
+                                "Execute-plan SSE parse error:",
+                                parseErr,
+                            );
+                            continue;
+                        }
+
+                        switch (sse.event) {
+                            case "step_start": {
+                                setPlanStepStatus(
+                                    messageId,
+                                    payload.stepId,
+                                    "generating",
                                 );
-                            } else {
-                                throw parseErr;
+                                const startNodeId = stepNodeMap.get(
+                                    payload.stepId,
+                                );
+                                if (startNodeId) {
+                                    useCanvasStore
+                                        .getState()
+                                        .updateNodeData(startNodeId, {
+                                            status: "generating",
+                                        });
+                                }
+                                break;
                             }
+
+                            case "step_done": {
+                                const node = payload.node as NodePayload;
+                                setPlanStepStatus(
+                                    messageId,
+                                    payload.stepId,
+                                    "done",
+                                );
+                                if (
+                                    node.type === "canvas-image" &&
+                                    node.sourceUrl
+                                ) {
+                                    lastImageSourceUrl = node.sourceUrl;
+                                }
+                                const nodeId = stepNodeMap.get(payload.stepId);
+                                if (nodeId) {
+                                    const isImageWithRuleset =
+                                        node.type === "canvas-image" &&
+                                        !!useCanvasStore.getState()
+                                            .activeRulesetId;
+
+                                    const {
+                                        id: _id,
+                                        type: _type,
+                                        ...dataFields
+                                    } = node;
+
+                                    useCanvasStore
+                                        .getState()
+                                        .updateNodeData(nodeId, {
+                                            ...dataFields,
+                                            status: "ready",
+                                            ...(node.type === "canvas-video"
+                                                ? { progress: 100 }
+                                                : {}),
+                                            // show spinner while validation runs
+                                            ...(isImageWithRuleset
+                                                ? { validating: true }
+                                                : {}),
+                                        } as Partial<CanvasNodeData>);
+
+                                    const currentMsg = useCanvasStore
+                                        .getState()
+                                        .messages.find(
+                                            (m) => m.id === messageId,
+                                        );
+                                    const existingRefs: GeneratedMediaRef[] =
+                                        currentMsg?.generatedMedia ?? [];
+                                    updateMessage(messageId, {
+                                        generatedMedia: [
+                                            ...existingRefs,
+                                            { nodeId, type: node.type },
+                                        ],
+                                    });
+                                }
+                                break;
+                            }
+
+                            case "step_validated": {
+                                const nodeId = stepNodeMap.get(payload.stepId);
+                                if (nodeId) {
+                                    useCanvasStore
+                                        .getState()
+                                        .updateNodeData(nodeId, {
+                                            validating: false,
+                                            validationResults:
+                                                payload.validationResults,
+                                            // replace image if retry produced a new one
+                                            ...(payload.node
+                                                ? {
+                                                      sourceUrl:
+                                                          payload.node
+                                                              .sourceUrl,
+                                                      mimeType:
+                                                          payload.node.mimeType,
+                                                  }
+                                                : {}),
+                                        });
+
+                                    const failures =
+                                        payload.validationResults.filter(
+                                            (r: { status: string }) =>
+                                                r.status === "fail",
+                                        );
+                                    if (failures.length > 0) {
+                                        toast.warning(
+                                            `${failures.length} rule${failures.length !== 1 ? "s" : ""} failed — see badge on image for details`,
+                                        );
+                                    }
+                                }
+                                break;
+                            }
+
+                            case "step_error": {
+                                const nodeId = stepNodeMap.get(payload.stepId);
+                                setPlanStepStatus(
+                                    messageId,
+                                    payload.stepId,
+                                    "error",
+                                );
+                                if (nodeId) {
+                                    useCanvasStore
+                                        .getState()
+                                        .updateNodeData(nodeId, {
+                                            status: "error",
+                                            error: payload.message,
+                                        });
+                                }
+                                toast.error(
+                                    `Generation failed: ${payload.message}`,
+                                );
+                                break;
+                            }
+
+                            case "error":
+                                throw new Error(
+                                    payload.message || "Stream error",
+                                );
+
+                            case "done":
+                                if (lastImageSourceUrl) {
+                                    fetch(`/api/canvases/${canvasId}`, {
+                                        method: "PATCH",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                            thumbnail: lastImageSourceUrl,
+                                        }),
+                                    }).catch(() => {});
+                                }
+                                break;
                         }
                     }
                 }
@@ -1006,6 +998,23 @@ export function CanvasChatInput({
                     error instanceof Error
                         ? error.message
                         : "Failed to execute plan";
+                for (const [stepId, nodeId] of stepNodeMap.entries()) {
+                    const node = useCanvasStore
+                        .getState()
+                        .nodes.find((n) => n.id === nodeId);
+                    if (
+                        node?.data &&
+                        "status" in node.data &&
+                        (node.data.status === "pending" ||
+                            node.data.status === "generating")
+                    ) {
+                        setPlanStepStatus(messageId, stepId, "error");
+                        useCanvasStore.getState().updateNodeData(nodeId, {
+                            status: "error",
+                            error: message,
+                        });
+                    }
+                }
                 toast.error(message);
             }
         },
@@ -1082,6 +1091,8 @@ export function CanvasChatInput({
 
             const abortController = new AbortController();
             abortRef.current = abortController;
+            let flushTimer: ReturnType<typeof setTimeout> | null = null;
+            let accumulatedText = "";
 
             try {
                 const res = await fetch(`/api/canvases/${canvasId}/chat`, {
@@ -1134,10 +1145,24 @@ export function CanvasChatInput({
 
                 const decoder = new TextDecoder();
                 let buffer = "";
-                let accumulatedText = "";
                 let cumulativeThought = "";
                 const directorLog: import("@/lib/canvas/types").DirectorLogEntry[] =
                     [];
+                let lastTextFlush = 0;
+                const TEXT_FLUSH_INTERVAL_MS = 50;
+
+                const flushText = (final = false) => {
+                    if (flushTimer) {
+                        clearTimeout(flushTimer);
+                        flushTimer = null;
+                    }
+                    lastTextFlush = Date.now();
+                    updateMessage(
+                        assistantMsgId,
+                        { content: accumulatedText },
+                        { skipLastModified: !final },
+                    );
+                };
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -1148,159 +1173,169 @@ export function CanvasChatInput({
                     buffer = remaining;
 
                     for (const sse of events) {
+                        let payload;
                         try {
-                            const payload = JSON.parse(sse.data);
+                            payload = JSON.parse(sse.data);
+                        } catch (parseErr) {
+                            console.warn("SSE parse error:", parseErr);
+                            continue;
+                        }
 
-                            switch (sse.event) {
-                                case "text":
-                                    accumulatedText += payload.delta;
-                                    updateMessage(assistantMsgId, {
-                                        content: accumulatedText,
-                                    });
-                                    break;
-
-                                case "thought": {
-                                    const full: string = payload.delta;
-                                    const newPart = full.startsWith(
-                                        cumulativeThought,
-                                    )
-                                        ? full
-                                              .slice(cumulativeThought.length)
-                                              .trim()
-                                        : full;
-                                    cumulativeThought = full;
-                                    if (newPart) {
-                                        directorLog.push({
-                                            type: "thought",
-                                            text: newPart,
-                                        });
-                                        updateMessage(assistantMsgId, {
-                                            directorLog: [...directorLog],
-                                        });
-                                    }
-                                    break;
+                        switch (sse.event) {
+                            case "text": {
+                                accumulatedText += payload.delta;
+                                const now = Date.now();
+                                if (
+                                    now - lastTextFlush >=
+                                    TEXT_FLUSH_INTERVAL_MS
+                                ) {
+                                    flushText(false);
+                                } else if (!flushTimer) {
+                                    flushTimer = setTimeout(
+                                        () => {
+                                            flushText(false);
+                                        },
+                                        TEXT_FLUSH_INTERVAL_MS -
+                                            (now - lastTextFlush),
+                                    );
                                 }
+                                break;
+                            }
 
-                                case "agent_action":
+                            case "thought": {
+                                const full: string = payload.delta;
+                                const newPart = full.startsWith(
+                                    cumulativeThought,
+                                )
+                                    ? full
+                                          .slice(cumulativeThought.length)
+                                          .trim()
+                                    : full;
+                                cumulativeThought = full;
+                                if (newPart) {
                                     directorLog.push({
-                                        type: "action",
-                                        label: payload.label,
+                                        type: "thought",
+                                        text: newPart,
                                     });
                                     updateMessage(assistantMsgId, {
                                         directorLog: [...directorLog],
                                     });
-                                    break;
-
-                                case "plan": {
-                                    const steps =
-                                        payload.steps as GenerationStep[];
-                                    // Set pending_approval — execution deferred until user confirms
-                                    updateMessage(assistantMsgId, {
-                                        plan: { steps },
-                                        planStatus: "pending_approval",
-                                    });
-                                    break;
                                 }
+                                break;
+                            }
 
-                                case "actions":
-                                    if (payload.actions) {
-                                        updateMessage(assistantMsgId, {
-                                            actions: payload.actions,
-                                        });
-                                    }
-                                    break;
+                            case "agent_action":
+                                directorLog.push({
+                                    type: "action",
+                                    label: payload.label,
+                                });
+                                updateMessage(assistantMsgId, {
+                                    directorLog: [...directorLog],
+                                });
+                                break;
 
-                                case "text_nodes": {
-                                    const textNodes = payload.nodes as Array<{
-                                        id: string;
-                                        title: string;
-                                        content: string;
-                                        format?: string;
-                                    }>;
-                                    const center = getViewportCenter();
-                                    const existingNodes =
-                                        useCanvasStore.getState().nodes;
-                                    const lowestY =
-                                        existingNodes.length > 0
-                                            ? Math.max(
-                                                  ...existingNodes.map(
-                                                      (n) =>
-                                                          n.position.y +
-                                                          ((
-                                                              n.data as {
-                                                                  height?: number;
-                                                              }
-                                                          ).height ??
-                                                              n.height ??
-                                                              300),
-                                                  ),
-                                              )
-                                            : center.y - 300;
-                                    textNodes.forEach((tn, idx) => {
-                                        const nodeWidth = 480;
-                                        const nodeHeight = 600;
-                                        const gap = 40;
-                                        const position = {
-                                            x:
-                                                existingNodes.length > 0
-                                                    ? center.x - nodeWidth / 2
-                                                    : center.x - nodeWidth / 2,
-                                            y:
-                                                lowestY +
-                                                gap +
-                                                idx * (nodeHeight + gap),
-                                        };
-                                        addNode({
-                                            id: uuidv4(),
+                            case "plan": {
+                                const steps = payload.steps as GenerationStep[];
+                                // Set pending_approval — execution deferred until user confirms
+                                updateMessage(assistantMsgId, {
+                                    plan: { steps },
+                                    planStatus: "pending_approval",
+                                });
+                                break;
+                            }
+
+                            case "actions":
+                                if (payload.actions) {
+                                    updateMessage(assistantMsgId, {
+                                        actions: payload.actions,
+                                    });
+                                }
+                                break;
+
+                            case "text_nodes": {
+                                const textNodes = payload.nodes as Array<{
+                                    id: string;
+                                    title: string;
+                                    content: string;
+                                    format?: string;
+                                }>;
+                                const center = getViewportCenter();
+                                const existingNodes =
+                                    useCanvasStore.getState().nodes;
+                                const lowestY =
+                                    existingNodes.length > 0
+                                        ? Math.max(
+                                              ...existingNodes.map(
+                                                  (n) =>
+                                                      n.position.y +
+                                                      ((
+                                                          n.data as {
+                                                              height?: number;
+                                                          }
+                                                      ).height ??
+                                                          n.height ??
+                                                          300),
+                                              ),
+                                          )
+                                        : center.y - 300;
+                                textNodes.forEach((tn, idx) => {
+                                    const nodeWidth = 480;
+                                    const nodeHeight = 600;
+                                    const gap = 40;
+                                    const position = {
+                                        x:
+                                            existingNodes.length > 0
+                                                ? center.x - nodeWidth / 2
+                                                : center.x - nodeWidth / 2,
+                                        y:
+                                            lowestY +
+                                            gap +
+                                            idx * (nodeHeight + gap),
+                                    };
+                                    addNode({
+                                        id: uuidv4(),
+                                        type: "canvas-text",
+                                        position,
+                                        data: {
                                             type: "canvas-text",
-                                            position,
-                                            data: {
-                                                type: "canvas-text",
-                                                label: tn.title,
-                                                content: tn.content,
-                                                format: tn.format as
-                                                    | "scenario"
-                                                    | "synopsis"
-                                                    | "brief"
-                                                    | "notes"
-                                                    | undefined,
-                                                width: nodeWidth,
-                                                height: nodeHeight,
-                                            },
+                                            label: tn.title,
+                                            content: tn.content,
+                                            format: tn.format as
+                                                | "scenario"
+                                                | "synopsis"
+                                                | "brief"
+                                                | "notes"
+                                                | undefined,
                                             width: nodeWidth,
                                             height: nodeHeight,
-                                        });
+                                        },
+                                        width: nodeWidth,
+                                        height: nodeHeight,
                                     });
-                                    break;
-                                }
-
-                                case "question":
-                                    updateMessage(assistantMsgId, {
-                                        question: payload as QuestionPayload,
-                                    });
-                                    break;
-
-                                case "error":
-                                    throw new Error(
-                                        payload.message || "Stream error",
-                                    );
-
-                                case "done":
-                                    break;
+                                });
+                                break;
                             }
-                        } catch (parseErr) {
-                            if (
-                                parseErr instanceof Error &&
-                                parseErr.message !== "Stream error"
-                            ) {
-                                console.warn("SSE parse error:", parseErr);
-                            } else {
-                                throw parseErr;
-                            }
+
+                            case "question":
+                                updateMessage(assistantMsgId, {
+                                    question: payload as QuestionPayload,
+                                });
+                                break;
+
+                            case "error":
+                                throw new Error(
+                                    payload.message || "Stream error",
+                                );
+
+                            case "done":
+                                flushText(true);
+                                break;
                         }
                     }
                 }
+                flushText(true);
             } catch (error) {
+                if (flushTimer) clearTimeout(flushTimer);
                 if (
                     error instanceof DOMException &&
                     error.name === "AbortError"
@@ -1312,10 +1347,13 @@ export function CanvasChatInput({
                         ? error.message
                         : "Failed to get response";
                 updateMessage(assistantMsgId, {
-                    content: assistantMessage.content || `Error: ${message}`,
+                    content: accumulatedText
+                        ? `${accumulatedText}\n\nError: ${message}`
+                        : `Error: ${message}`,
                 });
                 toast.error(message);
             } finally {
+                if (flushTimer) clearTimeout(flushTimer);
                 setIsChatLoading(false);
                 abortRef.current = null;
             }

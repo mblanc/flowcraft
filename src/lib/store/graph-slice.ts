@@ -85,19 +85,30 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
             return node;
         });
 
+        const shouldUpdateLastModified = changes.some(
+            (c) =>
+                c.type === "remove" ||
+                c.type === "add" ||
+                c.type === "replace" ||
+                (c.type === "position" && c.dragging === false),
+        );
+
         const nodesById = buildNodesById(sanitizedNodes);
         set({
             nodes: sanitizedNodes,
             nodesById,
             selectedNode: deriveSelectedNode(nodesById, get().selectedNodeId),
-            lastModified: Date.now(),
+            ...(shouldUpdateLastModified ? { lastModified: Date.now() } : {}),
         });
     },
 
     onEdgesChange: (changes) => {
+        const shouldUpdateLastModified = changes.some(
+            (c) => c.type !== "select",
+        );
         set({
             edges: applyEdgeChanges(changes, get().edges),
-            lastModified: Date.now(),
+            ...(shouldUpdateLastModified ? { lastModified: Date.now() } : {}),
         });
     },
 

@@ -35,37 +35,40 @@ export function useFlowPersistence() {
         (
             nodes: ReturnType<typeof useFlowStore.getState>["nodes"],
         ): string | undefined => {
-            const imageNodes = nodes.filter((node) => {
+            const isValidThumbnailUrl = (url?: string): url is string =>
+                !!url &&
+                (url.startsWith("gs://") || url.startsWith("https://")) &&
+                url.length <= 2048;
+
+            const candidates: Array<{ url: string; generatedAt: number }> = [];
+
+            for (const node of nodes) {
                 const data = node.data;
-                if (
-                    data.type === "image" &&
-                    (data as ImageData).images?.length > 0
-                )
-                    return true;
-                if (data.type === "upscale" && (data as UpscaleData).image)
-                    return true;
-                if (data.type === "resize" && (data as ResizeData).output)
-                    return true;
-                if (
-                    data.type === "video" &&
-                    (data as VideoData).images?.length > 0
-                )
-                    return true;
-                return false;
-            });
+                const generatedAt = data.generatedAt || 0;
+                if (data.type === "image") {
+                    const url = (data as ImageData).images?.find(
+                        isValidThumbnailUrl,
+                    );
+                    if (url) candidates.push({ url, generatedAt });
+                } else if (data.type === "upscale") {
+                    const url = (data as UpscaleData).image;
+                    if (isValidThumbnailUrl(url))
+                        candidates.push({ url, generatedAt });
+                } else if (data.type === "resize") {
+                    const url = (data as ResizeData).output;
+                    if (isValidThumbnailUrl(url))
+                        candidates.push({ url, generatedAt });
+                } else if (data.type === "video") {
+                    const url = (data as VideoData).images?.find(
+                        isValidThumbnailUrl,
+                    );
+                    if (url) candidates.push({ url, generatedAt });
+                }
+            }
 
-            if (imageNodes.length === 0) return undefined;
-
-            imageNodes.sort(
-                (a, b) => (b.data.generatedAt || 0) - (a.data.generatedAt || 0),
-            );
-
-            const { data } = imageNodes[0];
-            if (data.type === "image") return (data as ImageData).images[0];
-            if (data.type === "upscale") return (data as UpscaleData).image;
-            if (data.type === "resize") return (data as ResizeData).output;
-            if (data.type === "video") return (data as VideoData).images[0];
-            return undefined;
+            if (candidates.length === 0) return undefined;
+            candidates.sort((a, b) => b.generatedAt - a.generatedAt);
+            return candidates[0].url;
         },
         [],
     );

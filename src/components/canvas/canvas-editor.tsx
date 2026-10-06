@@ -197,6 +197,7 @@ export function CanvasEditor({ readOnly = false }: { readOnly?: boolean }) {
                         nodesDraggable={!readOnly}
                         nodesConnectable={!readOnly}
                         elementsSelectable={!readOnly}
+                        onlyRenderVisibleElements={true}
                     >
                         {background}
                         <Controls />

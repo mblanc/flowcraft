@@ -16,8 +16,20 @@ function extractGcsUris(result: Partial<NodeData>): string[] {
     if ("images" in result && Array.isArray(result.images)) {
         uris.push(...result.images.filter((u): u is string => isGcsUri(u)));
     }
-    if ("videos" in result && Array.isArray(result.videos)) {
-        uris.push(...result.videos.filter((u): u is string => isGcsUri(u)));
+    if ("videoUrl" in result && isGcsUri(result.videoUrl)) {
+        uris.push(result.videoUrl);
+    }
+    if ("videoUrls" in result && Array.isArray(result.videoUrls)) {
+        uris.push(...result.videoUrls.filter((u): u is string => isGcsUri(u)));
+    }
+    if ("image" in result && isGcsUri(result.image)) {
+        uris.push(result.image);
+    }
+    if ("output" in result && isGcsUri(result.output)) {
+        uris.push(result.output);
+    }
+    if ("audioUrl" in result && isGcsUri(result.audioUrl)) {
+        uris.push(result.audioUrl);
     }
     return uris;
 }

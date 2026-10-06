@@ -85,7 +85,8 @@
 @theme inline {
     /* Update font-sans to use Open Sans variable from Next.js */
     --font-sans: var(--font-geist-sans);
-    --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+    --font-mono:
+        var(--font-geist-mono), "JetBrains Mono", ui-monospace, monospace;
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
