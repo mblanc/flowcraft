@@ -3,7 +3,11 @@
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
 import type { VideoData } from "@/lib/types";
-import { MODELS } from "@/lib/constants";
+import { MODELS, isOmniVideoModel } from "@/lib/constants";
+import {
+    getEffectiveVideoModel,
+    getNormalizedVideoNodeUpdates,
+} from "./definition";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MentionEditor } from "@/components/nodes/mention-editor";
@@ -35,45 +39,22 @@ export function ConfigPanel({
 
     const connectedTextNodes = useConnectedSourceNodes(nodeId, "prompt-input");
 
-    const validModels = Object.values(MODELS.VIDEO) as string[];
-    const effectiveModel = validModels.includes(data.model)
-        ? data.model
-        : MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
-    const isOmni =
-        effectiveModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
-        effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
+    const effectiveModel = getEffectiveVideoModel(data.model);
+    const isOmni = isOmniVideoModel(effectiveModel);
     const normalizedResolution =
         (data.resolution as string) === "4k" ? "4K" : data.resolution || "720p";
 
     useEffect(() => {
-        if (!validModels.includes(data.model)) {
+        if (data.model !== effectiveModel) {
             updateNodeData(nodeId, {
-                model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                model: effectiveModel,
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nodeId]);
 
     useEffect(() => {
-        const isOmni11 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
-        const isOmni10 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
-        const updates: Partial<VideoData> = {};
-        if (!data.resolution) {
-            updates.resolution = "720p";
-        } else if (isOmni10 && data.resolution !== "720p") {
-            updates.resolution = "720p";
-        } else if (!isOmni11 && data.resolution === "360p") {
-            updates.resolution = "720p";
-        }
-        if (isOmni10 && data.duration !== undefined) {
-            updates.duration = undefined;
-        } else if (
-            !isOmni &&
-            data.duration !== undefined &&
-            ![4, 6, 8].includes(data.duration)
-        ) {
-            updates.duration = 4;
-        }
+        const updates = getNormalizedVideoNodeUpdates(data);
         if (Object.keys(updates).length > 0) {
             updateNodeData(nodeId, updates);
         }
@@ -81,10 +62,9 @@ export function ConfigPanel({
         data.model,
         data.resolution,
         data.duration,
-        effectiveModel,
-        isOmni,
         nodeId,
         updateNodeData,
+        data,
     ]);
 
     const signedUrlsMap = useSignedUrls(data.images);

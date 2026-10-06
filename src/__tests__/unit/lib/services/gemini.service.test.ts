@@ -928,6 +928,25 @@ describe("GeminiService", () => {
                 }),
             );
         });
+
+        it("should reject untrusted download URIs returned by Omni", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-omni-untrusted",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "https://evil.example.com/files/vid123",
+                },
+            });
+            mockAi.files.get.mockResolvedValue({ state: "ACTIVE" });
+
+            await expect(
+                geminiService.generateVideo({
+                    prompt: "Test untrusted URI",
+                    model: "gemini-omni-1.1-flash-preview",
+                }),
+            ).rejects.toThrow("Untrusted download URI returned by Omni");
+        });
     });
 
     describe("upscaleImage", () => {
@@ -947,7 +966,7 @@ describe("GeminiService", () => {
                 generatedImages: [{ image: { gcsUri: "gs://upscaled.png" } }],
             });
             const result = await geminiService.upscaleImage({
-                image: "gs://input.png",
+                image: "gs://mock-bucket/input.png",
                 upscaleFactor: "x4",
             });
             expect(result).toBe("gs://upscaled.png");
@@ -959,7 +978,7 @@ describe("GeminiService", () => {
             });
             await expect(
                 geminiService.upscaleImage({
-                    image: "gs://input.png",
+                    image: "gs://mock-bucket/input.png",
                     upscaleFactor: "x2",
                 }),
             ).rejects.toThrow();

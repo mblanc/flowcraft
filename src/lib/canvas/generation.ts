@@ -536,13 +536,16 @@ export async function* executePlan(
                                 : undefined,
                         styleId: activeStyleId,
                         styleName: activeStyleName,
-                        // operation inferred for video
+                        // operation preserved from step or inferred for video
                         operation:
-                            step.type === "video"
-                                ? firstFrameUrl
-                                    ? "i2v"
-                                    : "t2v"
-                                : undefined,
+                            step.operation ??
+                            (step.type === "video"
+                                ? firstFrameUrl && lastFrameUrl
+                                    ? "i2v2"
+                                    : firstFrameUrl
+                                      ? "i2v"
+                                      : "t2v"
+                                : undefined),
                         planNodeId: step.id,
                         derivedFrom: step.dependsOn?.length
                             ? step.dependsOn

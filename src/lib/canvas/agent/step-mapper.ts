@@ -7,7 +7,7 @@ import type {
     PlanNode,
     VideoDefaults,
 } from "../types";
-import { MODELS } from "@/lib/constants";
+import { isOmniVideoModel } from "@/lib/constants";
 import { IMAGE_MODELS, VIDEO_MODELS } from "./tools";
 
 export function applyVideoFallback(
@@ -63,6 +63,20 @@ function resolveModel(
     return candidate;
 }
 
+function parseOptionalDuration(
+    duration: number | string | undefined,
+): number | undefined {
+    if (
+        duration === undefined ||
+        (typeof duration === "string" &&
+            duration.trim().toLowerCase() === "auto")
+    ) {
+        return undefined;
+    }
+    const parsed = Number(duration);
+    return Number.isNaN(parsed) ? undefined : parsed;
+}
+
 export function applyTypeDefaults(
     step: GenerationStep,
     imageDefaults?: MediaDefaults,
@@ -76,18 +90,20 @@ export function applyTypeDefaults(
         defaults?.model,
         validModels,
     );
-    const isOmni =
-        isVideo &&
-        (resolvedModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
-            resolvedModel === MODELS.VIDEO.GEMINI_OMNI_FLASH);
+    const isOmni = isVideo && isOmniVideoModel(resolvedModel);
     const rawAspectRatio = step.aspectRatio ?? defaults?.aspectRatio;
+    const normalizedAspectRatio =
+        typeof rawAspectRatio === "string" &&
+        rawAspectRatio.trim().toLowerCase() === "auto"
+            ? undefined
+            : rawAspectRatio;
     let aspectRatio: string | undefined = undefined;
 
     if (isVideo) {
-        if (rawAspectRatio === undefined && isOmni) {
+        if (normalizedAspectRatio === undefined && isOmni) {
             aspectRatio = undefined;
         } else {
-            const candidate = rawAspectRatio ?? "16:9";
+            const candidate = normalizedAspectRatio ?? "16:9";
             if (candidate === "16:9" || candidate === "9:16") {
                 aspectRatio = candidate;
             } else {
@@ -103,11 +119,17 @@ export function applyTypeDefaults(
             }
         }
     } else {
-        aspectRatio = rawAspectRatio ?? "16:9";
+        aspectRatio = normalizedAspectRatio ?? "16:9";
     }
 
+    const {
+        duration: _rawStepDuration,
+        aspectRatio: _rawStepAspectRatio,
+        ...stepWithoutVideoOptionals
+    } = step;
+
     return {
-        ...step,
+        ...stepWithoutVideoOptionals,
         ...(aspectRatio !== undefined ? { aspectRatio } : {}),
         ...(!isVideo && (step.imageSize ?? imageDefaults?.imageSize)
             ? { imageSize: step.imageSize ?? imageDefaults?.imageSize }
@@ -126,7 +148,9 @@ export function applyTypeDefaults(
                         }
                       : {}),
                   ...(() => {
-                      const raw = step.duration ?? videoDefaults?.duration;
+                      const raw = parseOptionalDuration(
+                          step.duration ?? videoDefaults?.duration,
+                      );
                       if (raw === undefined && isOmni) {
                           return {};
                       }
@@ -270,6 +294,8 @@ export function mapPlanNodesToSteps(
 
         const refs = nodeRefs.get(node.id);
         const deps = nodeDeps.get(node.id);
+        const parsedNodeDuration =
+            type === "video" ? parseOptionalDuration(node.duration) : undefined;
 
         const step: GenerationStep = {
             id: node.id,
@@ -286,13 +312,13 @@ export function mapPlanNodesToSteps(
                 ? { resolution: node.resolution }
                 : {}),
             ...(node.model ? { model: node.model } : {}),
-            ...(type === "video" && node.duration
-                ? (() => {
-                      const raw = Number(node.duration);
-                      return {
-                          duration: raw >= 3 && raw <= 10 ? raw : 4,
-                      };
-                  })()
+            ...(parsedNodeDuration !== undefined
+                ? {
+                      duration:
+                          parsedNodeDuration >= 3 && parsedNodeDuration <= 10
+                              ? parsedNodeDuration
+                              : 4,
+                  }
                 : {}),
             ...(type === "video" && node.generateAudio !== undefined
                 ? { generateAudio: node.generateAudio }
@@ -331,11 +357,15 @@ export function mapSimpleSteps(
 ): GenerationStep[] {
     const attachmentNodeIds = attachments.map((a) => a.nodeId);
     return raw.map((s, i) => {
+        const parsedDuration = parseOptionalDuration(
+            s.duration as number | string | undefined,
+        );
+        const { duration: _rawDuration, ...rest } = s;
         const sWithType: GenerationStep = {
-            ...s,
+            ...rest,
             type: inferredType,
-            ...(s.duration !== undefined
-                ? { duration: Number(s.duration) }
+            ...(parsedDuration !== undefined
+                ? { duration: parsedDuration }
                 : {}),
         };
         let step = applyTypeDefaults(sWithType, imageDefaults, videoDefaults);

@@ -467,8 +467,8 @@ describe("Eval: pirate plan — invalid duration guard", () => {
         expect(steps[0].duration).toBe(4);
     });
 
-    it("defaults to 4s when no duration is specified", async () => {
-        const adkEvents: Event[] = [
+    it("leaves duration unset (Auto) when no duration or model is specified (default Omni model), and defaults to 4s for Veo", async () => {
+        const omniEvents: Event[] = [
             makeFunctionCallEvent("plan_video_generation", {
                 steps: [
                     {
@@ -480,12 +480,34 @@ describe("Eval: pirate plan — invalid duration guard", () => {
                 ],
             }),
         ];
-        const events = await collect(
-            extractAgentEvents(asAsyncIter(adkEvents), [], []),
+        const collectedOmni = await collect(
+            extractAgentEvents(asAsyncIter(omniEvents), [], []),
         );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const steps = (events.find((e) => e.type === "plan") as any).plan.steps;
-        expect(steps[0].duration).toBe(4);
+        const omniSteps = (collectedOmni.find((e) => e.type === "plan") as any)
+            .plan.steps;
+        expect(omniSteps[0].duration).toBeUndefined();
+
+        const veoEvents: Event[] = [
+            makeFunctionCallEvent("plan_video_generation", {
+                steps: [
+                    {
+                        id: "vid_veo",
+                        type: "video",
+                        prompt: "Animate",
+                        aspectRatio: "9:16",
+                        model: "veo-3.1-fast-generate-001",
+                    },
+                ],
+            }),
+        ];
+        const collectedVeo = await collect(
+            extractAgentEvents(asAsyncIter(veoEvents), [], []),
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const veoSteps = (collectedVeo.find((e) => e.type === "plan") as any)
+            .plan.steps;
+        expect(veoSteps[0].duration).toBe(4);
     });
 });
 

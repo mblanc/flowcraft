@@ -191,3 +191,11 @@ export const ALL_SUPPORTED_MIME_TYPES = [
 ] as const;
 
 export type SupportedMimeType = (typeof ALL_SUPPORTED_MIME_TYPES)[number];
+
+export function isOmniVideoModel(model?: unknown): boolean {
+    return (
+        !model ||
+        model === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
+        model === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH
+    );
+}

@@ -10,7 +10,7 @@ import type { StateCreator } from "zustand";
 import { createNode, getUniqueNodeName } from "@/lib/flow/node-factory";
 import type { NodeData } from "@/lib/types";
 import { migrateEdges, migrateNodes } from "@/lib/db/migration";
-import { MODELS } from "@/lib/constants";
+import { isOmniVideoModel } from "@/lib/constants";
 import { getSourcePortType } from "@/lib/flow/node-registry";
 import type { FlowState, GraphSlice } from "./types";
 
@@ -122,10 +122,7 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
                 const targetModel = (
                     targetNode.data as Record<string, unknown> | undefined
                 )?.model;
-                const isOmni =
-                    targetModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
-                    targetModel === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
-                    !targetModel;
+                const isOmni = isOmniVideoModel(targetModel);
 
                 const sourceNode = conn.source
                     ? nodesById[conn.source]
@@ -210,10 +207,7 @@ export const createGraphSlice: StateCreator<FlowState, [], [], GraphSlice> = (
         let extraEdgesState = {};
         const updatedModel = (data as Record<string, unknown>).model;
         if (updatedModel && existing.data.type === "video") {
-            const isOmni =
-                updatedModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
-                updatedModel === MODELS.VIDEO.GEMINI_OMNI_FLASH;
-            if (isOmni) {
+            if (isOmniVideoModel(updatedModel)) {
                 const currentEdges = get().edges;
                 let edgesChanged = false;
                 const newEdges = currentEdges.map((e) => {
