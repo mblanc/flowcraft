@@ -3,14 +3,20 @@ import logger from "@/app/logger";
 import {
     getCachedSignedUrl,
     fetchAndCacheSignedUrl,
+    fetchAndCacheSignedUrls,
 } from "@/lib/cache/signed-urls";
 import { isGcsUri } from "@/lib/utils/gcs-uri";
 
-export function useSignedUrl(gcsUri: string | undefined) {
+export function useSignedUrl(
+    gcsUri: string | undefined,
+    providedSignedUrl?: string,
+) {
     // Initialise synchronously from the module-level cache so remounting nodes
     // never show a loading state or trigger a redundant fetch.
     const [asyncSignedUrl, setAsyncSignedUrl] = useState<string | undefined>(
-        () => (isGcsUri(gcsUri) ? getCachedSignedUrl(gcsUri) : undefined),
+        () =>
+            providedSignedUrl ??
+            (isGcsUri(gcsUri) ? getCachedSignedUrl(gcsUri) : undefined),
     );
     const [prevUri, setPrevUri] = useState(gcsUri);
 
@@ -20,17 +26,20 @@ export function useSignedUrl(gcsUri: string | undefined) {
             setAsyncSignedUrl(undefined);
         } else {
             // Attempt a synchronous cache hit on URI change before the effect runs.
-            const cached = getCachedSignedUrl(gcsUri);
+            const cached = providedSignedUrl ?? getCachedSignedUrl(gcsUri);
             setAsyncSignedUrl(cached);
         }
     }
 
     useEffect(() => {
+        if (providedSignedUrl) return;
         if (!isGcsUri(gcsUri)) return;
         if (asyncSignedUrl) return; // already resolved from cache
 
+        let cancelled = false;
         fetchAndCacheSignedUrl(gcsUri)
             .then((url) => {
+                if (cancelled) return;
                 if (url) {
                     setAsyncSignedUrl(url);
                 } else {
@@ -38,13 +47,20 @@ export function useSignedUrl(gcsUri: string | undefined) {
                 }
             })
             .catch((error) => {
-                logger.error("Error fetching signed URL:", error);
+                if (!cancelled) {
+                    logger.error("Error fetching signed URL:", error);
+                }
             });
-    }, [gcsUri, asyncSignedUrl]);
 
-    const displayUrl = isGcsUri(gcsUri) ? asyncSignedUrl : gcsUri;
+        return () => {
+            cancelled = true;
+        };
+    }, [gcsUri, asyncSignedUrl, providedSignedUrl]);
 
-    return { signedUrl: asyncSignedUrl, displayUrl };
+    const resolvedSignedUrl = providedSignedUrl ?? asyncSignedUrl;
+    const displayUrl = isGcsUri(gcsUri) ? resolvedSignedUrl : gcsUri;
+
+    return { signedUrl: resolvedSignedUrl, displayUrl };
 }
 
 export function useSignedUrls(gcsUris: (string | undefined)[]) {
@@ -80,18 +96,9 @@ export function useSignedUrls(gcsUris: (string | undefined)[]) {
         const uncached = uris.filter((uri) => !getCachedSignedUrl(uri));
         if (uncached.length === 0) return;
 
-        // Fetch remaining signed URLs concurrently (cache deduplicates in-flight calls)
-        Promise.all(
-            uncached.map(async (uri) => {
-                const url = await fetchAndCacheSignedUrl(uri);
-                return { uri, url };
-            }),
-        ).then((results) => {
+        // Fetch remaining signed URLs via single batch request
+        fetchAndCacheSignedUrls(uncached).then((newUrls) => {
             if (!isMounted) return;
-            const newUrls: Record<string, string> = {};
-            for (const { uri, url } of results) {
-                if (url) newUrls[uri] = url;
-            }
             setSignedUrls((prev) => ({ ...prev, ...newUrls }));
         });
 

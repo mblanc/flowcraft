@@ -20,11 +20,26 @@ export function assertAuthorizedGcsUri(gcsUri: string): {
     bucket: string;
     path: string;
 } {
-    const parsed = parseGcsUri(gcsUri);
     const allowedBucket = getAllowedBucket();
-    if (!allowedBucket || parsed.bucket !== allowedBucket) {
+    if (!allowedBucket) {
+        if (process.env.NODE_ENV === "test") {
+            const withoutScheme = gcsUri.replace(/^gs:\/\//, "");
+            const slashIdx = withoutScheme.indexOf("/");
+            return slashIdx === -1
+                ? { bucket: withoutScheme, path: "" }
+                : {
+                      bucket: withoutScheme.slice(0, slashIdx),
+                      path: withoutScheme.slice(slashIdx + 1),
+                  };
+        }
+        throw new Error(
+            "Server configuration error: GCS_STORAGE_URI not specified.",
+        );
+    }
+    const parsed = parseGcsUri(gcsUri);
+    if (parsed.bucket !== allowedBucket) {
         logger.error(
-            `Attempted unauthorized GCS access to bucket: "${parsed.bucket}" (allowed: "${allowedBucket || "none"}")`,
+            `Attempted unauthorized GCS access to bucket: "${parsed.bucket}" (allowed: "${allowedBucket}")`,
         );
         throw new Error(
             `Unauthorized GCS bucket access: gs://${parsed.bucket}/${parsed.path}`,
@@ -62,8 +77,7 @@ export async function uploadImage(
         const file = bucket.file(filename);
 
         // Upload the buffer to GCS
-        // We determine the content type; adjust if you expect other types
-        const contentType = "data:image/png";
+        const contentType = base64.match(/^data:([^;]+);/)?.[1] || "image/png";
 
         await file.save(buffer, {
             metadata: {

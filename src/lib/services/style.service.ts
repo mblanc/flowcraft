@@ -218,7 +218,20 @@ export class StyleService {
         await ref.delete();
 
         const uris = (data?.referenceImageUris ?? []) as string[];
-        await Promise.allSettled(uris.map((uri) => deleteFileByUri(uri)));
+        if (uris.length > 0) {
+            await Promise.allSettled(
+                uris.map(async (uri) => {
+                    const otherRefs = await this.firestore
+                        .collection(COLLECTIONS.STYLES)
+                        .where("referenceImageUris", "array-contains", uri)
+                        .limit(1)
+                        .get();
+                    if (otherRefs.empty) {
+                        await deleteFileByUri(uri);
+                    }
+                }),
+            );
+        }
     }
 
     async cloneStyle(

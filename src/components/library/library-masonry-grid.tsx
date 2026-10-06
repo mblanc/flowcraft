@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import type { LibraryAsset } from "@/lib/library-types";
 import { LibraryAssetCard } from "./library-asset-card";
+import { useSignedUrls } from "@/hooks/use-signed-url";
 
 export interface LibraryAssetGroup {
     label: string;
@@ -18,6 +19,14 @@ export function LibraryMasonryGrid({
     groups,
     onAssetClick,
 }: LibraryMasonryGridProps) {
+    const allGcsUris = useMemo(
+        () =>
+            groups.flatMap((g) =>
+                g.assets.map((a) => a.gcsUri).filter(Boolean),
+            ),
+        [groups],
+    );
+    const signedUrls = useSignedUrls(allGcsUris);
     if (groups.length === 0) {
         return (
             <div className="text-muted-foreground flex flex-col items-center justify-center py-24 text-center">
@@ -44,6 +53,11 @@ export function LibraryMasonryGrid({
                         <LibraryAssetCard
                             key={asset.id}
                             asset={asset}
+                            signedUrl={
+                                asset.gcsUri
+                                    ? signedUrls[asset.gcsUri]
+                                    : undefined
+                            }
                             onClick={() => onAssetClick(asset)}
                         />
                     ))}

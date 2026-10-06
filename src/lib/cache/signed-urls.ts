@@ -77,6 +77,94 @@ export async function fetchAndCacheSignedUrl(
     return fetchPromise;
 }
 
+/**
+ * Batch fetch multiple signed URLs in a single HTTP POST request,
+ * skipping already-cached URIs and writing new results into cache.
+ */
+export async function fetchAndCacheSignedUrls(
+    gcsUris: string[],
+): Promise<Record<string, string>> {
+    const results: Record<string, string> = {};
+    const uncached: string[] = [];
+    const pendingPromises: Promise<void>[] = [];
+
+    for (const uri of gcsUris) {
+        const cached = getValid(uri);
+        if (cached) {
+            results[uri] = cached;
+            continue;
+        }
+        const existingPending = pending.get(uri);
+        if (existingPending) {
+            pendingPromises.push(
+                existingPending.then((url) => {
+                    if (url) results[uri] = url;
+                }),
+            );
+        } else {
+            uncached.push(uri);
+        }
+    }
+
+    const uniqueUncached = Array.from(new Set(uncached));
+    const CHUNK_SIZE = 100;
+
+    for (let i = 0; i < uniqueUncached.length; i += CHUNK_SIZE) {
+        const chunk = uniqueUncached.slice(i, i + CHUNK_SIZE);
+        const resolvers = new Map<string, (val: string | null) => void>();
+
+        for (const uri of chunk) {
+            const p = new Promise<string | null>((resolve) => {
+                resolvers.set(uri, resolve);
+            });
+            pending.set(uri, p);
+        }
+
+        const chunkPromise = (async () => {
+            try {
+                const res = await fetch("/api/signed-url", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ gcsUris: chunk }),
+                });
+                if (res.ok) {
+                    const data: { signedUrls?: Record<string, string> } =
+                        await res.json();
+                    if (data.signedUrls) {
+                        for (const [uri, signedUrl] of Object.entries(
+                            data.signedUrls,
+                        )) {
+                            cache.set(uri, {
+                                url: signedUrl,
+                                expiresAt: Date.now() + TTL_MS,
+                            });
+                            results[uri] = signedUrl;
+                        }
+                    }
+                }
+            } catch {
+                // Fail silently; callers handle missing entries
+            } finally {
+                for (const uri of chunk) {
+                    pending.delete(uri);
+                    const resolve = resolvers.get(uri);
+                    if (resolve) {
+                        resolve(results[uri] ?? null);
+                    }
+                }
+            }
+        })();
+
+        pendingPromises.push(chunkPromise);
+    }
+
+    if (pendingPromises.length > 0) {
+        await Promise.all(pendingPromises);
+    }
+
+    return results;
+}
+
 /** Remove a specific entry (e.g. after a new image is generated for a node). */
 export function invalidateSignedUrl(gcsUri: string): void {
     cache.delete(gcsUri);

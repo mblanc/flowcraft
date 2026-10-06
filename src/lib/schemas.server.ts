@@ -32,3 +32,11 @@ export const GetSignedUrlSchema = z.object({
 });
 
 export type GetSignedUrlRequest = z.infer<typeof GetSignedUrlSchema>;
+
+export const BatchGetSignedUrlsSchema = z.object({
+    gcsUris: z.array(AuthorizedGcsUriSchema).min(1).max(100),
+});
+
+export type BatchGetSignedUrlsRequest = z.infer<
+    typeof BatchGetSignedUrlsSchema
+>;
