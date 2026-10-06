@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/utils/api";
 import { geminiService } from "@/lib/services/gemini.service";
 import logger from "@/app/logger";
 import { createPartFromUri, createPartFromText } from "@google/genai";
+import { assertAuthorizedGcsUri } from "@/lib/db/storage";
 
 const RESPONSE_SCHEMA = {
     type: "object",
@@ -44,6 +45,9 @@ export const POST = withAuth(async (req) => {
         }
 
         const imageParts = referenceImageUris.map((uri: string) => {
+            if (uri.startsWith("gs://")) {
+                assertAuthorizedGcsUri(uri);
+            }
             const ext = uri.split(".").pop()?.toLowerCase();
             const mimeType =
                 ext === "jpg" || ext === "jpeg"

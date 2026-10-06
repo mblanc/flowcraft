@@ -26,7 +26,12 @@ interface MentionEditorProps {
 }
 
 const escapeHtml = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 
 /** Converts stored `@[nodeId]` string → display HTML with mention chips. */
 function valueToHtml(value: string | undefined, nodes: MentionNode[]): string {
@@ -42,8 +47,9 @@ function valueToHtml(value: string | undefined, nodes: MentionNode[]): string {
         result += escapeHtml(before).replace(/\n/g, "<br>");
 
         const nodeId = match[1];
+        const safeNodeId = escapeHtml(nodeId);
         const name = nodeMap.get(nodeId) ?? nodeId;
-        result += `<span class="mention-chip" data-node-id="${nodeId}" contenteditable="false">@${escapeHtml(name)}</span>`;
+        result += `<span class="mention-chip" data-node-id="${safeNodeId}" contenteditable="false">@${escapeHtml(name)}</span>`;
         lastIndex = match.index + match[0].length;
     }
 

@@ -135,6 +135,24 @@ export class CanvasService {
         return canvas;
     }
 
+    async getCanvasForEdit(
+        canvasId: string,
+        userId: string,
+        userEmail?: string,
+    ): Promise<CanvasDocument> {
+        const canvas = await this.getCanvas(canvasId, userId, userEmail);
+        const isOwner = canvas.userId === userId;
+        const isEditor =
+            !!userEmail &&
+            canvas.sharedWith.some(
+                (s) => s.email === userEmail && s.role === "edit",
+            );
+        if (!isOwner && !isEditor) {
+            throw new CanvasForbiddenError("Edit permission required");
+        }
+        return canvas;
+    }
+
     async createCanvas(
         userId: string,
         data: CanvasCreateRequest,

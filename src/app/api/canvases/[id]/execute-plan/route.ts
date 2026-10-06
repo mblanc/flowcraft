@@ -90,16 +90,31 @@ export async function POST(
 
     let canvas;
     try {
-        canvas = await canvasService.getCanvas(canvasId, session.user.id);
+        const getCanvasFn =
+            typeof canvasService.getCanvasForEdit === "function"
+                ? canvasService.getCanvasForEdit.bind(canvasService)
+                : canvasService.getCanvas.bind(canvasService);
+        canvas = await getCanvasFn(
+            canvasId,
+            session.user.id,
+            session.user.email ?? undefined,
+        );
     } catch (error) {
         if (error instanceof Error) {
-            if (error.message === "Canvas not found") {
+            if (
+                error.name === "CanvasNotFoundError" ||
+                error.message.startsWith("Canvas not found")
+            ) {
                 return NextResponse.json(
                     { error: "Canvas not found" },
                     { status: 404 },
                 );
             }
-            if (error.message === "Unauthorized") {
+            if (
+                error.name === "CanvasForbiddenError" ||
+                error.message === "Unauthorized" ||
+                error.message === "Forbidden"
+            ) {
                 return NextResponse.json(
                     { error: "Unauthorized" },
                     { status: 403 },
@@ -161,6 +176,14 @@ export async function POST(
     const stream = new ReadableStream({
         async start(controller) {
             const encode = (payload: string) => encoder.encode(payload);
+            const safeEnqueue = (chunk: Uint8Array) => {
+                if (req.signal.aborted) return;
+                try {
+                    controller.enqueue(chunk);
+                } catch {
+                    // Stream closed by client disconnect
+                }
+            };
 
             try {
                 for await (const stepEvent of executePlan(
@@ -178,9 +201,10 @@ export async function POST(
                     canvas.activeRulesetId ?? undefined,
                     activeRuleset,
                 )) {
+                    if (req.signal.aborted) break;
                     switch (stepEvent.type) {
                         case "step_start":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("step_start", {
                                         stepId: stepEvent.stepId,
@@ -189,7 +213,7 @@ export async function POST(
                             );
                             break;
                         case "step_done":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("step_done", {
                                         stepId: stepEvent.stepId,
@@ -199,7 +223,7 @@ export async function POST(
                             );
                             break;
                         case "step_validated":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("step_validated", {
                                         stepId: stepEvent.stepId,
@@ -211,7 +235,7 @@ export async function POST(
                             );
                             break;
                         case "step_error":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("step_error", {
                                         stepId: stepEvent.stepId,
@@ -223,10 +247,10 @@ export async function POST(
                     }
                 }
 
-                controller.enqueue(encode(formatSSE("done", {})));
+                safeEnqueue(encode(formatSSE("done", {})));
             } catch (error) {
                 logger.error("[ExecutePlanAPI] Stream error:", error);
-                controller.enqueue(
+                safeEnqueue(
                     encode(
                         formatSSE("error", {
                             message:
@@ -236,9 +260,13 @@ export async function POST(
                         }),
                     ),
                 );
-                controller.enqueue(encode(formatSSE("done", {})));
+                safeEnqueue(encode(formatSSE("done", {})));
             } finally {
-                controller.close();
+                try {
+                    controller.close();
+                } catch {
+                    // Already closed
+                }
             }
         },
     });
@@ -246,8 +274,9 @@ export async function POST(
     return new Response(stream, {
         headers: {
             "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-transform",
             Connection: "keep-alive",
+            "X-Accel-Buffering": "no",
         },
     });
 }

@@ -5,6 +5,7 @@ import type { Session } from "next-auth"; // Import Session type
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { clearSignedUrlCache } from "@/lib/cache/signed-urls";
 
 // Combined User type to handle both sources
 interface CombinedUser {
@@ -73,6 +74,7 @@ export function UserProfile({
 
     const handleSignOut = async () => {
         setIsDropdownOpen(false);
+        clearSignedUrlCache();
         await signOut({ callbackUrl: "/" });
     };
 

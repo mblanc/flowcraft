@@ -81,6 +81,13 @@ export async function POST(
         );
     }
 
+    if (body.message.length > 32768) {
+        return NextResponse.json(
+            { error: "message exceeds maximum allowed length" },
+            { status: 400 },
+        );
+    }
+
     if (!["auto", "image", "video"].includes(body.mode)) {
         return NextResponse.json(
             { error: "mode must be auto, image, or video" },
@@ -147,16 +154,31 @@ export async function POST(
 
     let canvas;
     try {
-        canvas = await canvasService.getCanvas(canvasId, session.user.id);
+        const getCanvasFn =
+            typeof canvasService.getCanvasForEdit === "function"
+                ? canvasService.getCanvasForEdit.bind(canvasService)
+                : canvasService.getCanvas.bind(canvasService);
+        canvas = await getCanvasFn(
+            canvasId,
+            session.user.id,
+            session.user.email ?? undefined,
+        );
     } catch (error) {
         if (error instanceof Error) {
-            if (error.message === "Canvas not found") {
+            if (
+                error.name === "CanvasNotFoundError" ||
+                error.message.startsWith("Canvas not found")
+            ) {
                 return NextResponse.json(
                     { error: "Canvas not found" },
                     { status: 404 },
                 );
             }
-            if (error.message === "Unauthorized") {
+            if (
+                error.name === "CanvasForbiddenError" ||
+                error.message === "Unauthorized" ||
+                error.message === "Forbidden"
+            ) {
                 return NextResponse.json(
                     { error: "Unauthorized" },
                     { status: 403 },
@@ -218,6 +240,14 @@ export async function POST(
     const stream = new ReadableStream({
         async start(controller) {
             const encode = (payload: string) => encoder.encode(payload);
+            const safeEnqueue = (chunk: Uint8Array) => {
+                if (req.signal.aborted) return;
+                try {
+                    controller.enqueue(chunk);
+                } catch {
+                    // Stream closed by client disconnect
+                }
+            };
 
             try {
                 const agentStream = agentRunner.stream({
@@ -239,9 +269,10 @@ export async function POST(
                 });
 
                 for await (const event of agentStream) {
+                    if (req.signal.aborted) break;
                     switch (event.type) {
                         case "text":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("text", { delta: event.delta }),
                                 ),
@@ -249,7 +280,7 @@ export async function POST(
                             break;
 
                         case "thought":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("thought", {
                                         delta: event.delta,
@@ -259,7 +290,7 @@ export async function POST(
                             break;
 
                         case "agent_action":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("agent_action", {
                                         label: event.label,
@@ -271,7 +302,7 @@ export async function POST(
                         case "plan":
                             // Send the plan to the client for approval — execution
                             // is triggered separately via /execute-plan when user confirms.
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("plan", {
                                         steps: event.plan.steps,
@@ -281,7 +312,7 @@ export async function POST(
                             break;
 
                         case "actions":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("actions", {
                                         actions: event.actions,
@@ -291,7 +322,7 @@ export async function POST(
                             break;
 
                         case "text_nodes":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("text_nodes", {
                                         nodes: event.nodes,
@@ -301,13 +332,13 @@ export async function POST(
                             break;
 
                         case "question":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(formatSSE("question", event.question)),
                             );
                             break;
 
                         case "error":
-                            controller.enqueue(
+                            safeEnqueue(
                                 encode(
                                     formatSSE("error", {
                                         message: event.message,
@@ -317,7 +348,7 @@ export async function POST(
                             break;
 
                         case "done":
-                            controller.enqueue(encode(formatSSE("done", {})));
+                            safeEnqueue(encode(formatSSE("done", {})));
                             break;
 
                         default:
@@ -328,7 +359,7 @@ export async function POST(
                 }
             } catch (error) {
                 logger.error("[ChatAPI] Stream error:", error);
-                controller.enqueue(
+                safeEnqueue(
                     encode(
                         formatSSE("error", {
                             message:
@@ -338,9 +369,13 @@ export async function POST(
                         }),
                     ),
                 );
-                controller.enqueue(encode(formatSSE("done", {})));
+                safeEnqueue(encode(formatSSE("done", {})));
             } finally {
-                controller.close();
+                try {
+                    controller.close();
+                } catch {
+                    // Already closed
+                }
             }
         },
     });
@@ -348,8 +383,9 @@ export async function POST(
     return new Response(stream, {
         headers: {
             "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-transform",
             Connection: "keep-alive",
+            "X-Accel-Buffering": "no",
         },
     });
 }
