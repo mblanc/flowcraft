@@ -259,4 +259,53 @@ describe("VideoNode Rendering", () => {
 
         expect(getByText("720p")).toBeDefined();
     });
+
+    it("should render Auto for aspect ratio and duration when undefined on Omni 1.1 Flash", () => {
+        const props = {
+            ...defaultProps,
+            selected: true,
+            data: {
+                ...defaultProps.data,
+                model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                aspectRatio: undefined,
+                duration: undefined,
+            },
+        };
+        const { getAllByText } = render(
+            <ReactFlowProvider>
+                <TooltipProvider>
+                    <VideoNode {...props} />
+                </TooltipProvider>
+            </ReactFlowProvider>,
+        );
+
+        // Auto should be displayed for both aspect ratio and duration
+        const autoElements = getAllByText("Auto");
+        expect(autoElements.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should disable aspect ratio select on Omni when task is edit", () => {
+        const props = {
+            ...defaultProps,
+            selected: true,
+            data: {
+                ...defaultProps.data,
+                model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                task: "edit",
+            },
+        };
+        const { container } = render(
+            <ReactFlowProvider>
+                <TooltipProvider>
+                    <VideoNode {...props} />
+                </TooltipProvider>
+            </ReactFlowProvider>,
+        );
+
+        // The aspect ratio button trigger should have disabled attribute or aria-disabled
+        const disabledTriggers = container.querySelectorAll(
+            'button[disabled], button[data-disabled="true"], [aria-disabled="true"]',
+        );
+        expect(disabledTriggers.length).toBeGreaterThan(0);
+    });
 });

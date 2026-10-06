@@ -29,6 +29,14 @@ function extractMediaUrl(value: unknown): string | undefined {
     return undefined;
 }
 
+function isOmniVideoModel(model?: string): boolean {
+    return (
+        !model ||
+        model === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
+        model === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH
+    );
+}
+
 export const videoPrimitive: Primitive<
     VideoData,
     CanvasVideoData,
@@ -57,18 +65,19 @@ export const videoPrimitive: Primitive<
             "result-output": "video",
         },
         gatherInputs: (node, edges, getSourceData) => {
-            const isOmni =
-                node.data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH ||
-                node.data.model === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH ||
-                !node.data.model;
+            const isOmni = isOmniVideoModel(node.data.model);
             const inputs: any = {
                 images: [],
                 namedNodes: [],
                 // Seed from node config; edge-connected values override below.
                 prompt: node.data.prompt || undefined,
                 model: node.data.model,
-                aspectRatio: node.data.aspectRatio,
-                duration: node.data.duration,
+                aspectRatio:
+                    node.data.aspectRatio ??
+                    (isOmni ? undefined : DEFAULTS.ASPECT_RATIO),
+                duration:
+                    node.data.duration ??
+                    (isOmni ? undefined : DEFAULTS.VIDEO_DURATION),
                 generateAudio: node.data.generateAudio,
                 resolution:
                     node.data.model === MODELS.VIDEO.GEMINI_OMNI_FLASH
@@ -291,8 +300,8 @@ export const videoPrimitive: Primitive<
             name: "Video",
             prompt: "",
             images: [],
-            aspectRatio: DEFAULTS.ASPECT_RATIO,
-            duration: DEFAULTS.VIDEO_DURATION,
+            aspectRatio: undefined,
+            duration: undefined,
             model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
             generateAudio: false,
             resolution: "720p",
@@ -327,18 +336,20 @@ export const videoPrimitive: Primitive<
             };
         },
         toRequest: (step, _ctx) => {
+            const isOmni = isOmniVideoModel(step.model);
             return {
                 prompt: step.prompt || "",
                 firstFrame: step.firstFrame,
                 lastFrame: step.lastFrame,
                 images: step.images || [],
-                aspectRatio: step.aspectRatio || DEFAULTS.ASPECT_RATIO,
-                duration: step.duration || DEFAULTS.VIDEO_DURATION,
+                aspectRatio:
+                    step.aspectRatio ??
+                    (isOmni ? undefined : DEFAULTS.ASPECT_RATIO),
+                duration:
+                    step.duration ??
+                    (isOmni ? undefined : DEFAULTS.VIDEO_DURATION),
                 model: step.model || MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
-                generateAudio:
-                    step.generateAudio !== undefined
-                        ? step.generateAudio
-                        : false,
+                generateAudio: step.generateAudio ?? false,
                 resolution: step.resolution || "720p",
                 audio: step.audio,
                 previousInteractionId: step.previousInteractionId,

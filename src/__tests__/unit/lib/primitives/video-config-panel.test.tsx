@@ -65,12 +65,13 @@ describe("Video ConfigPanel (TDD)", () => {
         images: [],
     };
 
-    it("renders duration options 3s-10s when model is GEMINI_OMNI_1_1_FLASH", () => {
+    it("renders duration options Auto and 3s-10s when model is GEMINI_OMNI_1_1_FLASH", () => {
         render(
             <TooltipProvider>
                 <VideoConfigPanel
                     data={{
                         ...baseData,
+                        duration: undefined,
                         model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
                     }}
                     nodeId="node-1"
@@ -79,6 +80,7 @@ describe("Video ConfigPanel (TDD)", () => {
         );
 
         expect(screen.getByText("Duration (seconds)")).toBeDefined();
+        expect(screen.getAllByText("Auto")).toHaveLength(2); // One for Duration, one for Aspect Ratio
         expect(screen.getByText("3 seconds")).toBeDefined();
         expect(screen.getByText("10 seconds")).toBeDefined();
     });
@@ -204,5 +206,62 @@ describe("Video ConfigPanel (TDD)", () => {
         expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
             model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
         });
+    });
+
+    it("renders Auto option for Aspect Ratio when model is Omni, and hides it for Veo", () => {
+        const { rerender } = render(
+            <TooltipProvider>
+                <VideoConfigPanel
+                    data={{
+                        ...baseData,
+                        model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                        aspectRatio: undefined,
+                    }}
+                    nodeId="node-1"
+                />
+            </TooltipProvider>,
+        );
+
+        // Aspect Ratio label exists
+        expect(screen.getByText("Aspect Ratio")).toBeDefined();
+        // Auto option exists for Omni
+        const autoItems = screen.getAllByText("Auto");
+        expect(autoItems.length).toBeGreaterThan(0);
+
+        // Rerender as Veo model
+        rerender(
+            <TooltipProvider>
+                <VideoConfigPanel
+                    data={{
+                        ...baseData,
+                        model: MODELS.VIDEO.VEO_3_1_FAST,
+                        aspectRatio: "16:9",
+                    }}
+                    nodeId="node-1"
+                />
+            </TooltipProvider>,
+        );
+
+        // Auto option should not exist anywhere for Veo (duration uses seconds, aspect ratio only has 16:9 and 9:16)
+        expect(screen.queryByText("Auto")).toBeNull();
+    });
+
+    it("disables Aspect Ratio select and shows note when task is edit", () => {
+        render(
+            <TooltipProvider>
+                <VideoConfigPanel
+                    data={{
+                        ...baseData,
+                        model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                        task: "edit",
+                    }}
+                    nodeId="node-1"
+                />
+            </TooltipProvider>,
+        );
+
+        expect(
+            screen.getByText(/Aspect ratio cannot be set for edit tasks/i),
+        ).toBeDefined();
     });
 });

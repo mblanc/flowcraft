@@ -89,8 +89,8 @@ Append to every prompt without exception:
 
 ## Duration
 
-- **Gemini Omni 1.1 (`gemini-omni-1.1-flash-preview`)**: Duration is configured via parameter (3 to 10 seconds).
-- **Veo Models (`veo-3.1-*`)**: Duration is configured via parameter and MUST be 4, 6, or 8 seconds.
+- **Gemini Omni Models (`gemini-omni-1.1-flash-preview`, `gemini-omni-flash-preview`)**: Default is Auto (leave duration unset / no parameter passed). When omitted, the model automatically selects the optimal natural duration (or matches the source video timing in video editing/transforms). Only pass an explicit duration (3 to 10 seconds) if the user requested a specific duration.
+- **Veo Models (`veo-3.1-*`)**: Duration is configured via parameter and MUST be 4, 6, or 8 seconds (default 4s).
 
 - **3–4s**: subtle atmosphere, minimal motion, single beat.
 - **5–6s**: one camera move or moderate subject motion.
@@ -100,9 +100,16 @@ For single-shot sequences longer than 10 seconds, split into multiple nodes conn
 
 ---
 
+## Aspect Ratio
+
+- **Gemini Omni Models (`gemini-omni-1.1-flash-preview`, `gemini-omni-flash-preview`)**: Default is Auto (leave aspect ratio unset / no parameter passed). When omitted, the model naturally infers the aspect ratio from the source image/video (e.g. during `i2v` or video editing) or selects natural proportions. Only pass an explicit aspect ratio ("16:9" or "9:16") for new generations (`t2v`, `i2v`) if specifically requested. Note: for video editing tasks (editing an existing video or video-to-video), Omni models do not support setting `aspect_ratio` in the response format — the model always preserves the source video's aspect ratio.
+- **Veo Models (`veo-3.1-*`)**: Defaults to "16:9" ("16:9" or "9:16").
+
+---
+
 ## Model hints
 
-- `gemini-omni-1.1-flash-preview`: **default** — best for general video generation, supports duration (3-10s), resolutions (360p, 720p, 1080p, 4K), first/last frame interpolation (`i2v2`), and stateful conversational editing (audio reference inputs/mixing are NOT supported).
+- `gemini-omni-1.1-flash-preview`: **default** — best for general video generation, defaults to Auto duration (3-10s optional) and Auto aspect ratio (16:9, 9:16 optional), resolutions (360p, 720p, 1080p, 4K), first/last frame interpolation (`i2v2`), and stateful conversational editing (audio reference inputs/mixing are NOT supported).
 - `veo-3.1-lite-generate-001`: best balance of quality and speed for Veo model family.
 - `veo-3.1-generate-001`: highest quality motion and consistency; use for hero shots or final output.
 - `gemini-omni-flash-preview`: legacy Omni 1.0 (720p fixed).

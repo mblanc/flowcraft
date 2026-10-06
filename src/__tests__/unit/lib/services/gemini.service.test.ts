@@ -450,6 +450,35 @@ describe("GeminiService", () => {
                     ]),
                     response_format: expect.objectContaining({
                         type: "video",
+                        delivery: "uri",
+                    }),
+                }),
+            );
+            const call = mockAi.interactions.create.mock.calls[0][0] as any;
+            expect(call.response_format.aspect_ratio).toBeUndefined();
+        });
+
+        it("should include aspect_ratio in response_format when explicitly specified for Omni", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-123",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    data: "base64_video_data",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "A dog running",
+                model: "gemini-omni-flash-preview",
+                aspectRatio: "16:9",
+            });
+
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-flash-preview",
+                    response_format: expect.objectContaining({
+                        type: "video",
                         aspect_ratio: "16:9",
                         delivery: "uri",
                     }),
@@ -565,6 +594,27 @@ describe("GeminiService", () => {
                     },
                 }),
             );
+            const call = mockAi.interactions.create.mock.calls[0][0] as any;
+            expect(call.response_format.aspect_ratio).toBeUndefined();
+        });
+
+        it("should omit aspect_ratio in response_format and warn if specified for edit tasks", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-456",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    data: "base64_video_data",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "Reframe to portrait",
+                model: "gemini-omni-flash-preview",
+                video: "gs://bucket/input.mp4",
+                aspectRatio: "9:16",
+            });
+
             const call = mockAi.interactions.create.mock.calls[0][0] as any;
             expect(call.response_format.aspect_ratio).toBeUndefined();
         });

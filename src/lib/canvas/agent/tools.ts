@@ -74,12 +74,19 @@ const videoStepSchema = z.object({
     type: z.literal("video"),
     prompt: z.string(),
     label: z.string(),
-    aspectRatio: z.enum(VIDEO_ASPECT_RATIOS).optional(),
+    aspectRatio: z
+        .enum(VIDEO_ASPECT_RATIOS)
+        .optional()
+        .describe(
+            "Video aspect ratio ('16:9' or '9:16'). For Omni models: leave unset (Auto) by default so the model infers it naturally or matches source media.",
+        ),
     resolution: z.enum(VIDEO_RESOLUTIONS).optional(),
     model: z.enum(VIDEO_MODELS).optional(),
     duration: z
         .union([z.number(), z.string()])
-        .describe("Duration in seconds (3 to 10s).")
+        .describe(
+            "Video duration in seconds. For Omni models: leave unset (Auto) by default so the model chooses the optimal duration, or 3 to 10s if specified. For Veo models: 4, 6, or 8s.",
+        )
         .optional(),
     generateAudio: z.boolean().optional(),
     referenceNodeIds: z.array(z.string()).optional(),
@@ -128,7 +135,12 @@ const planNodeSchema = z.object({
         .optional()
         .describe("Fully-engineered prompt (filled by PromptEngineer)"),
     label: z.string().optional(),
-    aspectRatio: z.enum(ALL_ASPECT_RATIOS).optional(),
+    aspectRatio: z
+        .enum(ALL_ASPECT_RATIOS)
+        .optional()
+        .describe(
+            "Aspect ratio. For Omni video operations: leave unset (Auto) by default so the model infers it naturally or matches source media.",
+        ),
     imageSize: z
         .enum(IMAGE_SIZES)
         .optional()
@@ -158,7 +170,7 @@ const planNodeSchema = z.object({
         .union([z.number(), z.string()])
         .optional()
         .describe(
-            "Video duration in seconds (3 to 10s; for Veo: 4, 6, or 8s).",
+            "Video duration in seconds. For Omni models ('gemini-omni-1.1-flash-preview', 'gemini-omni-flash-preview'): leave unset (Auto) by default so the model chooses the optimal duration, or 3 to 10s if explicitly specified. For Veo models: 4, 6, or 8s (default 4s).",
         ),
     generateAudio: z.boolean().optional(),
     skill: z.string().optional(),
