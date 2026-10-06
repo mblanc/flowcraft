@@ -48,7 +48,7 @@ Key layers:
 - **`src/lib/store/use-flow-store.ts`** — Zustand store (sliced into `graph-slice` + `ui-slice`). Persisted to `localStorage` with transient fields stripped (`executing`, `batchProgress`, etc.).
 - **`src/lib/node-adapters/utils/`** — Shared helpers: `mention-resolver.ts` resolves `@node` references in prompts; `execute-api-call.ts` wraps API routes; `node-helpers.ts` has `gatherInputs` utilities.
 
-Adding a new node type: create a primitive definition in `src/primitives/<type>/definition.ts`, import and adapt it using `toNodeDefinition` in `src/lib/node-adapters/index.ts` (adding it to `allNodeDefinitions`), add the type to `NodeType` in `src/lib/types.ts`, register its Zod schema in `src/lib/schemas.ts`, and add a React component in `src/components/nodes/`.
+Adding a new node type: create a primitive definition in `src/primitives/<type>/definition.ts` along with `execute.ts`, `FlowNode.tsx`, and `ConfigPanel.tsx`, register it in `src/primitives/registry.ts`, `src/primitives/server-registry.ts`, and `src/primitives/component-registry.ts`, adapt it using `toNodeDefinition` in `src/lib/node-adapters/index.ts` (adding it to `allNodeDefinitions`), add the type to `NodeType` in `src/lib/types.ts`, and register its Zod schema in `src/lib/schemas.ts`.
 
 ### 2. Canvas (`/canvas/[id]`)
 
@@ -59,11 +59,11 @@ Key layers:
 - **`src/lib/canvas/agent/agent-runner.ts`** — `CanvasAgentRunner` wraps the Google ADK. Two variants:
     - **Agent A** (`variant: "a"`): streaming LLM for simple image/video plans. Uses SSE streaming.
     - **Agent B / Director** (`variant: "b"`): multi-turn agentic loop with `ThinkingLevel.LOW`. Uses `StreamingMode.NONE` because SSE closes after the first turn. Loads pattern skills from `src/lib/canvas/agent/skills/patterns/` (e.g., `character-generation`, `long-video`, `storyboard`, `virtual-tryon`, `vox-director`).
-- **`src/lib/canvas/agent/tools.ts`** — ADK tool definitions: `planImageGenerationTool`, `planVideoGenerationTool`, `planProductionTool`, `suggestActionsTool`.
+- **`src/lib/canvas/agent/tools.ts`** — ADK tool definitions: `planImageGenerationTool`, `planVideoGenerationTool`, `planProductionTool`, `planTextNodesTool`, `suggestActionsTool`, `askUserTool`.
 - **`src/lib/canvas/agent/topology.ts`** — Kahn's algorithm (`topoSort`) for DAG-aware parallel execution of production plans. Only `depends_on` edges create ordering constraints.
 - **`src/lib/canvas/agent/prompt-engineer.ts`** — `PromptEngineer`: single-turn agent that enriches `PlanNode.promptIntent` → `PlanNode.prompt` using primitive skill docs from `src/lib/canvas/agent/skills/primitives/`.
 - **`src/lib/canvas/agent/step-mapper.ts`** — Maps Director tool-call outputs into `GenerationStep[]`.
-- **`src/lib/canvas/generation.ts`** — `executePlan`: resolves step references (canvas node URIs + inter-step dependencies), calls `geminiService`/`storageService`, streams `StepEvent`s.
+- **`src/lib/canvas/generation.ts`** — `executePlan`: enriches prompts via `PromptEngineer`, resolves step references (canvas node URIs + inter-step dependencies), calls `geminiService`/`storageService`, validates images against active rulesets, streams `StepEvent`s.
 - **`src/lib/canvas/types.ts`** — All Canvas-specific types: `CanvasNode`, `ProductionPlan`, `PlanNode`, `PlanEdge`, `MediaOperation`, `GenerationStep`, `ChatMessage`.
 - **`src/lib/store/use-canvas-store.ts`** — Zustand store for canvas state (nodes, messages, viewport).
 
@@ -76,9 +76,9 @@ Canvas API routes:
 
 - **Auth**: `next-auth` v5 with Google provider (`src/auth.ts`). All API routes call `auth()` for session.
 - **Persistence**: Firestore via `src/lib/firestore.ts`. Services in `src/lib/services/` wrap Firestore collections (`flow.service`, `canvas.service`, `library.service`, etc.).
-- **Storage**: GCS via `src/lib/services/storage.service.ts`. Signed URLs cached in `src/lib/cache/signed-url-cache.ts` (pre-warmed after generation).
+- **Storage**: GCS via `src/lib/services/storage.service.ts`. Signed URLs cached in `src/lib/cache/signed-urls.ts` (pre-warmed after generation).
 - **AI**: `@google/genai` for Gemini API calls; `@google/adk` for the canvas agent framework. Both use Vertex AI (configured in `src/lib/config.ts`).
-- **UI**: shadcn/ui components in `src/components/ui/` (Radix primitives + Tailwind CSS v4). Flow node components in `src/components/nodes/`, config panels in `src/components/panels/`.
+- **UI**: shadcn/ui components in `src/components/ui/` (Radix primitives + Tailwind CSS v4). Node components (`FlowNode.tsx`, `CanvasNode.tsx`, `ConfigPanel.tsx`) live in `src/primitives/<type>/` with shared wrappers in `src/components/nodes/`.
 
 ### Path alias
 
