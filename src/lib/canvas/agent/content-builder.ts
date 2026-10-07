@@ -1,5 +1,6 @@
 import { createPartFromText, createPartFromUri } from "@google/genai";
 import type { Content } from "@google/genai";
+import { assertAuthorizedGcsUri } from "@/lib/db/storage";
 import type { AgentInput } from "../types";
 
 export function buildUserContent(input: AgentInput): Content {
@@ -25,6 +26,7 @@ export function buildUserContent(input: AgentInput): Content {
             } else if ("sourceUrl" in node.data && node.data.sourceUrl) {
                 const src = node.data.sourceUrl as string;
                 if (src.startsWith("gs://")) {
+                    assertAuthorizedGcsUri(src);
                     const mime =
                         ("mimeType" in node.data
                             ? (node.data.mimeType as string)

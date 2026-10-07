@@ -5,6 +5,14 @@ import logger from "@/app/logger";
 import { createPartFromUri, createPartFromText } from "@google/genai";
 import { assertAuthorizedGcsUri } from "@/lib/db/storage";
 
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    gif: "image/gif",
+    png: "image/png",
+};
+
 const RESPONSE_SCHEMA = {
     type: "object",
     properties: {
@@ -48,15 +56,8 @@ export const POST = withAuth(async (req) => {
             if (uri.startsWith("gs://")) {
                 assertAuthorizedGcsUri(uri);
             }
-            const ext = uri.split(".").pop()?.toLowerCase();
-            const mimeType =
-                ext === "jpg" || ext === "jpeg"
-                    ? "image/jpeg"
-                    : ext === "webp"
-                      ? "image/webp"
-                      : ext === "gif"
-                        ? "image/gif"
-                        : "image/png";
+            const ext = uri.split(".").pop()?.toLowerCase() ?? "";
+            const mimeType = IMAGE_MIME_BY_EXT[ext] ?? "image/png";
             return createPartFromUri(uri, mimeType);
         });
 

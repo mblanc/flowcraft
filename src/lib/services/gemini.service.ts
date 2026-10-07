@@ -80,6 +80,25 @@ function inferMimeTypeFromUrl(
     return "application/octet-stream";
 }
 
+function resolveOmniVideoTask(
+    params: Pick<
+        GenerateVideoOptions,
+        "task" | "video" | "images" | "firstFrame" | "lastFrame"
+    > & { isOmni11: boolean },
+): string | undefined {
+    const { task, video, images, firstFrame, lastFrame, isOmni11 } = params;
+    if (task && task !== "none") return task;
+    if (video) return "edit";
+    if (
+        (images && images.length > 0) ||
+        firstFrame ||
+        (lastFrame && isOmni11)
+    ) {
+        return "image_to_video";
+    }
+    return undefined;
+}
+
 /** Converts a serializable ContentPart to the Gemini SDK native Part type. */
 function contentPartToSdkPart(
     part: ContentPart,
@@ -789,16 +808,14 @@ export class GeminiService {
             response_format: responseFormat,
         };
 
-        const effectiveTask =
-            task && task !== "none"
-                ? task
-                : video
-                  ? "edit"
-                  : (images && images.length > 0) ||
-                      firstFrame ||
-                      (lastFrame && isOmni11)
-                    ? "image_to_video"
-                    : undefined;
+        const effectiveTask = resolveOmniVideoTask({
+            task,
+            video,
+            images,
+            firstFrame,
+            lastFrame,
+            isOmni11,
+        });
 
         if (effectiveTask) {
             interactionRequest.generation_config = {

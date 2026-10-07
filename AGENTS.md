@@ -75,7 +75,7 @@ Canvas API routes:
 ### Shared Infrastructure
 
 - **Auth**: `next-auth` v5 with Google provider (`src/auth.ts`). All API routes call `auth()` for session.
-- **Persistence**: Firestore via `src/lib/firestore.ts`. Services in `src/lib/services/` wrap Firestore collections (`flow.service`, `canvas.service`, `library.service`, etc.).
+- **Persistence**: Firestore via `src/lib/db/firestore.ts`. Services in `src/lib/services/` wrap Firestore collections (`flow.service`, `canvas.service`, `library.service`, etc.).
 - **Storage**: GCS via `src/lib/services/storage.service.ts`. Signed URLs cached in `src/lib/cache/signed-urls.ts` (pre-warmed after generation).
 - **AI**: `@google/genai` for Gemini API calls; `@google/adk` for the canvas agent framework. Both use Vertex AI (configured in `src/lib/config.ts`).
 - **UI**: shadcn/ui components in `src/components/ui/` (Radix primitives + Tailwind CSS v4). Node components (`FlowNode.tsx`, `CanvasNode.tsx`, `ConfigPanel.tsx`) live in `src/primitives/<type>/` with shared wrappers in `src/components/nodes/`.

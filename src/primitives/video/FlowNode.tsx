@@ -21,6 +21,8 @@ import { MODELS, isOmniVideoModel } from "@/lib/constants";
 import {
     getEffectiveVideoModel,
     getNormalizedVideoNodeUpdates,
+    getVideoAspectRatioSelectValue,
+    getVideoDurationSelectValue,
 } from "./definition";
 import {
     Select,
@@ -360,13 +362,10 @@ export const FlowNode = memo(
                             </SelectContent>
                         </Select>
                         <Select
-                            value={
-                                data.aspectRatio !== undefined
-                                    ? data.aspectRatio
-                                    : isOmni
-                                      ? "auto"
-                                      : "16:9"
-                            }
+                            value={getVideoAspectRatioSelectValue(
+                                data.aspectRatio,
+                                isOmni,
+                            )}
                             disabled={isOmni && data.task === "edit"}
                             onValueChange={(value) =>
                                 updateNodeData(id, {
@@ -456,13 +455,10 @@ export const FlowNode = memo(
                         )}
                         {data.model !== MODELS.VIDEO.GEMINI_OMNI_FLASH && (
                             <Select
-                                value={
-                                    data.duration !== undefined
-                                        ? String(data.duration)
-                                        : isOmni11
-                                          ? "auto"
-                                          : "4"
-                                }
+                                value={getVideoDurationSelectValue(
+                                    data.duration,
+                                    isOmni11,
+                                )}
                                 onValueChange={(value) =>
                                     updateNodeData(id, {
                                         duration:

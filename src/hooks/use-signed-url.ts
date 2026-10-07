@@ -97,10 +97,14 @@ export function useSignedUrls(gcsUris: (string | undefined)[]) {
         if (uncached.length === 0) return;
 
         // Fetch remaining signed URLs via single batch request
-        fetchAndCacheSignedUrls(uncached).then((newUrls) => {
-            if (!isMounted) return;
-            setSignedUrls((prev) => ({ ...prev, ...newUrls }));
-        });
+        fetchAndCacheSignedUrls(uncached)
+            .then((newUrls) => {
+                if (!isMounted) return;
+                setSignedUrls((prev) => ({ ...prev, ...newUrls }));
+            })
+            .catch(() => {
+                // Error already logged in fetchAndCacheSignedUrls
+            });
 
         return () => {
             isMounted = false;

@@ -268,9 +268,17 @@ export function calculateNodePositions(
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
-const BASE_AREA = 90_000; // ~300×300 px²
+export interface PlaceholderRect {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
 
-function parseAspectRatioDimensions(aspectRatio?: string): {
+const BASE_AREA = 90_000; // ~300×300 px²
+const PLACEHOLDER_GAP = 20;
+
+export function parseAspectRatioDimensions(aspectRatio?: string): {
     width: number;
     height: number;
 } {
@@ -287,11 +295,101 @@ function parseAspectRatioDimensions(aspectRatio?: string): {
 }
 
 function rectsOverlap(a: Rect, b: Rect): boolean {
-    const PADDING = 20; // Extra padding between nodes
     return !(
-        a.x + a.width + PADDING <= b.x ||
-        b.x + b.width + PADDING <= a.x ||
-        a.y + a.height + PADDING <= b.y ||
-        b.y + b.height + PADDING <= a.y
+        a.x + a.width + PLACEHOLDER_GAP <= b.x ||
+        b.x + b.width + PLACEHOLDER_GAP <= a.x ||
+        a.y + a.height + PLACEHOLDER_GAP <= b.y ||
+        b.y + b.height + PLACEHOLDER_GAP <= a.y
     );
+}
+
+function isPlaceholderPositionFree(
+    candidate: PlaceholderRect,
+    occupied: PlaceholderRect[],
+): boolean {
+    const candidateRect: Rect = {
+        x: candidate.x,
+        y: candidate.y,
+        width: candidate.w,
+        height: candidate.h,
+    };
+    return !occupied.some((r) =>
+        rectsOverlap(candidateRect, {
+            x: r.x,
+            y: r.y,
+            width: r.w,
+            height: r.h,
+        }),
+    );
+}
+
+/**
+ * Find an empty canvas position for a new placeholder node.
+ * Tries positions around the reference rect first (right, below, left, above),
+ * then spirals outward in a grid from the anchor point.
+ */
+export function findEmptyPosition(
+    w: number,
+    h: number,
+    ref: PlaceholderRect | null,
+    occupied: PlaceholderRect[],
+    viewportCenter: { x: number; y: number },
+): { x: number; y: number } {
+    const anchor = ref
+        ? { x: ref.x + ref.w / 2, y: ref.y + ref.h / 2 }
+        : viewportCenter;
+
+    if (ref) {
+        const candidates = [
+            { x: ref.x + ref.w + PLACEHOLDER_GAP, y: ref.y + (ref.h - h) / 2 },
+            { x: ref.x + (ref.w - w) / 2, y: ref.y + ref.h + PLACEHOLDER_GAP },
+            { x: ref.x - w - PLACEHOLDER_GAP, y: ref.y + (ref.h - h) / 2 },
+            { x: ref.x + (ref.w - w) / 2, y: ref.y - h - PLACEHOLDER_GAP },
+        ];
+        for (const pos of candidates) {
+            if (
+                isPlaceholderPositionFree(
+                    { x: pos.x, y: pos.y, w, h },
+                    occupied,
+                )
+            ) {
+                return pos;
+            }
+        }
+    }
+
+    const step = Math.max(w, h) + PLACEHOLDER_GAP;
+    for (let ring = 0; ring <= 20; ring++) {
+        if (ring === 0) {
+            const pos = { x: anchor.x - w / 2, y: anchor.y - h / 2 };
+            if (
+                isPlaceholderPositionFree(
+                    { x: pos.x, y: pos.y, w, h },
+                    occupied,
+                )
+            ) {
+                return pos;
+            }
+            continue;
+        }
+        for (let dx = -ring; dx <= ring; dx++) {
+            for (let dy = -ring; dy <= ring; dy++) {
+                if (Math.abs(dx) !== ring && Math.abs(dy) !== ring) continue;
+                const pos = {
+                    x: anchor.x - w / 2 + dx * step,
+                    y: anchor.y - h / 2 + dy * step,
+                };
+                if (
+                    isPlaceholderPositionFree(
+                        { x: pos.x, y: pos.y, w, h },
+                        occupied,
+                    )
+                ) {
+                    return pos;
+                }
+            }
+        }
+    }
+
+    return { x: anchor.x - w / 2, y: anchor.y - h / 2 };
 }

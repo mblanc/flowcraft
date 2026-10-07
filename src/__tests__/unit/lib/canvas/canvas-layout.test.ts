@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { calculateNodePositions } from "@/lib/canvas/layout";
+import {
+    calculateNodePositions,
+    findEmptyPosition,
+    parseAspectRatioDimensions,
+    type PlaceholderRect,
+} from "@/lib/canvas/layout";
 import type { GenerationStep, CanvasNode } from "@/lib/canvas/types";
 
 describe("calculateNodePositions", () => {
@@ -206,5 +211,93 @@ describe("calculateNodePositions", () => {
 
         // Videos should be to the right of images
         expect(positions.get("s5")!.x).toBeGreaterThan(positions.get("s2")!.x);
+    });
+});
+
+describe("parseAspectRatioDimensions", () => {
+    it("returns 300x300 when aspectRatio is omitted or invalid", () => {
+        expect(parseAspectRatioDimensions()).toEqual({
+            width: 300,
+            height: 300,
+        });
+        expect(parseAspectRatioDimensions("")).toEqual({
+            width: 300,
+            height: 300,
+        });
+        expect(parseAspectRatioDimensions("invalid")).toEqual({
+            width: 300,
+            height: 300,
+        });
+        expect(parseAspectRatioDimensions("16:0")).toEqual({
+            width: 300,
+            height: 300,
+        });
+    });
+
+    it("returns 300x300 for 1:1 aspect ratio", () => {
+        expect(parseAspectRatioDimensions("1:1")).toEqual({
+            width: 300,
+            height: 300,
+        });
+    });
+
+    it("computes landscape and portrait dimensions preserving ~90,000 px² area", () => {
+        const landscape = parseAspectRatioDimensions("16:9");
+        const portrait = parseAspectRatioDimensions("9:16");
+
+        expect(landscape.width).toBeGreaterThan(landscape.height);
+        expect(portrait.height).toBeGreaterThan(portrait.width);
+        expect(landscape.width).toBe(portrait.height);
+    });
+});
+
+describe("findEmptyPosition", () => {
+    it("centers on viewportCenter when no ref and no occupied rects", () => {
+        const pos = findEmptyPosition(300, 300, null, [], { x: 500, y: 400 });
+        expect(pos).toEqual({ x: 350, y: 250 });
+    });
+
+    it("places to the right, below, left, then above ref as slots fill up", () => {
+        const ref: PlaceholderRect = { x: 100, y: 100, w: 300, h: 300 };
+        const occupied: PlaceholderRect[] = [ref];
+
+        // 1st priority: Right of ref (x = 100 + 300 + 20 = 420, y = 100)
+        const rightPos = findEmptyPosition(300, 300, ref, occupied, {
+            x: 0,
+            y: 0,
+        });
+        expect(rightPos).toEqual({ x: 420, y: 100 });
+        occupied.push({ ...rightPos, w: 300, h: 300 });
+
+        // 2nd priority: Below ref (x = 100, y = 100 + 300 + 20 = 420)
+        const belowPos = findEmptyPosition(300, 300, ref, occupied, {
+            x: 0,
+            y: 0,
+        });
+        expect(belowPos).toEqual({ x: 100, y: 420 });
+        occupied.push({ ...belowPos, w: 300, h: 300 });
+
+        // 3rd priority: Left of ref (x = 100 - 300 - 20 = -220, y = 100)
+        const leftPos = findEmptyPosition(300, 300, ref, occupied, {
+            x: 0,
+            y: 0,
+        });
+        expect(leftPos).toEqual({ x: -220, y: 100 });
+        occupied.push({ ...leftPos, w: 300, h: 300 });
+
+        // 4th priority: Above ref (x = 100, y = 100 - 300 - 20 = -220)
+        const abovePos = findEmptyPosition(300, 300, ref, occupied, {
+            x: 0,
+            y: 0,
+        });
+        expect(abovePos).toEqual({ x: 100, y: -220 });
+        occupied.push({ ...abovePos, w: 300, h: 300 });
+
+        // 5th: Spirals outward into ring 1 corner (-320, -320 offset from ref center)
+        const spiralPos = findEmptyPosition(300, 300, ref, occupied, {
+            x: 0,
+            y: 0,
+        });
+        expect(spiralPos).toEqual({ x: -220, y: -220 });
     });
 });

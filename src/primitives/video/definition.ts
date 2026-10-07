@@ -69,6 +69,22 @@ export function getNormalizedVideoNodeUpdates(
     return updates;
 }
 
+export function getVideoAspectRatioSelectValue(
+    aspectRatio: VideoData["aspectRatio"],
+    isOmni: boolean,
+): string {
+    if (aspectRatio !== undefined) return aspectRatio;
+    return isOmni ? "auto" : "16:9";
+}
+
+export function getVideoDurationSelectValue(
+    duration: VideoData["duration"],
+    isOmni11: boolean,
+): string {
+    if (duration !== undefined) return String(duration);
+    return isOmni11 ? "auto" : "4";
+}
+
 export { isOmniVideoModel };
 
 export const videoPrimitive: Primitive<
