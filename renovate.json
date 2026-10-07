@@ -39,30 +39,30 @@
         },
         {
             "description": "Google Cloud & AI SDKs — batch weekly",
-            "matchPackagePatterns": ["^@google-cloud/", "^@google/genai"],
             "groupName": "Google Cloud & AI",
-            "schedule": ["before 6am on monday"]
+            "schedule": ["before 6am on monday"],
+            "matchPackageNames": ["/^@google-cloud//", "/^@google/genai/"]
         },
         {
             "description": "UI/UX & Styling",
-            "matchPackagePatterns": [
-                "^@radix-ui/",
-                "^lucide-react",
-                "^tailwindcss",
-                "^@tailwindcss/",
-                "^tw-animate-css",
-                "^class-variance-authority",
-                "^clsx",
-                "^tailwind-merge",
-                "^tailwindcss-animate",
-                "^cmdk",
-                "^sonner",
-                "^vaul",
-                "^embla-carousel-react",
-                "^react-resizable-panels",
-                "^geist"
-            ],
-            "groupName": "UI & Styling"
+            "groupName": "UI & Styling",
+            "matchPackageNames": [
+                "/^@radix-ui//",
+                "/^lucide-react/",
+                "/^tailwindcss/",
+                "/^@tailwindcss//",
+                "/^tw-animate-css/",
+                "/^class-variance-authority/",
+                "/^clsx/",
+                "/^tailwind-merge/",
+                "/^tailwindcss-animate/",
+                "/^cmdk/",
+                "/^sonner/",
+                "/^vaul/",
+                "/^embla-carousel-react/",
+                "/^react-resizable-panels/",
+                "/^geist/"
+            ]
         },
         {
             "description": "React Flow canvas library",
@@ -91,22 +91,22 @@
         },
         {
             "description": "Data & State",
-            "matchPackagePatterns": ["^zustand", "^zod"],
-            "groupName": "state & data"
+            "groupName": "state & data",
+            "matchPackageNames": ["/^zustand/", "/^zod/"]
         },
         {
             "description": "Types packages — safe to batch and auto-merge",
-            "matchPackagePatterns": ["^@types/"],
             "groupName": "type definitions",
             "automerge": true,
-            "platformAutomerge": true
+            "platformAutomerge": true,
+            "matchPackageNames": ["/^@types//"]
         },
         {
             "description": "Testing libraries",
-            "matchPackagePatterns": ["^@testing-library/"],
             "groupName": "testing libraries",
             "automerge": true,
-            "platformAutomerge": true
+            "platformAutomerge": true,
+            "matchPackageNames": ["/^@testing-library//"]
         },
         {
             "description": "Tooling & Build",
