@@ -24,16 +24,16 @@ describe("planImageGenerationTool", () => {
         expect(result).toEqual({ steps });
     });
 
-    it("accepts optional fields on image steps", async () => {
+    it("accepts optional fields on image steps including gemini-nano-banana-2.1 and 9:21", async () => {
         const steps = [
             {
                 id: "step_0",
                 type: "image" as const,
                 prompt: "A sunset",
                 label: "Sunset",
-                aspectRatio: "16:9",
+                aspectRatio: "9:21",
                 imageSize: "2K",
-                model: "gemini-3.1-flash-image",
+                model: "gemini-nano-banana-2.1",
                 referenceNodeIds: ["node_1"],
                 dependsOn: [],
             },

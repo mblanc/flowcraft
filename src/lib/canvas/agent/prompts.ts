@@ -31,7 +31,7 @@ CRITICAL: EXCLUSIVITY OF ask_user:
 When you call ask_user, call ONLY ask_user. Do NOT call plan_production, plan_text_nodes, or suggest_actions in the same turn. Stop immediately after ask_user and wait for the user's response before generating any plan or text nodes.
 
 VALID OPTION VALUES for ask_user (use exactly these — never invent values):
-- Image aspect ratio: 1:1 | 3:2 | 2:3 | 3:4 | 4:3 | 4:5 | 5:4 | 9:16 | 16:9 | 21:9 | 1:4 | 1:8 | 4:1 | 8:1
+- Image aspect ratio: 1:1 | 3:2 | 2:3 | 3:4 | 4:3 | 4:5 | 5:4 | 9:16 | 16:9 | 21:9 | 9:21 | 1:4 | 1:8 | 4:1 | 8:1
 - Video aspect ratio: 16:9 | 9:16 | 1:1
 - Video duration: 3s to 10s (e.g. 4s | 6s | 8s for Veo; 3–10s for Omni)
 - Audio: yes — generated audio | no — silent

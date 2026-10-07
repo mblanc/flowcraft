@@ -19,6 +19,7 @@ const ALL_OPERATION_IDS = [
 // Derive valid values directly from constants so there's one source of truth.
 
 export const IMAGE_MODELS = [
+    MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
     MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE,
     MODELS.IMAGE.GEMINI_3_PRO_IMAGE,
     MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,

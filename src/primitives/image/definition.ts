@@ -51,7 +51,7 @@ export const imagePrimitive: Primitive<
                 prompt: node.data.prompt || undefined,
                 model: validModels.includes(node.data.model)
                     ? node.data.model
-                    : MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+                    : MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
                 aspectRatio: node.data.aspectRatio,
                 imageSize: node.data.imageSize,
                 groundingGoogleSearch: node.data.groundingGoogleSearch,
@@ -196,7 +196,7 @@ export const imagePrimitive: Primitive<
             prompt: "",
             images: [],
             aspectRatio: DEFAULTS.IMAGE_ASPECT_RATIO,
-            model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+            model: MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
             imageSize: DEFAULTS.IMAGE_RESOLUTION,
             groundingGoogleSearch: false,
             groundingImageSearch: false,
@@ -230,7 +230,7 @@ export const imagePrimitive: Primitive<
             return {
                 prompt: step.prompt || "",
                 aspectRatio: step.aspectRatio || DEFAULTS.IMAGE_ASPECT_RATIO,
-                model: step.model || MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+                model: step.model || MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
                 imageSize: step.imageSize || DEFAULTS.IMAGE_RESOLUTION,
                 images: step.images || [],
                 groundingGoogleSearch: step.groundingGoogleSearch || false,

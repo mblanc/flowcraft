@@ -16,7 +16,7 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 ### Built-in Nodes
 
 - **🤖 LLM (Agent) Node**: Gemini-powered text generation supporting text and files, configurable tools, instructions, strict JSON output, and a visual schema builder.
-- **🖼️ Image Node**: Generates images using Gemini 3 Pro Image Preview (Nano Banana Pro) or Gemini 2.5 Flash Image (Nano Banana). Configurable aspect ratios, referencing, and resolutions.
+- **🖼️ Image Node**: Generates images using Gemini Nano Banana 2.1 (`gemini-nano-banana-2.1`, default), Gemini 3.1 Flash Image (Nano Banana 2), Gemini 3 Pro Image Preview (Nano Banana Pro), or Gemini 2.5 Flash Image (Nano Banana). Configurable aspect ratios, referencing, and resolutions.
 - **🎬 Video Node**: Powered by Veo 3.1 (Fast and Pro models). Generates videos (4, 6, or 8 seconds) given text prompts and optionally a first/last frame or reference images from connected nodes.
 - **📁 File Node**: Manages and previews files including PDFs, Images, and Videos, which can be connected to LLM and Vision nodes via Google Cloud Storage URIs.
 - **📝 Text Node**: Simple multi-line text input for prompts and instructions.
@@ -57,7 +57,7 @@ A visual workflow builder for AI-powered content generation using Google's Gemin
 ### Supported AI Models
 
 - **Text:** `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`
-- **Image:** `imagen-4.0-upscale-preview`, `gemini-2.5-flash-image`, `gemini-3-pro-image`, `gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`
+- **Image:** `gemini-nano-banana-2.1`, `imagen-4.0-upscale-preview`, `gemini-2.5-flash-image`, `gemini-3-pro-image`, `gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`
 - **Video:** `veo-3.1-lite-generate-001`, `veo-3.1-fast-generate-001`, `veo-3.1-generate-001`, `gemini-omni-flash-preview`
 
 ## 📋 Prerequisites

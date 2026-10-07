@@ -1,33 +1,39 @@
-- [x] **Task 1: Register Models & Schemas (Foundation)**
-    - Acceptance: `MODELS.VIDEO.GEMINI_OMNI_FLASH` is defined as `"gemini-omni-flash-preview"`. `GenerateVideoSchema` and `VideoDataSchema` include it and set it as default. `CanvasVideoData` has `interactionId?: string` and `previous_interaction_id?: string`.
+- [x] **Task 1: Register Model Constants & Schemas (Foundation)**
+    - Acceptance: `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1` (`"gemini-nano-banana-2.1"`) is defined in `src/lib/constants.ts` with thinking levels `["MINIMAL", "HIGH"]`, ratios including `"9:21"`, `imageSizes: ["1K", "2K", "4K"]`, and `grounding: { google: true, image: true }`. `ImageDataAspectRatioSchema` includes `"9:21"`, `ImageDataModelSchema` includes `GEMINI_NANO_BANANA_2_1`, and `GenerateImageSchema` defaults to `GEMINI_NANO_BANANA_2_1`.
     - Verify: `bun run test src/__tests__/unit/lib/resolution-schemas.test.ts` passes.
     - Files:
         - `src/lib/constants.ts`
         - `src/lib/schemas.ts`
-        - `src/lib/canvas/types.ts`
         - `src/__tests__/unit/lib/resolution-schemas.test.ts`
 
-- [x] **Task 2: Implement Interactions API in Gemini Service (Core Backend)**
-    - Acceptance: `geminiService.generateVideo` branches for `gemini-omni-flash-preview` to use `ai.interactions.create`. It handles both inline base64 and URI delivery (with polling on `ai.files.get`, downloading with `google-auth-library` token, and uploading to GCS).
-    - Verify: `bun run test src/__tests__/unit/lib/services/gemini.service.test.ts` passes.
+- [x] **Task 2: Update Gemini Service & Image Primitive (Flow Editor & Server)**
+    - Acceptance: `geminiService.generateImage` defaults to `GEMINI_NANO_BANANA_2_1`. `imagePrimitive` (`definition.ts`), `FlowNode.tsx`, and `ConfigPanel.tsx` use `GEMINI_NANO_BANANA_2_1` as default/fallback and include `Nano Banana 2.1` in model selectors.
+    - Verify: `bun run test src/__tests__/unit/lib/services/gemini.service.test.ts src/__tests__/unit/lib/primitives/image-node.test.tsx src/__tests__/unit/lib/nodes/node-gather-inputs.test.ts` passes.
     - Files:
         - `src/lib/services/gemini.service.ts`
+        - `src/primitives/image/definition.ts`
+        - `src/primitives/image/FlowNode.tsx`
+        - `src/primitives/image/ConfigPanel.tsx`
         - `src/__tests__/unit/lib/services/gemini.service.test.ts`
+        - `src/__tests__/unit/lib/primitives/image-node.test.tsx`
+        - `src/__tests__/unit/lib/nodes/node-gather-inputs.test.ts`
 
-- [x] **Task 3: Update Video Primitive & UI (Flow Editor)**
-    - Acceptance: Video primitive has `audio-input` socket. `FlowNode.tsx` and `ConfigPanel.tsx` hide duration and `last-frame-input` handle, show `audio-input` handle, and restrict resolution to `720p` when Omni is selected.
-    - Verify: `bun run check` and `bun run lint` pass.
+- [x] **Task 3: Update Canvas Agent Tools, Prompts, Skills & Settings Dialog**
+    - Acceptance: `IMAGE_MODELS` in `src/lib/canvas/agent/tools.ts` includes `GEMINI_NANO_BANANA_2_1`. `DIRECTOR_PROMPT` in `src/lib/canvas/agent/prompts.ts` lists `9:21` in valid image aspect ratios. `src/lib/canvas/agent/skills/primitives/image-generation/SKILL.md` lists `gemini-nano-banana-2.1` as default. `DEFAULT_AGENT_SETTINGS` and `IMAGE_MODELS` in `src/components/canvas/canvas-agent-settings-dialog.tsx` use `GEMINI_NANO_BANANA_2_1` as default.
+    - Verify: `bun run test src/__tests__/unit/lib/canvas/adk/adk-tools.test.ts` passes.
     - Files:
-        - `src/primitives/video/definition.ts`
-        - `src/primitives/video/FlowNode.tsx`
-        - `src/primitives/video/ConfigPanel.tsx`
-
-- [x] **Task 4: Implement Canvas Conversational Editing (Canvas Engine)**
-    - Acceptance: Canvas execution engine detects video-to-video edits, propagates `interactionId` in metadata, and passes it as `previous_interaction_id` to the Omni API. Director prompts and skills are updated.
-    - Verify: Unit tests pass and `bun run preflight` passes.
-    - Files:
-        - `src/lib/canvas/generation.ts`
-        - `src/lib/canvas/agent/prompts.ts`
-        - `src/lib/canvas/agent/skills/primitives/video-generation/SKILL.md`
         - `src/lib/canvas/agent/tools.ts`
-        - `src/__tests__/unit/lib/canvas/concat-generation.test.ts`
+        - `src/lib/canvas/agent/prompts.ts`
+        - `src/lib/canvas/agent/skills/primitives/image-generation/SKILL.md`
+        - `src/components/canvas/canvas-agent-settings-dialog.tsx`
+        - `src/__tests__/unit/lib/canvas/adk/adk-tools.test.ts`
+
+- [x] **Task 4: Update Documentation & Run Preflight**
+    - Acceptance: `README.md`, `docs/canvas/adk.mdx`, `AGENTS.md`, and `wiki/architecture/architecture.md` reflect `gemini-nano-banana-2.1` as the default image model. `bun run preflight` passes with 0 errors.
+    - Verify: `bun run preflight` passes.
+    - Files:
+        - `README.md`
+        - `docs/canvas/adk.mdx`
+        - `AGENTS.md`
+        - `wiki/architecture/architecture.md`
+        - `tasks/todo.md`

@@ -437,7 +437,7 @@ export class GeminiService {
             systemInstruction,
             thinkingLevel,
         } = options;
-        const selectedModel = model || MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE;
+        const selectedModel = model || MODELS.IMAGE.GEMINI_NANO_BANANA_2_1;
 
         logger.info(
             `[GeminiService] Generating image with model: ${selectedModel}`,

@@ -490,7 +490,7 @@ Files are stored in GCS. The app never exposes raw GCS URIs to the browser — i
 
 Wraps `@google/genai` for:
 
-- Image generation (Imagen)
+- Image generation (Gemini Nano Banana 2.1 default, Gemini Flash/Pro Image)
 - Video generation (Gemini Omni 1.1 Flash default, Veo)
 - LLM text generation
 - Upscale / resize operations

@@ -1,14 +1,24 @@
-# Spec: Gemini Omni Video Generation & Editing
+# Spec: Add Gemini Nano Banana 2.1 as Default Image Generation Model
 
 ## Objective
 
-Integrate Gemini Omni Flash (`gemini-omni-flash-preview`) as the default video generation and editing model across FlowCraft (Flow Editor and Agent Canvas). This enables high-speed, high-quality video generation from multimodal inputs (text, image, audio) and stateful, conversational video editing using the Gemini Interactions API.
+Integrate **Gemini Nano Banana 2.1** (`gemini-nano-banana-2.1`) as a new and default image generation and editing model across FlowCraft — covering both the **Flow Editor** (`/flow/[id]`) and **Canvas Agents** (`/canvas/[id]`).
+
+Per the [Google Cloud Gemini Nano Banana 2.1 documentation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/nano-banana-2-1):
+
+- **Model ID**: `gemini-nano-banana-2.1`
+- **Launch stage**: GA
+- **Supported aspect ratios**: `1:1`, `3:2`, `2:3`, `3:4`, `1:4`, `4:1`, `4:3`, `4:5`, `5:4`, `1:8`, `8:1`, `9:16`, `16:9`, `21:9`, `9:21` (plus `"Auto"` in Flow/Canvas config)
+- **Supported resolutions (`imageSize`)**: `1K`, `2K`, `4K`
+- **Capabilities**: Thinking (`MINIMAL`, `HIGH`), System instructions, Google Search grounding, Image Search grounding, multimodal image generation & editing (up to 14 input images, video/text/PDF inputs)
+- **Unsupported parameters**: `seed`, `topK`, `logprobs`, `temperature`, `topP` (must not be sent)
 
 ## Tech Stack
 
 - **Framework/Language**: Next.js 16 (App Router), React 19, TypeScript
-- **AI SDK**: `@google/genai` (v1.25.0), using Vertex AI configuration
-- **Database/Storage**: Firestore (for state/metadata persistence), Google Cloud Storage (for media asset hosting)
+- **Validation**: Zod (`src/lib/schemas.ts`)
+- **AI SDK**: `@google/genai` (Vertex AI) & `@google/adk` (Canvas Agent)
+- **Testing**: Vitest with `jsdom`
 
 ## Commands
 
@@ -22,68 +32,92 @@ Integrate Gemini Omni Flash (`gemini-omni-flash-preview`) as the default video g
 
 ## Project Structure
 
-- `src/lib/constants.ts`: Add `GEMINI_OMNI_FLASH` to `MODELS.VIDEO`. Update defaults.
-- `src/lib/schemas.ts`: Add `GEMINI_OMNI_FLASH` to `GenerateVideoSchema` and set as default.
-- `src/lib/canvas/types.ts`: Update `CanvasVideoData` and `CanvasNode` metadata to support `interactionId` and `previous_interaction_id`.
-- `src/lib/canvas/agent/tools.ts`: Add `GEMINI_OMNI_FLASH` to `VIDEO_MODELS` enum.
-- `src/lib/services/gemini.service.ts`: Implement `generateVideo` branch for `gemini-omni-flash-preview` using `ai.interactions.create`, handling polling for URI delivery, downloading, and GCS uploading.
-- `src/primitives/video/definition.ts`: Update default model, input gathering (support audio, firstFrame, reference images), and UI configuration constraints (disable duration/lastFrame, restrict resolution to 720p).
-- `src/lib/canvas/generation.ts`: Propagate `interactionId` and detect edits to set `previous_interaction_id`.
-- `src/lib/canvas/agent/prompts.ts` & `src/lib/canvas/agent/skills/primitives/video-generation/SKILL.md`: Update Agent B (Director) prompts and skills to make it aware of conversational editing.
+- `src/lib/constants.ts`:
+    - Add `GEMINI_NANO_BANANA_2_1: "gemini-nano-banana-2.1"` to `MODELS.IMAGE`.
+    - Add `[MODELS.IMAGE.GEMINI_NANO_BANANA_2_1]: ["MINIMAL", "HIGH"]` to `MODEL_THINKING_LEVELS`.
+    - Add `[MODELS.IMAGE.GEMINI_NANO_BANANA_2_1]` entry to `IMAGE_MODEL_CONFIGS` with ratios (`Auto`, `1:1`, `1:4`, `1:8`, `3:2`, `2:3`, `3:4`, `4:1`, `4:3`, `4:5`, `5:4`, `8:1`, `9:16`, `16:9`, `21:9`, `9:21`), `imageSizes: ["1K", "2K", "4K"]`, and `grounding: { google: true, image: true }`.
+- `src/lib/schemas.ts`:
+    - Add `"9:21"` to `ImageDataAspectRatioSchema`.
+    - Add `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1` to `ImageDataModelSchema`.
+    - Update `GenerateImageSchema` default `model` to `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`.
+- `src/primitives/image/definition.ts`:
+    - Update `flow.gatherInputs` fallback model to `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`.
+    - Update `flow.defaultData.model` to `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`.
+    - Update `canvas.toRequest` fallback model to `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`.
+- `src/primitives/image/FlowNode.tsx`:
+    - Update fallback model and `useEffect` auto-correction to `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`.
+    - Add `Nano Banana 2.1` (`MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`) option to the model selector dropdown.
+- `src/primitives/image/ConfigPanel.tsx`:
+    - Update fallback model and `useEffect` auto-correction to `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`.
+    - Add `Nano Banana 2.1 (Gemini Nano Banana 2.1)` (`MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`) option to the model selector dropdown.
+- `src/lib/services/gemini.service.ts`:
+    - Update `generateImage` default `selectedModel` fallback to `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`.
+- `src/components/canvas/canvas-agent-settings-dialog.tsx`:
+    - Update `DEFAULT_AGENT_SETTINGS.imageModel` to `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1`.
+    - Add `{ id: MODELS.IMAGE.GEMINI_NANO_BANANA_2_1, label: "Nano Banana 2.1" }` to `IMAGE_MODELS`.
+    - Update `imageModelConfig` fallback to `IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_NANO_BANANA_2_1]`.
+- `src/lib/canvas/agent/tools.ts`:
+    - Add `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1` to `IMAGE_MODELS` (which also automatically propagates `"9:21"` into `IMAGE_ASPECT_RATIOS` and `ALL_ASPECT_RATIOS`).
+- `src/lib/canvas/agent/prompts.ts`:
+    - Include `9:21` in the `VALID OPTION VALUES for ask_user` image aspect ratio list.
+- `src/lib/canvas/agent/skills/primitives/image-generation/SKILL.md`:
+    - Update `## Model hints` to list `gemini-nano-banana-2.1` as the **default** image model and retain `gemini-3.1-flash-image` as an available alternative.
+- `README.md` & `docs/canvas/adk.mdx`:
+    - Document `gemini-nano-banana-2.1` (Nano Banana 2.1) as the default image model.
+- `src/__tests__/`:
+    - Update and add unit tests covering `GenerateImageSchema` defaults, `9:21` aspect ratio, `IMAGE_MODELS` in ADK tools, `geminiService.generateImage` default model, and `ImageNode` rendering.
 
 ## Code Style
 
-Follow the existing codebase conventions:
+Follow existing codebase conventions:
 
-- Strict TypeScript type safety.
-- Use Zod schemas in `src/lib/schemas.ts` as the single source of truth.
-- Follow the clean architecture using primitives in `src/primitives/`.
-- Use the `@google/genai` SDK for Vertex AI interactions.
-- Logging via `src/app/logger.ts`.
-
-Example of calling the Interactions API in `gemini.service.ts`:
+- Centralize model identifiers and capability matrices in `src/lib/constants.ts`.
+- Derive Zod enums and ADK tool schemas from `MODELS` and `IMAGE_MODEL_CONFIGS`.
 
 ```typescript
-const interaction = await this.ai.interactions.create({
-    model: "gemini-omni-flash-preview",
-    input: [
-        { type: "image", data: "base64_data", mime_type: "image/jpeg" },
-        { type: "text", text: "prompt..." },
-    ],
-    response_format: {
-        type: "video",
-        aspect_ratio: "16:9",
-        delivery: "uri",
+// src/lib/constants.ts
+export const MODELS = {
+    // ...
+    IMAGE: {
+        GEMINI_2_5_FLASH_IMAGE: "gemini-2.5-flash-image",
+        GEMINI_3_PRO_IMAGE: "gemini-3-pro-image",
+        GEMINI_3_1_FLASH_IMAGE: "gemini-3.1-flash-image",
+        GEMINI_3_1_FLASH_LITE_IMAGE: "gemini-3.1-flash-lite-image",
+        GEMINI_NANO_BANANA_2_1: "gemini-nano-banana-2.1",
+        IMAGEN_4_0_UPSCALE: "imagen-4.0-upscale-preview",
     },
-});
+    // ...
+} as const;
 ```
 
 ## Testing Strategy
 
-- **Framework**: Vitest with `jsdom`
+- **Framework**: Vitest (`bun run test`)
 - **Unit Tests**:
-    - `src/__tests__/unit/lib/services/gemini.service.test.ts`: Test the `gemini-omni-flash-preview` path in `generateVideo` (mocking `ai.interactions.create` and GCS upload).
-    - `src/__tests__/unit/lib/canvas/`: Test conversational editing, ensuring `previous_interaction_id` is propagated when a video step depends on a previous video node.
-    - Test resolution/schema migrations in `src/__tests__/unit/lib/resolution-schemas.test.ts`.
+    - `src/__tests__/unit/lib/resolution-schemas.test.ts`: Verify `GenerateImageSchema` defaults to `gemini-nano-banana-2.1`, accepts `gemini-nano-banana-2.1`, and accepts `9:21` aspect ratio.
+    - `src/__tests__/unit/lib/canvas/adk/adk-tools.test.ts`: Verify `planImageGenerationTool` and `planProductionTool` accept `gemini-nano-banana-2.1` and `9:21`.
+    - `src/__tests__/unit/lib/services/gemini.service.test.ts`: Verify `geminiService.generateImage` uses `gemini-nano-banana-2.1` when no model is specified.
+    - `src/__tests__/unit/lib/primitives/image-node.test.tsx` & `src/__tests__/unit/lib/nodes/node-gather-inputs.test.ts`: Verify Flow Image node defaults and input gathering fallback to `gemini-nano-banana-2.1`.
 
 ## Boundaries
 
 - **Always do**:
-    - Run `bun run preflight` and ensure 100% pass before completing.
-    - Handle GCS upload of the generated video bytes cleanly.
-    - Limit Gemini Omni video resolution to `720p`.
-    - Disable duration slider and last frame input in the UI when Omni is selected.
+    - Keep existing image models (`gemini-2.5-flash-image`, `gemini-3-pro-image`, `gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`) valid in schemas and UI dropdowns so existing saved Flows and Canvases continue to work without breaking.
+    - Run `bun run preflight` before finishing.
 - **Ask first**:
-    - None (autonomous mode per `/mb-implement`).
+    - Removing or migrating existing persisted nodes that explicitly selected an older valid model (`gemini-3.1-flash-image`, etc.).
 - **Never do**:
-    - Hardcode GCS buckets or API keys.
-    - Bypass lint/format checks.
-    - Remove existing Veo 3.1 support.
+    - Pass unsupported parameters (`seed`, `topK`, `logprobs`, `temperature`, `topP`) to `gemini-nano-banana-2.1`.
+    - Enable `512` resolution on `gemini-nano-banana-2.1` (only `1K`, `2K`, `4K` are supported per the official spec).
 
 ## Success Criteria
 
-1. `gemini-omni-flash-preview` is the default video model for Flow Editor and Canvas.
-2. Generating a video with Omni correctly uses the Interactions API, polls the resulting URI (if delivery is URI), downloads the video, uploads it to the project's GCS bucket, and returns the GCS URI.
-3. The Video primitive UI correctly hides/disables duration/lastFrame and restricts resolution to 720p when Omni is selected.
-4. Canvas video editing propagates `interactionId` to Firestore and passes `previous_interaction_id` to subsequent edit steps.
-5. All unit tests pass and `bun run preflight` runs successfully.
+1. `MODELS.IMAGE.GEMINI_NANO_BANANA_2_1` (`"gemini-nano-banana-2.1"`) is defined in `src/lib/constants.ts` with its supported ratios (including `9:21`), resolutions (`1K`, `2K`, `4K`), thinking levels (`MINIMAL`, `HIGH`), and grounding (`google: true, image: true`).
+2. Every new Image node in the Flow Editor defaults to `gemini-nano-banana-2.1` ("Nano Banana 2.1"), and both `FlowNode.tsx` and `ConfigPanel.tsx` allow selecting it.
+3. Canvas Agent settings (`DEFAULT_AGENT_SETTINGS`), ADK tools (`IMAGE_MODELS`), skill hints (`image-generation/SKILL.md`), image primitive `canvas.toRequest`, and `geminiService.generateImage` all default to `gemini-nano-banana-2.1`.
+4. `GenerateImageSchema` and `ImageDataSchema` validate `gemini-nano-banana-2.1` and aspect ratio `9:21`, with `GenerateImageSchema` defaulting to `gemini-nano-banana-2.1`.
+5. `bun run preflight` (format, typecheck, lint, unit tests) passes with zero errors.
+
+## Open Questions
+
+None — requirements and model specifications from the Google Cloud documentation are unambiguous.

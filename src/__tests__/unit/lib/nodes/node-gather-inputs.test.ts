@@ -485,6 +485,18 @@ describe("imageNodeDefinition.gatherInputs", () => {
             type: "image/png",
         });
     });
+
+    it("falls back to GEMINI_NANO_BANANA_2_1 when node model is invalid", () => {
+        const node = {
+            ...makeImageNodeFull(),
+            data: {
+                ...makeImageNodeFull().data,
+                model: "legacy-invalid-model" as unknown as ImageData["model"],
+            },
+        };
+        const inputs = imageNodeDefinition.gatherInputs(node, [], () => null);
+        expect(inputs.model).toBe(MODELS.IMAGE.GEMINI_NANO_BANANA_2_1);
+    });
 });
 
 function makeRouterNode(id = "router-1"): Node<RouterData> {

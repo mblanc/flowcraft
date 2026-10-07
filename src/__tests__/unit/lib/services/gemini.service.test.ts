@@ -216,6 +216,11 @@ describe("GeminiService", () => {
             });
             expect(result.data).toBe("base64data");
             expect(result.mimeType).toBe("image/png");
+            expect(mockAi.models.generateContent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
+                }),
+            );
         });
 
         it("should throw if no candidates", async () => {

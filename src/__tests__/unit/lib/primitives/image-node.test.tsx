@@ -41,7 +41,7 @@ describe("ImageNode Rendering", () => {
         data: {
             type: "image",
             name: "Test Image Node",
-            model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+            model: MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
             prompt: "a landscape",
             images: [],
             aspectRatio: "1:1",

@@ -44,13 +44,13 @@ export function ConfigPanel({
     const validModels = Object.values(MODELS.IMAGE) as string[];
     const effectiveModel = validModels.includes(data.model)
         ? data.model
-        : MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE;
+        : MODELS.IMAGE.GEMINI_NANO_BANANA_2_1;
 
     // Auto-correct stale/invalid model values saved in old flows.
     useEffect(() => {
         if (!validModels.includes(data.model)) {
             updateNodeData(nodeId, {
-                model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+                model: MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,7 +59,7 @@ export function ConfigPanel({
     const currentModelConfig =
         IMAGE_MODEL_CONFIGS[
             effectiveModel as keyof typeof IMAGE_MODEL_CONFIGS
-        ] || IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE];
+        ] || IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_NANO_BANANA_2_1];
 
     const addImage = () => {
         const newImages = [...data.images, "https://placeholder.com/300x300"];
@@ -131,6 +131,9 @@ export function ConfigPanel({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                        <SelectItem value={MODELS.IMAGE.GEMINI_NANO_BANANA_2_1}>
+                            Nano Banana 2.1 (Gemini Nano Banana 2.1)
+                        </SelectItem>
                         <SelectItem value={MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE}>
                             Nano Banana (Gemini 2.5 Flash Image)
                         </SelectItem>

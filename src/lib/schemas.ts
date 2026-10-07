@@ -48,6 +48,7 @@ const ImageDataAspectRatioSchema = z.enum([
     "5:4",
     "4:5",
     "21:9",
+    "9:21",
     "1:4",
     "1:8",
     "4:1",
@@ -59,6 +60,7 @@ const ImageDataModelSchema = z.enum([
     MODELS.IMAGE.GEMINI_3_PRO_IMAGE,
     MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
     MODELS.IMAGE.GEMINI_3_1_FLASH_LITE_IMAGE,
+    MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
 ]);
 
 const ImageDataSizeSchema = z.enum(["512", "1K", "2K", "4K"]);
@@ -311,7 +313,7 @@ export const GenerateImageSchema = z
             DEFAULTS.IMAGE_ASPECT_RATIO,
         ),
         model: ImageDataModelSchema.optional().default(
-            MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+            MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
         ),
         imageSize: ImageDataSizeSchema.optional().default(
             DEFAULTS.IMAGE_RESOLUTION,

@@ -30,6 +30,25 @@ describe("Resolution Schemas", () => {
             });
             expect(result.success).toBe(true);
         });
+
+        it("should default to gemini-nano-banana-2.1", () => {
+            const result = GenerateImageSchema.safeParse({
+                prompt: "test",
+            });
+            expect(result.success).toBe(true);
+            expect(result.data?.model).toBe("gemini-nano-banana-2.1");
+        });
+
+        it("should accept gemini-nano-banana-2.1 and 9:21 aspect ratio", () => {
+            const result = GenerateImageSchema.safeParse({
+                prompt: "test",
+                model: "gemini-nano-banana-2.1",
+                aspectRatio: "9:21",
+            });
+            expect(result.success).toBe(true);
+            expect(result.data?.model).toBe("gemini-nano-banana-2.1");
+            expect(result.data?.aspectRatio).toBe("9:21");
+        });
     });
 
     describe("GenerateVideoSchema", () => {

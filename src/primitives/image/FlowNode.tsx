@@ -165,12 +165,12 @@ export const FlowNode = memo(
         const validImageModels = Object.values(MODELS.IMAGE) as string[];
         const effectiveModel = validImageModels.includes(data.model)
             ? data.model
-            : MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE;
+            : MODELS.IMAGE.GEMINI_NANO_BANANA_2_1;
 
         useEffect(() => {
             if (!validImageModels.includes(data.model)) {
                 updateNodeData(id, {
-                    model: MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE,
+                    model: MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
                 });
             }
             // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -179,7 +179,7 @@ export const FlowNode = memo(
         const currentModelConfig =
             IMAGE_MODEL_CONFIGS[
                 effectiveModel as keyof typeof IMAGE_MODEL_CONFIGS
-            ] || IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE];
+            ] || IMAGE_MODEL_CONFIGS[MODELS.IMAGE.GEMINI_NANO_BANANA_2_1];
 
         return (
             <div
@@ -305,6 +305,11 @@ export const FlowNode = memo(
                                 <SelectValue placeholder="Model" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem
+                                    value={MODELS.IMAGE.GEMINI_NANO_BANANA_2_1}
+                                >
+                                    Nano Banana 2.1
+                                </SelectItem>
                                 <SelectItem
                                     value={MODELS.IMAGE.GEMINI_2_5_FLASH_IMAGE}
                                 >
