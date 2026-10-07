@@ -20,10 +20,10 @@
         "docs:build": "cd docs && bun run build"
     },
     "dependencies": {
-        "@google-cloud/firestore": "^9.2.0",
+        "@google-cloud/firestore": "^9.3.1",
         "@google-cloud/storage": "^8.2.0",
         "@google/adk": "^2.2.1",
-        "@google/genai": "^2.24.0",
+        "@google/genai": "^2.27.0",
         "@hookform/resolvers": "^5.9.1",
         "@mdxeditor/editor": "^4.3.2",
         "@mediabunny/server": "^1.61.3",
