@@ -7,6 +7,8 @@ import { MODELS, isOmniVideoModel } from "@/lib/constants";
 import {
     getEffectiveVideoModel,
     getNormalizedVideoNodeUpdates,
+    getVideoAspectRatioSelectValue,
+    getVideoDurationSelectValue,
 } from "./definition";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -114,13 +116,10 @@ export function ConfigPanel({
             <div className="space-y-2">
                 <Label htmlFor="aspectRatio">Aspect Ratio</Label>
                 <Select
-                    value={
-                        data.aspectRatio !== undefined
-                            ? data.aspectRatio
-                            : isOmni
-                              ? "auto"
-                              : "16:9"
-                    }
+                    value={getVideoAspectRatioSelectValue(
+                        data.aspectRatio,
+                        isOmni,
+                    )}
                     disabled={isOmni && data.task === "edit"}
                     onValueChange={(value) =>
                         updateNodeData(nodeId, {
@@ -152,14 +151,11 @@ export function ConfigPanel({
                 <div className="space-y-2">
                     <Label htmlFor="duration">Duration (seconds)</Label>
                     <Select
-                        value={
-                            data.duration !== undefined
-                                ? String(data.duration)
-                                : effectiveModel ===
-                                    MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH
-                                  ? "auto"
-                                  : "4"
-                        }
+                        value={getVideoDurationSelectValue(
+                            data.duration,
+                            effectiveModel ===
+                                MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                        )}
                         onValueChange={(value) =>
                             updateNodeData(nodeId, {
                                 duration:

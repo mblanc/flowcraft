@@ -20,6 +20,12 @@ import type {
     NodeData,
 } from "@/lib/types";
 import { MODELS } from "@/lib/constants";
+import {
+    getEffectiveVideoModel,
+    getNormalizedVideoNodeUpdates,
+    getVideoAspectRatioSelectValue,
+    getVideoDurationSelectValue,
+} from "@/primitives/video/definition";
 
 vi.mock("@/app/logger", () => ({
     default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -707,5 +713,71 @@ describe("image1 → router → image2 execution chain", () => {
             url: IMG1_URL,
             type: "image/png",
         });
+    });
+});
+
+describe("video definition helpers", () => {
+    it("getEffectiveVideoModel returns valid model or falls back to Omni 1.1 Flash", () => {
+        expect(getEffectiveVideoModel(MODELS.VIDEO.VEO_3_1_PRO)).toBe(
+            MODELS.VIDEO.VEO_3_1_PRO,
+        );
+        expect(getEffectiveVideoModel(undefined)).toBe(
+            MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+        );
+        expect(
+            getEffectiveVideoModel(
+                "legacy-invalid-model" as VideoData["model"],
+            ),
+        ).toBe(MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH);
+    });
+
+    it("getNormalizedVideoNodeUpdates normalizes resolution and duration per model capabilities", () => {
+        const base = makeVideoNode().data;
+
+        // Omni 1.0 forces 720p and clears duration
+        expect(
+            getNormalizedVideoNodeUpdates({
+                ...base,
+                model: MODELS.VIDEO.GEMINI_OMNI_FLASH,
+                resolution: "1080p",
+                duration: 6,
+            }),
+        ).toEqual({
+            resolution: "720p",
+            duration: undefined,
+        });
+
+        // Veo 3.1 resets 360p to 720p and non-4/6/8 duration to 4
+        expect(
+            getNormalizedVideoNodeUpdates({
+                ...base,
+                model: MODELS.VIDEO.VEO_3_1_FAST,
+                resolution: "360p",
+                duration: 5,
+            }),
+        ).toEqual({
+            resolution: "720p",
+            duration: 4,
+        });
+
+        // Omni 1.1 allows 360p and 5s duration without overrides
+        expect(
+            getNormalizedVideoNodeUpdates({
+                ...base,
+                model: MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH,
+                resolution: "360p",
+                duration: 5,
+            }),
+        ).toEqual({});
+    });
+
+    it("getVideoAspectRatioSelectValue and getVideoDurationSelectValue return expected select values", () => {
+        expect(getVideoAspectRatioSelectValue("9:16", true)).toBe("9:16");
+        expect(getVideoAspectRatioSelectValue(undefined, true)).toBe("auto");
+        expect(getVideoAspectRatioSelectValue(undefined, false)).toBe("16:9");
+
+        expect(getVideoDurationSelectValue(8, true)).toBe("8");
+        expect(getVideoDurationSelectValue(undefined, true)).toBe("auto");
+        expect(getVideoDurationSelectValue(undefined, false)).toBe("4");
     });
 });

@@ -57,7 +57,12 @@ import type {
     AgentPlan,
     QuestionPayload,
 } from "@/lib/canvas/types";
-import { calculateNodePositions } from "@/lib/canvas/layout";
+import {
+    calculateNodePositions,
+    findEmptyPosition,
+    parseAspectRatioDimensions,
+    type PlaceholderRect,
+} from "@/lib/canvas/layout";
 
 interface SSEEvent {
     event: string;
@@ -1283,10 +1288,7 @@ export function CanvasChatInput({
                                     const nodeHeight = 600;
                                     const gap = 40;
                                     const position = {
-                                        x:
-                                            existingNodes.length > 0
-                                                ? center.x - nodeWidth / 2
-                                                : center.x - nodeWidth / 2,
+                                        x: center.x - nodeWidth / 2,
                                         y:
                                             lowestY +
                                             gap +
@@ -1757,107 +1759,4 @@ export function CanvasChatInput({
 
 function escapeRegex(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-// ─── Placeholder positioning utilities ───────────────────────────────────────
-
-interface PlaceholderRect {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-}
-
-const GAP = 20;
-const BASE_AREA = 90_000; // ~300×300 px²
-
-function parseAspectRatioDimensions(aspectRatio?: string): {
-    width: number;
-    height: number;
-} {
-    if (!aspectRatio) return { width: 300, height: 300 };
-    const [wStr, hStr] = aspectRatio.split(":");
-    const wRatio = parseFloat(wStr);
-    const hRatio = parseFloat(hStr);
-    if (!wRatio || !hRatio) return { width: 300, height: 300 };
-    const width = Math.round(Math.sqrt(BASE_AREA * (wRatio / hRatio)));
-    const height = Math.round(BASE_AREA / width);
-    return { width, height };
-}
-
-function rectsOverlap(a: PlaceholderRect, b: PlaceholderRect): boolean {
-    return !(
-        a.x + a.w + GAP <= b.x ||
-        b.x + b.w + GAP <= a.x ||
-        a.y + a.h + GAP <= b.y ||
-        b.y + b.h + GAP <= a.y
-    );
-}
-
-function isPositionFree(
-    candidate: PlaceholderRect,
-    occupied: PlaceholderRect[],
-): boolean {
-    return !occupied.some((r) => rectsOverlap(candidate, r));
-}
-
-/**
- * Find an empty canvas position for a new placeholder node.
- * Tries positions around the reference rect first (right, below, left, above),
- * then spirals outward in a grid from the anchor point.
- */
-function findEmptyPosition(
-    w: number,
-    h: number,
-    ref: PlaceholderRect | null,
-    occupied: PlaceholderRect[],
-    viewportCenter: { x: number; y: number },
-): { x: number; y: number } {
-    const anchor = ref
-        ? { x: ref.x + ref.w / 2, y: ref.y + ref.h / 2 }
-        : viewportCenter;
-
-    // Priority candidates around the reference rect
-    if (ref) {
-        const candidates = [
-            // Right
-            { x: ref.x + ref.w + GAP, y: ref.y + (ref.h - h) / 2 },
-            // Below
-            { x: ref.x + (ref.w - w) / 2, y: ref.y + ref.h + GAP },
-            // Left
-            { x: ref.x - w - GAP, y: ref.y + (ref.h - h) / 2 },
-            // Above
-            { x: ref.x + (ref.w - w) / 2, y: ref.y - h - GAP },
-        ];
-        for (const pos of candidates) {
-            const rect = { x: pos.x, y: pos.y, w, h };
-            if (isPositionFree(rect, occupied)) return pos;
-        }
-    }
-
-    // Spiral outward in a grid from the anchor
-    const step = Math.max(w, h) + GAP;
-    for (let ring = 0; ring <= 20; ring++) {
-        if (ring === 0) {
-            const pos = { x: anchor.x - w / 2, y: anchor.y - h / 2 };
-            if (isPositionFree({ x: pos.x, y: pos.y, w, h }, occupied))
-                return pos;
-            continue;
-        }
-        // Walk the perimeter of the ring
-        for (let dx = -ring; dx <= ring; dx++) {
-            for (let dy = -ring; dy <= ring; dy++) {
-                if (Math.abs(dx) !== ring && Math.abs(dy) !== ring) continue;
-                const pos = {
-                    x: anchor.x - w / 2 + dx * step,
-                    y: anchor.y - h / 2 + dy * step,
-                };
-                if (isPositionFree({ x: pos.x, y: pos.y, w, h }, occupied))
-                    return pos;
-            }
-        }
-    }
-
-    // Absolute fallback (should never reach here)
-    return { x: anchor.x - w / 2, y: anchor.y - h / 2 };
 }
