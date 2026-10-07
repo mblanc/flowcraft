@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Configuration
 PROJECT_ID="svc-demo-vertex"
