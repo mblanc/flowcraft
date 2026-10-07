@@ -80,7 +80,8 @@
         "uuid": "^14.0.2",
         "winston": "^3.19.0",
         "zod": "4.6.5",
-        "zustand": "^5.0.15"
+        "zustand": "^5.0.15",
+        "react-day-picker": "10.0.2"
     },
     "devDependencies": {
         "@tailwindcss/postcss": "^4.3.3",
