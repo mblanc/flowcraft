@@ -1,7 +1,22 @@
-import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
-import nextTypescript from "eslint-config-next/typescript";
-import prettierPlugin from "eslint-plugin-prettier";
-import prettierConfig from "eslint-config-prettier";
+import Module from "node:module";
+
+// TypeScript 7.0 does not ship the JS compiler API required by typescript-eslint.
+// Route CJS require("typescript") to @typescript/typescript6 inside ESLint per:
+// https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0
+const origResolveFilename = Module._resolveFilename;
+Module._resolveFilename = function (request, parent, isMain, options) {
+    if (request === "typescript" || request.startsWith("typescript/")) {
+        request = request.replace(/^typescript/, "@typescript/typescript6");
+    }
+    return origResolveFilename.call(this, request, parent, isMain, options);
+};
+
+const { default: nextCoreWebVitals } =
+    await import("eslint-config-next/core-web-vitals");
+const { default: nextTypescript } =
+    await import("eslint-config-next/typescript");
+const { default: prettierPlugin } = await import("eslint-plugin-prettier");
+const { default: prettierConfig } = await import("eslint-config-prettier");
 
 /** @type {import('eslint').Linter.Config[]} */
 const config = [
