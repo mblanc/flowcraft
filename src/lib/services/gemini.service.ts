@@ -1,5 +1,6 @@
 import {
     GoogleGenAI,
+    Interactions,
     createPartFromBase64,
     createPartFromText,
     createPartFromUri,
@@ -84,15 +85,29 @@ function resolveOmniVideoTask(
     params: Pick<
         GenerateVideoOptions,
         "task" | "video" | "images" | "firstFrame" | "lastFrame"
-    > & { isOmni11: boolean },
-): string | undefined {
-    const { task, video, images, firstFrame, lastFrame, isOmni11 } = params;
+    > & {
+        isOmni11: boolean;
+        hasVideoPart?: boolean;
+        hasImagePart?: boolean;
+    },
+): Interactions.VideoConfig["task"] {
+    const {
+        task,
+        video,
+        images,
+        firstFrame,
+        lastFrame,
+        isOmni11,
+        hasVideoPart,
+        hasImagePart,
+    } = params;
     if (task && task !== "none") return task;
-    if (video) return "edit";
+    if (video || hasVideoPart) return "edit";
     if (
         (images && images.length > 0) ||
         firstFrame ||
-        (lastFrame && isOmni11)
+        (lastFrame && isOmni11) ||
+        hasImagePart
     ) {
         return "image_to_video";
     }
@@ -146,6 +161,7 @@ export interface GenerateImageOptions {
 
 export interface GenerateVideoOptions {
     prompt: string;
+    parts?: ContentPart[];
     firstFrame?: string;
     lastFrame?: string;
     images?: MediaRef[];
@@ -163,7 +179,8 @@ export interface GenerateVideoOptions {
         | "text_to_video"
         | "image_to_video"
         | "reference_to_video"
-        | "edit";
+        | "edit"
+        | "extend";
 }
 
 export interface UpscaleImageOptions {
@@ -563,6 +580,7 @@ export class GeminiService {
     ): Promise<string | { videoUrl: string; interactionId?: string }> {
         const {
             prompt,
+            parts,
             firstFrame,
             lastFrame,
             images,
@@ -630,17 +648,39 @@ export class GeminiService {
         const hasExplicitFrames =
             firstFrame?.startsWith("gs://") || lastFrame?.startsWith("gs://");
 
-        if (images && images.length > 0 && !hasExplicitFrames) {
-            videoRequest.config!.referenceImages = images.map((image) => {
-                if (image.url.startsWith("gs://")) {
-                    assertAuthorizedGcsUri(image.url);
+        const effectiveImages = [...(images ?? [])];
+        if (parts && parts.length > 0) {
+            const existingUrls = new Set(effectiveImages.map((i) => i.url));
+            if (firstFrame) existingUrls.add(firstFrame);
+            if (lastFrame) existingUrls.add(lastFrame);
+            for (const part of parts) {
+                if (
+                    part.kind === "uri" &&
+                    part.mimeType.startsWith("image/") &&
+                    !existingUrls.has(part.uri)
+                ) {
+                    effectiveImages.push({
+                        url: part.uri,
+                        type: part.mimeType,
+                    });
+                    existingUrls.add(part.uri);
                 }
-                return {
-                    image: { gcsUri: image.url, mimeType: "image/png" },
-                    referenceType: VideoGenerationReferenceType.ASSET,
-                };
-            });
-        } else if (images && images.length > 0 && hasExplicitFrames) {
+            }
+        }
+
+        if (effectiveImages.length > 0 && !hasExplicitFrames) {
+            videoRequest.config!.referenceImages = effectiveImages.map(
+                (image) => {
+                    if (image.url.startsWith("gs://")) {
+                        assertAuthorizedGcsUri(image.url);
+                    }
+                    return {
+                        image: { gcsUri: image.url, mimeType: "image/png" },
+                        referenceType: VideoGenerationReferenceType.ASSET,
+                    };
+                },
+            );
+        } else if (effectiveImages.length > 0 && hasExplicitFrames) {
             logger.info(
                 "[GeminiService] Ignoring reference images because firstFrame/lastFrame is set",
             );
@@ -690,7 +730,7 @@ export class GeminiService {
         url: string,
         type: "image" | "video",
         explicitMimeType?: string,
-    ): Record<string, string> | null {
+    ): Interactions.ImageContent | Interactions.VideoContent | null {
         if (url.startsWith("data:")) {
             const base64Match = url.match(DATA_URI_REGEX);
             if (base64Match) {
@@ -720,6 +760,7 @@ export class GeminiService {
         isOmni11: boolean,
     ): Promise<{ videoUrl: string; interactionId?: string }> {
         const {
+            parts,
             firstFrame,
             lastFrame,
             images,
@@ -729,6 +770,7 @@ export class GeminiService {
             aspectRatio,
             duration,
             resolution,
+            styleInstruction,
             task,
         } = options;
 
@@ -736,11 +778,19 @@ export class GeminiService {
             `[GeminiService] Generating video with Omni (${selectedModel}): ${effectivePrompt}`,
         );
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const inputParts: any[] = [];
+        const inputParts: Interactions.Content[] = [];
+        const partUris = new Set(
+            (parts ?? [])
+                .filter(
+                    (p): p is Extract<ContentPart, { kind: "uri" }> =>
+                        p.kind === "uri",
+                )
+                .map((p) => p.uri),
+        );
 
         if (images && images.length > 0) {
             for (const img of images) {
+                if (partUris.has(img.url)) continue;
                 const part = this.mediaUriToOmniPart(
                     img.url,
                     "image",
@@ -750,12 +800,12 @@ export class GeminiService {
             }
         }
 
-        if (firstFrame) {
+        if (firstFrame && !partUris.has(firstFrame)) {
             const part = this.mediaUriToOmniPart(firstFrame, "image");
             if (part) inputParts.push(part);
         }
 
-        if (lastFrame && isOmni11) {
+        if (lastFrame && isOmni11 && !partUris.has(lastFrame)) {
             const part = this.mediaUriToOmniPart(lastFrame, "image");
             if (part) inputParts.push(part);
         }
@@ -766,24 +816,90 @@ export class GeminiService {
             );
         }
 
-        if (video) {
+        if (video && !partUris.has(video)) {
             const part = this.mediaUriToOmniPart(video, "video");
             if (part) inputParts.push(part);
         }
 
-        inputParts.push({
-            type: "text",
-            text: effectivePrompt,
-        });
+        if (parts && parts.length > 0) {
+            if (styleInstruction) {
+                inputParts.push({
+                    type: "text",
+                    text: styleInstruction,
+                });
+            }
+            for (const p of parts) {
+                if (p.kind === "text") {
+                    inputParts.push({
+                        type: "text",
+                        text: p.text,
+                    });
+                } else if (p.kind === "uri") {
+                    if (p.mimeType.startsWith("video/")) {
+                        const part = this.mediaUriToOmniPart(
+                            p.uri,
+                            "video",
+                            p.mimeType,
+                        );
+                        if (part) inputParts.push(part);
+                    } else if (p.mimeType.startsWith("audio/")) {
+                        if (!audio) {
+                            logger.warn(
+                                `[GeminiService] Audio input is currently not supported for Omni video generation. Ignoring audio reference: ${p.uri}`,
+                            );
+                        }
+                    } else {
+                        const part = this.mediaUriToOmniPart(
+                            p.uri,
+                            "image",
+                            p.mimeType,
+                        );
+                        if (part) inputParts.push(part);
+                    }
+                } else if (p.kind === "base64") {
+                    if (p.mimeType.startsWith("video/")) {
+                        inputParts.push({
+                            type: "video",
+                            data: p.data,
+                            mime_type: p.mimeType,
+                        });
+                    } else if (p.mimeType.startsWith("audio/")) {
+                        if (!audio) {
+                            logger.warn(
+                                `[GeminiService] Audio input is currently not supported for Omni video generation. Ignoring base64 audio reference`,
+                            );
+                        }
+                    } else {
+                        inputParts.push({
+                            type: "image",
+                            data: p.data,
+                            mime_type: p.mimeType,
+                        });
+                    }
+                }
+            }
+        } else {
+            inputParts.push({
+                type: "text",
+                text: effectivePrompt,
+            });
+        }
 
         const storageUri = config.GCS_STORAGE_URI || "gs://mock-bucket";
         const bucketName = extractBucketFromStorageUri(storageUri);
         const uniqueFilename = `omni-${uuidv4()}.mp4`;
         const targetGcsUri = `gs://${bucketName}/${uniqueFilename}`;
 
-        const isEdit = !!previousInteractionId || !!video || task === "edit";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const responseFormat: any = {
+        const hasVideoPart = inputParts.some((p) => p.type === "video");
+        const hasImagePart = inputParts.some((p) => p.type === "image");
+
+        const isEdit =
+            !!previousInteractionId ||
+            !!video ||
+            hasVideoPart ||
+            task === "edit" ||
+            task === "extend";
+        const responseFormat: Interactions.VideoResponseFormat = {
             type: "video",
             delivery: "uri",
             gcs_uri: targetGcsUri,
@@ -807,8 +923,9 @@ export class GeminiService {
             }
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const interactionRequest: any = {
+        const interactionRequest: Interactions.CreateModelInteractionParamsNonStreaming & {
+            stream?: false;
+        } = {
             model: selectedModel,
             input: inputParts,
             response_format: responseFormat,
@@ -821,6 +938,8 @@ export class GeminiService {
             firstFrame,
             lastFrame,
             isOmni11,
+            hasVideoPart,
+            hasImagePart,
         });
 
         if (effectiveTask) {
@@ -837,19 +956,9 @@ export class GeminiService {
 
         const sanitizedRequest = {
             ...interactionRequest,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            input: interactionRequest.input.map((part: any) => {
-                if (part.inline_data?.data) {
-                    return {
-                        ...part,
-                        inline_data: {
-                            ...part.inline_data,
-                            data: `<base64 data: ${part.inline_data.data.length} bytes>`,
-                        },
-                    };
-                }
+            input: inputParts.map((part) => {
                 if (
-                    part.data &&
+                    "data" in part &&
                     typeof part.data === "string" &&
                     part.data.length > 1000
                 ) {

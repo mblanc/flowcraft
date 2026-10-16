@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { UpscaleData } from "@/lib/types";
@@ -38,19 +38,26 @@ export const FlowNode = memo(
             number | undefined
         >(undefined);
 
-        const { dimensions, handleResizeStart } = useMediaNodeResize(
-            id,
-            data.width,
-            data.height,
-            {
-                defaultWidth: 300,
-                defaultHeight: 300,
-                minWidth: 200,
-                minHeight: 200,
-                lockedAspectRatio: mediaAspectRatio,
-            },
-            updateNodeData,
-        );
+        const { dimensions, handleResizeStart, isResizing } =
+            useMediaNodeResize(
+                id,
+                data.width,
+                data.height,
+                {
+                    defaultWidth: 300,
+                    defaultHeight: 300,
+                    minWidth: 150,
+                    minHeight: 80,
+                    lockedAspectRatio: mediaAspectRatio,
+                },
+                updateNodeData,
+            );
+        const dimensionsWidthRef = useRef(dimensions.width);
+        const isResizingRef = useRef(isResizing);
+        useEffect(() => {
+            dimensionsWidthRef.current = dimensions.width;
+            isResizingRef.current = isResizing;
+        }, [dimensions.width, isResizing]);
 
         const { displayUrl: rawDisplayUrl } = useSignedUrl(data.image);
         const displayUrl = rawDisplayUrl || "/placeholder.svg";
@@ -70,16 +77,17 @@ export const FlowNode = memo(
 
         const handleImageLoad = useCallback(
             (e: React.SyntheticEvent<HTMLImageElement>) => {
+                if (isResizingRef.current) return;
                 const img = e.currentTarget;
                 if (img.naturalWidth && img.naturalHeight) {
                     const ratio = img.naturalWidth / img.naturalHeight;
                     setMediaAspectRatio(ratio);
                     updateNodeData(id, {
-                        height: Math.round(dimensions.width / ratio),
+                        height: Math.round(dimensionsWidthRef.current / ratio),
                     });
                 }
             },
-            [dimensions.width, id, updateNodeData],
+            [id, updateNodeData],
         );
 
         const handleExecute = useCallback(() => {
@@ -100,7 +108,9 @@ export const FlowNode = memo(
                 className="relative"
                 style={{ width: dimensions.width, height: dimensions.height }}
                 onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
+                onMouseLeave={() => {
+                    if (!isResizing) setIsHovered(false);
+                }}
                 onFocusCapture={() => selectNode(id)}
             >
                 {/* Floating title */}
@@ -178,10 +188,14 @@ export const FlowNode = memo(
                             alt={data.name}
                             width={dimensions.width}
                             height={dimensions.height}
-                            className="h-full w-full cursor-pointer object-contain"
+                            className={cn(
+                                "h-full w-full cursor-pointer object-contain",
+                                isResizing && "pointer-events-none select-none",
+                            )}
                             onLoad={handleImageLoad}
                             onClick={() => setIsImageOpen(true)}
-                            unoptimized={displayUrl.startsWith("data:")}
+                            unoptimized
+                            draggable={false}
                             onContextMenu={(e) => e.stopPropagation()}
                         />
                     ) : (

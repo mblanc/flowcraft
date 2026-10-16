@@ -60,7 +60,6 @@ export const CanvasNode = memo(
     ({ data, selected, id }: NodeProps) => {
         const d = data as unknown as CanvasVideoData;
         const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-        const updateNode = useCanvasStore((s) => s.updateNode);
         const removeNode = useCanvasStore((s) => s.removeNode);
         const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -70,52 +69,60 @@ export const CanvasNode = memo(
         const [isCopied, setIsCopied] = useState(false);
         const [renameDraft, setRenameDraft] = useState(d.label);
         const renameInputRef = useRef<HTMLInputElement>(null);
+        const [mediaAspectRatio, setMediaAspectRatio] = useState<
+            number | undefined
+        >(undefined);
 
-        const { dimensions, handleResizeStart } = useMediaNodeResize(
-            id,
-            d.width,
-            d.height,
-            {
-                defaultWidth: 360,
-                defaultHeight: 280,
-                minWidth: 200,
-                minHeight: 160,
-                lockAspectRatio: true,
-            },
-            updateNode,
-        );
+        const { dimensions, handleResizeStart, isResizing } =
+            useMediaNodeResize(
+                id,
+                d.width,
+                d.height,
+                {
+                    defaultWidth: 360,
+                    defaultHeight: 280,
+                    minWidth: 150,
+                    minHeight: 80,
+                    lockedAspectRatio: mediaAspectRatio,
+                    lockAspectRatio: true,
+                },
+                updateNodeData,
+            );
+        const dimensionsRef = useRef(dimensions);
+        const isResizingRef = useRef(isResizing);
+        useEffect(() => {
+            dimensionsRef.current = dimensions;
+            isResizingRef.current = isResizing;
+        }, [dimensions, isResizing]);
 
         const handleVideoLoad = useCallback(
             (e: React.SyntheticEvent<HTMLVideoElement>) => {
+                if (isResizingRef.current) return;
                 const { videoWidth, videoHeight } = e.currentTarget;
                 if (videoWidth && videoHeight) {
                     const inherentRatio = videoWidth / videoHeight;
-                    const currentRatio =
-                        (d.width || dimensions.width) /
-                        (d.height || dimensions.height);
+                    setMediaAspectRatio(inherentRatio);
+                    const currentWidth =
+                        d.width || dimensionsRef.current.width || 360;
+                    const currentHeight =
+                        d.height || dimensionsRef.current.height || 280;
+                    const currentRatio = currentWidth / currentHeight;
                     if (
                         !d.width ||
                         !d.height ||
                         Math.abs(inherentRatio - currentRatio) > 0.05
                     ) {
                         const newHeight = Math.round(
-                            (d.width || dimensions.width) / inherentRatio,
+                            currentWidth / inherentRatio,
                         );
                         updateNodeData(id, {
                             height: newHeight,
-                            width: d.width || dimensions.width,
+                            width: currentWidth,
                         });
                     }
                 }
             },
-            [
-                d.width,
-                d.height,
-                dimensions.width,
-                dimensions.height,
-                id,
-                updateNodeData,
-            ],
+            [d.width, d.height, id, updateNodeData],
         );
 
         const { displayUrl } = useSignedUrl(
@@ -169,7 +176,7 @@ export const CanvasNode = memo(
             <CanvasNodeContextMenu nodeId={id} onStartRename={startRename}>
                 <div
                     className={cn(
-                        "relative rounded-[24px] transition-all outline-none",
+                        "relative rounded-[24px] transition-shadow outline-none",
                         selected
                             ? "ring-primary ring-offset-background ring-2 ring-offset-4"
                             : "",
@@ -341,7 +348,11 @@ export const CanvasNode = memo(
                                 <video
                                     ref={videoRef}
                                     src={displayUrl}
-                                    className="nodrag relative z-0 h-full w-full object-contain"
+                                    className={cn(
+                                        "nodrag relative z-0 h-full w-full object-contain",
+                                        isResizing &&
+                                            "pointer-events-none select-none",
+                                    )}
                                     controls
                                     preload="metadata"
                                     onContextMenu={(e) => e.stopPropagation()}

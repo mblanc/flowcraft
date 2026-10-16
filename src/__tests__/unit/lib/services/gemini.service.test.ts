@@ -942,6 +942,38 @@ describe("GeminiService", () => {
             );
         });
 
+        it("should support extend task and omit aspect_ratio from response_format", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-omni-11-extend",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "gs://mock-bucket/extended.mp4",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "Continue the camera pan into the forest",
+                model: "gemini-omni-1.1-flash-preview",
+                video: "gs://bucket/source.mp4",
+                task: "extend",
+                aspectRatio: "16:9",
+            });
+
+            expect(mockAi.interactions.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: "gemini-omni-1.1-flash-preview",
+                    generation_config: {
+                        video_config: {
+                            task: "extend",
+                        },
+                    },
+                }),
+            );
+            const call = mockAi.interactions.create.mock.calls[0][0] as any;
+            expect(call.response_format.aspect_ratio).toBeUndefined();
+        });
+
         it("should reject untrusted download URIs returned by Omni", async () => {
             mockAi.interactions.create.mockResolvedValue({
                 id: "interaction-omni-untrusted",
@@ -959,6 +991,61 @@ describe("GeminiService", () => {
                     model: "gemini-omni-1.1-flash-preview",
                 }),
             ).rejects.toThrow("Untrusted download URI returned by Omni");
+        });
+
+        it("should interleave text and media parts when parts are provided from @-mentions", async () => {
+            mockAi.interactions.create.mockResolvedValue({
+                id: "interaction-omni-parts",
+                status: "COMPLETED",
+                output_video: {
+                    type: "video",
+                    uri: "gs://mock-bucket/interleaved.mp4",
+                },
+            });
+
+            await geminiService.generateVideo({
+                prompt: "Make Hero walk into Scene",
+                model: "gemini-omni-1.1-flash-preview",
+                images: [
+                    { url: "gs://mock-bucket/hero.png", type: "image/png" },
+                    { url: "gs://mock-bucket/scene.png", type: "image/png" },
+                ],
+                parts: [
+                    { kind: "text", text: "Make " },
+                    {
+                        kind: "uri",
+                        uri: "gs://mock-bucket/hero.png",
+                        mimeType: "image/png",
+                    },
+                    { kind: "text", text: " walk into " },
+                    {
+                        kind: "uri",
+                        uri: "gs://mock-bucket/scene.png",
+                        mimeType: "image/png",
+                    },
+                ],
+            });
+
+            const call = mockAi.interactions.create.mock.calls[0][0] as any;
+            expect(call.input).toEqual([
+                { type: "text", text: "Make " },
+                {
+                    type: "image",
+                    uri: "gs://mock-bucket/hero.png",
+                    mime_type: "image/png",
+                },
+                { type: "text", text: " walk into " },
+                {
+                    type: "image",
+                    uri: "gs://mock-bucket/scene.png",
+                    mime_type: "image/png",
+                },
+            ]);
+            expect(call.generation_config).toEqual({
+                video_config: {
+                    task: "image_to_video",
+                },
+            });
         });
     });
 

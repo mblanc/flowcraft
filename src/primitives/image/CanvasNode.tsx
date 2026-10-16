@@ -90,7 +90,7 @@ function ValidationBadge({ results }: { results: ValidationResult[] }) {
     const { Icon, colorClass } = VALIDATION_STATUS[statusKey];
 
     return (
-        <div className="pointer-events-auto absolute right-2 bottom-2 z-20">
+        <div className="pointer-events-auto absolute bottom-2 left-2 z-20">
             <button
                 type="button"
                 className={cn(
@@ -108,7 +108,7 @@ function ValidationBadge({ results }: { results: ValidationResult[] }) {
 
             {showPopover && (
                 <div
-                    className="bg-background/95 absolute right-0 bottom-8 z-50 w-64 rounded-xl border p-3 shadow-xl backdrop-blur-md"
+                    className="bg-background/95 absolute bottom-8 left-0 z-50 w-64 rounded-xl border p-3 shadow-xl backdrop-blur-md"
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
                 >
@@ -163,7 +163,6 @@ export const CanvasNode = memo(
     ({ data, selected, id }: NodeProps) => {
         const d = data as unknown as CanvasImageData;
         const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-        const updateNode = useCanvasStore((s) => s.updateNode);
         const removeNode = useCanvasStore((s) => s.removeNode);
         const [isViewerOpen, setIsViewerOpen] = useState(false);
         const [isInfoOpen, setIsInfoOpen] = useState(false);
@@ -171,30 +170,52 @@ export const CanvasNode = memo(
         const [isCopied, setIsCopied] = useState(false);
         const [renameDraft, setRenameDraft] = useState(d.label);
         const renameInputRef = useRef<HTMLInputElement>(null);
+        const [mediaAspectRatio, setMediaAspectRatio] = useState<
+            number | undefined
+        >(undefined);
 
-        const { dimensions, handleResizeStart } = useMediaNodeResize(
-            id,
-            d.width,
-            d.height,
-            {
-                defaultWidth: 300,
-                defaultHeight: 300,
-                minWidth: 150,
-                minHeight: 120,
-                lockAspectRatio: true,
-            },
-            updateNode,
-        );
+        const { dimensions, handleResizeStart, isResizing } =
+            useMediaNodeResize(
+                id,
+                d.width,
+                d.height,
+                {
+                    defaultWidth: 300,
+                    defaultHeight: 300,
+                    minWidth: 150,
+                    minHeight: 80,
+                    lockedAspectRatio: mediaAspectRatio,
+                    lockAspectRatio: true,
+                },
+                updateNodeData,
+            );
+        const dimensionsRef = useRef(dimensions);
+        const isResizingRef = useRef(isResizing);
+        useEffect(() => {
+            dimensionsRef.current = dimensions;
+            isResizingRef.current = isResizing;
+        }, [dimensions, isResizing]);
 
         const handleImageLoad = useCallback(
             (e: React.SyntheticEvent<HTMLImageElement>) => {
+                if (isResizingRef.current) return;
                 const { naturalWidth, naturalHeight } = e.currentTarget;
                 if (naturalWidth && naturalHeight) {
                     const inherentRatio = naturalWidth / naturalHeight;
-                    const currentRatio = d.width / d.height;
+                    setMediaAspectRatio(inherentRatio);
+                    const currentWidth =
+                        d.width || dimensionsRef.current.width || 300;
+                    const currentHeight =
+                        d.height || dimensionsRef.current.height || 300;
+                    const currentRatio = currentWidth / currentHeight;
                     if (Math.abs(inherentRatio - currentRatio) > 0.05) {
-                        const newHeight = Math.round(d.width / inherentRatio);
-                        updateNodeData(id, { height: newHeight });
+                        const newHeight = Math.round(
+                            currentWidth / inherentRatio,
+                        );
+                        updateNodeData(id, {
+                            width: currentWidth,
+                            height: newHeight,
+                        });
                     }
                 }
             },
@@ -251,7 +272,7 @@ export const CanvasNode = memo(
             <CanvasNodeContextMenu nodeId={id} onStartRename={startRename}>
                 <div
                     className={cn(
-                        "relative rounded-[24px] transition-all outline-none",
+                        "relative rounded-[24px] transition-shadow outline-none",
                         selected
                             ? "ring-primary ring-offset-background ring-2 ring-offset-4"
                             : "",
@@ -412,7 +433,11 @@ export const CanvasNode = memo(
                                 src={displayUrl}
                                 alt={d.label}
                                 fill
-                                className="h-full w-full object-contain"
+                                className={cn(
+                                    "h-full w-full object-contain",
+                                    isResizing &&
+                                        "pointer-events-none select-none",
+                                )}
                                 unoptimized
                                 onContextMenu={(e) => e.stopPropagation()}
                                 draggable={false}
@@ -429,7 +454,7 @@ export const CanvasNode = memo(
 
                     {/* Validation badge / spinner */}
                     {d.validating && (
-                        <div className="pointer-events-none absolute right-2 bottom-2 z-20 flex h-6 w-6 items-center justify-center rounded-full border bg-white/90 shadow-sm dark:bg-black/70">
+                        <div className="pointer-events-none absolute bottom-2 left-2 z-20 flex h-6 w-6 items-center justify-center rounded-full border bg-white/90 shadow-sm dark:bg-black/70">
                             <Loader2 className="text-muted-foreground h-3.5 w-3.5 animate-spin" />
                         </div>
                     )}

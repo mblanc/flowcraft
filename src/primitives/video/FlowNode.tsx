@@ -55,7 +55,7 @@ export const FlowNode = memo(
         >(undefined);
         const updateNodeInternals = useUpdateNodeInternals();
 
-        const connectedTextNodes = useConnectedSourceNodes(id, "prompt-input");
+        const connectedNodes = useConnectedSourceNodes(id);
 
         const effectiveModel = getEffectiveVideoModel(data.model);
         const isOmni11 = effectiveModel === MODELS.VIDEO.GEMINI_OMNI_1_1_FLASH;
@@ -92,19 +92,26 @@ export const FlowNode = memo(
             updateNodeData,
             data,
         ]);
-        const { dimensions, handleResizeStart } = useMediaNodeResize(
-            id,
-            data.width,
-            data.height,
-            {
-                defaultWidth: 320,
-                defaultHeight: 280,
-                minWidth: 200,
-                minHeight: 180,
-                lockedAspectRatio: mediaAspectRatio,
-            },
-            updateNodeData,
-        );
+        const { dimensions, handleResizeStart, isResizing } =
+            useMediaNodeResize(
+                id,
+                data.width,
+                data.height,
+                {
+                    defaultWidth: 320,
+                    defaultHeight: 280,
+                    minWidth: 150,
+                    minHeight: 80,
+                    lockedAspectRatio: mediaAspectRatio,
+                },
+                updateNodeData,
+            );
+        const dimensionsWidthRef = useRef(dimensions.width);
+        const isResizingRef = useRef(isResizing);
+        useEffect(() => {
+            dimensionsWidthRef.current = dimensions.width;
+            isResizingRef.current = isResizing;
+        }, [dimensions.width, isResizing]);
 
         const wasExecutingRef = useRef(false);
         useEffect(() => {
@@ -133,16 +140,17 @@ export const FlowNode = memo(
 
         const handleVideoMetadata = useCallback(
             (e: React.SyntheticEvent<HTMLVideoElement>) => {
+                if (isResizingRef.current) return;
                 const video = e.currentTarget;
                 if (video.videoWidth && video.videoHeight) {
                     const ratio = video.videoWidth / video.videoHeight;
                     setMediaAspectRatio(ratio);
                     updateNodeData(id, {
-                        height: Math.round(dimensions.width / ratio),
+                        height: Math.round(dimensionsWidthRef.current / ratio),
                     });
                 }
             },
-            [dimensions.width, id, updateNodeData],
+            [id, updateNodeData],
         );
 
         const handleExecute = useCallback(() => {
@@ -231,7 +239,9 @@ export const FlowNode = memo(
                 className="relative"
                 style={{ width: dimensions.width, height: dimensions.height }}
                 onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
+                onMouseLeave={() => {
+                    if (!isResizing) setIsHovered(false);
+                }}
                 onFocusCapture={() => {
                     selectNode(id);
                 }}
@@ -309,7 +319,10 @@ export const FlowNode = memo(
                             src={videoPlaybackUrl}
                             controls
                             preload="metadata"
-                            className="h-full w-full object-contain"
+                            className={cn(
+                                "h-full w-full object-contain",
+                                isResizing && "pointer-events-none select-none",
+                            )}
                             onLoadedMetadata={handleVideoMetadata}
                         />
                     ) : (
@@ -366,7 +379,10 @@ export const FlowNode = memo(
                                 data.aspectRatio,
                                 isOmni,
                             )}
-                            disabled={isOmni && data.task === "edit"}
+                            disabled={
+                                isOmni &&
+                                (data.task === "edit" || data.task === "extend")
+                            }
                             onValueChange={(value) =>
                                 updateNodeData(id, {
                                     aspectRatio:
@@ -450,6 +466,9 @@ export const FlowNode = memo(
                                         Ref to Video
                                     </SelectItem>
                                     <SelectItem value="edit">Edit</SelectItem>
+                                    <SelectItem value="extend">
+                                        Extend
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         )}
@@ -523,7 +542,7 @@ export const FlowNode = memo(
                     <MentionEditor
                         value={localPrompt}
                         onChange={handlePromptChange}
-                        availableNodes={connectedTextNodes}
+                        availableNodes={connectedNodes}
                         placeholder="Prompt…"
                         className="nowheel nopan nodrag text-foreground w-full text-[10px]"
                     />

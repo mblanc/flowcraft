@@ -157,6 +157,7 @@ export const VideoDataSchema = BaseNodeDataSchema.extend({
             "image_to_video",
             "reference_to_video",
             "edit",
+            "extend",
         ])
         .optional(),
     width: z.number().optional(),
@@ -370,6 +371,7 @@ export const GenerateTextSchema = z
 
 export const GenerateVideoSchema = z.object({
     prompt: z.string().min(1, "Prompt is required"),
+    parts: z.array(ContentPartSchema).optional(),
     firstFrame: z.string().optional(),
     lastFrame: z.string().optional(),
     audio: z.string().optional(),
@@ -411,6 +413,7 @@ export const GenerateVideoSchema = z.object({
             "image_to_video",
             "reference_to_video",
             "edit",
+            "extend",
         ])
         .optional()
         .default("none"),

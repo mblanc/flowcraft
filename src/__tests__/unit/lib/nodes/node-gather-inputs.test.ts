@@ -284,6 +284,78 @@ describe("videoNodeDefinition.gatherInputs", () => {
         expect(inputs.namedNodes).toHaveLength(1);
         expect(inputs.namedNodes![0].textValues).toEqual(["p1", "p2"]);
     });
+
+    it("populates namedNodes for image-input, first-frame-input, last-frame-input, and video-input edges", () => {
+        const node = makeVideoNode();
+        const edges = [
+            edge("e1", "img-1", "vid-1", "image-input"),
+            edge("e2", "first-1", "vid-1", "first-frame-input"),
+            edge("e3", "last-1", "vid-1", "last-frame-input"),
+            edge("e4", "vid-ref", "vid-1", "video-input"),
+        ];
+        const getSourceData = (id: string) => {
+            if (id === "img-1") return imageData(["gs://img.png"]);
+            if (id === "first-1") return imageData(["gs://first.png"]);
+            if (id === "last-1") return imageData(["gs://last.png"]);
+            if (id === "vid-ref")
+                return {
+                    type: "video",
+                    name: "RefVid",
+                    videoUrl: "gs://ref.mp4",
+                } as unknown as NodeData;
+            return null;
+        };
+        const inputs = videoNodeDefinition.gatherInputs(
+            node,
+            edges,
+            getSourceData,
+        );
+        expect(inputs.namedNodes).toEqual([
+            {
+                nodeId: "first-1",
+                name: "I",
+                textValue: null,
+                fileValues: [{ url: "gs://first.png", type: "image/png" }],
+            },
+            {
+                nodeId: "last-1",
+                name: "I",
+                textValue: null,
+                fileValues: [{ url: "gs://last.png", type: "image/png" }],
+            },
+            {
+                nodeId: "vid-ref",
+                name: "RefVid",
+                textValue: null,
+                fileValues: [{ url: "gs://ref.mp4", type: "video/mp4" }],
+            },
+            {
+                nodeId: "img-1",
+                name: "I",
+                textValue: null,
+                fileValues: [{ url: "gs://img.png", type: "image/png" }],
+            },
+        ]);
+    });
+
+    it("handles collection image source on image-input", () => {
+        const node = makeVideoNode();
+        const edges = [edge("e1", "img-src", "vid-1", "image-input")];
+        const getSourceData = () =>
+            ({
+                type: "image",
+                name: "Batch",
+                batchTotal: 2,
+                images: ["gs://a.png", "gs://b.png"],
+            }) as unknown as NodeData;
+        const inputs = videoNodeDefinition.gatherInputs(
+            node,
+            edges,
+            getSourceData,
+        );
+        expect(inputs.namedNodes).toHaveLength(1);
+        expect(inputs.namedNodes![0].fileValuesList).toHaveLength(2);
+    });
 });
 
 // ─── resizeNodeDefinition.gatherInputs ──────────────────────────────────────

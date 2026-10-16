@@ -176,17 +176,36 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => ({
 
     updateNode: (id, data) =>
         set((state) => ({
-            nodes: state.nodes.map((n) =>
-                n.id === id ? { ...n, ...data } : n,
-            ),
+            nodes: state.nodes.map((n) => {
+                if (n.id !== id) return n;
+                const nextData = { ...n.data };
+                if (typeof data.width === "number" && "width" in nextData) {
+                    (nextData as Record<string, unknown>).width = data.width;
+                }
+                if (typeof data.height === "number" && "height" in nextData) {
+                    (nextData as Record<string, unknown>).height = data.height;
+                }
+                return { ...n, ...data, data: nextData } as CanvasNode;
+            }),
             lastModified: Date.now(),
         })),
 
     updateNodeData: (id, data) =>
         set((state) => ({
-            nodes: state.nodes.map((n) =>
-                n.id === id ? { ...n, data: { ...n.data, ...data } } : n,
-            ),
+            nodes: state.nodes.map((n) => {
+                if (n.id !== id) return n;
+                const nextNode: Record<string, unknown> = {
+                    ...n,
+                    data: { ...n.data, ...data },
+                };
+                if (typeof data.width === "number") {
+                    nextNode.width = data.width;
+                }
+                if (typeof data.height === "number") {
+                    nextNode.height = data.height;
+                }
+                return nextNode as unknown as CanvasNode;
+            }),
             lastModified: Date.now(),
         })),
 

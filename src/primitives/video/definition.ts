@@ -8,7 +8,9 @@ import { DEFAULTS, MODELS, isOmniVideoModel } from "@/lib/constants";
 import {
     getSourceValue,
     isCollectionSource,
-    findInputByHandle,
+    buildFileValues,
+    inferMimeType,
+    createNamedNodesTracker,
 } from "@/lib/node-adapters/utils/node-helpers";
 
 const videoOutputSchema = z.object({
@@ -137,7 +139,7 @@ export const videoPrimitive: Primitive<
                           : node.data.resolution || "720p",
                 task: node.data.task,
             };
-            const namedNodesMap = new Map<string, any>();
+            const tracker = createNamedNodesTracker();
 
             const promptEdges = edges.filter(
                 (e) =>
@@ -154,35 +156,36 @@ export const videoPrimitive: Primitive<
                     Array.isArray(promptValue) &&
                     isCollectionSource(promptData)
                 ) {
-                    if (!namedNodesMap.has(promptEdge.source)) {
-                        namedNodesMap.set(promptEdge.source, {
-                            nodeId: promptEdge.source,
-                            name: promptData!.name,
-                            textValue: (promptValue as string[])[0] ?? null,
-                            textValues: promptValue as string[],
-                            fileValues: [],
-                        });
-                    }
+                    const named = tracker.getOrCreate(
+                        promptEdge.source,
+                        promptData!,
+                    );
+                    named.textValues = promptValue as string[];
+                    named.textValue = (promptValue as string[])[0] ?? null;
                 } else if (typeof promptValue === "string") {
                     if (inputs.prompt === undefined)
                         inputs.prompt = promptValue;
-                    if (promptData && !namedNodesMap.has(promptEdge.source)) {
-                        namedNodesMap.set(promptEdge.source, {
-                            nodeId: promptEdge.source,
-                            name: promptData.name,
-                            textValue: promptValue,
-                            fileValues: [],
-                        });
+                    if (promptData) {
+                        const named = tracker.getOrCreate(
+                            promptEdge.source,
+                            promptData,
+                        );
+                        named.textValue = promptValue;
                     }
                 }
             }
 
-            const firstFrameData = findInputByHandle(
-                node.id,
-                edges,
-                "first-frame-input",
-                getSourceData,
+            const firstFrameEdge = edges.find(
+                (e) =>
+                    e.target === node.id &&
+                    e.targetHandle === "first-frame-input",
             );
+            const firstFrameData = firstFrameEdge
+                ? getSourceData(
+                      firstFrameEdge.source,
+                      firstFrameEdge.sourceHandle,
+                  )
+                : null;
             const firstFrameUrl = extractMediaUrl(
                 getSourceValue(firstFrameData),
             );
@@ -195,14 +198,29 @@ export const videoPrimitive: Primitive<
                 } else {
                     inputs.firstFrame = firstFrameUrl;
                 }
+                if (firstFrameEdge && firstFrameData) {
+                    const named = tracker.getOrCreate(
+                        firstFrameEdge.source,
+                        firstFrameData,
+                    );
+                    named.fileValues.push({
+                        url: firstFrameUrl,
+                        type: inferMimeType(firstFrameUrl, firstFrameData),
+                    });
+                }
             }
 
-            const lastFrameData = findInputByHandle(
-                node.id,
-                edges,
-                "last-frame-input",
-                getSourceData,
+            const lastFrameEdge = edges.find(
+                (e) =>
+                    e.target === node.id &&
+                    e.targetHandle === "last-frame-input",
             );
+            const lastFrameData = lastFrameEdge
+                ? getSourceData(
+                      lastFrameEdge.source,
+                      lastFrameEdge.sourceHandle,
+                  )
+                : null;
             const lastFrameUrl = extractMediaUrl(getSourceValue(lastFrameData));
             if (lastFrameUrl) {
                 if (isOmni) {
@@ -213,25 +231,59 @@ export const videoPrimitive: Primitive<
                 } else {
                     inputs.lastFrame = lastFrameUrl;
                 }
+                if (lastFrameEdge && lastFrameData) {
+                    const named = tracker.getOrCreate(
+                        lastFrameEdge.source,
+                        lastFrameData,
+                    );
+                    named.fileValues.push({
+                        url: lastFrameUrl,
+                        type: inferMimeType(lastFrameUrl, lastFrameData),
+                    });
+                }
             }
 
-            const audioData = findInputByHandle(
-                node.id,
-                edges,
-                "audio-input",
-                getSourceData,
+            const audioEdge = edges.find(
+                (e) => e.target === node.id && e.targetHandle === "audio-input",
             );
+            const audioData = audioEdge
+                ? getSourceData(audioEdge.source, audioEdge.sourceHandle)
+                : null;
             const audioUrl = extractMediaUrl(getSourceValue(audioData));
-            if (audioUrl) inputs.audio = audioUrl;
+            if (audioUrl) {
+                inputs.audio = audioUrl;
+                if (audioEdge && audioData) {
+                    const named = tracker.getOrCreate(
+                        audioEdge.source,
+                        audioData,
+                    );
+                    named.fileValues.push({
+                        url: audioUrl,
+                        type: inferMimeType(audioUrl, audioData),
+                    });
+                }
+            }
 
-            const videoData = findInputByHandle(
-                node.id,
-                edges,
-                "video-input",
-                getSourceData,
+            const videoEdge = edges.find(
+                (e) => e.target === node.id && e.targetHandle === "video-input",
             );
+            const videoData = videoEdge
+                ? getSourceData(videoEdge.source, videoEdge.sourceHandle)
+                : null;
             const videoUrl = extractMediaUrl(getSourceValue(videoData));
-            if (videoUrl) inputs.video = videoUrl;
+            if (videoUrl) {
+                inputs.video = videoUrl;
+                if (videoEdge && videoData) {
+                    const named = tracker.getOrCreate(
+                        videoEdge.source,
+                        videoData,
+                    );
+                    named.fileValues.push({
+                        url: videoUrl,
+                        type: inferMimeType(videoUrl, videoData),
+                    });
+                }
+            }
 
             const imageEdges = edges.filter(
                 (e) => e.target === node.id && e.targetHandle === "image-input",
@@ -245,25 +297,26 @@ export const videoPrimitive: Primitive<
                 const value = getSourceValue(sourceData);
                 if (!value) continue;
 
-                const values = Array.isArray(value) ? value : [value];
-                for (const item of values) {
-                    if (typeof item === "string") {
-                        inputs.images?.push({ url: item, type: "image/png" });
-                    } else if (
-                        typeof item === "object" &&
-                        item !== null &&
-                        (item as Record<string, unknown>).url
-                    ) {
-                        const itemObj = item as Record<string, unknown>;
-                        inputs.images?.push({
-                            url: itemObj.url as string,
-                            type: (itemObj.type as string) || "image/png",
-                        });
+                if (Array.isArray(value) && isCollectionSource(sourceData)) {
+                    const named = tracker.getOrCreate(edge.source, sourceData);
+                    named.fileValuesList = (value as string[]).map((url) => [
+                        { url, type: inferMimeType(url, sourceData) },
+                    ]);
+                    named.fileValues = named.fileValuesList[0] || [];
+                } else {
+                    const rawValues = Array.isArray(value) ? value : [value];
+                    const fileValues = buildFileValues(rawValues, sourceData);
+
+                    for (const fv of fileValues) {
+                        inputs.images?.push(fv);
                     }
+
+                    const named = tracker.getOrCreate(edge.source, sourceData);
+                    named.fileValues.push(...fileValues);
                 }
             }
 
-            inputs.namedNodes = Array.from(namedNodesMap.values());
+            inputs.namedNodes = tracker.values();
             return inputs;
         },
         toFlowData: (node, inputs, result) => {

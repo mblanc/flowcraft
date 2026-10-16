@@ -33,7 +33,6 @@ export const CanvasTextNode = memo(
     ({ data, selected, id }: NodeProps) => {
         const d = data as unknown as CanvasTextData;
         const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-        const updateNode = useCanvasStore((s) => s.updateNode);
         const removeNode = useCanvasStore((s) => s.removeNode);
 
         const [isEditing, setIsEditing] = useState(false);
@@ -55,7 +54,7 @@ export const CanvasTextNode = memo(
                 minWidth: 120,
                 minHeight: 80,
             },
-            updateNode,
+            updateNodeData,
         );
 
         const [prevContent, setPrevContent] = useState(d.content);
@@ -113,7 +112,7 @@ export const CanvasTextNode = memo(
             <CanvasNodeContextMenu nodeId={id} onStartRename={startRename}>
                 <div
                     className={cn(
-                        "relative rounded-[24px] transition-all outline-none",
+                        "relative rounded-[24px] transition-shadow outline-none",
                         selected
                             ? "ring-primary ring-offset-background ring-2 ring-offset-4"
                             : "",

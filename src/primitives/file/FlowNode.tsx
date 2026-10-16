@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { memo, useRef, useState, useCallback } from "react";
+import { memo, useRef, useState, useCallback, useEffect } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { FileData } from "@/lib/types";
 import { FileUp, ImageIcon, Video, FileText } from "lucide-react";
@@ -45,19 +45,26 @@ export const FlowNode = memo(
             number | undefined
         >(undefined);
 
-        const { dimensions, handleResizeStart } = useMediaNodeResize(
-            id,
-            data.width,
-            data.height,
-            {
-                defaultWidth: 240,
-                defaultHeight: 240,
-                minWidth: 200,
-                minHeight: 200,
-                lockedAspectRatio: mediaAspectRatio,
-            },
-            updateNodeData,
-        );
+        const { dimensions, handleResizeStart, isResizing } =
+            useMediaNodeResize(
+                id,
+                data.width,
+                data.height,
+                {
+                    defaultWidth: 240,
+                    defaultHeight: 240,
+                    minWidth: 150,
+                    minHeight: 80,
+                    lockedAspectRatio: mediaAspectRatio,
+                },
+                updateNodeData,
+            );
+        const dimensionsWidthRef = useRef(dimensions.width);
+        const isResizingRef = useRef(isResizing);
+        useEffect(() => {
+            dimensionsWidthRef.current = dimensions.width;
+            isResizingRef.current = isResizing;
+        }, [dimensions.width, isResizing]);
 
         const isActive = selected || isHovered;
 
@@ -105,6 +112,7 @@ export const FlowNode = memo(
 
         const handleMediaLoad = useCallback(
             (e: React.SyntheticEvent<HTMLImageElement | HTMLVideoElement>) => {
+                if (isResizingRef.current) return;
                 const el = e.currentTarget;
                 const w =
                     el instanceof HTMLVideoElement
@@ -118,11 +126,11 @@ export const FlowNode = memo(
                     const ratio = w / h;
                     setMediaAspectRatio(ratio);
                     updateNodeData(id, {
-                        height: Math.round(dimensions.width / ratio),
+                        height: Math.round(dimensionsWidthRef.current / ratio),
                     });
                 }
             },
-            [dimensions.width, id, updateNodeData],
+            [id, updateNodeData],
         );
 
         const handleUploadClick = () => {
@@ -147,7 +155,9 @@ export const FlowNode = memo(
                 className="relative"
                 style={{ width: dimensions.width, height: dimensions.height }}
                 onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
+                onMouseLeave={() => {
+                    if (!isResizing) setIsHovered(false);
+                }}
             >
                 {/* Floating title */}
                 <div className="pointer-events-auto absolute -top-7 left-2 z-20 flex items-center">
@@ -194,7 +204,13 @@ export const FlowNode = memo(
                                         alt={data.fileName || "File"}
                                         width={dimensions.width}
                                         height={dimensions.height}
-                                        className="h-full w-full object-contain"
+                                        className={cn(
+                                            "h-full w-full object-contain",
+                                            isResizing &&
+                                                "pointer-events-none select-none",
+                                        )}
+                                        unoptimized
+                                        draggable={false}
                                         onLoad={handleMediaLoad}
                                         onContextMenu={(e) =>
                                             e.stopPropagation()
@@ -205,7 +221,11 @@ export const FlowNode = memo(
                                 <video
                                     src={signedUrl}
                                     controls
-                                    className="h-full w-full object-contain"
+                                    className={cn(
+                                        "h-full w-full object-contain",
+                                        isResizing &&
+                                            "pointer-events-none select-none",
+                                    )}
                                     onLoadedMetadata={handleMediaLoad}
                                     onContextMenu={(e) => e.stopPropagation()}
                                 />

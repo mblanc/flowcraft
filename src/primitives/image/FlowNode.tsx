@@ -50,19 +50,26 @@ export const FlowNode = memo(
 
         const connectedNodes = useConnectedSourceNodes(id);
         const [isImageOpen, setIsImageOpen] = useState(false);
-        const { dimensions, handleResizeStart } = useMediaNodeResize(
-            id,
-            data.width,
-            data.height,
-            {
-                defaultWidth: 300,
-                defaultHeight: 300,
-                minWidth: 200,
-                minHeight: 200,
-                lockedAspectRatio: mediaAspectRatio,
-            },
-            updateNodeData,
-        );
+        const { dimensions, handleResizeStart, isResizing } =
+            useMediaNodeResize(
+                id,
+                data.width,
+                data.height,
+                {
+                    defaultWidth: 300,
+                    defaultHeight: 300,
+                    minWidth: 150,
+                    minHeight: 80,
+                    lockedAspectRatio: mediaAspectRatio,
+                },
+                updateNodeData,
+            );
+        const dimensionsWidthRef = useRef(dimensions.width);
+        const isResizingRef = useRef(isResizing);
+        useEffect(() => {
+            dimensionsWidthRef.current = dimensions.width;
+            isResizingRef.current = isResizing;
+        }, [dimensions.width, isResizing]);
 
         const wasExecutingRef = useRef(false);
         useEffect(() => {
@@ -107,16 +114,17 @@ export const FlowNode = memo(
 
         const handleImageLoad = useCallback(
             (e: React.SyntheticEvent<HTMLImageElement>) => {
+                if (isResizingRef.current) return;
                 const img = e.currentTarget;
                 if (img.naturalWidth && img.naturalHeight) {
                     const ratio = img.naturalWidth / img.naturalHeight;
                     setMediaAspectRatio(ratio);
                     updateNodeData(id, {
-                        height: Math.round(dimensions.width / ratio),
+                        height: Math.round(dimensionsWidthRef.current / ratio),
                     });
                 }
             },
-            [dimensions.width, id, updateNodeData],
+            [id, updateNodeData],
         );
 
         const handlePromptChange = (value: string) => {
@@ -187,7 +195,9 @@ export const FlowNode = memo(
                 className="relative"
                 style={{ width: dimensions.width, height: dimensions.height }}
                 onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
+                onMouseLeave={() => {
+                    if (!isResizing) setIsHovered(false);
+                }}
                 onFocusCapture={() => {
                     selectNode(id);
                 }}
@@ -276,8 +286,12 @@ export const FlowNode = memo(
                             alt={data.name}
                             width={dimensions.width}
                             height={dimensions.height}
-                            className="h-full w-full object-contain"
-                            unoptimized={displayUrl.startsWith("data:")}
+                            className={cn(
+                                "h-full w-full object-contain",
+                                isResizing && "pointer-events-none select-none",
+                            )}
+                            unoptimized
+                            draggable={false}
                             onLoad={handleImageLoad}
                             onContextMenu={(e) => e.stopPropagation()}
                         />

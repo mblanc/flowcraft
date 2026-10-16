@@ -291,7 +291,7 @@ export const FlowNode = memo(
 
         return (
             <div
-                className={`node-container custom-workflow-node relative transition-all ${selected ? "selected" : ""}`}
+                className={`node-container custom-workflow-node relative ${selected ? "selected" : ""}`}
                 style={{ width: dimensions.width }}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}

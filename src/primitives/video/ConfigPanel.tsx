@@ -39,7 +39,7 @@ export function ConfigPanel({
         (state: FlowState) => state.updateNodeData,
     );
 
-    const connectedTextNodes = useConnectedSourceNodes(nodeId, "prompt-input");
+    const connectedNodes = useConnectedSourceNodes(nodeId);
 
     const effectiveModel = getEffectiveVideoModel(data.model);
     const isOmni = isOmniVideoModel(effectiveModel);
@@ -106,7 +106,7 @@ export function ConfigPanel({
                         onChange={(value) =>
                             updateNodeData(nodeId, { prompt: value })
                         }
-                        availableNodes={connectedTextNodes}
+                        availableNodes={connectedNodes}
                         placeholder="Video generation prompt..."
                         className="min-h-[5rem]"
                     />
@@ -120,7 +120,10 @@ export function ConfigPanel({
                         data.aspectRatio,
                         isOmni,
                     )}
-                    disabled={isOmni && data.task === "edit"}
+                    disabled={
+                        isOmni &&
+                        (data.task === "edit" || data.task === "extend")
+                    }
                     onValueChange={(value) =>
                         updateNodeData(nodeId, {
                             aspectRatio:
@@ -139,7 +142,7 @@ export function ConfigPanel({
                         <SelectItem value="9:16">9:16</SelectItem>
                     </SelectContent>
                 </Select>
-                {isOmni && data.task === "edit" && (
+                {isOmni && (data.task === "edit" || data.task === "extend") && (
                     <p className="text-muted-foreground text-xs">
                         Aspect ratio cannot be set for edit tasks (inherited
                         from source).
@@ -301,6 +304,7 @@ export function ConfigPanel({
                                 Reference to Video
                             </SelectItem>
                             <SelectItem value="edit">Edit</SelectItem>
+                            <SelectItem value="extend">Extend</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

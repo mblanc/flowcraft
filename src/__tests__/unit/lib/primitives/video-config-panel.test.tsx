@@ -175,6 +175,7 @@ describe("Video ConfigPanel (TDD)", () => {
             </TooltipProvider>,
         );
         expect(screen.getByText("Task")).toBeDefined();
+        expect(screen.getByText("Extend")).toBeDefined();
 
         rerender(
             <TooltipProvider>
