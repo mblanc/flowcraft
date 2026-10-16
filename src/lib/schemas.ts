@@ -350,11 +350,11 @@ export const GenerateTextSchema = z
             )
             .optional()
             .default([]),
-        model: z.string().optional().default(MODELS.TEXT.GEMINI_3_5_FLASH),
+        model: z.string().optional().default(MODELS.TEXT.GEMINI_4_ARGON),
         outputType: z.enum(["text", "json"]).optional().default("text"),
         responseSchema: z.string().optional(),
         strictMode: z.boolean().optional().default(false),
-        thinkingLevel: z.string().optional(),
+        thinkingLevel: z.string().optional().default("MEDIUM"),
     })
     .superRefine((data, ctx) => {
         const hasParts = data.parts && data.parts.length > 0;

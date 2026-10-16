@@ -69,7 +69,8 @@ export async function validateImage(
 
     try {
         const response = await geminiService.generateText({
-            model: MODELS.TEXT.GEMINI_3_5_FLASH,
+            model: MODELS.TEXT.GEMINI_4_ARGON,
+            thinkingLevel: "MEDIUM",
             systemInstruction: VALIDATION_SYSTEM_PROMPT,
             parts: [
                 { kind: "uri", uri: imageGcsUri, mimeType },

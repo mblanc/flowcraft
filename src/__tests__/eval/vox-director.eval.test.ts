@@ -39,7 +39,7 @@ function baseInput(
 ): AgentInput {
     return {
         mode: "auto",
-        model: MODELS.TEXT.GEMINI_3_5_FLASH,
+        model: MODELS.TEXT.GEMINI_4_ARGON,
         history: [],
         canvasNodes: [],
         ...overrides,

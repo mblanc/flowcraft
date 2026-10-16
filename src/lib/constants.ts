@@ -4,6 +4,7 @@
 
 export const MODELS = {
     TEXT: {
+        GEMINI_4_ARGON: "gemini-4-argon",
         GEMINI_3_1_PRO_PREVIEW: "gemini-3.1-pro-preview",
         GEMINI_3_5_FLASH: "gemini-3.5-flash",
         GEMINI_3_1_FLASH_LITE: "gemini-3.1-flash-lite",
@@ -33,6 +34,7 @@ export const MODELS = {
 } as const;
 
 export const MODEL_THINKING_LEVELS: Record<string, string[]> = {
+    [MODELS.TEXT.GEMINI_4_ARGON]: ["MINIMAL", "LOW", "MEDIUM", "HIGH"],
     [MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW]: ["LOW", "MEDIUM", "HIGH"],
     [MODELS.TEXT.GEMINI_3_1_FLASH_LITE]: ["MINIMAL", "LOW", "MEDIUM", "HIGH"],
     [MODELS.IMAGE.GEMINI_3_1_FLASH_IMAGE]: ["MINIMAL", "HIGH"],

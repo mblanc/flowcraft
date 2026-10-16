@@ -57,17 +57,20 @@ async function* asAsyncIter<T>(items: T[]): AsyncGenerator<T> {
 }
 
 describe("Director agent (CanvasAgent)", () => {
-    it("builds an agent named Director", async () => {
+    it("builds an agent named Director with MEDIUM thinking level", async () => {
         const agent = await new CanvasAgent().build(
-            MODELS.TEXT.GEMINI_3_5_FLASH,
+            MODELS.TEXT.GEMINI_4_ARGON,
             "test instruction",
         );
         expect(agent.name).toBe("Director");
+        expect(agent.generateContentConfig?.thinkingConfig?.thinkingLevel).toBe(
+            "MEDIUM",
+        );
     });
 
     it("includes planProductionTool in Director tools", async () => {
         const agent = await new CanvasAgent().build(
-            MODELS.TEXT.GEMINI_3_5_FLASH,
+            MODELS.TEXT.GEMINI_4_ARGON,
             "test instruction",
         );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,7 +82,7 @@ describe("Director agent (CanvasAgent)", () => {
 
     it("includes suggestActionsTool in Director tools", async () => {
         const agent = await new CanvasAgent().build(
-            MODELS.TEXT.GEMINI_3_5_FLASH,
+            MODELS.TEXT.GEMINI_4_ARGON,
             "test instruction",
         );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,7 +94,7 @@ describe("Director agent (CanvasAgent)", () => {
 
     it("includes planTextNodesTool in Director tools", async () => {
         const agent = await new CanvasAgent().build(
-            MODELS.TEXT.GEMINI_3_5_FLASH,
+            MODELS.TEXT.GEMINI_4_ARGON,
             "test instruction",
         );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,7 +106,7 @@ describe("Director agent (CanvasAgent)", () => {
 
     it("includes a SkillToolset in Director tools", async () => {
         const agent = await new CanvasAgent().build(
-            MODELS.TEXT.GEMINI_3_5_FLASH,
+            MODELS.TEXT.GEMINI_4_ARGON,
             "test instruction",
         );
         // SkillToolset has a `skills` property; other tools have `name`

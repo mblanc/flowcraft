@@ -25,7 +25,7 @@ describe("vox-director pattern skill integration", () => {
         const runner = new CanvasAgentRunner();
         const input: AgentInput = {
             mode: "auto",
-            model: "gemini-3.5-flash",
+            model: "gemini-4-argon",
             message: "/vox-director Ancient Rome trade evolution",
             canvasNodes: [],
             history: [],

@@ -19,7 +19,7 @@ vi.mock("@google/genai", () => ({
         this.models = { generateContent: mockGenerateContent };
         this.operations = { get: vi.fn() };
     }),
-    ThinkingLevel: { LOW: "LOW" },
+    ThinkingLevel: { LOW: "LOW", MEDIUM: "MEDIUM" },
     createPartFromText: vi.fn((t: string) => ({ text: t })),
     createPartFromUri: vi.fn(),
     createPartFromBase64: vi.fn(),

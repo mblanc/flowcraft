@@ -152,7 +152,8 @@ export class PromptEngineer {
 
         try {
             const text = await geminiService.generateText({
-                model: MODELS.TEXT.GEMINI_3_5_FLASH,
+                model: MODELS.TEXT.GEMINI_4_ARGON,
+                thinkingLevel: "MEDIUM",
                 prompts: [request],
                 systemInstruction: INSTRUCTION,
             });

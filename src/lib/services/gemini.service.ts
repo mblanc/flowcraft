@@ -232,7 +232,7 @@ export class GeminiService {
             thinkingLevel,
             systemInstruction,
         } = options;
-        const selectedModel = model || MODELS.TEXT.GEMINI_3_5_FLASH;
+        const selectedModel = model || MODELS.TEXT.GEMINI_4_ARGON;
 
         logger.info(
             `[GeminiService] Generating text with model: ${selectedModel}`,
@@ -311,11 +311,17 @@ export class GeminiService {
             }
         }
 
-        if (thinkingLevel) {
+        const effectiveThinkingLevel =
+            thinkingLevel ??
+            (MODEL_THINKING_LEVELS[selectedModel]?.includes("MEDIUM")
+                ? "MEDIUM"
+                : undefined);
+        if (effectiveThinkingLevel) {
             const levelKey =
-                thinkingLevel.toUpperCase() as keyof typeof ThinkingLevel;
+                effectiveThinkingLevel.toUpperCase() as keyof typeof ThinkingLevel;
             generationConfig.thinkingConfig = {
-                thinkingLevel: ThinkingLevel[levelKey] ?? thinkingLevel,
+                thinkingLevel:
+                    ThinkingLevel[levelKey] ?? effectiveThinkingLevel,
             };
         }
 
@@ -354,7 +360,7 @@ export class GeminiService {
         model?: string;
         config?: GenerateContentConfig;
     }): AsyncGenerator<string> {
-        const selectedModel = options.model || MODELS.TEXT.GEMINI_3_5_FLASH;
+        const selectedModel = options.model || MODELS.TEXT.GEMINI_4_ARGON;
 
         logger.info(
             `[GeminiService] Streaming text with model: ${selectedModel}`,
@@ -398,7 +404,7 @@ export class GeminiService {
         responseSchema: Record<string, unknown>;
         config?: GenerateContentConfig;
     }): Promise<GenerateContentResponse> {
-        const selectedModel = options.model || MODELS.TEXT.GEMINI_3_5_FLASH;
+        const selectedModel = options.model || MODELS.TEXT.GEMINI_4_ARGON;
 
         logger.info(
             `[GeminiService] Generating structured output with model: ${selectedModel}`,

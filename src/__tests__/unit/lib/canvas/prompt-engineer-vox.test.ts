@@ -37,6 +37,8 @@ describe("PromptEngineer with vox-collage reference", () => {
 
         expect(geminiService.generateText).toHaveBeenCalledTimes(1);
         const callArgs = vi.mocked(geminiService.generateText).mock.calls[0][0];
+        expect(callArgs.model).toBe("gemini-4-argon");
+        expect(callArgs.thinkingLevel).toBe("MEDIUM");
         const sentPrompt = callArgs.prompts?.[0] ?? "";
 
         // Verify vox-collage.md content is injected in skill specification
@@ -64,6 +66,8 @@ describe("PromptEngineer with vox-collage reference", () => {
 
         expect(geminiService.generateText).toHaveBeenCalledTimes(1);
         const callArgs = vi.mocked(geminiService.generateText).mock.calls[0][0];
+        expect(callArgs.model).toBe("gemini-4-argon");
+        expect(callArgs.thinkingLevel).toBe("MEDIUM");
         const sentPrompt = callArgs.prompts?.[0] ?? "";
 
         // Must load t2s SKILL.md specification

@@ -58,6 +58,8 @@ describe("validateImage", () => {
         await validateImage("gs://bucket/image.png", baseRuleset());
         expect(mockGenerateText).toHaveBeenCalledWith(
             expect.objectContaining({
+                model: "gemini-4-argon",
+                thinkingLevel: "MEDIUM",
                 parts: expect.arrayContaining([
                     expect.objectContaining({
                         kind: "uri",

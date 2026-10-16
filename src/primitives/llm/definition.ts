@@ -156,12 +156,12 @@ export const llmPrimitive: Primitive<
         defaultData: {
             type: "llm",
             name: "LLM",
-            model: MODELS.TEXT.GEMINI_3_5_FLASH,
+            model: MODELS.TEXT.GEMINI_4_ARGON,
             instructions: "",
             outputType: "text",
             strictMode: false,
             visualSchema: [],
-            thinkingLevel: "HIGH",
+            thinkingLevel: "MEDIUM",
         },
     },
 

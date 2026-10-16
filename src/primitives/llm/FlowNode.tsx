@@ -138,11 +138,11 @@ export const FlowNode = memo(
         const validTextModels = Object.values(MODELS.TEXT) as string[];
         const effectiveModel = validTextModels.includes(data.model)
             ? data.model
-            : MODELS.TEXT.GEMINI_3_5_FLASH;
+            : MODELS.TEXT.GEMINI_4_ARGON;
 
         useEffect(() => {
             if (!validTextModels.includes(data.model)) {
-                updateNodeData(id, { model: MODELS.TEXT.GEMINI_3_5_FLASH });
+                updateNodeData(id, { model: MODELS.TEXT.GEMINI_4_ARGON });
             }
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [id]);
@@ -155,8 +155,9 @@ export const FlowNode = memo(
                     !data.thinkingLevel ||
                     !supportedLevels.includes(data.thinkingLevel)
                 ) {
-                    updates.thinkingLevel =
-                        supportedLevels[supportedLevels.length - 1];
+                    updates.thinkingLevel = supportedLevels.includes("MEDIUM")
+                        ? "MEDIUM"
+                        : supportedLevels[supportedLevels.length - 1];
                 }
             } else {
                 updates.thinkingLevel = undefined;
@@ -431,6 +432,9 @@ export const FlowNode = memo(
                                 <SelectValue placeholder="Model" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value={MODELS.TEXT.GEMINI_4_ARGON}>
+                                    Gemini 4 Argon
+                                </SelectItem>
                                 <SelectItem
                                     value={MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW}
                                 >

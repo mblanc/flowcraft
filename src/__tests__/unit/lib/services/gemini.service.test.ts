@@ -76,7 +76,7 @@ vi.mock("@google/genai", () => {
         VideoGenerationReferenceType: {
             ASSET: "ASSET",
         },
-        ThinkingLevel: { LOW: "LOW" },
+        ThinkingLevel: { LOW: "LOW", MEDIUM: "MEDIUM" },
         MediaResolution: {
             MEDIA_RESOLUTION_HIGH: "MEDIA_RESOLUTION_HIGH",
             MEDIA_RESOLUTION_LOW: "MEDIA_RESOLUTION_LOW",
@@ -130,6 +130,14 @@ describe("GeminiService", () => {
             };
             const result = await geminiService.generateText(options);
             expect(result).toBe("This is a summary of the PDF.");
+            expect(mockAi.models.generateContent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    model: MODELS.TEXT.GEMINI_4_ARGON,
+                    config: expect.objectContaining({
+                        thinkingConfig: { thinkingLevel: "MEDIUM" },
+                    }),
+                }),
+            );
         });
 
         it("should handle parts array", async () => {

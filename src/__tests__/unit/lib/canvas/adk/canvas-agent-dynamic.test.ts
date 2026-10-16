@@ -49,7 +49,7 @@ describe("CanvasAgent — Dynamic User Skills", () => {
     it("should build the agent and load built-in skills when no user skills are provided", async () => {
         const agent = new CanvasAgent();
         const llmAgent = await agent.build(
-            MODELS.TEXT.GEMINI_3_5_FLASH,
+            MODELS.TEXT.GEMINI_4_ARGON,
             "test instruction",
             [],
             [],
@@ -85,7 +85,7 @@ describe("CanvasAgent — Dynamic User Skills", () => {
     it("should merge user skills into the SkillToolset dynamically", async () => {
         const agent = new CanvasAgent();
         const llmAgent = await agent.build(
-            MODELS.TEXT.GEMINI_3_5_FLASH,
+            MODELS.TEXT.GEMINI_4_ARGON,
             "test instruction",
             mockUserSkills,
             [],
@@ -132,7 +132,7 @@ describe("CanvasAgent — Dynamic User Skills", () => {
         const disabledSkills = ["character-generation", "cinematic-teaser"];
 
         const llmAgent = await agent.build(
-            MODELS.TEXT.GEMINI_3_5_FLASH,
+            MODELS.TEXT.GEMINI_4_ARGON,
             "test instruction",
             mockUserSkills,
             disabledSkills,

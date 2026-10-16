@@ -47,7 +47,7 @@ export interface AgentSettings {
 
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
     mode: "auto",
-    llmModel: MODELS.TEXT.GEMINI_3_5_FLASH,
+    llmModel: MODELS.TEXT.GEMINI_4_ARGON,
     imageModel: MODELS.IMAGE.GEMINI_NANO_BANANA_2_1,
     imageAspectRatio: "auto",
     imageResolution: "auto",
@@ -60,6 +60,7 @@ export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
 };
 
 const LLM_MODELS = [
+    { id: MODELS.TEXT.GEMINI_4_ARGON, label: "Gemini 4 Argon" },
     { id: MODELS.TEXT.GEMINI_3_5_FLASH, label: "Gemini 3.5 Flash" },
     { id: MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW, label: "Gemini 3.1 Pro" },
     {

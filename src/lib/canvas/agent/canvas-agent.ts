@@ -95,7 +95,7 @@ export class CanvasAgent {
             instruction,
             generateContentConfig: {
                 thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.LOW,
+                    thinkingLevel: ThinkingLevel.MEDIUM,
                     includeThoughts: true,
                 },
             },

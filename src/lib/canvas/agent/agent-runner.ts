@@ -45,7 +45,7 @@ export class CanvasAgentRunner {
     }
 
     async *stream(input: AgentInput): AsyncGenerator<AgentEvent> {
-        const model = input.model || MODELS.TEXT.GEMINI_3_5_FLASH;
+        const model = input.model || MODELS.TEXT.GEMINI_4_ARGON;
         let forceInstruction = "";
 
         await this.agent.ensurePatternSkillsLoaded();

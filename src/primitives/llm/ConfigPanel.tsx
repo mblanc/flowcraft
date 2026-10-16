@@ -3,7 +3,7 @@
 import { useFlowStore } from "@/lib/store/use-flow-store";
 import type { FlowState } from "@/lib/store/use-flow-store";
 import type { LLMData } from "@/lib/types";
-import { MODELS } from "@/lib/constants";
+import { MODELS, MODEL_THINKING_LEVELS } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,14 +43,32 @@ export function ConfigPanel({
     const validModels = Object.values(MODELS.TEXT) as string[];
     const effectiveModel = validModels.includes(data.model)
         ? data.model
-        : MODELS.TEXT.GEMINI_3_5_FLASH;
+        : MODELS.TEXT.GEMINI_4_ARGON;
 
     useEffect(() => {
         if (!validModels.includes(data.model)) {
-            updateNodeData(nodeId, { model: MODELS.TEXT.GEMINI_3_5_FLASH });
+            updateNodeData(nodeId, { model: MODELS.TEXT.GEMINI_4_ARGON });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nodeId]);
+
+    const handleModelChange = (newModel: string) => {
+        const updates: Partial<LLMData> = { model: newModel };
+        const supportedLevels = MODEL_THINKING_LEVELS[newModel];
+        if (supportedLevels) {
+            if (
+                !data.thinkingLevel ||
+                !supportedLevels.includes(data.thinkingLevel)
+            ) {
+                updates.thinkingLevel = supportedLevels.includes("MEDIUM")
+                    ? "MEDIUM"
+                    : supportedLevels[supportedLevels.length - 1];
+            }
+        } else {
+            updates.thinkingLevel = undefined;
+        }
+        updateNodeData(nodeId, updates);
+    };
 
     const syncResponseSchema = useCallback(
         (visualSchema: LLMData["visualSchema"]) => {
@@ -119,14 +137,15 @@ export function ConfigPanel({
                 <Label htmlFor="model">Model</Label>
                 <Select
                     value={effectiveModel}
-                    onValueChange={(value) =>
-                        updateNodeData(nodeId, { model: value })
-                    }
+                    onValueChange={handleModelChange}
                 >
                     <SelectTrigger>
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                        <SelectItem value={MODELS.TEXT.GEMINI_4_ARGON}>
+                            Gemini 4 Argon
+                        </SelectItem>
                         <SelectItem value={MODELS.TEXT.GEMINI_3_1_PRO_PREVIEW}>
                             Gemini 3.1 Pro Preview
                         </SelectItem>

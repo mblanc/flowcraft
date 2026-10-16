@@ -33,7 +33,7 @@ function baseInput(
 ): AgentInput {
     return {
         mode: "auto",
-        model: MODELS.TEXT.GEMINI_3_5_FLASH,
+        model: MODELS.TEXT.GEMINI_4_ARGON,
         history: [],
         canvasNodes: [],
         ...overrides,
@@ -197,7 +197,7 @@ Provide your evaluation in the requested JSON format.
             };
 
             const judgeResponseText = await geminiService.generateText({
-                model: MODELS.TEXT.GEMINI_3_5_FLASH,
+                model: MODELS.TEXT.GEMINI_4_ARGON,
                 prompts: [judgePrompt],
                 files: [
                     { url: imageGcsUri!, type: "image/png" },
