@@ -101,8 +101,8 @@ export const FlowNode = memo(
             useFlowStore.getState().setIsConfigSidebarOpen(true);
         }, [selectNode, id]);
 
-        const handleAspectRatioChange = (value: "16:9" | "9:16") => {
-            updateNodeData(id, { aspectRatio: value });
+        const handleAspectRatioChange = (value: string) => {
+            updateNodeData(id, { aspectRatio: value as "16:9" | "9:16" });
         };
 
         return (

@@ -200,8 +200,8 @@ export function ShareDialog({
                         </Label>
                         <Select
                             value={visibility}
-                            onValueChange={(val: Visibility) =>
-                                setVisibility(val)
+                            onValueChange={(val: string) =>
+                                setVisibility(val as Visibility)
                             }
                             disabled={!isOwner}
                         >
@@ -255,8 +255,8 @@ export function ShareDialog({
                                 />
                                 <Select
                                     value={newRole}
-                                    onValueChange={(val: "view" | "edit") =>
-                                        setNewRole(val)
+                                    onValueChange={(val: string) =>
+                                        setNewRole(val as "view" | "edit")
                                     }
                                     disabled={!isOwner}
                                 >
