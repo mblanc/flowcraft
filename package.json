@@ -79,7 +79,7 @@
         "tailwind-merge": "^3.7.0",
         "uuid": "^14.0.2",
         "winston": "^3.19.0",
-        "zod": "4.6.5",
+        "zod": "4.6.7",
         "zustand": "^5.0.15",
         "react-day-picker": "10.0.2"
     },
@@ -125,7 +125,7 @@
         "uuid": "$uuid",
         "vite": "^8.3.3",
         "werift": "^0.25.0",
-        "zod": "4.6.5"
+        "zod": "4.6.7"
     },
     "trustedDependencies": [
         "node-av",
