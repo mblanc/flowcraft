@@ -23,7 +23,7 @@ RUN bun run build
 
 
 # Production image, copy all the files and run next
-FROM node:26.12.1-slim AS runner
+FROM node:26.13.0-slim AS runner
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
